@@ -12,6 +12,14 @@
 .champ-game-pro-bar button{border:0;border-radius:12px;padding:9px 12px;background:rgba(255,255,255,.14);color:#fff;font-weight:900;cursor:pointer}
 @media(max-width:700px){.champ-game-pro-bar{top:7px;left:7px}.champ-game-pro-bar span{display:none}}
 </style>
+
+<style id="global-landscape-classic-guard">
+/* Keep the entire game landscape-only, including the full-screen Classic overlay. */
+@media (max-width:900px) and (orientation:portrait){
+  #champGameProOverlay{display:none!important}
+  #orientationGate{display:flex!important;z-index:2147483647!important}
+}
+</style>
 </head>
 <body data-build="v38-champ-word-polished"><div id="buildMarker">CHAMP WORD • V38 POLISHED MOBILE LANDSCAPE</div>
 <div id="app">
