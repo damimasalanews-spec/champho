@@ -478,21 +478,6 @@ function homePress(button){
   button.classList.add('cw-home-pressed');
   setTimeout(()=>button.classList.remove('cw-home-pressed'),170);
 }
-function launchClassic(){
-  const home=document.getElementById('finalDashboard');
-  const classic=document.getElementById('classic');
-  if(!classic){homeFeedback('Classic Mode','Classic screen is missing');return;}
-  document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));
-  classic.classList.remove('hidden');
-  document.body.classList.remove('app-open','profile-open');
-  const frame=document.getElementById('classicFrame');
-  if(frame && !frame.src) frame.src='classic.html';
-}
-window.launchClassic=launchClassic;
-window.addEventListener('message',e=>{
-  if(e.source!==document.getElementById('classicFrame')?.contentWindow)return;
-  if(e.data?.champHome){show('finalDashboard');}
-});
 function handleHomeHit(hit,button){
   homePress(button);
   const map={
@@ -502,7 +487,7 @@ function handleHomeHit(hit,button){
     pass:['Free Pass','Season progress selected'],
     settings:['Settings','Settings selected'],
     chat:['Chat','Chat selected'],
-    classic:['Classic Mode','Launching Classic Mode'],
+    classic:['Classic Mode','Classic Mode selected'],
     wild:['Go Wild','Go Wild selected'],
     fun:['Fun Pack','Fun Pack selected'],
     contest:['Contest','Contest selected'],
@@ -516,7 +501,6 @@ function handleHomeHit(hit,button){
     rewards:['Free Rewards Store','Rewards selected']
   };
   if(hit==='profile'){openProfile();return;}
-  if(hit==='classic'){launchClassic();return;}
   const msg=map[hit]||[hit,'Selected'];
   homeFeedback(msg[0],msg[1]);
 }
