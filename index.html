@@ -595,7 +595,7 @@
     document.body.classList.remove('auth-open','app-open','profile-open');
     overlay.classList.add('open'); overlay.setAttribute('aria-hidden','false');
     if(!frame.dataset.loaded){
-      try{frame.srcdoc=new TextDecoder('utf-8').decode(Uint8Array.from(atob(payload),function(c){return c.charCodeAt(0)}));}catch(e){console.error(e);}
+      try{frame.onload=function(){try{applyReferenceClassicSkin(frame.contentDocument);}catch(e){console.warn('Classic skin injection',e);}}; frame.srcdoc=new TextDecoder('utf-8').decode(Uint8Array.from(atob(payload),function(c){return c.charCodeAt(0)}));}catch(e){console.error(e);}
       frame.dataset.loaded='1';
     }
   }
