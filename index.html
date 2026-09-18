@@ -561,4 +561,13 @@
   },true);
 })();
 </script>
-<script>window.addEventListener('message',function(e){if(e.data&&e.data.champHome&&typeof window.closeChampProGame==='function'){window.closeChampProGame();}});</script></body></html>
+<script>window.addEventListener('message',function(e){if(e.data&&e.data.champHome&&typeof window.closeChampProGame==='function'){window.closeChampProGame();}});</script>
+<script id="CHAMP_VIDEO_ERROR_GUARD_V1">
+(()=>{
+  const clean=()=>document.querySelectorAll('video').forEach(v=>{v.removeAttribute('src');try{v.pause()}catch(e){};v.style.display='none'});
+  window.addEventListener('error',e=>{if(e.target instanceof HTMLMediaElement){e.preventDefault();clean()}},true);
+  window.addEventListener('unhandledrejection',e=>{const m=String(e.reason||'');if(/media|video|playback|source|codec|mov|mp4|webm/i.test(m)){e.preventDefault();clean()}},true);
+  clean();
+})();
+</script>
+</body></html>
