@@ -570,4 +570,26 @@
   clean();
 })();
 </script>
-</body></html>
+<script id="HIMALAYAN_CLASSIC_LAUNCH_GUARD_V1">
+(function(){
+  function launch(){
+    try{
+      if(typeof window.openChampProGame==='function'){
+        window.openChampProGame();
+        return;
+      }
+    }catch(e){ console.error('Classic launch failed',e); }
+  }
+  ['homeQuickPlay','hqStart','homeRoom'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){
+      el.addEventListener('pointerup',function(e){e.preventDefault();e.stopPropagation();launch();},true);
+      el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch();},true);
+    }
+  });
+  document.querySelectorAll('[data-home-hit="classic"]').forEach(function(el){
+    el.addEventListener('pointerup',function(e){e.preventDefault();e.stopPropagation();launch();},true);
+    el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch();},true);
+  });
+})();
+</script></body></html>
