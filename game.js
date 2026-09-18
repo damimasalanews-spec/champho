@@ -108,6 +108,52 @@ let app,auth,db,functions,user=null,state=null,roomId=null,partyId=null,unsubscr
 let profile={displayName:'Player',coins:250,wins:0,games:0,streak:0,level:1,xp:0,dailyStreak:0,lastDailyClaim:null,achievements:{},inventory:{gifts:{'🎁':1},emotes:{'😂':1,'🔥':1,'😎':1,'😱':1,'👏':1,'❤️':1}},history:[]};
 const call=n=>{if(!functions)return async()=>{throw new Error('Online services are not configured. Using local mode.');};return httpsCallable(functions,n)};
 let soundOn=localStorage.getItem('wordunoSound')!=='off',audioCtx=null,lastEventId=null,winShown=false;
+const classicAvatarCache={};
+let classicAvatarHydrating=false;
+function installClassicTablePlayerStyle(){
+ if(document.getElementById('classic-table-player-style'))return;
+ const st=document.createElement('style');st.id='classic-table-player-style';
+ st.textContent=`
+ .classic-table-players{position:absolute;inset:0;z-index:18;pointer-events:none;overflow:hidden}
+ .classic-table-player{position:absolute;width:150px;height:150px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+ .classic-table-player .ctp-chair{position:absolute;bottom:2px;width:112px;height:92px;border-radius:48px 48px 22px 22px;background:linear-gradient(180deg,#8b542e,#4d2b19);border:3px solid rgba(255,211,113,.8);box-shadow:0 12px 24px rgba(0,0,0,.38),inset 0 0 0 5px rgba(255,235,176,.12);transform:perspective(100px) rotateX(7deg)}
+ .classic-table-player .ctp-avatar{position:relative;z-index:2;width:88px;height:88px;border-radius:50%;padding:4px;background:linear-gradient(145deg,#ffe06a,#18dfff 55%,#1767d8);border:3px solid #062a45;box-shadow:0 8px 20px rgba(0,0,0,.42),0 0 18px rgba(18,218,255,.38)}
+ .classic-table-player .ctp-avatar .avatar-wrap{width:100%;height:100%}
+ .classic-table-player .ctp-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+ .classic-table-player .ctp-name{position:relative;z-index:3;margin-top:5px;padding:5px 11px;border-radius:12px;background:rgba(3,24,43,.92);border:1px solid rgba(34,203,255,.72);color:#fff;font:800 11px/1 Arial,sans-serif;white-space:nowrap;box-shadow:0 5px 12px rgba(0,0,0,.28)}
+ .classic-table-player.top{left:50%;top:19%}
+ .classic-table-player.left{left:14%;top:49%}
+ .classic-table-player.right{left:86%;top:49%}
+ .classic-table-player.bottom{left:50%;top:77%}
+ .classic-table-player.bottom .ctp-name{display:none}
+ @media(max-width:900px){
+  .classic-table-player{width:115px;height:120px}
+  .classic-table-player .ctp-chair{width:88px;height:72px}
+  .classic-table-player .ctp-avatar{width:68px;height:68px}
+  .classic-table-player.left{left:10%}.classic-table-player.right{left:90%}
+ }
+ `;
+ document.head.appendChild(st);
+}
+function renderClassicTablePlayers(players){
+ const game=document.getElementById('game');if(!game)return;
+ installClassicTablePlayerStyle();
+ let root=game.querySelector('.classic-table-players');
+ if(!root){root=document.createElement('div');root.className='classic-table-players';game.appendChild(root);}
+ const positions=['bottom','left','top','right'];
+ root.innerHTML=positions.map((pos,i)=>{const p=players[i];if(!p)return '';const av=p.avatar||defaultAvatar;return `<div class="classic-table-player ${pos}" data-player-id="${esc(p.id)}"><div class="ctp-chair"></div><div class="ctp-avatar">${avatarMarkup('table',av)}</div><div class="ctp-name">${esc(p.name||'Player')}</div></div>`}).join('');
+}
+async function hydrateClassicPlayerAvatars(players){
+ if(!db||!players?.length)return;
+ const missing=players.filter(p=>p?.id && !String(p.id).startsWith('bot_') && !classicAvatarCache[p.id]);
+ if(!missing.length)return;
+ await Promise.all(missing.map(async p=>{
+   if(p.id===user?.uid){classicAvatarCache[p.id]=avatarData();return;}
+   try{const snap=await getDoc(doc(db,'users',p.id));const d=snap.exists()?snap.data():null;classicAvatarCache[p.id]=d?.avatar||defaultAvatar;}catch(e){classicAvatarCache[p.id]=defaultAvatar;}
+ }));
+ players.forEach(p=>{if(p?.id&&classicAvatarCache[p.id])p.avatar=classicAvatarCache[p.id];});
+}
+
 function audio(){if(!soundOn)return null;audioCtx??=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx}
 function tone(freq,duration=.12,type='sine',gain=.045,delay=0){const c=audio();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(0,c.currentTime+delay);g.gain.linearRampToValueAtTime(gain,c.currentTime+delay+.015);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+delay+duration);o.connect(g).connect(c.destination);o.start(c.currentTime+delay);o.stop(c.currentTime+delay+duration+.02)}
 function playSound(type){if(!soundOn)return;if(type==='plus4_challenge'||type==='plus4_accept'){tone(type==='plus4_challenge'?180:280,.15,'triangle',.045);tone(type==='plus4_challenge'?120:420,.2,'triangle',.04,.1)}else if(type==='uno_challenge'){tone(150,.16,'sawtooth',.05);tone(100,.2,'sawtooth',.04,.1)}else if(type==='card_play'){tone(420,.08,'triangle',.05);tone(620,.12,'triangle',.035,.07)}else if(type==='draw'){tone(180,.12,'sine',.035)}else if(type==='uno'){tone(660,.12,'square',.05);tone(880,.2,'square',.045,.12)}else if(type==='skip'){tone(330,.1,'sawtooth',.04);tone(220,.16,'sawtooth',.035,.08)}else if(type==='reverse'){tone(260,.1,'triangle',.04);tone(390,.1,'triangle',.04,.08);tone(260,.16,'triangle',.035,.16)}else if(type==='wild'){tone(520,.09,'triangle',.04);tone(780,.09,'triangle',.04,.09);tone(1040,.18,'triangle',.035,.18)}else if(type==='plus4'){tone(130,.18,'sawtooth',.045);tone(90,.24,'sawtooth',.04,.12)}else if(type==='win'){[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.05,i*.11))}}
@@ -213,7 +259,7 @@ async function uno(){if(demo){localUno();return}try{await call('callUno')({code:
 function seat(el,p,active){const av=p?.avatar||defaultAvatar;const count=Math.max(0,Number(p?.hand?.length||0));const backs=Math.min(5,Math.max(0,count));el.innerHTML=`<div class="seat-inner ${active?'active':''}"><div class="avatar seat-avatar">${avatarMarkup('seat',av)}</div><div class="seat-info"><b>${esc(p?.name||'Waiting…')}</b><small>${count} cards${active?' · YOUR TURN':''}</small></div></div><div class="mini-hand">${Array.from({length:backs},(_,i)=>`<i style="--i:${i}"><span>WU</span></i>`).join('')}</div>`;el.style.boxShadow='none'}
 function cardLabel(c){const map={skip:'⛔',reverse:'↔',plus2:'+2',plus4:'+4',wild:'★'};return c?.type&&map[c.type]?`<span class="card-icon">${map[c.type]}</span><span class="card-word">${esc(c.word||c.type.toUpperCase())}</span>`:`<span class="card-word">${esc(c?.word||'WORD')}</span>`}
 function showWin(s){if(!s.over||winShown)return;winShown=true;const ev=s.lastEvent||{};const me=user?.uid;const winner=ev.playerName||s.players?.find(p=>p.id===ev.playerId)?.name||'Winner';const mine=ev.playerId===me;$('winTitle').textContent=mine?'You Won!':`${winner} Won!`;$('winSummary').textContent=mine?'Excellent round. Your rewards are being added to your profile.':`${winner} finished the round first.`;const r=(s.settlement||[]).find(x=>x.id===me);$('winCoins').textContent=`+${r?.coins||0}`;$('winXp').textContent=`+${r?.xp||0}`;$('winModal').classList.remove('hidden')}
-function renderGame(s){if(!s.over)winShown=false;handleGameEvent(s);const me=s.players.findIndex(p=>p.id===user.uid);populateGiftTargets(s);if(me<0)return;const ordered=[0,1,2,3].map((_,i)=>s.players[(me+i)%s.players.length]);seat($('pTop'),ordered[2],s.turn===s.players.indexOf(ordered[2]));seat($('pLeft'),ordered[1],s.turn===s.players.indexOf(ordered[1]));seat($('pRight'),ordered[3],s.turn===s.players.indexOf(ordered[3]));seat($('pMe'),ordered[0],s.turn===s.players.indexOf(ordered[0]));const c=s.discard;$('discard').className=`card ${c.color} ${c.type||'word'}`;$('discard').innerHTML=cardLabel(c);$('colorHint').textContent=`COLOR: ${s.chosenColor.toUpperCase()}`;$('turnText').textContent=s.over?'Round complete':s.pendingPlus4?'Choose: Challenge +4 or Accept +4':s.players[s.turn]?.id===user.uid?(s.drawnCardId?'Play the drawn card or wait':'Your turn'):'Waiting for '+s.players[s.turn]?.name;$('handCount').textContent=`${ordered[0].hand.length} cards`;$('hand').innerHTML='';ordered[0].hand.forEach((c,i)=>{const b=document.createElement('button');b.className=`hand-card ${c.color} ${c.type||'word'} ${legal(c,s)?'playable':''}`;b.innerHTML=cardLabel(c);b.disabled=s.players[s.turn]?.id!==user.uid||s.over||!!s.pendingPlus4||!!(s.drawnCardId&&c.id!==s.drawnCardId)||!legal(c,s);b.onclick=()=>play(i);$('hand').appendChild(b)});$('drawBtn').disabled=s.players[s.turn]?.id!==user.uid||s.over||!!s.pendingPlus4||!!s.drawnCardId;$('unoBtn').disabled=s.over||s.unoTarget!==user.uid;$('challengeBar').classList.toggle('hidden',s.over||(!s.pendingPlus4&&!s.unoTarget));$('challengePlus4Btn').classList.toggle('hidden',!(s.pendingPlus4&&s.pendingPlus4.targetId===user.uid));$('acceptPlus4Btn').classList.toggle('hidden',!(s.pendingPlus4&&s.pendingPlus4.targetId===user.uid));$('challengeUnoBtn').classList.toggle('hidden',!(s.unoTarget&&s.unoTarget!==user.uid&&!s.pendingPlus4));if(s.pendingPlus4)$('challengeText').textContent='The +4 was played. Challenge it if the previous color was available.';else if(s.unoTarget)$('challengeText').textContent='A player has 1 card and did not call UNO.';msg(s.lastAction||'Match the color or the word.');showWin(s);startTimer(s)}
+function renderGame(s){if(!s.over)winShown=false;handleGameEvent(s);const me=s.players.findIndex(p=>p.id===user.uid);populateGiftTargets(s);if(me<0)return;const ordered=[0,1,2,3].map((_,i)=>s.players[(me+i)%s.players.length]);if(ordered[0])ordered[0].avatar=avatarData();ordered.forEach(p=>{if(p&&classicAvatarCache[p.id])p.avatar=classicAvatarCache[p.id]});renderClassicTablePlayers(ordered);if(db&&!classicAvatarHydrating){classicAvatarHydrating=true;hydrateClassicPlayerAvatars(ordered).then(()=>{classicAvatarHydrating=false;renderClassicTablePlayers(ordered);ordered.forEach((p,i)=>{if(p&&classicAvatarCache[p.id])p.avatar=classicAvatarCache[p.id]});seat($('pTop'),ordered[2],s.turn===s.players.indexOf(ordered[2]));seat($('pLeft'),ordered[1],s.turn===s.players.indexOf(ordered[1]));seat($('pRight'),ordered[3],s.turn===s.players.indexOf(ordered[3]));seat($('pMe'),ordered[0],s.turn===s.players.indexOf(ordered[0]))}).catch(()=>{classicAvatarHydrating=false})}seat($('pTop'),ordered[2],s.turn===s.players.indexOf(ordered[2]));seat($('pLeft'),ordered[1],s.turn===s.players.indexOf(ordered[1]));seat($('pRight'),ordered[3],s.turn===s.players.indexOf(ordered[3]));seat($('pMe'),ordered[0],s.turn===s.players.indexOf(ordered[0]));const c=s.discard;$('discard').className=`card ${c.color} ${c.type||'word'}`;$('discard').innerHTML=cardLabel(c);$('colorHint').textContent=`COLOR: ${s.chosenColor.toUpperCase()}`;$('turnText').textContent=s.over?'Round complete':s.pendingPlus4?'Choose: Challenge +4 or Accept +4':s.players[s.turn]?.id===user.uid?(s.drawnCardId?'Play the drawn card or wait':'Your turn'):'Waiting for '+s.players[s.turn]?.name;$('handCount').textContent=`${ordered[0].hand.length} cards`;$('hand').innerHTML='';ordered[0].hand.forEach((c,i)=>{const b=document.createElement('button');b.className=`hand-card ${c.color} ${c.type||'word'} ${legal(c,s)?'playable':''}`;b.innerHTML=cardLabel(c);b.disabled=s.players[s.turn]?.id!==user.uid||s.over||!!s.pendingPlus4||!!(s.drawnCardId&&c.id!==s.drawnCardId)||!legal(c,s);b.onclick=()=>play(i);$('hand').appendChild(b)});$('drawBtn').disabled=s.players[s.turn]?.id!==user.uid||s.over||!!s.pendingPlus4||!!s.drawnCardId;$('unoBtn').disabled=s.over||s.unoTarget!==user.uid;$('challengeBar').classList.toggle('hidden',s.over||(!s.pendingPlus4&&!s.unoTarget));$('challengePlus4Btn').classList.toggle('hidden',!(s.pendingPlus4&&s.pendingPlus4.targetId===user.uid));$('acceptPlus4Btn').classList.toggle('hidden',!(s.pendingPlus4&&s.pendingPlus4.targetId===user.uid));$('challengeUnoBtn').classList.toggle('hidden',!(s.unoTarget&&s.unoTarget!==user.uid&&!s.pendingPlus4));if(s.pendingPlus4)$('challengeText').textContent='The +4 was played. Challenge it if the previous color was available.';else if(s.unoTarget)$('challengeText').textContent='A player has 1 card and did not call UNO.';msg(s.lastAction||'Match the color or the word.');showWin(s);startTimer(s)}
 function startTimer(s){clearInterval(timerId);let n=30;$('timer').textContent=s.pendingPlus4?'--':n;if(s.over||s.pendingPlus4||s.players[s.turn]?.id!==user.uid)return;timerId=setInterval(()=>{n--;$('timer').textContent=n;if(n<=0){clearInterval(timerId);draw()}},1000)}
 
 
@@ -424,7 +470,7 @@ function makeLocalGame(){
  const colors=['red','blue','green','yellow'];
  const words=['APPLE','HOUSE','RIVER','MOON','STAR','GREEN','BOOK','CLOUD','SUN','TREE','LIGHT','FIRE'];
  const players=[
-  {id:user?.uid||'guest',name:user?.displayName||'Guest',hand:[],avatar:defaultAvatar},
+  {id:user?.uid||'guest',name:user?.displayName||'Guest',hand:[],avatar:avatarData()},
   {id:'bot_1',name:'Aiko',hand:[],avatar:{avatarId:'avatar_girl_rose',frameId:'frame_classic',effectId:'effect_spark'}},
   {id:'bot_2',name:'Kai',hand:[],avatar:{avatarId:'avatar_boy_azure',frameId:'frame_classic',effectId:'effect_spark'}},
   {id:'bot_3',name:'Mina',hand:[],avatar:{avatarId:'avatar_girl_sky',frameId:'frame_classic',effectId:'effect_spark'}}
