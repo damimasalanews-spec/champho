@@ -567,9 +567,9 @@
       .actionbar{bottom:0!important;gap:10px!important}
       .action{height:52px!important;border-radius:16px!important}
       .chat{right:16px!important;bottom:54px!important;width:300px!important;height:250px!important}
-      .side-tools{left:16px!important;top:auto!important;bottom:82px!important;flex-direction:row!important}
+      .side-tools{display:none!important}
       .tool{width:52px!important;height:52px!important}
-      .reference-reactions{position:absolute;z-index:70;left:16px;bottom:62px;width:305px;padding:14px 14px 12px;border-radius:20px;background:linear-gradient(160deg,rgba(6,25,51,.98),rgba(2,14,30,.98));border:1px solid rgba(90,211,255,.5);box-shadow:0 18px 45px rgba(0,0,0,.5);color:#fff}
+      .reference-draw-status{position:absolute;left:50%;bottom:-92px;transform:translateX(-50%);width:min(360px,48vw);text-align:center;color:#173b57;font-size:15px;font-weight:1000}.reference-draw-track{height:12px;margin:8px 0 6px;border-radius:999px;background:rgba(29,50,66,.5);overflow:hidden}.reference-draw-track i{display:block;width:55%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#12a9ff,#24d8ff);box-shadow:0 0 14px rgba(20,190,255,.55)}.reference-draw-status span{font-size:12px;letter-spacing:1.6px}.reference-reactions{position:absolute;z-index:70;left:16px;bottom:62px;width:305px;padding:14px 14px 12px;border-radius:20px;background:linear-gradient(160deg,rgba(6,25,51,.98),rgba(2,14,30,.98));border:1px solid rgba(90,211,255,.5);box-shadow:0 18px 45px rgba(0,0,0,.5);color:#fff}
       .reference-reactions .rr-title{font-weight:1000;color:#7eeaff;font-size:14px;margin-bottom:8px}
       .reference-reactions .rr-row{display:flex;gap:8px;margin-bottom:12px}
       .reference-reactions button{width:52px;height:48px;border:1px solid rgba(101,219,255,.22);border-radius:13px;background:#0b2a4b;color:#fff;font-size:27px;cursor:pointer}
@@ -588,6 +588,14 @@
       panel.querySelectorAll('[data-ref-gift]').forEach(function(b){b.onclick=function(){var e=doc.getElementById('giftBtn');if(e)e.click();}});
     }
     var brand=doc.querySelector('.brand'); if(brand) brand.setAttribute('aria-label','Champ Word Classic Mode');
+    var clueText=doc.getElementById('clueText'); if(clueText) clueText.textContent='DRAWING…';
+    var centerLabel=doc.querySelector('.centerlabel'); if(centerLabel) centerLabel.textContent='DRAWING';
+    var center=doc.querySelector('.center');
+    if(center && !doc.getElementById('referenceDrawStatus')){
+      var ds=doc.createElement('div'); ds.id='referenceDrawStatus'; ds.className='reference-draw-status';
+      ds.innerHTML='<b>Drawing…</b><div class="reference-draw-track"><i></i></div><span>DRAWING</span>';
+      center.appendChild(ds);
+    }
     var reorder=doc.getElementById('reorder'); if(reorder) reorder.textContent='↝ SHUFFLE';
   }
   function openChampProGame(){
