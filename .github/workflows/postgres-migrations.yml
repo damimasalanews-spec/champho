@@ -65,6 +65,9 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Verify migration runner rejects misordered files
+        run: ./scripts/test-migrate-ci-order.sh
+
       - name: Run PostgreSQL migration tests
         run: |
           set -euo pipefail
