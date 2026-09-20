@@ -897,3 +897,123 @@ test("join_room when the room is full returns a protocol error without persistin
     await stopServer(server);
   }
 });
+
+
+test("resume_room twice on the same connection returns a protocol error without duplicate state", async () => {
+  const port = 8400 + Math.floor(Math.random() * 1000);
+  const ownerId = randomUUID();
+  const server = await startServer(port);
+  const owner = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
+    const createdSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      owner,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    owner.close();
+
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const row = await pool.query(
+        `SELECT connected
+         FROM public.room_players
+         WHERE room_id = $1 AND player_id = $2`,
+        [roomId, ownerId]
+      );
+      if (row.rows[0]?.connected === false) break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    const resumed = await connect(port);
+
+    resumed.send(JSON.stringify({
+      type: "resume_room",
+      roomId,
+      playerId: ownerId
+    }));
+    await waitForMessage(
+      resumed,
+      (message) => message.type === "resume_started"
+    );
+    const snapshot = await waitForMessage(
+      resumed,
+      (message) => message.type === "room_snapshot"
+    );
+    assert.equal(snapshot.players.length, 1);
+    await waitForMessage(
+      resumed,
+      (message) => message.type === "resume_complete"
+    );
+
+    const before = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players WHERE room_id = $1) AS players,
+         (SELECT count(*) FROM public.room_events WHERE room_id = $1) AS events,
+         (SELECT event_sequence FROM public.game_rooms WHERE id = $1) AS event_sequence`,
+      [roomId]
+    );
+
+    assert.equal(Number(before.rows[0].players), 1);
+    assert.equal(Number(before.rows[0].events), 1);
+    assert.equal(Number(before.rows[0].event_sequence), 1);
+
+    resumed.send(JSON.stringify({
+      type: "resume_room",
+      roomId,
+      playerId: ownerId
+    }));
+
+    const error = await waitForMessage(
+      resumed,
+      (message) =>
+        message.type === "error" &&
+        message.reason === "resume_already_active"
+    );
+
+    assert.deepEqual(error, {
+      type: "error",
+      reason: "resume_already_active"
+    });
+
+    const after = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players WHERE room_id = $1) AS players,
+         (SELECT count(*) FROM public.room_events WHERE room_id = $1) AS events,
+         (SELECT event_sequence FROM public.game_rooms WHERE id = $1) AS event_sequence`,
+      [roomId]
+    );
+
+    assert.deepEqual(after.rows[0], before.rows[0]);
+
+    const duplicatePlayers = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, ownerId]
+    );
+    assert.equal(Number(duplicatePlayers.rows[0].count), 1);
+
+    const duplicateEvents = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_events
+       WHERE room_id = $1
+         AND event_type = 'player_joined'
+         AND payload->>'playerId' = $2`,
+      [roomId, ownerId]
+    );
+    assert.equal(Number(duplicateEvents.rows[0].count), 0);
+
+    resumed.close();
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    owner.close();
+    await stopServer(server);
+  }
+});
