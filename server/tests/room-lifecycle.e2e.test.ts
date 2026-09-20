@@ -1365,8 +1365,10 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     resolveServerSocketClose = resolve;
   });
 
+  let owner: WebSocket | undefined;
   const server = createServerApp({
-    onSocketClose: () => {
+    onSocketClose: (socket) => {
+      if (socket !== owner) return;
       serverSocketClosed = true;
       resolveServerSocketClose();
     },
@@ -1377,7 +1379,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     }
   });
   await server.listen(port, "127.0.0.1");
-  const owner = await connect(port);
+  owner = await connect(port);
   let resumed: WebSocket | undefined;
   let roomId: string | undefined;
   let released = false;
@@ -1513,6 +1515,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
 
     try {
       if (resumed && resumed.readyState === WebSocket.OPEN) {
+        resumed.removeAllListeners("close");
         resumed.close();
       }
     } catch (error) {
