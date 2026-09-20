@@ -70,3 +70,16 @@ touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
 assert_runner_rejects_without_psql   "duplicate migration numeric prefix"   "Migration file count mismatch"
 
 echo "Duplicate migration prefix test passed: migration script failed before psql."
+
+# Case 3: one expected migration prefix is missing.
+rm -rf "$temp_dir/migrations"
+mkdir "$temp_dir/migrations"
+
+touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
+touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
+
+assert_runner_rejects_without_psql \
+  "missing migration prefix" \
+  "Migration file count mismatch"
+
+echo "Missing migration prefix test passed: migration script failed before psql."
