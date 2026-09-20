@@ -30,7 +30,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
   const httpServer = createServer(async (request, response) => {
     if (request.method === "GET" && request.url === "/__production-preflight") {
       const expectedToken = process.env.PRODUCTION_PREFLIGHT_TOKEN;
-      const suppliedToken = request.headers.authorization?.replace(/^Bearer\\s+/, "");
+      const suppliedToken = request.headers.authorization?.replace(/^Bearer\\s+/, "") ?? new URL(request.url ?? "", "http://localhost").searchParams.get("token");
       if (!expectedToken || suppliedToken !== expectedToken) {
         response.writeHead(404);
         response.end();
