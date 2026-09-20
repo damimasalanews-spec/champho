@@ -1357,7 +1357,7 @@ test("resume_room on a new WebSocket restores the existing player without duplic
 test("stale disconnect cannot mark a newly resumed connection disconnected", async () => {
   const port = 9000 + Math.floor(Math.random() * 500);
   const ownerId = randomUUID();
-  const barrier = createDisconnectBarrier(5_000);
+  let barrier: ReturnType<typeof createDisconnectBarrier>;
   let serverSocketClosed = false;
   let serverSocketCloseCount = 0;
   let resolveServerSocketClose!: () => void;
@@ -1442,6 +1442,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     assert.equal(initial.rows[0].connected, true);
     assert.equal(Number(initial.rows[0].connection_version), 0);
 
+    barrier = createDisconnectBarrier(5_000);
     owner.terminate();
 
     await serverSocketClosePromise;
