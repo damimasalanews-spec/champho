@@ -6,41 +6,67 @@ migration_script="$repo_root/scripts/migrate-ci.sh"
 temp_dir="$(mktemp -d)"
 trap "rm -rf \"$temp_dir\"" EXIT
 
-touch "$temp_dir/001_game_rooms_and_submissions.sql"
-touch "$temp_dir/003_protocol_indexes_and_immutability.sql"
-touch "$temp_dir/002_protocol_constraints.sql"
+assert_runner_rejects_without_psql() {
+  local label="$1"
+  local expected_message="$2"
 
-marker="$temp_dir/psql-was-called"
-mkdir "$temp_dir/bin"
-cat > "$temp_dir/bin/psql" <<EOF
+  local marker="$temp_dir/psql-was-called"
+  rm -f "$marker"
+  rm -rf "$temp_dir/bin"
+  mkdir "$temp_dir/bin"
+
+  cat > "$temp_dir/bin/psql" <<EOF
 #!/usr/bin/env bash
 touch "$marker"
-echo "TEST FAILED: psql was invoked for a misordered migration set" >&2
+echo "TEST FAILED: psql was invoked for $label" >&2
 exit 99
 EOF
-chmod +x "$temp_dir/bin/psql"
+  chmod +x "$temp_dir/bin/psql"
 
-set +e
-PATH="$temp_dir/bin:$PATH" MIGRATION_DIR="$temp_dir" "$migration_script" >"$temp_dir/output.log" 2>&1
-status=$?
-set -e
+  set +e
+  PATH="$temp_dir/bin:$PATH" MIGRATION_DIR="$temp_dir/migrations" "$migration_script"     >"$temp_dir/output.log" 2>&1
+  local status=$?
+  set -e
 
-if [ "$status" -eq 0 ]; then
-  echo "TEST FAILED: misordered migrations unexpectedly succeeded"
-  cat "$temp_dir/output.log"
-  exit 1
-fi
+  if [ "$status" -eq 0 ]; then
+    echo "TEST FAILED: $label unexpectedly succeeded"
+    cat "$temp_dir/output.log"
+    exit 1
+  fi
 
-if [ -e "$marker" ]; then
-  echo "TEST FAILED: migration script invoked psql before rejecting order"
-  cat "$temp_dir/output.log"
-  exit 1
-fi
+  if [ -e "$marker" ]; then
+    echo "TEST FAILED: migration script invoked psql before rejecting $label"
+    cat "$temp_dir/output.log"
+    exit 1
+  fi
 
-if ! grep -q "Migration order/file mismatch" "$temp_dir/output.log"; then
-  echo "TEST FAILED: expected migration-order failure was not reported"
-  cat "$temp_dir/output.log"
-  exit 1
-fi
+  if ! grep -q "$expected_message" "$temp_dir/output.log"; then
+    echo "TEST FAILED: expected $label failure was not reported"
+    cat "$temp_dir/output.log"
+    exit 1
+  fi
+}
 
-echo "Misordered migration test passed: migration script failed before psql."
+mkdir "$temp_dir/migrations"
+
+# Case 1: deliberately misordered migration files.
+touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
+touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
+touch "$temp_dir/migrations/002_protocol_constraints.sql"
+
+assert_runner_rejects_without_psql   "misordered migration set"   "Migration order/file mismatch"
+
+echo "Misordered migration test passed."
+
+# Case 2: two migration files share the same numeric prefix.
+rm -rf "$temp_dir/migrations"
+mkdir "$temp_dir/migrations"
+
+touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
+touch "$temp_dir/migrations/001_duplicate_game_rooms.sql"
+touch "$temp_dir/migrations/002_protocol_constraints.sql"
+touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
+
+assert_runner_rejects_without_psql   "duplicate migration numeric prefix"   "Migration file count mismatch"
+
+echo "Duplicate migration prefix test passed: migration script failed before psql."
