@@ -156,6 +156,63 @@ export async function createRoom(playerId: string): Promise<{
   }
 }
 
+export async function startRound(roomId: string): Promise<RoomSnapshot> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const room = await client.query(
+      `SELECT id, state, phase, round_number, turn_number
+       FROM public.game_rooms WHERE id = $1 FOR UPDATE`,
+      [roomId]
+    );
+    if (room.rowCount !== 1) throw new Error("room_not_found");
+    if (room.rows[0].phase !== "waiting") throw new Error("round_already_started");
+
+    const players = await client.query(
+      `SELECT player_id FROM public.room_players
+       WHERE room_id = $1 ORDER BY seat_number FOR UPDATE`,
+      [roomId]
+    );
+    if (players.rowCount < 2) throw new Error("not_enough_players");
+
+    const starter = players.rows[0].player_id;
+    const hand = JSON.stringify([
+      { cardId: "smoke-card-a", value: "a" },
+      { cardId: "smoke-card-b", value: "b" }
+    ]);
+
+    await client.query(
+      `UPDATE public.room_players
+       SET private_hand = $2::jsonb,
+           hand_version = 1,
+           hand_round_number = $3,
+           turn_state = CASE WHEN player_id = $4 THEN 'active' ELSE 'waiting' END,
+           updated_at = clock_timestamp()
+       WHERE room_id = $1`,
+      [roomId, hand, Number(room.rows[0].round_number), starter]
+    );
+
+    await client.query(
+      `UPDATE public.game_rooms
+       SET state = 'active',
+           phase = 'playing',
+           active_player_id = $2,
+           updated_at = clock_timestamp()
+       WHERE id = $1`,
+      [roomId, starter]
+    );
+
+    const snapshot = await readSnapshot(client, roomId);
+    await client.query("COMMIT");
+    return snapshot;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function resumeRoom(
   roomId: string,
   playerId: string
