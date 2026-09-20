@@ -133,6 +133,9 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
 
   return {
     async wait() {
+      if (released || completed) {
+        return;
+      }
       if (blocked) {
         throw new Error("disconnect barrier was already entered");
       }
