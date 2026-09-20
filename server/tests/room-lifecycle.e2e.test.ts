@@ -405,3 +405,68 @@ test("duplicate join_room requests return a protocol error without duplicate pla
     await stopServer(server);
   }
 });
+
+
+test("join_room with an unknown room returns a protocol error without persisting players or events", async () => {
+  const port = 7100 + Math.floor(Math.random() * 1000);
+  const playerId = randomUUID();
+  const unknownRoomId = randomUUID();
+  const server = await startServer(port);
+  const socket = await connect(port);
+
+  try {
+    const before = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events`
+    );
+
+    socket.send(
+      JSON.stringify({
+        type: "join_room",
+        roomId: unknownRoomId,
+        playerId
+      })
+    );
+
+    const error = await waitForMessage(
+      socket,
+      (message) =>
+        message.type === "error" &&
+        message.reason === "room_not_found"
+    );
+
+    assert.deepEqual(error, {
+      type: "error",
+      reason: "room_not_found"
+    });
+
+    const after = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events`
+    );
+
+    assert.deepEqual(after.rows[0], before.rows[0]);
+
+    const roomPlayers = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_players
+       WHERE player_id = $1`,
+      [playerId]
+    );
+    assert.equal(Number(roomPlayers.rows[0].count), 0);
+
+    const roomEvents = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_events
+       WHERE room_id = $1
+          OR payload->>'playerId' = $2`,
+      [unknownRoomId, playerId]
+    );
+    assert.equal(Number(roomEvents.rows[0].count), 0);
+  } finally {
+    socket.close();
+    await stopServer(server);
+  }
+});
