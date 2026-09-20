@@ -12,7 +12,7 @@ export type MigrationHook = {
   beforeCommit?: (migration: Migration, client: PoolClient) => Promise<void>;
 };
 
-const MIGRATION_LOCK_ID = 73421;
+export const MIGRATION_LOCK_ID = 73421;
 const MAX_MIGRATION_ATTEMPTS = 3;
 
 export const migrations: Migration[] = [
