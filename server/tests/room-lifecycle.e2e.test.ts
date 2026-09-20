@@ -19,55 +19,98 @@ function cleanupError(phase: string, error: unknown): Error {
   );
 }
 
+type PendingMessageWaiter = {
+  predicate: (message: Message) => boolean;
+  resolve: (message: Message) => void;
+  reject: (error: Error) => void;
+  timeoutHandle: ReturnType<typeof setTimeout>;
+  label: string;
+};
+
+type SocketMessageState = {
+  queue: Message[];
+  waiters: PendingMessageWaiter[];
+  onMessage: (raw: WebSocket.RawData) => void;
+  onError: (error: Error) => void;
+};
+
+const socketMessageStates = new WeakMap<WebSocket, SocketMessageState>();
+
+function getSocketMessageState(socket: WebSocket): SocketMessageState {
+  const existing = socketMessageStates.get(socket);
+  if (existing) return existing;
+
+  const state = {
+    queue: [],
+    waiters: [],
+    onMessage: () => {},
+    onError: () => {}
+  } as SocketMessageState;
+
+  state.onMessage = (raw) => {
+    try {
+      const message = JSON.parse(raw.toString()) as Message;
+      const waiterIndex = state.waiters.findIndex((waiter) => waiter.predicate(message));
+      if (waiterIndex >= 0) {
+        const [waiter] = state.waiters.splice(waiterIndex, 1);
+        clearTimeout(waiter.timeoutHandle);
+        waiter.resolve(message);
+        return;
+      }
+      state.queue.push(message);
+    } catch (error) {
+      const parsedError = error instanceof Error ? error : new Error(String(error));
+      const waiter = state.waiters.shift();
+      if (waiter) {
+        clearTimeout(waiter.timeoutHandle);
+        waiter.reject(parsedError);
+      }
+    }
+  };
+
+  state.onError = (error) => {
+    for (const waiter of state.waiters.splice(0)) {
+      clearTimeout(waiter.timeoutHandle);
+      waiter.reject(error);
+    }
+  };
+
+  socketMessageStates.set(socket, state);
+  socket.on("message", state.onMessage);
+  socket.on("error", state.onError);
+  return state;
+}
+
 function waitForMessage(
   socket: WebSocket,
   predicate: (message: Message) => boolean,
   timeoutMs = 5_000,
   label = "matching WebSocket message"
 ): Promise<Message> {
+  const state = getSocketMessageState(socket);
+  const queuedIndex = state.queue.findIndex(predicate);
+  if (queuedIndex >= 0) {
+    const [message] = state.queue.splice(queuedIndex, 1);
+    return Promise.resolve(message);
+  }
+
   return new Promise((resolve, reject) => {
-    let settled = false;
-    let timeoutHandle: ReturnType<typeof setTimeout>;
-
-    const cleanup = () => {
-      socket.off("message", onMessage);
-      socket.off("error", onError);
-      clearTimeout(timeoutHandle);
+    const waiter: PendingMessageWaiter = {
+      predicate,
+      resolve,
+      reject,
+      label,
+      timeoutHandle: setTimeout(() => {
+        const index = state.waiters.indexOf(waiter);
+        if (index >= 0) state.waiters.splice(index, 1);
+        reject(
+          new Error(
+            `[waitForMessage] timed out after ${timeoutMs}ms waiting for ${label}`
+          )
+        );
+      }, timeoutMs)
     };
-
-    const settleResolve = (message: Message) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(message);
-    };
-
-    const settleReject = (error: Error) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(error);
-    };
-
-    const onMessage = (raw: WebSocket.RawData) => {
-      try {
-        const message = JSON.parse(raw.toString()) as Message;
-        if (predicate(message)) settleResolve(message);
-      } catch (error) {
-        settleReject(error instanceof Error ? error : new Error(String(error)));
-      }
-    };
-
-    const onError = (error: Error) => settleReject(error);
-
-    timeoutHandle = setTimeout(() => {
-      settleReject(
-        new Error(`[waitForMessage] timed out after ${timeoutMs}ms waiting for ${label}`)
-      );
-    }, timeoutMs);
-
-    socket.on("message", onMessage);
-    socket.on("error", onError);
+    state.waiters.push(waiter);
   });
 }
 
