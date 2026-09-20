@@ -158,6 +158,9 @@ async function startServer(port: number): Promise<ChildProcess> {
     };
 
     child.stdout?.on("data", onOutput);
+    child.stderr?.on("data", (chunk: Buffer) => {
+      process.stdout.write(chunk);
+    });
     child.once("error", onError);
     child.once("exit", onExit);
   });
