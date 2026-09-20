@@ -126,6 +126,7 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
     const error = new Error(
       `disconnect barrier timed out after ${timeoutMs}ms`
     );
+    clearTimeoutOnce();
     rejectBlocked(error);
     rejectCompleted(error);
   }, timeoutMs);
@@ -1273,7 +1274,8 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         barrier.afterDisconnectUpdate(rowCount)
     }
   });
-  const owner = await connectToApp(server, port);
+  await server.listen(port, "127.0.0.1");
+  const owner = await connect(port);
   let resumed: WebSocket | undefined;
   let roomId: string | undefined;
 
@@ -1300,7 +1302,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
 
     await barrier.waitUntilBlocked();
 
-    resumed = await connectToApp(server, port);
+    resumed = await connect(port);
     resumed.send(JSON.stringify({
       type: "resume_room",
       roomId,
@@ -1379,10 +1381,3 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   }
 });
 
-async function connectToApp(
-  server: ReturnType<typeof createServerApp>,
-  port: number
-): Promise<WebSocket> {
-  await server.listen(port, "127.0.0.1");
-  return connect(port);
-}
