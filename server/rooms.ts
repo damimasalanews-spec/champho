@@ -22,6 +22,11 @@ export type RoomSnapshot = {
   players: RoomPlayer[];
 };
 
+export type DisconnectHooks = {
+  beforeDisconnectUpdate?: () => Promise<void>;
+  afterDisconnectUpdate?: (rowCount: number) => void;
+};
+
 export type RoomEvent = {
   type: "event";
   eventSequence: number;
@@ -168,16 +173,22 @@ export async function resumeRoom(
     );
     if (player.rowCount !== 1) throw new Error("player_not_in_room");
 
-    await client.query(
+    const resumed = await client.query(
       `UPDATE public.room_players
-       SET connected = true, updated_at = clock_timestamp()
-       WHERE room_id = $1 AND player_id = $2`,
+       SET connected = true,
+           connection_version = connection_version + 1,
+           updated_at = clock_timestamp()
+       WHERE room_id = $1 AND player_id = $2
+       RETURNING connection_version`,
       [roomId, playerId]
     );
 
     const snapshot = await readSnapshot(client, roomId);
     await client.query("COMMIT");
-    return { snapshot };
+    return {
+      snapshot,
+      connectionVersion: Number(resumed.rows[0].connection_version)
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -188,14 +199,24 @@ export async function resumeRoom(
 
 export async function markPlayerDisconnected(
   roomId: string,
-  playerId: string
-): Promise<void> {
-  await pool.query(
+  playerId: string,
+  connectionVersion: number,
+  hooks: DisconnectHooks = {}
+): Promise<number> {
+  await hooks.beforeDisconnectUpdate?.();
+
+  const result = await pool.query(
     `UPDATE public.room_players
      SET connected = false, updated_at = clock_timestamp()
-     WHERE room_id = $1 AND player_id = $2`,
-    [roomId, playerId]
+     WHERE room_id = $1
+       AND player_id = $2
+       AND connection_version = $3`,
+    [roomId, playerId, connectionVersion]
   );
+
+  const rowCount = result.rowCount ?? 0;
+  hooks.afterDisconnectUpdate?.(rowCount);
+  return rowCount;
 }
 
 export async function joinRoom(
