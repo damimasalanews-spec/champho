@@ -2,11 +2,18 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
+import { EventEmitter } from "node:events";
 import { WebSocket } from "ws";
 import { pool } from "../db.js";
 import { createServerApp } from "../index.js";
 
 type Message = Record<string, any>;
+
+function cleanupError(phase: string, error: unknown): Error {
+  return new Error(
+    `[stale disconnect cleanup] ${phase}: ${error instanceof Error ? error.message : String(error)}`
+  );
+}
 
 function waitForMessage(
   socket: WebSocket,
@@ -59,6 +66,75 @@ function waitForMessage(
     socket.on("error", onError);
   });
 }
+
+test("stale disconnect diagnostics identify the stalled message and cleanup phases", async () => {
+  const fakeSocket = new EventEmitter() as unknown as WebSocket;
+
+  await assert.rejects(
+    waitForMessage(
+      fakeSocket,
+      () => false,
+      10,
+      "resume_complete for resumed socket"
+    ),
+    (error: unknown) => {
+      assert.match(
+        String(error),
+        /\[waitForMessage\] timed out after 10ms waiting for resume_complete for resumed socket/
+      );
+      return true;
+    }
+  );
+
+  const barrier = createDisconnectBarrier(10);
+  const blockedWait = barrier.wait();
+
+  await assert.rejects(
+    barrier.waitUntilBlocked(),
+    (error: unknown) => {
+      assert.match(
+        String(error),
+        /\[disconnect barrier\] timed out after 10ms: stale disconnect did not complete the expected beforeDisconnectUpdate\/afterDisconnectUpdate sequence/
+      );
+      return true;
+    }
+  );
+
+  await assert.rejects(
+    blockedWait,
+    (error: unknown) => {
+      assert.match(
+        String(error),
+        /\[disconnect barrier\] timed out after 10ms: stale disconnect did not complete the expected beforeDisconnectUpdate\/afterDisconnectUpdate sequence/
+      );
+      return true;
+    }
+  );
+
+  await assert.rejects(
+    barrier.completed(),
+    (error: unknown) => {
+      assert.match(
+        String(error),
+        /\[disconnect barrier\] timed out after 10ms: stale disconnect did not complete the expected beforeDisconnectUpdate\/afterDisconnectUpdate sequence/
+      );
+      return true;
+    }
+  );
+
+  assert.equal(
+    cleanupError("original WebSocket close", new Error("close failed")).message,
+    "[stale disconnect cleanup] original WebSocket close: close failed"
+  );
+  assert.equal(
+    cleanupError("resumed WebSocket close", new Error("close failed")).message,
+    "[stale disconnect cleanup] resumed WebSocket close: close failed"
+  );
+  assert.equal(
+    cleanupError("test server close", new Error("close failed")).message,
+    "[stale disconnect cleanup] test server close: close failed"
+  );
+});
 
 async function connect(port: number): Promise<WebSocket> {
   const socket = new WebSocket(`ws://127.0.0.1:${port}`);
@@ -1429,9 +1505,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     try {
       owner.close();
     } catch (error) {
-      throw new Error(
-        `[stale disconnect cleanup] failed to close original WebSocket: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw cleanupError("original WebSocket close", error);
     }
 
     try {
@@ -1439,17 +1513,13 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         resumed.close();
       }
     } catch (error) {
-      throw new Error(
-        `[stale disconnect cleanup] failed to close resumed WebSocket: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw cleanupError("resumed WebSocket close", error);
     }
 
     try {
       await server.close();
     } catch (error) {
-      throw new Error(
-        `[stale disconnect cleanup] failed to close test server: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw cleanupError("test server close", error);
     }
   }
 });
