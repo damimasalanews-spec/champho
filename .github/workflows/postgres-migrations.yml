@@ -122,10 +122,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Type-check backend
         run: npm run typecheck
@@ -142,13 +141,21 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
 
+          health_file=/tmp/champ-word-health.json
+
           for attempt in {1..30}; do
-            if curl --silent --show-error --fail               --max-time 3               http://127.0.0.1:3000/health > /tmp/champ-word-health.json; then
+            if curl --silent --show-error --fail               --max-time 3               http://127.0.0.1:3000/health > "$health_file"; then
               break
             fi
 
             if ! kill -0 "$server_pid" 2>/dev/null; then
               echo "Backend exited before /health became available."
+              cat /tmp/champ-word-backend.log
+              exit 1
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "Timed out waiting for /health."
               cat /tmp/champ-word-backend.log
               exit 1
             fi
@@ -160,7 +167,7 @@ jobs:
           cat /tmp/champ-word-backend.log
 
           echo "Health response:"
-          cat /tmp/champ-word-health.json
+          cat "$health_file"
 
           node --input-type=module <<'NODE'
           import { readFileSync } from "node:fs";
