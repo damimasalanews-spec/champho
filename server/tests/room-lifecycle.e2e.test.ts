@@ -792,3 +792,108 @@ test("resume_room with an unauthorized player returns a protocol error without c
     await stopServer(server);
   }
 });
+
+
+test("join_room when the room is full returns a protocol error without persisting state", async () => {
+  const port = 8300 + Math.floor(Math.random() * 1000);
+  const ownerId = randomUUID();
+  const playerIds = Array.from({ length: 7 }, () => randomUUID());
+  const rejectedPlayerId = randomUUID();
+  const server = await startServer(port);
+  const owner = await connect(port);
+  const joinedSockets: WebSocket[] = [];
+  const rejected = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
+    const createdSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      owner,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    for (const playerId of playerIds) {
+      const socket = await connect(port);
+      joinedSockets.push(socket);
+      socket.send(JSON.stringify({ type: "join_room", roomId, playerId }));
+      const snapshot = await waitForMessage(
+        socket,
+        (message) => message.type === "room_snapshot"
+      );
+      assert.equal(snapshot.players.length, joinedSockets.length + 1);
+      await waitForMessage(
+        socket,
+        (message) => message.type === "event" && message.eventType === "player_joined"
+      );
+    }
+
+    const before = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players WHERE room_id = $1) AS players,
+         (SELECT count(*) FROM public.room_events WHERE room_id = $1) AS events,
+         (SELECT event_sequence FROM public.game_rooms WHERE id = $1) AS event_sequence`,
+      [roomId]
+    );
+
+    assert.equal(Number(before.rows[0].players), 8);
+    assert.equal(Number(before.rows[0].events), 8);
+    assert.equal(Number(before.rows[0].event_sequence), 8);
+
+    rejected.send(JSON.stringify({
+      type: "join_room",
+      roomId,
+      playerId: rejectedPlayerId
+    }));
+
+    const error = await waitForMessage(
+      rejected,
+      (message) =>
+        message.type === "error" &&
+        message.reason === "room_full"
+    );
+
+    assert.deepEqual(error, {
+      type: "error",
+      reason: "room_full"
+    });
+
+    const after = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players WHERE room_id = $1) AS players,
+         (SELECT count(*) FROM public.room_events WHERE room_id = $1) AS events,
+         (SELECT event_sequence FROM public.game_rooms WHERE id = $1) AS event_sequence`,
+      [roomId]
+    );
+
+    assert.deepEqual(after.rows[0], before.rows[0]);
+
+    const rejectedPlayer = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, rejectedPlayerId]
+    );
+    assert.equal(Number(rejectedPlayer.rows[0].count), 0);
+
+    const rejectedEvents = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_events
+       WHERE room_id = $1
+         AND event_type = 'player_joined'
+         AND payload->>'playerId' = $2`,
+      [roomId, rejectedPlayerId]
+    );
+    assert.equal(Number(rejectedEvents.rows[0].count), 0);
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    owner.close();
+    for (const socket of joinedSockets) socket.close();
+    rejected.close();
+    await stopServer(server);
+  }
+});
