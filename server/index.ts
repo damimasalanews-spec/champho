@@ -12,7 +12,6 @@ import {
   type RoomEvent
 } from "./rooms.js";
 import { submitWord } from "./submissions.js";
-import { runProductionPreflight } from "./preflight.js";
 
 export type ServerOptions = {
   disconnectHooks?: DisconnectHooks;
@@ -28,36 +27,6 @@ export type ServerApp = {
 
 export function createServerApp(options: ServerOptions = {}): ServerApp {
   const httpServer = createServer(async (request, response) => {
-    if (request.method === "GET" && request.url === "/__production-preflight") {
-      const expectedToken = process.env.PRODUCTION_PREFLIGHT_TOKEN;
-      const suppliedToken = request.headers.authorization?.replace(/^Bearer\\s+/, "") ?? new URL(request.url ?? "", "http://localhost").searchParams.get("token");
-      if (!expectedToken || suppliedToken !== expectedToken) {
-        response.writeHead(404);
-        response.end();
-        return;
-      }
-
-      try {
-        const result = await runProductionPreflight(pool);
-        response.writeHead(200, {
-          "content-type": "application/json; charset=utf-8",
-          "cache-control": "no-store"
-        });
-        response.end(JSON.stringify(result));
-      } catch (error) {
-        console.error("[preflight] PostgreSQL check failed:", error);
-        response.writeHead(500, {
-          "content-type": "application/json; charset=utf-8",
-          "cache-control": "no-store"
-        });
-        response.end(JSON.stringify({
-          ok: false,
-          error: error instanceof Error ? error.message : "internal_error"
-        }));
-      }
-      return;
-    }
-
     if (request.method !== "GET" || request.url !== "/health") {
       response.writeHead(404, { "content-type": "application/json; charset=utf-8" });
       response.end(JSON.stringify({ ok: false, error: "not_found" }));
@@ -377,12 +346,6 @@ export async function start(): Promise<ServerApp> {
     console.log(
       `[startup] PostgreSQL connected (latency ${database.latencyMs}ms)`
     );
-    try {
-      const preflight = await runProductionPreflight(pool);
-      console.log("[preflight] " + JSON.stringify(preflight));
-    } catch (error) {
-      console.error("[preflight] failed:", error);
-    }
   } catch (error) {
     console.error("[startup] PostgreSQL connection failed:", error);
     await pool.end();
