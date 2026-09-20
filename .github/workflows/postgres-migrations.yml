@@ -1,0 +1,63 @@
+name: PostgreSQL migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "db/**"
+      - ".github/workflows/postgres-migrations.yml"
+  pull_request:
+    paths:
+      - "db/**"
+      - ".github/workflows/postgres-migrations.yml"
+  workflow_dispatch:
+
+jobs:
+  postgres-migrations:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: champword
+          POSTGRES_PASSWORD: champword
+          POSTGRES_DB: champword_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U champword -d champword_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: champword
+      PGPASSWORD: champword
+      PGDATABASE: champword_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify PostgreSQL is ready
+        run: pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"
+
+      - name: Apply migrations
+        run: |
+          set -euo pipefail
+          for migration in db/0*.sql; do
+            case "$migration" in
+              db/tests/*) continue ;;
+            esac
+            echo "::group::Applying $migration"
+            psql --set ON_ERROR_STOP=1 --file="$migration"
+            echo "::endgroup::"
+          done
+
+      - name: Run PostgreSQL migration tests
+        run: |
+          set -euo pipefail
+          psql --set ON_ERROR_STOP=1 --file=db/tests/001_protocol_migration_tests.sql
