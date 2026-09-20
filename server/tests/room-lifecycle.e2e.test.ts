@@ -1426,7 +1426,9 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     barrier = createDisconnectBarrier(5_000);
     assert.ok(barrier, "disconnect barrier must be initialized before terminating the stale socket");
 
-    owner.close();
+    const serverOwnerSocket = [...server.webSocketServer.clients][0];
+    assert.ok(serverOwnerSocket, "server-side owner socket must exist before stale disconnect");
+    serverOwnerSocket.terminate();
 
     await serverSocketClosePromise;
 
