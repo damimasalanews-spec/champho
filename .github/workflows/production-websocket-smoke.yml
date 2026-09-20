@@ -30,7 +30,7 @@ jobs:
           import WebSocket from "ws";
 
           const url = process.env.WS_URL;
-          const playerId = `ci-player-${Date.now()}`;
+          const playerId = crypto.randomUUID();
           const requestId = `ci-create-${Date.now()}`;
 
           console.log(`CONNECT ${url}`);
