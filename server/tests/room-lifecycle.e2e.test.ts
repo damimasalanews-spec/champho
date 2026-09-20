@@ -72,13 +72,15 @@ function assertRoomSnapshotMessage(message: Message): void {
   assert.ok(Array.isArray(message.players));
 }
 
-function assertErrorMessage(message: Message, expectedCode: string): void {
-  assertExactKeys(message, ["type", "code", "message", "serverTime", "requestId"]);
+function assertErrorMessage(message: Message, expectedCode: string, requestId?: string): void {
+  const expectedKeys = ["type", "code", "message", "serverTime"];
+  if (requestId !== undefined) expectedKeys.push("requestId");
+  assertExactKeys(message, expectedKeys);
   assert.equal(message.type, "error");
   assert.equal(message.code, expectedCode);
   assert.equal(message.message, expectedCode);
   assertTimestamp(message.serverTime);
-  assert.equal(typeof message.requestId, "string");
+  if (requestId !== undefined) assert.equal(message.requestId, requestId);
 }
 
 function cleanupError(phase: string, error: unknown): Error {
@@ -360,6 +362,7 @@ test("two WebSocket clients create and join a room with authoritative snapshots 
     );
     roomId = createdSnapshot.roomId;
 
+    assertRoomSnapshotMessage(createdSnapshot);
     assert.equal(createdSnapshot.state, "waiting");
     assert.equal(createdSnapshot.phase, "waiting");
     assert.equal(createdSnapshot.roundNumber, 1);
@@ -1137,14 +1140,16 @@ test("resume_room twice on the same connection returns a protocol error without 
       lastEventSequence: 0,
       handVersion: 0
     }));
-    await waitForMessage(
+    const resumeStarted = await waitForMessage(
       resumed,
       (message) => message.type === "resume_started"
     );
+    assertResumeStartedMessage(resumeStarted);
     const snapshot = await waitForMessage(
       resumed,
       (message) => message.type === "room_snapshot"
     );
+    assertRoomSnapshotMessage(snapshot);
     assert.equal(snapshot.players.length, 1);
     await waitForMessage(
       resumed,
@@ -1352,6 +1357,10 @@ test("resume_room on a new WebSocket restores the existing player without duplic
       resumed,
       (message) => message.type === "resume_complete"
     );
+    assertExactKeys(complete, [
+      "type", "requestId", "roomId", "roundNumber",
+      "lastEventSequence", "handVersion", "serverTime"
+    ]);
     assert.equal(complete.lastEventSequence, 1);
 
     const after = await pool.query(
@@ -1382,6 +1391,112 @@ test("resume_room on a new WebSocket restores the existing player without duplic
   }
 });
 
+
+test("resume_room request conforms to its JSON Schema", () => {
+  const message = {
+    type: "resume_room",
+    requestId: randomUUID(),
+    roomId: randomUUID(),
+    playerId: randomUUID(),
+    roundNumber: 1,
+    lastEventSequence: 0,
+    handVersion: 0
+  };
+  assertResumeRoomMessage(message);
+});
+
+test("resume_started response conforms to its JSON Schema", async () => {
+  const port = 8700 + Math.floor(Math.random() * 1000);
+  const playerId = randomUUID();
+  const server = await startServer(port);
+  const socket = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    socket.send(JSON.stringify({ type: "create_room", playerId }));
+    const snapshot = await waitForMessage(socket, (message) => message.type === "room_snapshot");
+    roomId = snapshot.roomId;
+    await waitForMessage(socket, (message) => message.type === "event" && message.eventType === "room_created");
+    socket.close();
+
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const row = await pool.query(
+        "SELECT connected FROM public.room_players WHERE room_id = $1 AND player_id = $2",
+        [roomId, playerId]
+      );
+      if (row.rows[0]?.connected === false) break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    const resumed = await connect(port);
+    const request = {
+      type: "resume_room",
+      requestId: "resume-started-schema-test",
+      roomId,
+      playerId,
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
+    };
+    assertResumeRoomMessage(request);
+    resumed.send(JSON.stringify(request));
+
+    const started = await waitForMessage(resumed, (message) => message.type === "resume_started");
+    assertResumeStartedMessage(started);
+    assert.equal(started.requestId, request.requestId);
+    resumed.close();
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    socket.close();
+    await stopServer(server);
+  }
+});
+
+test("room_snapshot response conforms to its JSON Schema", async () => {
+  const port = 8800 + Math.floor(Math.random() * 1000);
+  const playerId = randomUUID();
+  const server = await startServer(port);
+  const socket = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    socket.send(JSON.stringify({ type: "create_room", playerId }));
+    const snapshot = await waitForMessage(socket, (message) => message.type === "room_snapshot");
+    roomId = snapshot.roomId;
+    assertRoomSnapshotMessage(snapshot);
+    assert.equal(snapshot.firstSolverId, null);
+    assert.equal(snapshot.solvedAt, null);
+    assert.equal(snapshot.solveWindowEndsAt, null);
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    socket.close();
+    await stopServer(server);
+  }
+});
+
+test("error response conforms to its JSON Schema", async () => {
+  const port = 8900 + Math.floor(Math.random() * 1000);
+  const server = await startServer(port);
+  const socket = await connect(port);
+
+  try {
+    socket.send(JSON.stringify({
+      type: "resume_room",
+      requestId: "error-schema-test",
+      roomId: "",
+      playerId: randomUUID(),
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
+    }));
+
+    const error = await waitForMessage(socket, (message) => message.type === "error");
+    assertErrorMessage(error, "invalid_room_id", "error-schema-test");
+  } finally {
+    socket.close();
+    await stopServer(server);
+  }
+});
 
 test("stale disconnect cannot mark a newly resumed connection disconnected", async () => {
   const port = 9000 + Math.floor(Math.random() * 500);
