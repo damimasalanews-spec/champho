@@ -1359,6 +1359,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   const ownerId = randomUUID();
   const barrier = createDisconnectBarrier(5_000);
   let serverSocketClosed = false;
+  let serverSocketCloseCount = 0;
   let resolveServerSocketClose!: () => void;
   let resolveResumedServerSocketClose!: () => void;
   let owner: WebSocket | undefined;
@@ -1377,13 +1378,14 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   });
 
   const server = createServerApp({
-    onSocketClose: (socket) => {
-      if (socket === owner) {
+    onSocketClose: () => {
+      serverSocketCloseCount += 1;
+      if (serverSocketCloseCount === 1) {
         serverSocketClosed = true;
         resolveServerSocketClose();
         return;
       }
-      if (socket === resumed) {
+      if (serverSocketCloseCount === 2) {
         resolveResumedServerSocketClose();
       }
     },
@@ -1439,6 +1441,11 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       serverSocketClosed,
       true,
       "server-side WebSocket close handler must observe the stale socket close"
+    );
+    assert.equal(
+      serverSocketCloseCount,
+      1,
+      "only the stale socket should have closed before the resumed connection is established"
     );
 
     await barrier.waitUntilBlocked();
