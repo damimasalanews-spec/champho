@@ -13,12 +13,16 @@ export type RoomPlayer = {
 export type RoomSnapshot = {
   type: "room_snapshot";
   roomId: string;
+  eventSequence: number;
   state: "waiting" | "active" | "finished";
   phase: "waiting" | "playing" | "solve_window" | "round_end" | "finished";
   roundNumber: number;
   turnNumber: number;
   activePlayerId: string | null;
-  eventSequence: number;
+  firstSolverId: string | null;
+  solvedAt: string | null;
+  solveWindowEndsAt: string | null;
+  serverTime: string;
   players: RoomPlayer[];
 };
 
@@ -41,12 +45,16 @@ function toSnapshot(room: Record<string, any>, players: Array<Record<string, any
   return {
     type: "room_snapshot",
     roomId: room.id,
+    eventSequence: Number(room.event_sequence),
     state: room.state,
     phase: room.phase,
     roundNumber: room.round_number,
     turnNumber: Number(room.turn_number),
     activePlayerId: room.active_player_id,
-    eventSequence: Number(room.event_sequence),
+    firstSolverId: room.first_solver_id,
+    solvedAt: room.solved_at ? new Date(room.solved_at).toISOString() : null,
+    solveWindowEndsAt: room.solve_window_ends_at ? new Date(room.solve_window_ends_at).toISOString() : null,
+    serverTime: new Date().toISOString(),
     players: players.map((player) => ({
       playerId: player.player_id,
       seatNumber: player.seat_number,
@@ -58,7 +66,8 @@ function toSnapshot(room: Record<string, any>, players: Array<Record<string, any
 
 async function readSnapshot(client: PoolClient, roomId: string): Promise<RoomSnapshot> {
   const room = await client.query(
-    `SELECT id, state, phase, round_number, turn_number, active_player_id, event_sequence
+    `SELECT id, state, phase, round_number, turn_number, active_player_id, event_sequence,
+            first_solver_id, solved_at, solve_window_ends_at
      FROM public.game_rooms
      WHERE id = $1`,
     [roomId]
@@ -150,7 +159,7 @@ export async function createRoom(playerId: string): Promise<{
 export async function resumeRoom(
   roomId: string,
   playerId: string
-): Promise<{ snapshot: RoomSnapshot; connectionVersion: number }> {
+): Promise<{ snapshot: RoomSnapshot; connectionVersion: number; handVersion: number }> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -165,7 +174,7 @@ export async function resumeRoom(
     if (room.rowCount !== 1) throw new Error("room_not_found");
 
     const player = await client.query(
-      `SELECT player_id
+      `SELECT player_id, hand_version
        FROM public.room_players
        WHERE room_id = $1 AND player_id = $2
        FOR UPDATE`,
@@ -187,7 +196,8 @@ export async function resumeRoom(
     await client.query("COMMIT");
     return {
       snapshot,
-      connectionVersion: Number(resumed.rows[0].connection_version)
+      connectionVersion: Number(resumed.rows[0].connection_version),
+      handVersion: Number(resumed.rows[0].hand_version)
     };
   } catch (error) {
     await client.query("ROLLBACK");
