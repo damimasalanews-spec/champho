@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -6,6 +6,10 @@ import { EventEmitter } from "node:events";
 import { WebSocket } from "ws";
 import { pool } from "../db.js";
 import { createServerApp } from "../index.js";
+
+after(async () => {
+  await pool.end();
+});
 
 type Message = Record<string, any>;
 
