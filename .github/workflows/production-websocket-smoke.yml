@@ -31,134 +31,157 @@ jobs:
 
           const url = process.env.WS_URL;
           const playerId = crypto.randomUUID();
-          const requestId = `ci-create-${Date.now()}`;
-
-          console.log(`CONNECT ${url}`);
-
-          const ws = new WebSocket(url);
-          let sawRoomCreated = false;
-          let failed = false;
+          const opponentId = crypto.randomUUID();
 
           const fail = (message) => {
-            failed = true;
             console.error(`SMOKE TEST FAILURE: ${message}`);
-            clearTimeout(timeout);
-            ws.close(1000, "smoke test failed");
+            process.exitCode = 1;
           };
 
-          const timeout = setTimeout(() => {
-            console.error("TIMEOUT: no room_created response within 15s");
-            ws.close();
-            process.exit(1);
-          }, 15000);
-
-          ws.on("open", () => {
-            console.log("CONNECT RESULT: OPEN");
-
-            const message = {
-              type: "create_room",
-              requestId,
-              playerId
-            };
-
-            console.log("SEND create_room:");
-            console.log(JSON.stringify(message, null, 2));
-
-            ws.send(JSON.stringify(message));
-          });
-
-          ws.on("message", (data) => {
-            const raw = data.toString();
-
-            console.log("RECEIVED RAW:");
-            console.log(raw);
-
-            let parsed;
-            try {
-              parsed = JSON.parse(raw);
-            } catch {
-              fail("received non-JSON payload");
-              return;
-            }
-
-            console.log("PROTOCOL RESPONSE:");
-            console.log(JSON.stringify(parsed, null, 2));
-
-            if (parsed.type === "server_ready") {
-              console.log("IGNORING server_ready; waiting for room_created");
-              return;
-            }
-
-            if (parsed.type === "error") {
-              fail(`server returned error: ${parsed.code ?? "unknown_error"}`);
-              return;
-            }
-
-            if (parsed.type === "room_snapshot") {
-              if (typeof parsed.roomId !== "string" || !parsed.roomId) {
-                fail("room_snapshot missing roomId");
-                return;
+          const waitFor = (ws, predicate, timeoutMs = 15000) => new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+              ws.off("message", onMessage);
+              reject(new Error("timed out waiting for expected protocol message"));
+            }, timeoutMs);
+            const onMessage = (data) => {
+              let parsed;
+              try { parsed = JSON.parse(data.toString()); } catch { return reject(new Error("received non-JSON payload")); }
+              console.log("RECEIVED", JSON.stringify(parsed));
+              if (predicate(parsed)) {
+                clearTimeout(timer);
+                ws.off("message", onMessage);
+                resolve(parsed);
+              } else if (parsed.type === "error") {
+                clearTimeout(timer);
+                ws.off("message", onMessage);
+                reject(new Error(`server returned error: ${parsed.code ?? "unknown_error"}`));
               }
-              return;
-            }
-
-            if (parsed.type !== "event" || parsed.eventType !== "room_created") {
-              fail(`unexpected response type: ${parsed.type ?? "missing_type"}`);
-              return;
-            }
-
-            if (parsed.eventType !== "room_created") {
-              fail(`unexpected eventType: ${parsed.eventType ?? "missing_eventType"}`);
-              return;
-            }
-
-            if (parsed.payload?.playerId !== playerId) {
-              fail("room_created payload.playerId does not match requested playerId");
-              return;
-            }
-
-            if (typeof parsed.roomId !== "string" || !parsed.roomId) {
-              fail("room_created missing roomId");
-              return;
-            }
-
-            if (!Number.isInteger(parsed.eventSequence) || parsed.eventSequence < 1) {
-              fail("room_created has invalid eventSequence");
-              return;
-            }
-
-            if (!Number.isInteger(parsed.roundNumber) || parsed.roundNumber < 1) {
-              fail("room_created has invalid roundNumber");
-              return;
-            }
-
-            if (typeof parsed.serverTime !== "string" || !parsed.serverTime) {
-              fail("room_created missing serverTime");
-              return;
-            }
-
-            sawRoomCreated = true;
-            console.log("ROOM_CREATED VERIFIED:");
-            console.log(JSON.stringify(parsed, null, 2));
-
-            clearTimeout(timeout);
-            ws.close(1000, "smoke test complete");
+            };
+            ws.on("message", onMessage);
           });
 
-          ws.on("close", (code, reason) => {
-            clearTimeout(timeout);
-            console.log(`CLOSE code=${code} reason=${reason.toString()}`);
+          const connect = async () => {
+            const ws = new WebSocket(url);
+            await new Promise((resolve, reject) => {
+              ws.once("open", resolve);
+              ws.once("error", reject);
+            });
+            await waitFor(ws, (m) => m.type === "server_ready");
+            return ws;
+          };
 
-            if (failed || code !== 1000 || !sawRoomCreated) {
-              process.exit(1);
-            }
+          const ws1 = await connect();
+          console.log("CREATE ROOM", playerId);
+          ws1.send(JSON.stringify({
+            type: "create_room",
+            requestId: crypto.randomUUID(),
+            playerId
+          }));
 
-            process.exit(0);
-          });
+          const createdSnapshot = await waitFor(ws1, (m) => m.type === "room_snapshot");
+          const roomId = createdSnapshot.roomId;
+          if (!roomId) throw new Error("create_room did not return roomId");
+          await waitFor(ws1, (m) => m.type === "event" && m.eventType === "room_created");
 
-          ws.on("error", (err) => {
-            clearTimeout(timeout);
-            console.error(`WEBSOCKET ERROR: ${err.message}`);
-            process.exit(1);
-          });
+          const ws2 = await connect();
+          console.log("JOIN PLAYER", opponentId, roomId);
+          ws2.send(JSON.stringify({
+            type: "join_room",
+            roomId,
+            playerId: opponentId
+          }));
+          await waitFor(ws2, (m) => m.type === "room_snapshot" && m.roomId === roomId);
+          await waitFor(ws1, (m) => m.type === "event" && m.eventType === "player_joined");
+
+          console.log("START ROUND");
+          ws1.send(JSON.stringify({
+            type: "start_round",
+            requestId: crypto.randomUUID()
+          }));
+          const playingSnapshot = await waitFor(ws1, (m) => m.type === "room_snapshot" && m.phase === "playing");
+          if (playingSnapshot.activePlayerId !== playerId) throw new Error("unexpected active player");
+
+          console.log("SUBMIT WORD");
+          ws1.send(JSON.stringify({
+            type: "submit_word",
+            requestId: crypto.randomUUID(),
+            roomId,
+            roundNumber: playingSnapshot.roundNumber,
+            turnNumber: playingSnapshot.turnNumber,
+            cards: ["smoke-card-a", "smoke-card-b"],
+            word: "ab"
+          }));
+
+          const submission = await waitFor(ws1, (m) => m.type === "word_submission_result");
+          if (submission.status !== "accepted" || submission.roundState !== "solve_window") {
+            throw new Error("submit_word was not accepted into solve_window");
+          }
+
+          const wordEvent = await waitFor(ws2, (m) => m.type === "event" && m.eventType === "word_submitted");
+          if (wordEvent.payload?.playerId !== playerId) throw new Error("word_submitted player mismatch");
+
+          console.log("SOLVER RESOLUTION");
+          ws2.send(JSON.stringify({
+            type: "submit_word",
+            requestId: crypto.randomUUID(),
+            roomId,
+            roundNumber: playingSnapshot.roundNumber,
+            turnNumber: playingSnapshot.turnNumber,
+            cards: ["smoke-card-a", "smoke-card-b"],
+            word: "ab"
+          }));
+          const secondSubmission = await waitFor(ws2, (m) => m.type === "word_submission_result");
+          if (secondSubmission.status !== "accepted") throw new Error("second solver was not accepted");
+
+          await new Promise((resolve) => setTimeout(resolve, 3200));
+
+          ws2.send(JSON.stringify({
+            type: "submit_word",
+            requestId: crypto.randomUUID(),
+            roomId,
+            roundNumber: playingSnapshot.roundNumber,
+            turnNumber: playingSnapshot.turnNumber,
+            cards: ["smoke-card-a", "smoke-card-b"],
+            word: "ab"
+          }));
+
+          const expired = await waitFor(ws2, (m) => m.type === "word_submission_result" && m.reason === "solve_window_expired");
+          if (expired.roundState !== "round_end") throw new Error("solve window did not expire");
+
+          const completed = await waitFor(ws2, (m) => m.type === "round_completed");
+          if (completed.roundNumber !== playingSnapshot.roundNumber) throw new Error("round_completed round mismatch");
+          if (!Array.isArray(completed.solvers) || completed.solvers.length < 2) throw new Error("solver resolution missing");
+
+          const nextRound = await waitFor(ws2, (m) => m.type === "room_snapshot" && m.roundNumber === playingSnapshot.roundNumber + 1);
+          if (nextRound.phase !== "playing") throw new Error("next round did not enter playing phase");
+
+          console.log("CLEAN RECONNECT");
+          ws1.close(1000, "smoke reconnect");
+          await new Promise((resolve) => ws1.once("close", resolve));
+
+          const resumed = await connect();
+          resumed.send(JSON.stringify({
+            type: "resume_room",
+            requestId: crypto.randomUUID(),
+            roomId,
+            playerId,
+            roundNumber: nextRound.roundNumber,
+            lastEventSequence: nextRound.eventSequence,
+            handVersion: 1
+          }));
+          const resumeStarted = await waitFor(resumed, (m) => m.type === "resume_started");
+          if (!resumeStarted.requestId) throw new Error("resume_started missing requestId");
+          const resumedSnapshot = await waitFor(resumed, (m) => m.type === "room_snapshot" && m.roomId === roomId);
+          if (resumedSnapshot.roundNumber !== nextRound.roundNumber) throw new Error("reconnect returned stale round");
+          const resumeComplete = await waitFor(resumed, (m) => m.type === "resume_complete");
+          if (resumeComplete.roundNumber !== nextRound.roundNumber) throw new Error("resume_complete round mismatch");
+
+          console.log("PRODUCTION MULTIPLAYER SMOKE VERIFIED");
+          for (const ws of [resumed, ws2]) {
+            await new Promise((resolve) => {
+              ws.once("close", resolve);
+              ws.close(1000, "smoke test complete");
+            });
+          }
+          process.exit(0);
           EOF
