@@ -132,6 +132,9 @@ jobs:
       - name: Type-check backend
         run: npm run typecheck
 
+      - name: Run backend PostgreSQL integration tests
+        run: npm test
+
       - name: Build backend
         run: npm run build
 
