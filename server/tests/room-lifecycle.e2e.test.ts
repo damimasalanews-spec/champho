@@ -1361,6 +1361,13 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   let serverSocketClosed = false;
   let resolveServerSocketClose!: () => void;
   let resolveResumedServerSocketClose!: () => void;
+  let owner: WebSocket | undefined;
+  let resumed: WebSocket | undefined;
+  let roomId: string | undefined;
+  let released = false;
+  let staleDisconnectBarrierEnabled = true;
+  let staleDisconnectBarrierCompletionCount = 0;
+  let testError: unknown;
 
   const serverSocketClosePromise = new Promise<void>((resolve) => {
     resolveServerSocketClose = resolve;
@@ -1369,8 +1376,6 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     resolveResumedServerSocketClose = resolve;
   });
 
-  let owner: WebSocket | undefined;
-  let staleDisconnectBarrierEnabled = true;
   const server = createServerApp({
     onSocketClose: (socket) => {
       if (socket === owner) {
@@ -1393,14 +1398,11 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       }
     }
   });
-  await server.listen(port, "127.0.0.1");
-  owner = await connect(port);
-  let resumed: WebSocket | undefined;
-  let roomId: string | undefined;
-  let released = false;
-  let staleDisconnectBarrierCompletionCount = 0;
 
   try {
+    await server.listen(port, "127.0.0.1");
+    owner = await connect(port);
+
     owner.send(JSON.stringify({
       type: "create_room",
       playerId: ownerId
@@ -1513,49 +1515,77 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       1,
       "resumed connection must have connection_version 1"
     );
+  } catch (error) {
+    testError = error;
   } finally {
+    const cleanupErrors: Error[] = [];
+
     if (!released) {
       barrier.release();
     }
+
     if (roomId) {
-      await pool.query(
-        "DELETE FROM public.game_rooms WHERE id = $1",
-        [roomId]
-      );
-    }
-    try {
-      owner.close();
-    } catch (error) {
-      throw cleanupError("original WebSocket close", error);
+      try {
+        await pool.query(
+          "DELETE FROM public.game_rooms WHERE id = $1",
+          [roomId]
+        );
+      } catch (error) {
+        cleanupErrors.push(cleanupError("room cleanup", error));
+      }
     }
 
-    try {
-      staleDisconnectBarrierEnabled = false;
-      if (resumed && resumed.readyState === WebSocket.OPEN) {
+    if (owner) {
+      try {
+        owner.close();
+      } catch (error) {
+        cleanupErrors.push(cleanupError("original WebSocket close", error));
+      }
+    }
+
+    staleDisconnectBarrierEnabled = false;
+
+    if (resumed && resumed.readyState === WebSocket.OPEN) {
+      try {
         resumed.removeAllListeners("close");
         resumed.close();
         await resumedServerSocketClosePromise;
+      } catch (error) {
+        cleanupErrors.push(cleanupError("resumed WebSocket close", error));
       }
+    }
 
-      assert.equal(
-        staleDisconnectBarrierEnabled,
-        false,
-        "resumed socket cleanup must not re-enable the stale-disconnect barrier"
-      );
-
+    try {
       assert.equal(
         staleDisconnectBarrierCompletionCount,
         1,
-        "stale-disconnect barrier must complete exactly once, including after resumed socket cleanup"
+        "stale-disconnect barrier must complete exactly once"
       );
     } catch (error) {
-      throw cleanupError("resumed WebSocket close", error);
+      cleanupErrors.push(cleanupError("stale-disconnect barrier exact-once assertion", error));
     }
 
     try {
       await server.close();
     } catch (error) {
-      throw cleanupError("test server close", error);
+      cleanupErrors.push(cleanupError("test server close", error));
+    }
+
+    if (testError) {
+      if (cleanupErrors.length > 0) {
+        throw new AggregateError(
+          [testError, ...cleanupErrors],
+          "stale-disconnect test failed during execution and cleanup"
+        );
+      }
+      throw testError;
+    }
+
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        cleanupErrors,
+        "stale-disconnect test cleanup failed"
+      );
     }
   }
 });
