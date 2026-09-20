@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import { WebSocket } from "ws";
 import { pool } from "../db.js";
+import { createServerApp } from "../index.js";
 
 type Message = Record<string, any>;
 
@@ -48,7 +49,7 @@ async function connect(port: number): Promise<WebSocket> {
 async function startServer(port: number): Promise<ChildProcess> {
   const child = spawn(
     process.execPath,
-    ["node_modules/tsx/dist/cli.mjs", "server/index.ts"],
+    ["node_modules/tsx/dist/cli.mjs", "server/main.ts"],
     {
       cwd: process.cwd(),
       env: { ...process.env, HOST: "127.0.0.1", PORT: String(port) },
@@ -84,6 +85,89 @@ async function startServer(port: number): Promise<ChildProcess> {
 
   await started;
   return child;
+}
+
+
+
+function createDisconnectBarrier(timeoutMs = 2_000) {
+  let blocked = false;
+  let released = false;
+  let completed = false;
+  let timeoutCleared = false;
+  let rowCount: number | undefined;
+
+  let resolveBlocked!: () => void;
+  let rejectBlocked!: (error: Error) => void;
+  let resolveReleased!: () => void;
+  let resolveCompleted!: (rowCount: number) => void;
+  let rejectCompleted!: (error: Error) => void;
+
+  const blockedPromise = new Promise<void>((resolve, reject) => {
+    resolveBlocked = resolve;
+    rejectBlocked = reject;
+  });
+
+  const releasedPromise = new Promise<void>((resolve) => {
+    resolveReleased = resolve;
+  });
+
+  const completedPromise = new Promise<number>((resolve, reject) => {
+    resolveCompleted = resolve;
+    rejectCompleted = reject;
+  });
+
+  const clearTimeoutOnce = () => {
+    if (timeoutCleared) return;
+    timeoutCleared = true;
+    clearTimeout(timeoutHandle);
+  };
+
+  const timeoutHandle = setTimeout(() => {
+    const error = new Error(
+      `disconnect barrier timed out after ${timeoutMs}ms`
+    );
+    rejectBlocked(error);
+    rejectCompleted(error);
+  }, timeoutMs);
+
+  return {
+    async wait() {
+      if (blocked) {
+        throw new Error("disconnect barrier was already entered");
+      }
+      blocked = true;
+      resolveBlocked();
+      await releasedPromise;
+    },
+
+    async waitUntilBlocked() {
+      if (blocked) return;
+      await blockedPromise;
+    },
+
+    release() {
+      if (released) return;
+      released = true;
+      resolveReleased();
+    },
+
+    async completed() {
+      if (completed) {
+        return rowCount!;
+      }
+      return completedPromise;
+    },
+
+    afterDisconnectUpdate(updatedRowCount: number) {
+      if (completed) {
+        throw new Error("disconnect barrier completed more than once");
+      }
+      rowCount = updatedRowCount;
+      completed = true;
+      clearTimeoutOnce();
+      resolveCompleted(updatedRowCount);
+    }
+  };
 }
 
 async function stopServer(child: ChildProcess): Promise<void> {
@@ -1176,3 +1260,129 @@ test("resume_room on a new WebSocket restores the existing player without duplic
     await stopServer(server);
   }
 });
+
+
+test("stale disconnect cannot mark a newly resumed connection disconnected", async () => {
+  const port = 9000 + Math.floor(Math.random() * 500);
+  const ownerId = randomUUID();
+  const barrier = createDisconnectBarrier(2_000);
+  const server = createServerApp({
+    disconnectHooks: {
+      beforeDisconnectUpdate: () => barrier.wait(),
+      afterDisconnectUpdate: (rowCount) =>
+        barrier.afterDisconnectUpdate(rowCount)
+    }
+  });
+  const owner = await connectToApp(server, port);
+  let resumed: WebSocket | undefined;
+  let roomId: string | undefined;
+
+  try {
+    owner.send(JSON.stringify({
+      type: "create_room",
+      playerId: ownerId
+    }));
+
+    const createdSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+
+    await waitForMessage(
+      owner,
+      (message) =>
+        message.type === "event" &&
+        message.eventType === "room_created"
+    );
+
+    owner.close();
+
+    await barrier.waitUntilBlocked();
+
+    resumed = await connectToApp(server, port);
+    resumed.send(JSON.stringify({
+      type: "resume_room",
+      roomId,
+      playerId: ownerId
+    }));
+
+    await waitForMessage(
+      resumed,
+      (message) =>
+        message.type === "resume_started" &&
+        message.roomId === roomId
+    );
+
+    const snapshot = await waitForMessage(
+      resumed,
+      (message) =>
+        message.type === "room_snapshot" &&
+        message.roomId === roomId
+    );
+
+    assert.deepEqual(snapshot.players, [
+      {
+        playerId: ownerId,
+        seatNumber: 0,
+        connected: true,
+        score: 0
+      }
+    ]);
+
+    await waitForMessage(
+      resumed,
+      (message) =>
+        message.type === "resume_complete" &&
+        message.roomId === roomId
+    );
+
+    const beforeRelease = await pool.query(
+      `SELECT connected
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, ownerId]
+    );
+
+    assert.equal(beforeRelease.rows[0].connected, true);
+
+    barrier.release();
+
+    const staleDisconnectRowCount = await barrier.completed();
+
+    assert.equal(
+      staleDisconnectRowCount,
+      0,
+      "stale disconnect UPDATE must affect zero rows"
+    );
+
+    const final = await pool.query(
+      `SELECT connected, connection_version
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, ownerId]
+    );
+
+    assert.equal(final.rows[0].connected, true);
+    assert.equal(Number(final.rows[0].connection_version), 1);
+  } finally {
+    barrier.release();
+    if (roomId) {
+      await pool.query(
+        "DELETE FROM public.game_rooms WHERE id = $1",
+        [roomId]
+      );
+    }
+    owner.close();
+    resumed?.close();
+    await server.close();
+  }
+});
+
+async function connectToApp(
+  server: ReturnType<typeof createServerApp>,
+  port: number
+): Promise<WebSocket> {
+  await server.listen(port, "127.0.0.1");
+  return connect(port);
+}
