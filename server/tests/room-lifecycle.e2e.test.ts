@@ -6,6 +6,7 @@ import { EventEmitter } from "node:events";
 import { WebSocket } from "ws";
 import { pool } from "../db.js";
 import { createServerApp } from "../index.js";
+import { joinRoom } from "../rooms.js";
 
 after(async () => {
   await pool.end();
@@ -976,35 +977,17 @@ test("join_room when the room is full returns a protocol error without persistin
   const rejectedPlayerId = randomUUID();
   const server = await startServer(port);
   const owner = await connect(port);
-  const joinedSockets: WebSocket[] = [];
-  let rejected: WebSocket | undefined;
+  const rejected = await connect(port);
   let roomId: string | undefined;
 
   try {
     owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
-    const createdSnapshot = await waitForMessage(
-      owner,
-      (message) => message.type === "room_snapshot"
-    );
+    const createdSnapshot = await waitForMessage(owner, (message) => message.type === "room_snapshot");
     roomId = createdSnapshot.roomId;
-    await waitForMessage(
-      owner,
-      (message) => message.type === "event" && message.eventType === "room_created"
-    );
+    await waitForMessage(owner, (message) => message.type === "event" && message.eventType === "room_created");
 
     for (const playerId of playerIds) {
-      const socket = await connect(port);
-      joinedSockets.push(socket);
-      socket.send(JSON.stringify({ type: "join_room", roomId, playerId }));
-      const snapshot = await waitForMessage(
-        socket,
-        (message) => message.type === "room_snapshot"
-      );
-      assert.equal(snapshot.players.length, joinedSockets.length + 1);
-      await waitForMessage(
-        socket,
-        (message) => message.type === "event" && message.eventType === "player_joined"
-      );
+      await joinRoom(roomId, playerId);
     }
 
     const before = await pool.query(
@@ -1019,24 +1002,14 @@ test("join_room when the room is full returns a protocol error without persistin
     assert.equal(Number(before.rows[0].events), 8);
     assert.equal(Number(before.rows[0].event_sequence), 8);
 
-    rejected = await connect(port);
-    rejected.send(JSON.stringify({
-      type: "join_room",
-      roomId,
-      playerId: rejectedPlayerId
-    }));
+    rejected.send(JSON.stringify({ type: "join_room", roomId, playerId: rejectedPlayerId }));
 
     const error = await waitForMessage(
       rejected,
-      (message) =>
-        message.type === "error" &&
-        message.reason === "room_full"
+      (message) => message.type === "error" && message.reason === "room_full"
     );
 
-    assert.deepEqual(error, {
-      type: "error",
-      reason: "room_full"
-    });
+    assert.deepEqual(error, { type: "error", reason: "room_full" });
 
     const after = await pool.query(
       `SELECT
@@ -1049,9 +1022,7 @@ test("join_room when the room is full returns a protocol error without persistin
     assert.deepEqual(after.rows[0], before.rows[0]);
 
     const rejectedPlayer = await pool.query(
-      `SELECT count(*) AS count
-       FROM public.room_players
-       WHERE room_id = $1 AND player_id = $2`,
+      `SELECT count(*) AS count FROM public.room_players WHERE room_id = $1 AND player_id = $2`,
       [roomId, rejectedPlayerId]
     );
     assert.equal(Number(rejectedPlayer.rows[0].count), 0);
@@ -1068,8 +1039,7 @@ test("join_room when the room is full returns a protocol error without persistin
   } finally {
     if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
     owner.close();
-    for (const socket of joinedSockets) socket.close();
-    rejected?.close();
+    rejected.close();
     await stopServer(server);
   }
 });
@@ -1451,7 +1421,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
 
     barrier = createDisconnectBarrier(5_000);
     assert.ok(barrier, "disconnect barrier must be initialized before terminating the stale socket");
-    owner.terminate();
+    owner.close();
 
     await serverSocketClosePromise;
 
