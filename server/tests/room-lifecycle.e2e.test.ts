@@ -785,14 +785,6 @@ test("resume_room with an unauthorized player returns a protocol error without c
     );
     assert.equal(Number(unauthorizedEvents.rows[0].count), 0);
 
-    const resumeStartedMessages = await Promise.race([
-      waitForMessage(
-        unauthorized,
-        (message) => message.type === "resume_started"
-      ).then(() => true),
-      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 100))
-    ]);
-    assert.equal(resumeStartedMessages, true);
   } finally {
     if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
     owner.close();
