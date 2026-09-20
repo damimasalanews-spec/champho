@@ -1,0 +1,1 @@
+{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"champword://schemas/join_room.json","title":"CHAMP WORD join_room","type":"object","additionalProperties":false,"required":["type","requestId","roomId"],"properties":{"type":{"const":"join_room"},"requestId":{"$ref":"common.json#/$defs/requestId"},"roomId":{"$ref":"common.json#/$defs/roomId"}}}

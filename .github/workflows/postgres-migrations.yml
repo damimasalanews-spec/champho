@@ -1,0 +1,210 @@
+name: PostgreSQL migrations and backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "db/**"
+      - "server/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/postgres-migrations.yml"
+  pull_request:
+    paths:
+      - "db/**"
+      - "server/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - ".github/workflows/postgres-migrations.yml"
+  workflow_dispatch:
+
+jobs:
+  postgres-migrations:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: champword
+          POSTGRES_PASSWORD: champword
+          POSTGRES_DB: champword_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U champword -d champword_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: champword
+      PGPASSWORD: champword
+      PGDATABASE: champword_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify PostgreSQL is ready
+        run: pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"
+
+      - name: Apply migrations
+        run: |
+          set -euo pipefail
+          for migration in db/0*.sql; do
+            case "$migration" in
+              db/tests/*) continue ;;
+            esac
+            echo "::group::Applying $migration"
+            psql --set ON_ERROR_STOP=1 --file="$migration"
+            echo "::endgroup::"
+          done
+
+      - name: Verify migration runner rejects misordered files
+        run: bash ./scripts/test-migrate-ci-order.sh
+
+      - name: Run PostgreSQL migration tests
+        run: |
+          set -euo pipefail
+          psql --set ON_ERROR_STOP=1 --file=db/tests/001_protocol_migration_tests.sql
+
+  backend:
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: champword
+          POSTGRES_PASSWORD: champword
+          POSTGRES_DB: champword_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U champword -d champword_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      NODE_ENV: test
+      HOST: 127.0.0.1
+      PORT: 3000
+      DATABASE_URL: postgresql://champword:champword@127.0.0.1:5432/champword_test
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: champword
+      PGPASSWORD: champword
+      PGDATABASE: champword_test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify PostgreSQL is ready
+        run: pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"
+
+      - name: Apply migrations
+        run: |
+          set -euo pipefail
+          for migration in db/0*.sql; do
+            case "$migration" in
+              db/tests/*) continue ;;
+            esac
+            echo "::group::Applying $migration"
+            psql --set ON_ERROR_STOP=1 --file="$migration"
+            echo "::endgroup::"
+          done
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check backend
+        run: npm run typecheck
+
+      - name: Run backend PostgreSQL integration tests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test_files=(server/tests/*.test.ts)
+          for test_file in "${test_files[@]}"; do
+            echo "::group::Running $test_file"
+            echo "Starting $test_file with a 30s per-test timeout and a 90s file timeout."
+            timeout --signal=TERM --kill-after=10s 90s \
+              npx tsx --test --test-timeout=30000 --test-reporter=spec "$test_file"
+            echo "Completed $test_file"
+            echo "::endgroup::"
+          done
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Start backend and verify /health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm start > /tmp/champ-word-backend.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          health_file=/tmp/champ-word-health.json
+
+          for attempt in {1..30}; do
+            if curl --silent --show-error --fail               --max-time 3               http://127.0.0.1:3000/health > "$health_file"; then
+              break
+            fi
+
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Backend exited before /health became available."
+              cat /tmp/champ-word-backend.log
+              exit 1
+            fi
+
+            if [ "$attempt" -eq 30 ]; then
+              echo "Timed out waiting for /health."
+              cat /tmp/champ-word-backend.log
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          echo "Backend startup log:"
+          cat /tmp/champ-word-backend.log
+
+          echo "Health response:"
+          cat "$health_file"
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+
+          const health = JSON.parse(
+            readFileSync("/tmp/champ-word-health.json", "utf8")
+          );
+
+          if (health.ok !== true) {
+            throw new Error("Expected health.ok=true");
+          }
+
+          if (health.database?.ok !== true) {
+            throw new Error("Expected health.database.ok=true");
+          }
+
+          if (!Number.isFinite(health.database?.latencyMs)) {
+            throw new Error("Expected numeric health.database.latencyMs");
+          }
+
+          console.log("Backend /health database connectivity verified.");
+          NODE
