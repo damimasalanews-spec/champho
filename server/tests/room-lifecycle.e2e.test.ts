@@ -666,7 +666,7 @@ test("join_room with an unknown room returns a protocol error without persisting
         message.code === "room_not_found"
     );
 
-    assertErrorMessage(error, "room_not_found");
+    assertErrorMessage(error, "room_not_found", "invalid-room-resume");
 
     const after = await pool.query(
       `SELECT
@@ -1143,9 +1143,10 @@ test("resume_room twice on the same connection returns a protocol error without 
 
     const resumed = await connect(port);
 
+    const requestId = randomUUID();
     resumed.send(JSON.stringify({
       type: "resume_room",
-      requestId: randomUUID(),
+      requestId,
       roomId,
       playerId: ownerId,
       roundNumber: 1,
@@ -1197,7 +1198,7 @@ test("resume_room twice on the same connection returns a protocol error without 
         message.code === "resume_already_active"
     );
 
-    assertErrorMessage(error, "resume_already_active");
+    assertErrorMessage(error, "resume_already_active", requestId);
 
     const after = await pool.query(
       `SELECT
