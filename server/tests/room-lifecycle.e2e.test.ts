@@ -1017,3 +1017,162 @@ test("resume_room twice on the same connection returns a protocol error without 
     await stopServer(server);
   }
 });
+
+
+test("resume_room with an invalid room returns a protocol error without persisting state", async () => {
+  const port = 8500 + Math.floor(Math.random() * 1000);
+  const playerId = randomUUID();
+  const invalidRoomId = randomUUID();
+  const server = await startServer(port);
+  const socket = await connect(port);
+
+  try {
+    const before = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events`
+    );
+
+    socket.send(JSON.stringify({
+      type: "resume_room",
+      roomId: invalidRoomId,
+      playerId
+    }));
+
+    await waitForMessage(
+      socket,
+      (message) => message.type === "resume_started"
+    );
+
+    const error = await waitForMessage(
+      socket,
+      (message) =>
+        message.type === "error" &&
+        message.reason === "room_not_found"
+    );
+
+    assert.deepEqual(error, {
+      type: "error",
+      reason: "room_not_found"
+    });
+
+    const after = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events`
+    );
+    assert.deepEqual(after.rows[0], before.rows[0]);
+  } finally {
+    socket.close();
+    await stopServer(server);
+  }
+});
+
+test("resume_room on a new WebSocket restores the existing player without duplicate state", async () => {
+  const port = 8600 + Math.floor(Math.random() * 1000);
+  const ownerId = randomUUID();
+  const server = await startServer(port);
+  const firstConnection = await connect(port);
+  let roomId: string | undefined;
+  let resumed: WebSocket | undefined;
+
+  try {
+    firstConnection.send(JSON.stringify({
+      type: "create_room",
+      playerId: ownerId
+    }));
+    const createdSnapshot = await waitForMessage(
+      firstConnection,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      firstConnection,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    firstConnection.close();
+
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const row = await pool.query(
+        `SELECT connected
+         FROM public.room_players
+         WHERE room_id = $1 AND player_id = $2`,
+        [roomId, ownerId]
+      );
+      if (row.rows[0]?.connected === false) break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    const before = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players WHERE room_id = $1) AS players,
+         (SELECT count(*) FROM public.room_events WHERE room_id = $1) AS events,
+         (SELECT event_sequence FROM public.game_rooms WHERE id = $1) AS event_sequence,
+         (SELECT connected FROM public.room_players
+          WHERE room_id = $1 AND player_id = $2) AS connected`,
+      [roomId, ownerId]
+    );
+
+    assert.equal(Number(before.rows[0].players), 1);
+    assert.equal(Number(before.rows[0].events), 1);
+    assert.equal(Number(before.rows[0].event_sequence), 1);
+    assert.equal(before.rows[0].connected, false);
+
+    resumed = await connect(port);
+    resumed.send(JSON.stringify({
+      type: "resume_room",
+      roomId,
+      playerId: ownerId
+    }));
+
+    await waitForMessage(
+      resumed,
+      (message) => message.type === "resume_started"
+    );
+    const snapshot = await waitForMessage(
+      resumed,
+      (message) => message.type === "room_snapshot"
+    );
+    assert.equal(snapshot.roomId, roomId);
+    assert.equal(snapshot.players.length, 1);
+    assert.deepEqual(snapshot.players[0], {
+      playerId: ownerId,
+      seatNumber: 0,
+      connected: true,
+      score: 0
+    });
+
+    const complete = await waitForMessage(
+      resumed,
+      (message) => message.type === "resume_complete"
+    );
+    assert.equal(complete.eventSequence, 1);
+
+    const after = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players WHERE room_id = $1) AS players,
+         (SELECT count(*) FROM public.room_events WHERE room_id = $1) AS events,
+         (SELECT event_sequence FROM public.game_rooms WHERE id = $1) AS event_sequence,
+         (SELECT count(*) FROM public.room_players
+          WHERE room_id = $1 AND player_id = $2) AS player_count,
+         (SELECT count(*) FROM public.room_events
+          WHERE room_id = $1 AND event_type = 'player_joined') AS joined_events,
+         (SELECT connected FROM public.room_players
+          WHERE room_id = $1 AND player_id = $2) AS connected`,
+      [roomId, ownerId]
+    );
+
+    assert.equal(Number(after.rows[0].players), 1);
+    assert.equal(Number(after.rows[0].events), 1);
+    assert.equal(Number(after.rows[0].event_sequence), 1);
+    assert.equal(Number(after.rows[0].player_count), 1);
+    assert.equal(Number(after.rows[0].joined_events), 0);
+    assert.equal(after.rows[0].connected, true);
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    firstConnection.close();
+    resumed?.close();
+    await stopServer(server);
+  }
+});
