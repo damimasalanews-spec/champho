@@ -53,6 +53,7 @@ mkdir "$temp_dir/migrations"
 touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
 touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
 touch "$temp_dir/migrations/002_protocol_constraints.sql"
+touch "$temp_dir/migrations/004_connection_version.sql"
 
 assert_runner_rejects_without_psql   "misordered migration set"   "Migration order/file mismatch"
 
@@ -66,6 +67,7 @@ touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
 touch "$temp_dir/migrations/001_duplicate_game_rooms.sql"
 touch "$temp_dir/migrations/002_protocol_constraints.sql"
 touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
+touch "$temp_dir/migrations/004_connection_version.sql"
 
 assert_runner_rejects_without_psql   "duplicate migration numeric prefix"   "Migration file count mismatch"
 
@@ -77,6 +79,7 @@ mkdir "$temp_dir/migrations"
 
 touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
 touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
+touch "$temp_dir/migrations/004_connection_version.sql"
 
 assert_runner_rejects_without_psql \
   "missing migration prefix" \
