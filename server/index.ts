@@ -13,7 +13,7 @@ import {
 
 export type ServerOptions = {
   disconnectHooks?: DisconnectHooks;
-  onSocketClose?: () => void;
+  onSocketClose?: (socket: WebSocket) => void;
 };
 
 export type ServerApp = {
@@ -184,7 +184,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     });
 
     socket.on("close", () => {
-      options.onSocketClose?.();
+      options.onSocketClose?.(socket);
       if (!joinedRoomId || !joinedPlayerId || connectionVersion === null) return;
 
       const roomId = joinedRoomId;
