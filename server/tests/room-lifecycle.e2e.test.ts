@@ -1571,21 +1571,43 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       cleanupErrors.push(cleanupError("test server close", error));
     }
 
+    if (testError && cleanupErrors.length > 0) {
+      const aggregate = new AggregateError(
+        [testError, ...cleanupErrors],
+        "stale-disconnect test failed during execution and cleanup"
+      );
+
+      assert.equal(
+        aggregate.errors[0],
+        testError,
+        "AggregateError must preserve the original test failure as its first error"
+      );
+      assert.deepEqual(
+        aggregate.errors.slice(1),
+        cleanupErrors,
+        "AggregateError must preserve every cleanup and exact-once assertion failure in order"
+      );
+
+      throw aggregate;
+    }
+
     if (testError) {
-      if (cleanupErrors.length > 0) {
-        throw new AggregateError(
-          [testError, ...cleanupErrors],
-          "stale-disconnect test failed during execution and cleanup"
-        );
-      }
       throw testError;
     }
 
     if (cleanupErrors.length > 0) {
-      throw new AggregateError(
+      const aggregate = new AggregateError(
         cleanupErrors,
         "stale-disconnect test cleanup failed"
       );
+
+      assert.deepEqual(
+        aggregate.errors,
+        cleanupErrors,
+        "AggregateError must preserve every cleanup and exact-once assertion failure"
+      );
+
+      throw aggregate;
     }
   }
 });
