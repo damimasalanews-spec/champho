@@ -994,8 +994,9 @@ test("join_room when the room is full returns a protocol error without persistin
     await waitForMessage(owner, (message) => message.type === "event" && message.eventType === "room_created");
 
     assert.ok(roomId, "created room must have an id");
+    const createdRoomId = roomId;
     for (const playerId of playerIds) {
-      await joinRoom(roomId, playerId);
+      await joinRoom(createdRoomId, playerId);
     }
 
     const before = await pool.query(
