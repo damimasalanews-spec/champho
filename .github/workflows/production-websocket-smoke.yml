@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: protocol/authoritative-multiplayer-contract
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -197,9 +199,6 @@ jobs:
           if (nextRound.phase !== "playing") throw new Error("next round did not enter playing phase");
 
           console.log("CLEAN RECONNECT");
-          ws1.close(1000, "smoke reconnect");
-          await new Promise((resolve) => ws1.once("close", resolve));
-
           const resumed = await connect();
           resumed.send(JSON.stringify({
             type: "resume_room",
@@ -216,6 +215,32 @@ jobs:
           if (resumedSnapshot.roundNumber !== nextRound.roundNumber) throw new Error("reconnect returned stale round");
           const resumeComplete = await waitFor(resumed, (m) => m.type === "resume_complete");
           if (resumeComplete.roundNumber !== nextRound.roundNumber) throw new Error("resume_complete round mismatch");
+
+          console.log("STALE DISCONNECT");
+          ws1.close(1000, "stale socket disconnect");
+          await new Promise((resolve) => ws1.once("close", resolve));
+
+          const observer = await connect();
+          observer.send(JSON.stringify({
+            type: "resume_room",
+            requestId: crypto.randomUUID(),
+            roomId,
+            playerId: opponentId,
+            roundNumber: nextRound.roundNumber,
+            lastEventSequence: nextRound.eventSequence,
+            handVersion: 1
+          }));
+          await waitFor(observer, (m) => m.type === "resume_started");
+          const staleDisconnectCheck = await waitFor(
+            observer,
+            (m) => m.type === "room_snapshot" && m.roomId === roomId
+          );
+          const resumedPlayer = staleDisconnectCheck.players?.find((p) => p.playerId === playerId);
+          if (!resumedPlayer?.connected) {
+            throw new Error("stale disconnect incorrectly marked the newer connection disconnected");
+          }
+          observer.close(1000, "smoke observer complete");
+          await new Promise((resolve) => observer.once("close", resolve));
 
           console.log("PRODUCTION MULTIPLAYER SMOKE VERIFIED");
           for (const ws of [resumed, ws2]) {
