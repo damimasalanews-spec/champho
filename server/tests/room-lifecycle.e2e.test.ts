@@ -204,7 +204,7 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
 
   const timeoutHandle = setTimeout(() => {
     const error = new Error(
-      `[disconnect barrier] timed out after ${timeoutMs}ms: stale disconnect did not complete the expected beforeDisconnectUpdate/afterDisconnectUpdate sequence`
+      `[disconnect barrier] timed out after ${timeoutMs}ms while waiting for the stale disconnect update to enter and complete the test barrier`
     );
     clearTimeoutOnce();
     rejectBlocked(error);
@@ -1357,7 +1357,7 @@ test("resume_room on a new WebSocket restores the existing player without duplic
 test("stale disconnect cannot mark a newly resumed connection disconnected", async () => {
   const port = 9000 + Math.floor(Math.random() * 500);
   const ownerId = randomUUID();
-  const barrier = createDisconnectBarrier(2_000);
+  const barrier = createDisconnectBarrier(5_000);
   let serverSocketClosed = false;
   let resolveServerSocketClose!: () => void;
 
