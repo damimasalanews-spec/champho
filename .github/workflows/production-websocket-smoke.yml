@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+                with:
+          ref: protocol/authoritative-multiplayer-contract
 
       - name: Setup Node
         uses: actions/setup-node@v4
