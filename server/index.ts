@@ -67,6 +67,7 @@ function parseMessage(raw: WebSocket.RawData): Record<string, unknown> {
 
 webSocketServer.on("connection", (socket) => {
   let joinedRoomId: string | null = null;
+  let joinedPlayerId: string | null = null;
 
   send(socket, {
     type: "server_ready",
@@ -85,6 +86,7 @@ webSocketServer.on("connection", (socket) => {
 
         const result = await createRoom(message.playerId);
         joinedRoomId = result.snapshot.roomId;
+        joinedPlayerId = message.playerId;
         roomSockets.set(joinedRoomId, new Set([socket]));
         send(socket, result.snapshot);
         for (const event of result.events) send(socket, event);
@@ -107,6 +109,7 @@ webSocketServer.on("connection", (socket) => {
 
         const result = await resumeRoom(message.roomId, message.playerId);
         joinedRoomId = result.snapshot.roomId;
+        joinedPlayerId = message.playerId;
         const sockets = roomSockets.get(joinedRoomId) ?? new Set<WebSocket>();
         sockets.add(socket);
         roomSockets.set(joinedRoomId, sockets);
@@ -159,6 +162,11 @@ webSocketServer.on("connection", (socket) => {
     if (sockets) {
       sockets.delete(socket);
       if (sockets.size === 0) roomSockets.delete(roomId);
+    }
+    if (joinedPlayerId) {
+      void markPlayerDisconnected(roomId, joinedPlayerId).catch((error) => {
+        console.error("[ws] Failed to mark player disconnected:", error);
+      });
     }
   });
 });
