@@ -188,7 +188,7 @@ export async function resumeRoom(
            connection_version = connection_version + 1,
            updated_at = clock_timestamp()
        WHERE room_id = $1 AND player_id = $2
-       RETURNING connection_version`,
+       RETURNING connection_version, hand_version`,
       [roomId, playerId]
     );
 
