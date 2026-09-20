@@ -928,7 +928,7 @@ test("join_room when the room is full returns a protocol error without persistin
   const server = await startServer(port);
   const owner = await connect(port);
   const joinedSockets: WebSocket[] = [];
-  const rejected = await connect(port);
+  let rejected: WebSocket | undefined;
   let roomId: string | undefined;
 
   try {
