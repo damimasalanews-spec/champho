@@ -123,6 +123,7 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
   let resolveBlocked!: () => void;
   let rejectBlocked!: (error: Error) => void;
   let resolveReleased!: () => void;
+  let rejectReleased!: (error: Error) => void;
   let resolveCompleted!: (rowCount: number) => void;
   let rejectCompleted!: (error: Error) => void;
 
@@ -131,8 +132,9 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
     rejectBlocked = reject;
   });
 
-  const releasedPromise = new Promise<void>((resolve) => {
+  const releasedPromise = new Promise<void>((resolve, reject) => {
     resolveReleased = resolve;
+    rejectReleased = reject;
   });
 
   const completedPromise = new Promise<number>((resolve, reject) => {
@@ -148,20 +150,21 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
 
   const timeoutHandle = setTimeout(() => {
     const error = new Error(
-      `disconnect barrier timed out after ${timeoutMs}ms`
+      `[disconnect barrier] timed out after ${timeoutMs}ms: stale disconnect did not complete the expected beforeDisconnectUpdate/afterDisconnectUpdate sequence`
     );
     clearTimeoutOnce();
     rejectBlocked(error);
+    rejectReleased(error);
     rejectCompleted(error);
   }, timeoutMs);
 
   return {
     async wait() {
-      if (released || completed) {
-        return;
-      }
+      if (released || completed) return;
       if (blocked) {
-        throw new Error("disconnect barrier was already entered");
+        throw new Error(
+          "[disconnect barrier] beforeDisconnectUpdate entered more than once"
+        );
       }
       blocked = true;
       resolveBlocked();
@@ -180,15 +183,15 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
     },
 
     async completed() {
-      if (completed) {
-        return rowCount!;
-      }
+      if (completed) return rowCount!;
       return completedPromise;
     },
 
     afterDisconnectUpdate(updatedRowCount: number) {
       if (completed) {
-        throw new Error("disconnect barrier completed more than once");
+        throw new Error(
+          "[disconnect barrier] afterDisconnectUpdate completed more than once"
+        );
       }
       rowCount = updatedRowCount;
       completed = true;
@@ -197,6 +200,7 @@ function createDisconnectBarrier(timeoutMs = 2_000) {
     }
   };
 }
+
 
 async function stopServer(child: ChildProcess): Promise<void> {
   if (child.exitCode !== null) return;
@@ -1423,9 +1427,3 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       );
     }
     owner.close();
-    if (resumed && resumed.readyState === WebSocket.OPEN) {
-      resumed.close();
-    }
-    await server.close();
-  }
-});
