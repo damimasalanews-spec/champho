@@ -30,15 +30,24 @@ jobs:
           import WebSocket from "ws";
 
           const url = process.env.WS_URL;
+          const playerId = `ci-player-${Date.now()}`;
           const requestId = `ci-create-${Date.now()}`;
 
           console.log(`CONNECT ${url}`);
 
           const ws = new WebSocket(url);
-          let sawResponse = false;
+          let sawRoomCreated = false;
+          let failed = false;
+
+          const fail = (message) => {
+            failed = true;
+            console.error(`SMOKE TEST FAILURE: ${message}`);
+            clearTimeout(timeout);
+            ws.close(1000, "smoke test failed");
+          };
 
           const timeout = setTimeout(() => {
-            console.error("TIMEOUT: no response within 15s");
+            console.error("TIMEOUT: no room_created response within 15s");
             ws.close();
             process.exit(1);
           }, 15000);
@@ -48,7 +57,8 @@ jobs:
 
             const message = {
               type: "create_room",
-              requestId
+              requestId,
+              playerId
             };
 
             console.log("SEND create_room:");
@@ -58,19 +68,78 @@ jobs:
           });
 
           ws.on("message", (data) => {
-            sawResponse = true;
             const raw = data.toString();
 
             console.log("RECEIVED RAW:");
             console.log(raw);
 
+            let parsed;
             try {
-              const parsed = JSON.parse(raw);
-              console.log("PROTOCOL RESPONSE:");
-              console.log(JSON.stringify(parsed, null, 2));
+              parsed = JSON.parse(raw);
             } catch {
-              console.log("PROTOCOL RESPONSE: non-JSON payload");
+              fail("received non-JSON payload");
+              return;
             }
+
+            console.log("PROTOCOL RESPONSE:");
+            console.log(JSON.stringify(parsed, null, 2));
+
+            if (parsed.type === "server_ready") {
+              console.log("IGNORING server_ready; waiting for room_created");
+              return;
+            }
+
+            if (parsed.type === "error") {
+              fail(`server returned error: ${parsed.code ?? "unknown_error"}`);
+              return;
+            }
+
+            if (parsed.type === "room_snapshot") {
+              if (typeof parsed.roomId !== "string" || !parsed.roomId) {
+                fail("room_snapshot missing roomId");
+                return;
+              }
+              return;
+            }
+
+            if (parsed.type !== "event" || parsed.eventType !== "room_created") {
+              fail(`unexpected response type: ${parsed.type ?? "missing_type"}`);
+              return;
+            }
+
+            if (parsed.eventType !== "room_created") {
+              fail(`unexpected eventType: ${parsed.eventType ?? "missing_eventType"}`);
+              return;
+            }
+
+            if (parsed.payload?.playerId !== playerId) {
+              fail("room_created payload.playerId does not match requested playerId");
+              return;
+            }
+
+            if (typeof parsed.roomId !== "string" || !parsed.roomId) {
+              fail("room_created missing roomId");
+              return;
+            }
+
+            if (!Number.isInteger(parsed.eventSequence) || parsed.eventSequence < 1) {
+              fail("room_created has invalid eventSequence");
+              return;
+            }
+
+            if (!Number.isInteger(parsed.roundNumber) || parsed.roundNumber < 1) {
+              fail("room_created has invalid roundNumber");
+              return;
+            }
+
+            if (typeof parsed.serverTime !== "string" || !parsed.serverTime) {
+              fail("room_created missing serverTime");
+              return;
+            }
+
+            sawRoomCreated = true;
+            console.log("ROOM_CREATED VERIFIED:");
+            console.log(JSON.stringify(parsed, null, 2));
 
             clearTimeout(timeout);
             ws.close(1000, "smoke test complete");
@@ -79,7 +148,12 @@ jobs:
           ws.on("close", (code, reason) => {
             clearTimeout(timeout);
             console.log(`CLOSE code=${code} reason=${reason.toString()}`);
-            process.exit(code === 1000 && sawResponse ? 0 : 1);
+
+            if (failed || code !== 1000 || !sawRoomCreated) {
+              process.exit(1);
+            }
+
+            process.exit(0);
           });
 
           ws.on("error", (err) => {
