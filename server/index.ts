@@ -110,8 +110,10 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     });
 
     socket.on("message", async (raw) => {
+      let requestId: string | undefined;
       try {
         const message = parseMessage(raw);
+        requestId = typeof message.requestId === "string" ? message.requestId : undefined;
         const type = message.type;
 
         if (type === "create_room") {
@@ -206,7 +208,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         protocolError(
           socket,
           error instanceof Error ? error.message : "internal_error",
-          message.requestId
+          requestId
         );
       }
     });
