@@ -173,7 +173,7 @@ export async function startRound(roomId: string): Promise<RoomSnapshot> {
        WHERE room_id = $1 ORDER BY seat_number FOR UPDATE`,
       [roomId]
     );
-    if (players.rowCount < 2) throw new Error("not_enough_players");
+    if ((players.rowCount ?? 0) < 2) throw new Error("not_enough_players");
 
     const starter = players.rows[0].player_id;
     const hand = JSON.stringify([
