@@ -140,6 +140,62 @@ export async function createRoom(playerId: string): Promise<{
   }
 }
 
+export async function resumeRoom(
+  roomId: string,
+  playerId: string
+): Promise<{ snapshot: RoomSnapshot }> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const room = await client.query(
+      `SELECT id
+       FROM public.game_rooms
+       WHERE id = $1
+       FOR UPDATE`,
+      [roomId]
+    );
+    if (room.rowCount !== 1) throw new Error("room_not_found");
+
+    const player = await client.query(
+      `SELECT player_id
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2
+       FOR UPDATE`,
+      [roomId, playerId]
+    );
+    if (player.rowCount !== 1) throw new Error("player_not_in_room");
+
+    await client.query(
+      `UPDATE public.room_players
+       SET connected = true, updated_at = clock_timestamp()
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, playerId]
+    );
+
+    const snapshot = await readSnapshot(client, roomId);
+    await client.query("COMMIT");
+    return { snapshot };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function markPlayerDisconnected(
+  roomId: string,
+  playerId: string
+): Promise<void> {
+  await pool.query(
+    `UPDATE public.room_players
+     SET connected = false, updated_at = clock_timestamp()
+     WHERE room_id = $1 AND player_id = $2`,
+    [roomId, playerId]
+  );
+}
+
 export async function joinRoom(
   roomId: string,
   playerId: string
