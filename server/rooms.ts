@@ -205,6 +205,10 @@ export async function markPlayerDisconnected(
 ): Promise<number> {
   await hooks.beforeDisconnectUpdate?.();
 
+  console.error(
+    `[ws-disconnect] UPDATE start roomId=${roomId} playerId=${playerId} connectionVersion=${connectionVersion}`
+  );
+
   const result = await pool.query(
     `UPDATE public.room_players
      SET connected = false, updated_at = clock_timestamp()
@@ -215,6 +219,9 @@ export async function markPlayerDisconnected(
   );
 
   const rowCount = result.rowCount ?? 0;
+  console.error(
+    `[ws-disconnect] UPDATE complete roomId=${roomId} playerId=${playerId} connectionVersion=${connectionVersion} matchedRowCount=${rowCount}`
+  );
   hooks.afterDisconnectUpdate?.(rowCount);
   return rowCount;
 }
