@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import {
   createRoom,
   joinRoom,
+  startRound,
   markPlayerDisconnected,
   resumeRoom,
   type DisconnectHooks,
@@ -180,6 +181,17 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
             handVersion: result.handVersion,
             serverTime: new Date().toISOString()
           });
+          return;
+        }
+
+        if (type === "start_round") {
+          if (typeof message.requestId !== "string" || !message.requestId) throw new Error("invalid_request_id");
+          if (typeof joinedRoomId !== "string" || joinedRoomId === null) throw new Error("not_joined");
+          const snapshot = await startRound(joinedRoomId);
+          const sockets = roomSockets.get(joinedRoomId);
+          if (sockets) {
+            for (const roomSocket of sockets) send(roomSocket, snapshot);
+          }
           return;
         }
 
