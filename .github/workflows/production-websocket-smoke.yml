@@ -1,0 +1,91 @@
+name: Production WebSocket Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - protocol/authoritative-multiplayer-contract
+
+jobs:
+  websocket-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run production WebSocket smoke test
+        env:
+          WS_URL: wss://champword-backend.onrender.com
+        run: |
+          node --input-type=module <<'EOF'
+          import WebSocket from "ws";
+
+          const url = process.env.WS_URL;
+          const requestId = `ci-create-${Date.now()}`;
+
+          console.log(`CONNECT ${url}`);
+
+          const ws = new WebSocket(url);
+          let sawResponse = false;
+
+          const timeout = setTimeout(() => {
+            console.error("TIMEOUT: no response within 15s");
+            ws.close();
+            process.exit(1);
+          }, 15000);
+
+          ws.on("open", () => {
+            console.log("CONNECT RESULT: OPEN");
+
+            const message = {
+              type: "create_room",
+              requestId
+            };
+
+            console.log("SEND create_room:");
+            console.log(JSON.stringify(message, null, 2));
+
+            ws.send(JSON.stringify(message));
+          });
+
+          ws.on("message", (data) => {
+            sawResponse = true;
+            const raw = data.toString();
+
+            console.log("RECEIVED RAW:");
+            console.log(raw);
+
+            try {
+              const parsed = JSON.parse(raw);
+              console.log("PROTOCOL RESPONSE:");
+              console.log(JSON.stringify(parsed, null, 2));
+            } catch {
+              console.log("PROTOCOL RESPONSE: non-JSON payload");
+            }
+
+            clearTimeout(timeout);
+            ws.close(1000, "smoke test complete");
+          });
+
+          ws.on("close", (code, reason) => {
+            clearTimeout(timeout);
+            console.log(`CLOSE code=${code} reason=${reason.toString()}`);
+            process.exit(code === 1000 && sawResponse ? 0 : 1);
+          });
+
+          ws.on("error", (err) => {
+            clearTimeout(timeout);
+            console.error(`WEBSOCKET ERROR: ${err.message}`);
+            process.exit(1);
+          });
+          EOF
