@@ -105,7 +105,7 @@ function waitForMessage(
         if (index >= 0) state.waiters.splice(index, 1);
         reject(
           new Error(
-            `[waitForMessage] timed out after ${timeoutMs}ms waiting for ${label}`
+            `[waitForMessage] timed out after ${timeoutMs}ms waiting for ${label}; queued types: ${state.queue.map((message) => message.type).join(",") || "none"}; pending waiters: ${state.waiters.length}`
           )
         );
       }, timeoutMs)
@@ -796,13 +796,17 @@ test("disconnect and resume_room restore authoritative state without duplicate p
 
     const resumeStarted = await waitForMessage(
       resumed,
-      (message) => message.type === "resume_started"
+      (message) => message.type === "resume_started",
+      5_000,
+      "resume_started after guest reconnect"
     );
     assert.equal(resumeStarted.roomId, roomId);
 
     const resumedSnapshot = await waitForMessage(
       resumed,
-      (message) => message.type === "room_snapshot"
+      (message) => message.type === "room_snapshot",
+      5_000,
+      "room_snapshot after guest reconnect"
     );
     assert.equal(resumedSnapshot.roomId, roomId);
     assert.equal(resumedSnapshot.eventSequence, 2);
@@ -813,7 +817,9 @@ test("disconnect and resume_room restore authoritative state without duplicate p
 
     const resumeComplete = await waitForMessage(
       resumed,
-      (message) => message.type === "resume_complete"
+      (message) => message.type === "resume_complete",
+      5_000,
+      "resume_complete after guest reconnect"
     );
     assert.equal(resumeComplete.roomId, roomId);
     assert.equal(resumeComplete.eventSequence, 2);
