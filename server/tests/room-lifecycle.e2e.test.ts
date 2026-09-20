@@ -11,7 +11,8 @@ type Message = Record<string, any>;
 function waitForMessage(
   socket: WebSocket,
   predicate: (message: Message) => boolean,
-  timeoutMs = 5_000
+  timeoutMs = 5_000,
+  label = "matching WebSocket message"
 ): Promise<Message> {
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -50,7 +51,7 @@ function waitForMessage(
 
     timeoutHandle = setTimeout(() => {
       settleReject(
-        new Error(`timed out after ${timeoutMs}ms waiting for matching WebSocket message`)
+        new Error(`[waitForMessage] timed out after ${timeoutMs}ms waiting for ${label}`)
       );
     }, timeoutMs);
 
@@ -1350,14 +1351,18 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       resumed,
       (message) =>
         message.type === "resume_started" &&
-        message.roomId === roomId
+        message.roomId === roomId,
+      5_000,
+      "resume_started for resumed socket"
     );
 
     const snapshot = await waitForMessage(
       resumed,
       (message) =>
         message.type === "room_snapshot" &&
-        message.roomId === roomId
+        message.roomId === roomId,
+      5_000,
+      "room_snapshot for resumed socket"
     );
 
     assert.deepEqual(snapshot.players, [
@@ -1373,7 +1378,9 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       resumed,
       (message) =>
         message.type === "resume_complete" &&
-        message.roomId === roomId
+        message.roomId === roomId,
+      5_000,
+      "resume_complete for resumed socket"
     );
 
     const beforeRelease = await pool.query(
@@ -1422,4 +1429,3 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     await server.close();
   }
 });
-
