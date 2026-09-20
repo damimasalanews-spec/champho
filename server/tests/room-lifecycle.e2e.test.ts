@@ -470,3 +470,86 @@ test("join_room with an unknown room returns a protocol error without persisting
     await stopServer(server);
   }
 });
+
+
+test("join_room with an invalid or unauthorized player identity returns a protocol error without persisting state", async () => {
+  const port = 7200 + Math.floor(Math.random() * 1000);
+  const ownerId = randomUUID();
+  const unauthorizedPlayerId = randomUUID();
+  const server = await startServer(port);
+  const owner = await connect(port);
+  const unauthorized = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
+    const createdSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      owner,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    const before = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events`
+    );
+
+    unauthorized.send(
+      JSON.stringify({
+        type: "join_room",
+        roomId,
+        playerId: unauthorizedPlayerId
+      })
+    );
+
+    const error = await waitForMessage(
+      unauthorized,
+      (message) =>
+        message.type === "error" &&
+        (message.reason === "unauthorized_player" ||
+          message.reason === "invalid_player_identity")
+    );
+
+    assert.ok(
+      error.reason === "unauthorized_player" ||
+      error.reason === "invalid_player_identity"
+    );
+
+    const after = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events`
+    );
+
+    assert.deepEqual(after.rows[0], before.rows[0]);
+
+    const player = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_players
+       WHERE room_id = $1
+         AND player_id = $2`,
+      [roomId, unauthorizedPlayerId]
+    );
+    assert.equal(Number(player.rows[0].count), 0);
+
+    const events = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_events
+       WHERE room_id = $1
+         AND event_type = 'player_joined'
+         AND payload->>'playerId' = $2`,
+      [roomId, unauthorizedPlayerId]
+    );
+    assert.equal(Number(events.rows[0].count), 0);
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    owner.close();
+    unauthorized.close();
+    await stopServer(server);
+  }
+});
