@@ -85,6 +85,20 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     return parsed as Record<string, unknown>;
   }
 
+  function protocolError(
+    socket: WebSocket,
+    code: string,
+    requestId?: unknown
+  ): void {
+    send(socket, {
+      type: "error",
+      code,
+      message: code,
+      serverTime: new Date().toISOString(),
+      ...(typeof requestId === "string" && requestId ? { requestId } : {})
+    });
+  }
+
   webSocketServer.on("connection", (socket) => {
     let joinedRoomId: string | null = null;
     let joinedPlayerId: string | null = null;
@@ -116,11 +130,23 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         }
 
         if (type === "resume_room") {
+          if (typeof message.requestId !== "string" || !message.requestId) {
+            throw new Error("invalid_request_id");
+          }
           if (typeof message.roomId !== "string" || !message.roomId) {
             throw new Error("invalid_room_id");
           }
           if (typeof message.playerId !== "string" || !message.playerId) {
             throw new Error("invalid_player_id");
+          }
+          if (typeof message.roundNumber !== "number" || !Number.isInteger(message.roundNumber) || message.roundNumber < 1) {
+            throw new Error("invalid_round_number");
+          }
+          if (typeof message.lastEventSequence !== "number" || !Number.isInteger(message.lastEventSequence) || message.lastEventSequence < 0) {
+            throw new Error("invalid_event_sequence");
+          }
+          if (typeof message.handVersion !== "number" || !Number.isInteger(message.handVersion) || message.handVersion < 0) {
+            throw new Error("invalid_hand_version");
           }
           if (joinedRoomId !== null || joinedPlayerId !== null) {
             throw new Error("resume_already_active");
@@ -128,6 +154,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
 
           send(socket, {
             type: "resume_started",
+            requestId: message.requestId,
             roomId: message.roomId,
             serverTime: new Date().toISOString()
           });
@@ -143,8 +170,11 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           send(socket, result.snapshot);
           send(socket, {
             type: "resume_complete",
+            requestId: message.requestId,
             roomId: result.snapshot.roomId,
-            eventSequence: result.snapshot.eventSequence,
+            roundNumber: result.snapshot.roundNumber,
+            lastEventSequence: result.snapshot.eventSequence,
+            handVersion: result.handVersion,
             serverTime: new Date().toISOString()
           });
           return;
@@ -170,16 +200,14 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           return;
         }
 
-        send(socket, {
-          type: "error",
-          reason: "unknown_message_type"
-        });
+        protocolError(socket, "unknown_message_type", message.requestId);
       } catch (error) {
         console.error("[ws] Message handling failed:", error);
-        send(socket, {
-          type: "error",
-          reason: error instanceof Error ? error.message : "internal_error"
-        });
+        protocolError(
+          socket,
+          error instanceof Error ? error.message : "internal_error",
+          message.requestId
+        );
       }
     });
 
