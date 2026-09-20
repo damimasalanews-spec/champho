@@ -1400,7 +1400,11 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     assert.equal(initial.rows[0].connected, true);
     assert.equal(Number(initial.rows[0].connection_version), 0);
 
+    const ownerClosed = new Promise<void>((resolve) => {
+      owner.once("close", () => resolve());
+    });
     owner.terminate();
+    await ownerClosed;
 
     await barrier.waitUntilBlocked();
 
