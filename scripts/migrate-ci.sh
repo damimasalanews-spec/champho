@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+migration_dir="${MIGRATION_DIR:-db}"
+
 expected=(
-  "db/001_game_rooms_and_submissions.sql"
-  "db/002_protocol_constraints.sql"
-  "db/003_protocol_indexes_and_immutability.sql"
+  "${migration_dir}/001_game_rooms_and_submissions.sql"
+  "${migration_dir}/002_protocol_constraints.sql"
+  "${migration_dir}/003_protocol_indexes_and_immutability.sql"
 )
 
-mapfile -t actual < <(find db -maxdepth 1 -type f -name '[0-9][0-9][0-9]_*.sql' -print | sort)
+mapfile -t actual < <(find "$migration_dir" -maxdepth 1 -type f -name '[0-9][0-9][0-9]_*.sql' -print | sort)
 
 if [ "${#actual[@]}" -ne "${#expected[@]}" ]; then
   echo "Migration file count mismatch."
