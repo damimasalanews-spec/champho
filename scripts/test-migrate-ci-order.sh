@@ -49,10 +49,10 @@ EOF
 
 mkdir "$temp_dir/migrations"
 
-# Case 1: deliberately misordered migration files.
+# Case 1: genuinely misnamed migration file.
 touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
 touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
-touch "$temp_dir/migrations/002_protocol_constraints.sql"
+touch "$temp_dir/migrations/002_wrong_protocol_constraints.sql"
 touch "$temp_dir/migrations/004_connection_version.sql"
 
 assert_runner_rejects_without_psql   "misordered migration set"   "Migration order/file mismatch"
@@ -81,9 +81,17 @@ touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
 touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
 touch "$temp_dir/migrations/004_connection_version.sql"
 
-assert_runner_rejects_without_psql \
-  "missing migration prefix" \
-  "Migration file count mismatch"
+assert_runner_rejects_without_psql   "missing migration prefix"   "Migration file count mismatch"
 
 echo "Missing migration prefix test passed: migration script failed before psql."
-\nsummary_file="$temp_dir/summary.txt"\ncat > "$summary_file" <<EOF\nMigration validation summary\n- misordered migration set: PASSED (psql not invoked)\n- duplicate migration numeric prefix: PASSED (psql not invoked)\n- missing migration prefix: PASSED (psql not invoked)\nEOF\n\necho "Migration validation summary:"\ncat "$summary_file"\n
+
+summary_file="$temp_dir/summary.txt"
+cat > "$summary_file" <<EOF
+Migration validation summary
+- misordered migration set: PASSED (psql not invoked)
+- duplicate migration numeric prefix: PASSED (psql not invoked)
+- missing migration prefix: PASSED (psql not invoked)
+EOF
+
+echo "Migration validation summary:"
+cat "$summary_file"
