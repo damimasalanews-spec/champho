@@ -41,6 +41,7 @@ async function connect(port: number): Promise<WebSocket> {
     socket.once("open", () => resolve());
     socket.once("error", reject);
   });
+  await waitForMessage(socket, (message) => message.type === "server_ready");
   return socket;
 }
 
@@ -72,7 +73,7 @@ async function startServer(port: number): Promise<ChildProcess> {
     };
     const cleanup = () => {
       child.stdout?.off("data", onOutput);
-      child.once("error", onError);
+      child.off("error", onError);
       child.off("exit", onExit);
     };
 
@@ -107,8 +108,6 @@ test("two WebSocket clients create and join a room with authoritative snapshots 
     server = await startServer(port);
     owner = await connect(port);
 
-    await waitForMessage(owner, (message) => message.type === "server_ready");
-
     owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
     const createdSnapshot = await waitForMessage(
       owner,
@@ -133,7 +132,6 @@ test("two WebSocket clients create and join a room with authoritative snapshots 
     assert.deepEqual(createdEvent.payload, { playerId: ownerId });
 
     guest = await connect(port);
-    await waitForMessage(guest, (message) => message.type === "server_ready");
 
     const ownerJoinedEventPromise = waitForMessage(
       owner,
