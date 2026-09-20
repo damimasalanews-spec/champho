@@ -36,7 +36,7 @@ export type RoomEvent = {
   eventSequence: number;
   roomId: string;
   roundNumber: number;
-  eventType: "room_created" | "player_joined";
+  eventType: "room_created" | "player_joined" | "word_submitted" | "round_completed";
   serverTime: string;
   payload: Record<string, unknown>;
 };
