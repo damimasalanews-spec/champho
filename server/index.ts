@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { WebSocketServer, WebSocket } from "ws";
 import { checkDatabase, pool } from "./db.js";
 import { config } from "./config.js";
-import { createRoom, joinRoom, type RoomEvent } from "./rooms.js";
+import { createRoom, joinRoom, markPlayerDisconnected, resumeRoom, type RoomEvent } from "./rooms.js";
 
 const httpServer = createServer(async (request, response) => {
   if (request.method !== "GET" || request.url !== "/health") {
@@ -91,6 +91,36 @@ webSocketServer.on("connection", (socket) => {
         return;
       }
 
+      if (type === "resume_room") {
+        if (typeof message.roomId !== "string" || !message.roomId) {
+          throw new Error("invalid_room_id");
+        }
+        if (typeof message.playerId !== "string" || !message.playerId) {
+          throw new Error("invalid_player_id");
+        }
+
+        send(socket, {
+          type: "resume_started",
+          roomId: message.roomId,
+          serverTime: new Date().toISOString()
+        });
+
+        const result = await resumeRoom(message.roomId, message.playerId);
+        joinedRoomId = result.snapshot.roomId;
+        const sockets = roomSockets.get(joinedRoomId) ?? new Set<WebSocket>();
+        sockets.add(socket);
+        roomSockets.set(joinedRoomId, sockets);
+
+        send(socket, result.snapshot);
+        send(socket, {
+          type: "resume_complete",
+          roomId: result.snapshot.roomId,
+          eventSequence: result.snapshot.eventSequence,
+          serverTime: new Date().toISOString()
+        });
+        return;
+      }
+
       if (type === "join_room") {
         if (typeof message.roomId !== "string" || !message.roomId) {
           throw new Error("invalid_room_id");
@@ -124,10 +154,12 @@ webSocketServer.on("connection", (socket) => {
 
   socket.on("close", () => {
     if (!joinedRoomId) return;
-    const sockets = roomSockets.get(joinedRoomId);
-    if (!sockets) return;
-    sockets.delete(socket);
-    if (sockets.size === 0) roomSockets.delete(joinedRoomId);
+    const roomId = joinedRoomId;
+    const sockets = roomSockets.get(roomId);
+    if (sockets) {
+      sockets.delete(socket);
+      if (sockets.size === 0) roomSockets.delete(roomId);
+    }
   });
 });
 
