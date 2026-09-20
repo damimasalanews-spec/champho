@@ -208,3 +208,101 @@ test("two WebSocket clients create and join a room with authoritative snapshots 
     if (server) await stopServer(server);
   }
 });
+
+
+test("invalid create_room messages return protocol errors and persist nothing", async () => {
+  const port = 4100 + Math.floor(Math.random() * 1000);
+  const server = await startServer(port);
+  const socket = await connect(port);
+
+  try {
+    const before = await pool.query(
+      "SELECT (SELECT count(*) FROM public.game_rooms) AS rooms, (SELECT count(*) FROM public.room_players) AS players, (SELECT count(*) FROM public.room_events) AS events"
+    );
+
+    socket.send(JSON.stringify({ type: "create_room" }));
+    const missingPlayerError = await waitForMessage(
+      socket,
+      (message) => message.type === "error" && message.reason === "invalid_player_id"
+    );
+
+    assert.deepEqual(missingPlayerError, {
+      type: "error",
+      reason: "invalid_player_id"
+    });
+
+    socket.send(JSON.stringify({ type: "create_room", playerId: "" }));
+    const emptyPlayerError = await waitForMessage(
+      socket,
+      (message) => message.type === "error" && message.reason === "invalid_player_id"
+    );
+
+    assert.deepEqual(emptyPlayerError, {
+      type: "error",
+      reason: "invalid_player_id"
+    });
+
+    const after = await pool.query(
+      "SELECT (SELECT count(*) FROM public.game_rooms) AS rooms, (SELECT count(*) FROM public.room_players) AS players, (SELECT count(*) FROM public.room_events) AS events"
+    );
+
+    assert.deepEqual(after.rows[0], before.rows[0]);
+  } finally {
+    socket.close();
+    await stopServer(server);
+  }
+});
+
+test("invalid join_room messages return protocol errors and persist nothing", async () => {
+  const port = 5100 + Math.floor(Math.random() * 1000);
+  const server = await startServer(port);
+  const socket = await connect(port);
+
+  try {
+    const before = await pool.query(
+      "SELECT (SELECT count(*) FROM public.game_rooms) AS rooms, (SELECT count(*) FROM public.room_players) AS players, (SELECT count(*) FROM public.room_events) AS events"
+    );
+
+    socket.send(JSON.stringify({ type: "join_room", playerId: randomUUID() }));
+    const missingRoomError = await waitForMessage(
+      socket,
+      (message) => message.type === "error" && message.reason === "invalid_room_id"
+    );
+
+    assert.deepEqual(missingRoomError, {
+      type: "error",
+      reason: "invalid_room_id"
+    });
+
+    socket.send(JSON.stringify({ type: "join_room", roomId: "", playerId: randomUUID() }));
+    const emptyRoomError = await waitForMessage(
+      socket,
+      (message) => message.type === "error" && message.reason === "invalid_room_id"
+    );
+
+    assert.deepEqual(emptyRoomError, {
+      type: "error",
+      reason: "invalid_room_id"
+    });
+
+    socket.send(JSON.stringify({ type: "join_room", roomId: randomUUID() }));
+    const missingPlayerError = await waitForMessage(
+      socket,
+      (message) => message.type === "error" && message.reason === "invalid_player_id"
+    );
+
+    assert.deepEqual(missingPlayerError, {
+      type: "error",
+      reason: "invalid_player_id"
+    });
+
+    const after = await pool.query(
+      "SELECT (SELECT count(*) FROM public.game_rooms) AS rooms, (SELECT count(*) FROM public.room_players) AS players, (SELECT count(*) FROM public.room_events) AS events"
+    );
+
+    assert.deepEqual(after.rows[0], before.rows[0]);
+  } finally {
+    socket.close();
+    await stopServer(server);
+  }
+});
