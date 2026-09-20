@@ -322,15 +322,23 @@ test("solve window accepts a second solver before the deadline and then transiti
     await waitForMessage(first, (m) => m.type === "word_submission_result" && m.status === "accepted");
     await waitForMessage(first, (m) => m.type === "event" && m.eventType === "word_submitted");
 
+    await pool.query(
+      `UPDATE public.room_players
+       SET connected = false
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, guestId]
+    );
     second.send(JSON.stringify({
-      type: "join_room",
+      type: "resume_room",
+      requestId: randomUUID(),
       roomId,
-      playerId: guestId
+      playerId: guestId,
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
     }));
-    const joinErrorOrSnapshot = await waitForMessage(second, (m) => m.type === "error" || m.type === "room_snapshot");
-    if (joinErrorOrSnapshot.type === "error") {
-      assert.fail(`guest join unexpectedly failed: ${joinErrorOrSnapshot.code}`);
-    }
+    await waitForMessage(second, (m) => m.type === "resume_started");
+    await waitForMessage(second, (m) => m.type === "room_snapshot");
 
     second.send(JSON.stringify({
       type: "submit_word",
