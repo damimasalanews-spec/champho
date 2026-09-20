@@ -117,6 +117,10 @@ function waitForMessage(
 
 async function connect(port: number): Promise<WebSocket> {
   const socket = new WebSocket(`ws://127.0.0.1:${port}`);
+  // Install the message queue before the connection opens. The server sends
+  // server_ready synchronously from its connection handler, which can race
+  // the client's open event; attaching listeners only after open can lose it.
+  getSocketMessageState(socket);
   await new Promise<void>((resolve, reject) => {
     socket.once("open", () => resolve());
     socket.once("error", reject);
