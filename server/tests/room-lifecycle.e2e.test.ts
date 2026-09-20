@@ -1426,4 +1426,30 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         [roomId]
       );
     }
-    owner.close();
+    try {
+      owner.close();
+    } catch (error) {
+      throw new Error(
+        `[stale disconnect cleanup] failed to close original WebSocket: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    try {
+      if (resumed && resumed.readyState === WebSocket.OPEN) {
+        resumed.close();
+      }
+    } catch (error) {
+      throw new Error(
+        `[stale disconnect cleanup] failed to close resumed WebSocket: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    try {
+      await server.close();
+    } catch (error) {
+      throw new Error(
+        `[stale disconnect cleanup] failed to close test server: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+});
