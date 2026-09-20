@@ -83,3 +83,4 @@ assert_runner_rejects_without_psql \
   "Migration file count mismatch"
 
 echo "Missing migration prefix test passed: migration script failed before psql."
+\nsummary_file="$temp_dir/summary.txt"\ncat > "$summary_file" <<EOF\nMigration validation summary\n- misordered migration set: PASSED (psql not invoked)\n- duplicate migration numeric prefix: PASSED (psql not invoked)\n- missing migration prefix: PASSED (psql not invoked)\nEOF\n\necho "Migration validation summary:"\ncat "$summary_file"\n
