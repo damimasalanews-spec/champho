@@ -45,6 +45,7 @@ const httpServer = createServer(async (request, response) => {
 });
 
 const webSocketServer = new WebSocketServer({ server: httpServer });
+const roomSockets = new Map<string, Set<WebSocket>>();
 
 function send(socket: WebSocket, message: unknown): void {
   if (socket.readyState === WebSocket.OPEN) {
@@ -65,8 +66,7 @@ function parseMessage(raw: WebSocket.RawData): Record<string, unknown> {
 }
 
 webSocketServer.on("connection", (socket) => {
-  const roomSockets = new Set<WebSocket>();
-  roomSockets.add(socket);
+  let joinedRoomId: string | null = null;
 
   send(socket, {
     type: "server_ready",
@@ -84,6 +84,8 @@ webSocketServer.on("connection", (socket) => {
         }
 
         const result = await createRoom(message.playerId);
+        joinedRoomId = result.snapshot.roomId;
+        roomSockets.set(joinedRoomId, new Set([socket]));
         send(socket, result.snapshot);
         for (const event of result.events) send(socket, event);
         return;
@@ -98,8 +100,12 @@ webSocketServer.on("connection", (socket) => {
         }
 
         const result = await joinRoom(message.roomId, message.playerId);
+        joinedRoomId = result.snapshot.roomId;
+        const sockets = roomSockets.get(joinedRoomId) ?? new Set<WebSocket>();
+        sockets.add(socket);
+        roomSockets.set(joinedRoomId, sockets);
         send(socket, result.snapshot);
-        for (const event of result.events) broadcast(roomSockets, event);
+        for (const event of result.events) broadcast(sockets, event);
         return;
       }
 
@@ -117,7 +123,11 @@ webSocketServer.on("connection", (socket) => {
   });
 
   socket.on("close", () => {
-    roomSockets.delete(socket);
+    if (!joinedRoomId) return;
+    const sockets = roomSockets.get(joinedRoomId);
+    if (!sockets) return;
+    sockets.delete(socket);
+    if (sockets.size === 0) roomSockets.delete(joinedRoomId);
   });
 });
 
