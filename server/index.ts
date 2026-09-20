@@ -213,6 +213,10 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
   }
 
   async function close(): Promise<void> {
+    for (const socket of webSocketServer.clients) {
+      socket.terminate();
+    }
+
     await new Promise<void>((resolve) => {
       webSocketServer.close(() => resolve());
     });
