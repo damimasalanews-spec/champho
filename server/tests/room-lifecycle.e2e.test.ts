@@ -700,3 +700,103 @@ test("disconnect and resume_room restore authoritative state without duplicate p
     await stopServer(server);
   }
 });
+
+
+test("resume_room with an unauthorized player returns a protocol error without changing authoritative state", async () => {
+  const port = 8200 + Math.floor(Math.random() * 1000);
+  const ownerId = randomUUID();
+  const unauthorizedPlayerId = randomUUID();
+  const server = await startServer(port);
+  const owner = await connect(port);
+  const unauthorized = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
+    const createdSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      owner,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    const before = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events,
+         (SELECT connected FROM public.room_players
+          WHERE room_id = $1 AND player_id = $2) AS owner_connected,
+         (SELECT event_sequence FROM public.game_rooms
+          WHERE id = $1) AS event_sequence`,
+      [roomId, ownerId]
+    );
+
+    unauthorized.send(
+      JSON.stringify({
+        type: "resume_room",
+        roomId,
+        playerId: unauthorizedPlayerId
+      })
+    );
+
+    const error = await waitForMessage(
+      unauthorized,
+      (message) =>
+        message.type === "error" &&
+        message.reason === "player_not_in_room"
+    );
+
+    assert.deepEqual(error, {
+      type: "error",
+      reason: "player_not_in_room"
+    });
+
+    const after = await pool.query(
+      `SELECT
+         (SELECT count(*) FROM public.room_players) AS players,
+         (SELECT count(*) FROM public.room_events) AS events,
+         (SELECT connected FROM public.room_players
+          WHERE room_id = $1 AND player_id = $2) AS owner_connected,
+         (SELECT event_sequence FROM public.game_rooms
+          WHERE id = $1) AS event_sequence`,
+      [roomId, ownerId]
+    );
+
+    assert.deepEqual(after.rows[0], before.rows[0]);
+
+    const unauthorizedPlayer = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, unauthorizedPlayerId]
+    );
+    assert.equal(Number(unauthorizedPlayer.rows[0].count), 0);
+
+    const unauthorizedEvents = await pool.query(
+      `SELECT count(*) AS count
+       FROM public.room_events
+       WHERE room_id = $1
+         AND event_type = 'player_joined'
+         AND payload->>'playerId' = $2`,
+      [roomId, unauthorizedPlayerId]
+    );
+    assert.equal(Number(unauthorizedEvents.rows[0].count), 0);
+
+    const resumeStartedMessages = await Promise.race([
+      waitForMessage(
+        unauthorized,
+        (message) => message.type === "resume_started"
+      ).then(() => true),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 100))
+    ]);
+    assert.equal(resumeStartedMessages, true);
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    owner.close();
+    unauthorized.close();
+    await stopServer(server);
+  }
+});
