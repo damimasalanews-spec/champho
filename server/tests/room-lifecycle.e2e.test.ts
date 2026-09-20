@@ -14,6 +14,73 @@ after(async () => {
 
 type Message = Record<string, any>;
 
+function assertExactKeys(message: Message, keys: string[]): void {
+  assert.deepEqual(Object.keys(message).sort(), [...keys].sort());
+}
+
+function assertTimestamp(value: unknown): void {
+  assert.equal(typeof value, "string");
+  assert.ok(!Number.isNaN(Date.parse(value as string)));
+}
+
+function assertResumeRoomMessage(message: Message): void {
+  assertExactKeys(message, [
+    "type", "requestId", "roomId", "playerId",
+    "roundNumber", "lastEventSequence", "handVersion"
+  ]);
+  assert.equal(message.type, "resume_room");
+  assert.equal(typeof message.requestId, "string");
+  assert.equal(typeof message.roomId, "string");
+  assert.equal(typeof message.playerId, "string");
+  assert.equal(Number.isInteger(message.roundNumber), true);
+  assert.ok(message.roundNumber >= 1);
+  assert.equal(Number.isInteger(message.lastEventSequence), true);
+  assert.ok(message.lastEventSequence >= 0);
+  assert.equal(Number.isInteger(message.handVersion), true);
+  assert.ok(message.handVersion >= 0);
+}
+
+function assertResumeStartedMessage(message: Message): void {
+  assertExactKeys(message, ["type", "requestId", "roomId", "serverTime"]);
+  assert.equal(message.type, "resume_started");
+  assert.equal(typeof message.requestId, "string");
+  assert.equal(typeof message.roomId, "string");
+  assertTimestamp(message.serverTime);
+}
+
+function assertRoomSnapshotMessage(message: Message): void {
+  assertExactKeys(message, [
+    "type", "roomId", "eventSequence", "state", "phase", "roundNumber",
+    "turnNumber", "activePlayerId", "firstSolverId", "solvedAt",
+    "solveWindowEndsAt", "serverTime", "players"
+  ]);
+  assert.equal(message.type, "room_snapshot");
+  assert.equal(typeof message.roomId, "string");
+  assert.equal(Number.isInteger(message.eventSequence), true);
+  assert.ok(message.eventSequence >= 0);
+  assert.equal(typeof message.state, "string");
+  assert.equal(typeof message.phase, "string");
+  assert.equal(Number.isInteger(message.roundNumber), true);
+  assert.ok(message.roundNumber >= 1);
+  assert.equal(Number.isInteger(message.turnNumber), true);
+  assert.ok(message.turnNumber >= 0);
+  assert.ok(message.activePlayerId === null || typeof message.activePlayerId === "string");
+  assert.ok(message.firstSolverId === null || typeof message.firstSolverId === "string");
+  assert.ok(message.solvedAt === null || typeof message.solvedAt === "string");
+  assert.ok(message.solveWindowEndsAt === null || typeof message.solveWindowEndsAt === "string");
+  assertTimestamp(message.serverTime);
+  assert.ok(Array.isArray(message.players));
+}
+
+function assertErrorMessage(message: Message, expectedCode: string): void {
+  assertExactKeys(message, ["type", "code", "message", "serverTime", "requestId"]);
+  assert.equal(message.type, "error");
+  assert.equal(message.code, expectedCode);
+  assert.equal(message.message, expectedCode);
+  assertTimestamp(message.serverTime);
+  assert.equal(typeof message.requestId, "string");
+}
+
 function cleanupError(phase: string, error: unknown): Error {
   return new Error(
     `[stale disconnect cleanup] ${phase}: ${error instanceof Error ? error.message : String(error)}`
@@ -401,24 +468,18 @@ test("invalid create_room messages return protocol errors and persist nothing", 
     socket.send(JSON.stringify({ type: "create_room" }));
     const missingPlayerError = await waitForMessage(
       socket,
-      (message) => message.type === "error" && message.reason === "invalid_player_id"
+      (message) => message.type === "error" && message.code === "invalid_player_id"
     );
 
-    assert.deepEqual(missingPlayerError, {
-      type: "error",
-      reason: "invalid_player_id"
-    });
+    assertErrorMessage(missingPlayerError, "invalid_player_id");
 
     socket.send(JSON.stringify({ type: "create_room", playerId: "" }));
     const emptyPlayerError = await waitForMessage(
       socket,
-      (message) => message.type === "error" && message.reason === "invalid_player_id"
+      (message) => message.type === "error" && message.code === "invalid_player_id"
     );
 
-    assert.deepEqual(emptyPlayerError, {
-      type: "error",
-      reason: "invalid_player_id"
-    });
+    assertErrorMessage(emptyPlayerError, "invalid_player_id");
 
     const after = await pool.query(
       "SELECT (SELECT count(*) FROM public.game_rooms) AS rooms, (SELECT count(*) FROM public.room_players) AS players, (SELECT count(*) FROM public.room_events) AS events"
@@ -444,35 +505,26 @@ test("invalid join_room messages return protocol errors and persist nothing", as
     socket.send(JSON.stringify({ type: "join_room", playerId: randomUUID() }));
     const missingRoomError = await waitForMessage(
       socket,
-      (message) => message.type === "error" && message.reason === "invalid_room_id"
+      (message) => message.type === "error" && message.code === "invalid_room_id"
     );
 
-    assert.deepEqual(missingRoomError, {
-      type: "error",
-      reason: "invalid_room_id"
-    });
+    assertErrorMessage(missingRoomError, "invalid_room_id");
 
     socket.send(JSON.stringify({ type: "join_room", roomId: "", playerId: randomUUID() }));
     const emptyRoomError = await waitForMessage(
       socket,
-      (message) => message.type === "error" && message.reason === "invalid_room_id"
+      (message) => message.type === "error" && message.code === "invalid_room_id"
     );
 
-    assert.deepEqual(emptyRoomError, {
-      type: "error",
-      reason: "invalid_room_id"
-    });
+    assertErrorMessage(emptyRoomError, "invalid_room_id");
 
     socket.send(JSON.stringify({ type: "join_room", roomId: randomUUID() }));
     const missingPlayerError = await waitForMessage(
       socket,
-      (message) => message.type === "error" && message.reason === "invalid_player_id"
+      (message) => message.type === "error" && message.code === "invalid_player_id"
     );
 
-    assert.deepEqual(missingPlayerError, {
-      type: "error",
-      reason: "invalid_player_id"
-    });
+    assertErrorMessage(missingPlayerError, "invalid_player_id");
 
     const after = await pool.query(
       "SELECT (SELECT count(*) FROM public.game_rooms) AS rooms, (SELECT count(*) FROM public.room_players) AS players, (SELECT count(*) FROM public.room_events) AS events"
@@ -526,13 +578,10 @@ test("duplicate join_room requests return a protocol error without duplicate pla
       guest,
       (message) =>
         message.type === "error" &&
-        message.reason === "player_already_in_room"
+        message.code === "player_already_in_room"
     );
 
-    assert.deepEqual(duplicateError, {
-      type: "error",
-      reason: "player_already_in_room"
-    });
+    assertErrorMessage(duplicateError, "player_already_in_room");
 
     const players = await pool.query(
       `SELECT player_id, seat_number
@@ -611,13 +660,10 @@ test("join_room with an unknown room returns a protocol error without persisting
       socket,
       (message) =>
         message.type === "error" &&
-        message.reason === "room_not_found"
+        message.code === "room_not_found"
     );
 
-    assert.deepEqual(error, {
-      type: "error",
-      reason: "room_not_found"
-    });
+    assertErrorMessage(error, "room_not_found");
 
     const after = await pool.query(
       `SELECT
@@ -689,13 +735,10 @@ test("join_room with an invalid player identity returns a protocol error without
       unauthorized,
       (message) =>
         message.type === "error" &&
-        message.reason === "invalid_player_id"
+        message.code === "invalid_player_id"
     );
 
-    assert.deepEqual(error, {
-      type: "error",
-      reason: "invalid_player_id"
-    });
+    assertErrorMessage(error, "invalid_player_id");
 
     const after = await pool.query(
       `SELECT
@@ -929,13 +972,10 @@ test("resume_room with an unauthorized player returns a protocol error without c
       unauthorized,
       (message) =>
         message.type === "error" &&
-        message.reason === "player_not_in_room"
+        message.code === "player_not_in_room"
     );
 
-    assert.deepEqual(error, {
-      type: "error",
-      reason: "player_not_in_room"
-    });
+    assertErrorMessage(error, "player_not_in_room");
 
     const after = await pool.query(
       `SELECT
@@ -1015,7 +1055,7 @@ test("join_room when the room is full returns a protocol error without persistin
 
     const error = await waitForMessage(
       rejected,
-      (message) => message.type === "error" && message.reason === "room_full"
+      (message) => message.type === "error" && message.code === "room_full"
     );
 
     assert.deepEqual(error, { type: "error", reason: "room_full" });
@@ -1090,8 +1130,12 @@ test("resume_room twice on the same connection returns a protocol error without 
 
     resumed.send(JSON.stringify({
       type: "resume_room",
+      requestId: `resume-${++n}`,
       roomId,
-      playerId: ownerId
+      playerId: ownerId,
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
     }));
     await waitForMessage(
       resumed,
@@ -1121,21 +1165,22 @@ test("resume_room twice on the same connection returns a protocol error without 
 
     resumed.send(JSON.stringify({
       type: "resume_room",
+      requestId: `resume-${++n}`,
       roomId,
-      playerId: ownerId
+      playerId: ownerId,
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
     }));
 
     const error = await waitForMessage(
       resumed,
       (message) =>
         message.type === "error" &&
-        message.reason === "resume_already_active"
+        message.code === "resume_already_active"
     );
 
-    assert.deepEqual(error, {
-      type: "error",
-      reason: "resume_already_active"
-    });
+    assertErrorMessage(error, "resume_already_active");
 
     const after = await pool.query(
       `SELECT
@@ -1190,8 +1235,12 @@ test("resume_room with an invalid room returns a protocol error without persisti
 
     socket.send(JSON.stringify({
       type: "resume_room",
+      requestId: "invalid-room-resume",
       roomId: invalidRoomId,
-      playerId
+      playerId,
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
     }));
 
     await waitForMessage(
@@ -1203,13 +1252,10 @@ test("resume_room with an invalid room returns a protocol error without persisti
       socket,
       (message) =>
         message.type === "error" &&
-        message.reason === "room_not_found"
+        message.code === "room_not_found"
     );
 
-    assert.deepEqual(error, {
-      type: "error",
-      reason: "room_not_found"
-    });
+    assertErrorMessage(error, "room_not_found");
 
     const after = await pool.query(
       `SELECT
@@ -1277,8 +1323,12 @@ test("resume_room on a new WebSocket restores the existing player without duplic
     resumed = await connect(port);
     resumed.send(JSON.stringify({
       type: "resume_room",
+      requestId: `resume-${++n}`,
       roomId,
-      playerId: ownerId
+      playerId: ownerId,
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
     }));
 
     await waitForMessage(
@@ -1302,7 +1352,7 @@ test("resume_room on a new WebSocket restores the existing player without duplic
       resumed,
       (message) => message.type === "resume_complete"
     );
-    assert.equal(complete.eventSequence, 1);
+    assert.equal(complete.lastEventSequence, 1);
 
     const after = await pool.query(
       `SELECT
@@ -1459,8 +1509,12 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     resumed = await connect(port);
     resumed.send(JSON.stringify({
       type: "resume_room",
+      requestId: `resume-${++n}`,
       roomId,
-      playerId: ownerId
+      playerId: ownerId,
+      roundNumber: 1,
+      lastEventSequence: 0,
+      handVersion: 0
     }));
 
     await waitForMessage(
