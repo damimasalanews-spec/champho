@@ -10,6 +10,7 @@ import {
   type DisconnectHooks,
   type RoomEvent
 } from "./rooms.js";
+import { submitWord } from "./submissions.js";
 
 export type ServerOptions = {
   disconnectHooks?: DisconnectHooks;
@@ -179,6 +180,56 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
             handVersion: result.handVersion,
             serverTime: new Date().toISOString()
           });
+          return;
+        }
+
+        if (type === "submit_word") {
+          if (typeof message.requestId !== "string" || !message.requestId) throw new Error("invalid_request_id");
+          if (typeof message.roomId !== "string" || !message.roomId) throw new Error("invalid_room_id");
+          if (typeof joinedRoomId !== "string" || joinedRoomId !== message.roomId || joinedPlayerId === null) {
+            throw new Error("not_joined");
+          }
+          if (typeof message.roundNumber !== "number" || !Number.isInteger(message.roundNumber) || message.roundNumber < 1) {
+            throw new Error("invalid_round_number");
+          }
+          if (typeof message.turnNumber !== "number" || !Number.isInteger(message.turnNumber) || message.turnNumber < 0) {
+            throw new Error("invalid_turn_number");
+          }
+          if (!Array.isArray(message.cards) || message.cards.length < 1 || message.cards.length > 14 ||
+              message.cards.some((card) => typeof card !== "string" || !card)) {
+            throw new Error("invalid_cards");
+          }
+          if (typeof message.word !== "string" || !message.word.trim() || message.word.length > 64) {
+            throw new Error("invalid_word");
+          }
+
+          const outcome = await submitWord({
+            requestId: message.requestId,
+            roomId: message.roomId,
+            playerId: joinedPlayerId,
+            roundNumber: message.roundNumber,
+            turnNumber: message.turnNumber,
+            cards: message.cards,
+            word: message.word
+          });
+
+          send(socket, outcome.result);
+          for (const event of outcome.events) {
+            const sockets = roomSockets.get(outcome.result.roomId);
+            if (sockets) broadcast(sockets, event);
+          }
+          if (outcome.roundCompleted) {
+            const sockets = roomSockets.get(outcome.roundCompleted.roomId);
+            if (sockets) {
+              for (const roomSocket of sockets) send(roomSocket, outcome.roundCompleted);
+            }
+          }
+          if (outcome.snapshot) {
+            const sockets = roomSockets.get(outcome.snapshot.roomId);
+            if (sockets) {
+              for (const roomSocket of sockets) send(roomSocket, outcome.snapshot);
+            }
+          }
           return;
         }
 
