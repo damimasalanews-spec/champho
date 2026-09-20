@@ -1181,7 +1181,7 @@ test("resume_room twice on the same connection returns a protocol error without 
     assert.equal(Number(before.rows[0].events), 1);
     assert.equal(Number(before.rows[0].event_sequence), 1);
 
-    const requestId = randomUUID();
+    const secondRequestId = randomUUID();
     resumed.send(JSON.stringify({
       type: "resume_room",
       requestId,
@@ -1199,7 +1199,7 @@ test("resume_room twice on the same connection returns a protocol error without 
         message.code === "resume_already_active"
     );
 
-    assertErrorMessage(error, "resume_already_active", requestId);
+    assertErrorMessage(error, "resume_already_active", secondRequestId);
 
     const after = await pool.query(
       `SELECT
