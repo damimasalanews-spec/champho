@@ -250,8 +250,9 @@ export async function submitWord(input: SubmitWordInput): Promise<SubmitWordOutc
       const stored = existing.rows[0];
       const storedHash = stored.result?.requestHash;
       if (storedHash !== requestHash) throw new Error("request_id_conflict");
+      const { requestHash: _requestHash, ...storedResult } = stored.result as WordSubmissionResult & { requestHash: string };
       const duplicate: WordSubmissionResult = {
-        ...(stored.result as WordSubmissionResult),
+        ...storedResult,
         status: "duplicate",
         originalStatus: stored.status
       };
@@ -280,6 +281,7 @@ export async function submitWord(input: SubmitWordInput): Promise<SubmitWordOutc
 
     if (roomRow.phase === "solve_window" && new Date(roomRow.solve_window_ends_at).getTime() <= serverNow.getTime()) {
       const completed = await completeExpiredRound(client, input.roomId, input.roundNumber);
+      const snapshot = await readSnapshot(client, input.roomId);
       await client.query("COMMIT");
       return {
         result: {
@@ -287,7 +289,8 @@ export async function submitWord(input: SubmitWordInput): Promise<SubmitWordOutc
           roundState: "round_end"
         },
         events: completed.events,
-        roundCompleted: completed.roundCompleted
+        roundCompleted: completed.roundCompleted,
+        snapshot
       };
     }
 
