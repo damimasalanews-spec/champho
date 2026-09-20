@@ -1524,6 +1524,12 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         resumed.removeAllListeners("close");
         resumed.close();
       }
+
+      assert.equal(
+        staleDisconnectBarrierEnabled,
+        false,
+        "resumed socket cleanup must not re-enable the stale-disconnect barrier"
+      );
     } catch (error) {
       throw cleanupError("resumed WebSocket close", error);
     }
