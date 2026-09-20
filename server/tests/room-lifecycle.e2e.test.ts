@@ -1073,7 +1073,7 @@ test("join_room when the room is full returns a protocol error without persistin
       (message) => message.type === "error" && message.code === "room_full"
     );
 
-    assert.deepEqual(error, { type: "error", reason: "room_full" });
+    assertErrorMessage(error, "room_full");
 
     const after = await pool.query(
       `SELECT
@@ -1184,7 +1184,7 @@ test("resume_room twice on the same connection returns a protocol error without 
     const secondRequestId = randomUUID();
     resumed.send(JSON.stringify({
       type: "resume_room",
-      requestId,
+      requestId: secondRequestId,
       roomId,
       playerId: ownerId,
       roundNumber: 1,
