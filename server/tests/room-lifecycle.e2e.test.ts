@@ -1145,7 +1145,7 @@ test("resume_room twice on the same connection returns a protocol error without 
 
     resumed.send(JSON.stringify({
       type: "resume_room",
-      requestId: `resume-${++n}`,
+      requestId: randomUUID(),
       roomId,
       playerId: ownerId,
       roundNumber: 1,
@@ -1182,7 +1182,7 @@ test("resume_room twice on the same connection returns a protocol error without 
 
     resumed.send(JSON.stringify({
       type: "resume_room",
-      requestId: `resume-${++n}`,
+      requestId: randomUUID(),
       roomId,
       playerId: ownerId,
       roundNumber: 1,
@@ -1340,7 +1340,7 @@ test("resume_room on a new WebSocket restores the existing player without duplic
     resumed = await connect(port);
     resumed.send(JSON.stringify({
       type: "resume_room",
-      requestId: `resume-${++n}`,
+      requestId: randomUUID(),
       roomId,
       playerId: ownerId,
       roundNumber: 1,
@@ -1636,7 +1636,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     resumed = await connect(port);
     resumed.send(JSON.stringify({
       type: "resume_room",
-      requestId: `resume-${++n}`,
+      requestId: randomUUID(),
       roomId,
       playerId: ownerId,
       roundNumber: 1,
