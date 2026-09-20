@@ -8,28 +8,51 @@ import { createServerApp } from "../index.js";
 
 type Message = Record<string, any>;
 
-function waitForMessage(socket: WebSocket, predicate: (message: Message) => boolean): Promise<Message> {
+function waitForMessage(
+  socket: WebSocket,
+  predicate: (message: Message) => boolean,
+  timeoutMs = 5_000
+): Promise<Message> {
   return new Promise((resolve, reject) => {
-    const onMessage = (raw: WebSocket.RawData) => {
-      try {
-        const message = JSON.parse(raw.toString()) as Message;
-        if (predicate(message)) {
-          cleanup();
-          resolve(message);
-        }
-      } catch (error) {
-        cleanup();
-        reject(error);
-      }
-    };
-    const onError = (error: Error) => {
-      cleanup();
-      reject(error);
-    };
+    let settled = false;
+    let timeoutHandle: ReturnType<typeof setTimeout>;
+
     const cleanup = () => {
       socket.off("message", onMessage);
       socket.off("error", onError);
+      clearTimeout(timeoutHandle);
     };
+
+    const settleResolve = (message: Message) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(message);
+    };
+
+    const settleReject = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    const onMessage = (raw: WebSocket.RawData) => {
+      try {
+        const message = JSON.parse(raw.toString()) as Message;
+        if (predicate(message)) settleResolve(message);
+      } catch (error) {
+        settleReject(error instanceof Error ? error : new Error(String(error)));
+      }
+    };
+
+    const onError = (error: Error) => settleReject(error);
+
+    timeoutHandle = setTimeout(() => {
+      settleReject(
+        new Error(`timed out after ${timeoutMs}ms waiting for matching WebSocket message`)
+      );
+    }, timeoutMs);
 
     socket.on("message", onMessage);
     socket.on("error", onError);
@@ -1281,6 +1304,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   const owner = await connect(port);
   let resumed: WebSocket | undefined;
   let roomId: string | undefined;
+  let released = false;
 
   try {
     owner.send(JSON.stringify({
@@ -1300,6 +1324,16 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         message.type === "event" &&
         message.eventType === "room_created"
     );
+
+    const initial = await pool.query(
+      `SELECT connected, connection_version
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, ownerId]
+    );
+
+    assert.equal(initial.rows[0].connected, true);
+    assert.equal(Number(initial.rows[0].connection_version), 0);
 
     owner.close();
 
@@ -1352,6 +1386,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     assert.equal(beforeRelease.rows[0].connected, true);
 
     barrier.release();
+    released = true;
 
     const staleDisconnectRowCount = await barrier.completed();
 
@@ -1371,7 +1406,9 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     assert.equal(final.rows[0].connected, true);
     assert.equal(Number(final.rows[0].connection_version), 1);
   } finally {
-    barrier.release();
+    if (!released) {
+      barrier.release();
+    }
     if (roomId) {
       await pool.query(
         "DELETE FROM public.game_rooms WHERE id = $1",
@@ -1379,7 +1416,9 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       );
     }
     owner.close();
-    resumed?.close();
+    if (resumed && resumed.readyState === WebSocket.OPEN) {
+      resumed.close();
+    }
     await server.close();
   }
 });
