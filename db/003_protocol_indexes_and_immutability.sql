@@ -17,15 +17,18 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  IF OLD.first_solver_id IS NOT NULL
+  IF OLD.round_number = NEW.round_number
+     AND OLD.first_solver_id IS NOT NULL
      AND NEW.first_solver_id IS DISTINCT FROM OLD.first_solver_id THEN
     RAISE EXCEPTION 'first_solver_id is immutable once assigned' USING ERRCODE = '23514';
   END IF;
-  IF OLD.solved_at IS NOT NULL
+  IF OLD.round_number = NEW.round_number
+     AND OLD.solved_at IS NOT NULL
      AND NEW.solved_at IS DISTINCT FROM OLD.solved_at THEN
     RAISE EXCEPTION 'solved_at is immutable once assigned' USING ERRCODE = '23514';
   END IF;
-  IF OLD.solve_window_ends_at IS NOT NULL
+  IF OLD.round_number = NEW.round_number
+     AND OLD.solve_window_ends_at IS NOT NULL
      AND NEW.solve_window_ends_at IS DISTINCT FROM OLD.solve_window_ends_at THEN
     RAISE EXCEPTION 'solve_window_ends_at is immutable once assigned' USING ERRCODE = '23514';
   END IF;
