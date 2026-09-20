@@ -150,7 +150,7 @@ export async function createRoom(playerId: string): Promise<{
 export async function resumeRoom(
   roomId: string,
   playerId: string
-): Promise<{ snapshot: RoomSnapshot }> {
+): Promise<{ snapshot: RoomSnapshot; connectionVersion: number }> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
