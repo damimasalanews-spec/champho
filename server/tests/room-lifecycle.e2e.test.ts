@@ -306,3 +306,102 @@ test("invalid join_room messages return protocol errors and persist nothing", as
     await stopServer(server);
   }
 });
+
+
+test("duplicate join_room requests return a protocol error without duplicate players or events", async () => {
+  const port = 6100 + Math.floor(Math.random() * 1000);
+  const ownerId = randomUUID();
+  const guestId = randomUUID();
+  const server = await startServer(port);
+  const owner = await connect(port);
+  const guest = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
+    const createdSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      owner,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    guest.send(JSON.stringify({ type: "join_room", roomId, playerId: guestId }));
+    const firstJoinSnapshot = await waitForMessage(
+      guest,
+      (message) => message.type === "room_snapshot" && message.eventSequence === 2
+    );
+    assert.deepEqual(firstJoinSnapshot.players, [
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+    ]);
+    await waitForMessage(
+      guest,
+      (message) => message.type === "event" && message.eventType === "player_joined"
+    );
+
+    guest.send(JSON.stringify({ type: "join_room", roomId, playerId: guestId }));
+    const duplicateError = await waitForMessage(
+      guest,
+      (message) =>
+        message.type === "error" &&
+        message.reason === "player_already_in_room"
+    );
+
+    assert.deepEqual(duplicateError, {
+      type: "error",
+      reason: "player_already_in_room"
+    });
+
+    const players = await pool.query(
+      `SELECT player_id, seat_number
+       FROM public.room_players
+       WHERE room_id = $1
+       ORDER BY seat_number`,
+      [roomId]
+    );
+    assert.equal(players.rowCount, 2);
+    assert.deepEqual(
+      players.rows.map((row) => ({
+        playerId: row.player_id,
+        seatNumber: row.seat_number
+      })),
+      [
+        { playerId: ownerId, seatNumber: 0 },
+        { playerId: guestId, seatNumber: 1 }
+      ]
+    );
+
+    const events = await pool.query(
+      `SELECT event_sequence, event_type, payload
+       FROM public.room_events
+       WHERE room_id = $1
+       ORDER BY event_sequence`,
+      [roomId]
+    );
+    assert.equal(events.rowCount, 2);
+    assert.deepEqual(
+      events.rows.map((row) => ({
+        sequence: Number(row.event_sequence),
+        type: row.event_type,
+        payload: row.payload
+      })),
+      [
+        { sequence: 1, type: "room_created", payload: { playerId: ownerId } },
+        {
+          sequence: 2,
+          type: "player_joined",
+          payload: { playerId: guestId, seatNumber: 1 }
+        }
+      ]
+    );
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    owner.close();
+    guest.close();
+    await stopServer(server);
+  }
+});
