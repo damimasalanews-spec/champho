@@ -385,12 +385,7 @@ test("solve window accepts a second solver before the deadline and then transiti
     assertSubmissionResult(secondResult);
     assert.equal(secondResult.status, "accepted");
 
-    await pool.query(
-      `UPDATE public.game_rooms
-       SET solve_window_ends_at = clock_timestamp() - interval '1 millisecond'
-       WHERE id = $1`,
-      [roomId]
-    );
+    await new Promise((resolve) => setTimeout(resolve, 3_100));
 
     second.send(JSON.stringify({
       type: "submit_word",
