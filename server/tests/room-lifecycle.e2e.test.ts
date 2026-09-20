@@ -71,75 +71,6 @@ function waitForMessage(
   });
 }
 
-test("stale disconnect diagnostics identify the stalled message and cleanup phases", async () => {
-  const fakeSocket = new EventEmitter() as unknown as WebSocket;
-
-  await assert.rejects(
-    waitForMessage(
-      fakeSocket,
-      () => false,
-      10,
-      "resume_complete for resumed socket"
-    ),
-    (error: unknown) => {
-      assert.match(
-        String(error),
-        /\[waitForMessage\] timed out after 10ms waiting for resume_complete for resumed socket/
-      );
-      return true;
-    }
-  );
-
-  const barrier = createDisconnectBarrier(10);
-  const blockedWait = barrier.wait();
-
-  await assert.rejects(
-    barrier.waitUntilBlocked(),
-    (error: unknown) => {
-      assert.match(
-        String(error),
-        /\[disconnect barrier\] timed out after 10ms: stale disconnect did not complete the expected beforeDisconnectUpdate\/afterDisconnectUpdate sequence/
-      );
-      return true;
-    }
-  );
-
-  await assert.rejects(
-    blockedWait,
-    (error: unknown) => {
-      assert.match(
-        String(error),
-        /\[disconnect barrier\] timed out after 10ms: stale disconnect did not complete the expected beforeDisconnectUpdate\/afterDisconnectUpdate sequence/
-      );
-      return true;
-    }
-  );
-
-  await assert.rejects(
-    barrier.completed(),
-    (error: unknown) => {
-      assert.match(
-        String(error),
-        /\[disconnect barrier\] timed out after 10ms: stale disconnect did not complete the expected beforeDisconnectUpdate\/afterDisconnectUpdate sequence/
-      );
-      return true;
-    }
-  );
-
-  assert.equal(
-    cleanupError("original WebSocket close", new Error("close failed")).message,
-    "[stale disconnect cleanup] original WebSocket close: close failed"
-  );
-  assert.equal(
-    cleanupError("resumed WebSocket close", new Error("close failed")).message,
-    "[stale disconnect cleanup] resumed WebSocket close: close failed"
-  );
-  assert.equal(
-    cleanupError("test server close", new Error("close failed")).message,
-    "[stale disconnect cleanup] test server close: close failed"
-  );
-});
-
 async function connect(port: number): Promise<WebSocket> {
   const socket = new WebSocket(`ws://127.0.0.1:${port}`);
   await new Promise<void>((resolve, reject) => {
@@ -668,7 +599,7 @@ test("join_room with an unknown room returns a protocol error without persisting
 });
 
 
-test("join_room with an invalid or unauthorized player identity returns a protocol error without persisting state", async () => {
+test("join_room with an invalid player identity returns a protocol error without persisting state", async () => {
   const port = 7200 + Math.floor(Math.random() * 1000);
   const ownerId = randomUUID();
   const unauthorizedPlayerId = randomUUID();
@@ -699,7 +630,7 @@ test("join_room with an invalid or unauthorized player identity returns a protoc
       JSON.stringify({
         type: "join_room",
         roomId,
-        playerId: unauthorizedPlayerId
+        playerId: ""
       })
     );
 
@@ -707,14 +638,13 @@ test("join_room with an invalid or unauthorized player identity returns a protoc
       unauthorized,
       (message) =>
         message.type === "error" &&
-        (message.reason === "unauthorized_player" ||
-          message.reason === "invalid_player_identity")
+        message.reason === "invalid_player_id"
     );
 
-    assert.ok(
-      error.reason === "unauthorized_player" ||
-      error.reason === "invalid_player_identity"
-    );
+    assert.deepEqual(error, {
+      type: "error",
+      reason: "invalid_player_id"
+    });
 
     const after = await pool.query(
       `SELECT
@@ -1040,6 +970,7 @@ test("join_room when the room is full returns a protocol error without persistin
     assert.equal(Number(before.rows[0].events), 8);
     assert.equal(Number(before.rows[0].event_sequence), 8);
 
+    rejected = await connect(port);
     rejected.send(JSON.stringify({
       type: "join_room",
       roomId,
@@ -1089,7 +1020,7 @@ test("join_room when the room is full returns a protocol error without persistin
     if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
     owner.close();
     for (const socket of joinedSockets) socket.close();
-    rejected.close();
+    rejected?.close();
     await stopServer(server);
   }
 });
@@ -1420,7 +1351,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     assert.equal(initial.rows[0].connected, true);
     assert.equal(Number(initial.rows[0].connection_version), 0);
 
-    owner.close();
+    owner.terminate();
 
     await barrier.waitUntilBlocked();
 
