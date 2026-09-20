@@ -1378,6 +1378,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         staleDisconnectBarrierEnabled ? barrier.wait() : Promise.resolve(),
       afterDisconnectUpdate: (rowCount) => {
         if (staleDisconnectBarrierEnabled) {
+          staleDisconnectBarrierCompletionCount += 1;
           barrier.afterDisconnectUpdate(rowCount);
         }
       }
@@ -1388,6 +1389,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   let resumed: WebSocket | undefined;
   let roomId: string | undefined;
   let released = false;
+  let staleDisconnectBarrierCompletionCount = 0;
 
   try {
     owner.send(JSON.stringify({
@@ -1529,6 +1531,12 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         staleDisconnectBarrierEnabled,
         false,
         "resumed socket cleanup must not re-enable the stale-disconnect barrier"
+      );
+
+      assert.equal(
+        staleDisconnectBarrierCompletionCount,
+        1,
+        "stale-disconnect barrier must complete exactly once, including after resumed socket cleanup"
       );
     } catch (error) {
       throw cleanupError("resumed WebSocket close", error);
