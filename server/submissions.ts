@@ -213,8 +213,8 @@ async function completeExpiredRound(client: PoolClient, roomId: string, roundNum
     `UPDATE public.game_rooms
      SET round_number = $2,
          turn_number = turn_number + 1,
-         active_player_id = $3,
-         phase = CASE WHEN $3 IS NULL THEN 'round_end' ELSE 'playing' END,
+         active_player_id = $3::uuid,
+         phase = CASE WHEN $3::uuid IS NULL THEN 'round_end' ELSE 'playing' END,
          state = CASE WHEN $3 IS NULL THEN 'active' ELSE 'active' END,
          first_solver_id = NULL,
          solved_at = NULL,
