@@ -1366,6 +1366,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   });
 
   let owner: WebSocket | undefined;
+  let staleDisconnectBarrierEnabled = true;
   const server = createServerApp({
     onSocketClose: (socket) => {
       if (socket !== owner) return;
@@ -1373,9 +1374,13 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       resolveServerSocketClose();
     },
     disconnectHooks: {
-      beforeDisconnectUpdate: () => barrier.wait(),
-      afterDisconnectUpdate: (rowCount) =>
-        barrier.afterDisconnectUpdate(rowCount)
+      beforeDisconnectUpdate: () =>
+        staleDisconnectBarrierEnabled ? barrier.wait() : Promise.resolve(),
+      afterDisconnectUpdate: (rowCount) => {
+        if (staleDisconnectBarrierEnabled) {
+          barrier.afterDisconnectUpdate(rowCount);
+        }
+      }
     }
   });
   await server.listen(port, "127.0.0.1");
@@ -1514,6 +1519,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     }
 
     try {
+      staleDisconnectBarrierEnabled = false;
       if (resumed && resumed.readyState === WebSocket.OPEN) {
         resumed.removeAllListeners("close");
         resumed.close();
