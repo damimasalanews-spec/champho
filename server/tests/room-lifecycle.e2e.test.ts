@@ -842,11 +842,17 @@ test("disconnect and resume_room restore authoritative state without duplicate p
     });
 
     resumed = await connect(port);
-    resumed.send(JSON.stringify({
+    const resumeRequest = {
       type: "resume_room",
+      requestId: "guest-reconnect-resume",
       roomId,
-      playerId: guestId
-    }));
+      playerId: guestId,
+      roundNumber: 1,
+      lastEventSequence: 2,
+      handVersion: 0
+    };
+    assertResumeRoomMessage(resumeRequest);
+    resumed.send(JSON.stringify(resumeRequest));
 
     const resumeStarted = await waitForMessage(
       resumed,
@@ -854,6 +860,8 @@ test("disconnect and resume_room restore authoritative state without duplicate p
       5_000,
       "resume_started after guest reconnect"
     );
+    assertResumeStartedMessage(resumeStarted);
+    assert.equal(resumeStarted.requestId, "guest-reconnect-resume");
     assert.equal(resumeStarted.roomId, roomId);
 
     const resumedSnapshot = await waitForMessage(
@@ -876,7 +884,7 @@ test("disconnect and resume_room restore authoritative state without duplicate p
       "resume_complete after guest reconnect"
     );
     assert.equal(resumeComplete.roomId, roomId);
-    assert.equal(resumeComplete.eventSequence, 2);
+    assert.equal(resumeComplete.lastEventSequence, 2);
 
     const players = await pool.query(
       `SELECT player_id, seat_number, connected
@@ -966,8 +974,12 @@ test("resume_room with an unauthorized player returns a protocol error without c
     unauthorized.send(
       JSON.stringify({
         type: "resume_room",
+        requestId: "unauthorized-resume",
         roomId,
-        playerId: unauthorizedPlayerId
+        playerId: unauthorizedPlayerId,
+        roundNumber: 1,
+        lastEventSequence: 1,
+        handVersion: 0
       })
     );
 
@@ -978,7 +990,7 @@ test("resume_room with an unauthorized player returns a protocol error without c
         message.code === "player_not_in_room"
     );
 
-    assertErrorMessage(error, "player_not_in_room");
+    assertErrorMessage(error, "player_not_in_room", "unauthorized-resume");
 
     const after = await pool.query(
       `SELECT
