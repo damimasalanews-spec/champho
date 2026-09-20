@@ -38,30 +38,71 @@ jobs:
             process.exitCode = 1;
           };
 
-          const waitFor = (ws, predicate, timeoutMs = 15000) => new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-              ws.off("message", onMessage);
-              reject(new Error("timed out waiting for expected protocol message"));
-            }, timeoutMs);
-            const onMessage = (data) => {
+          const socketState = new WeakMap();
+
+          const attachSocket = (ws) => {
+            const state = { queue: [], waiters: [] };
+            socketState.set(ws, state);
+            ws.on("message", (data) => {
               let parsed;
-              try { parsed = JSON.parse(data.toString()); } catch { return reject(new Error("received non-JSON payload")); }
-              console.log("RECEIVED", JSON.stringify(parsed));
-              if (predicate(parsed)) {
-                clearTimeout(timer);
-                ws.off("message", onMessage);
-                resolve(parsed);
-              } else if (parsed.type === "error") {
-                clearTimeout(timer);
-                ws.off("message", onMessage);
-                reject(new Error(`server returned error: ${parsed.code ?? "unknown_error"}`));
+              try {
+                parsed = JSON.parse(data.toString());
+              } catch {
+                for (const waiter of state.waiters.splice(0)) {
+                  clearTimeout(waiter.timer);
+                  waiter.reject(new Error("received non-JSON payload"));
+                }
+                return;
               }
+
+              console.log("RECEIVED", JSON.stringify(parsed));
+
+              for (let i = 0; i < state.waiters.length; i += 1) {
+                const waiter = state.waiters[i];
+                if (parsed.type === "error") {
+                  state.waiters.splice(i, 1);
+                  clearTimeout(waiter.timer);
+                  waiter.reject(new Error(`server returned error: ${parsed.code ?? "unknown_error"}`));
+                  return;
+                }
+                if (waiter.predicate(parsed)) {
+                  state.waiters.splice(i, 1);
+                  clearTimeout(waiter.timer);
+                  waiter.resolve(parsed);
+                  return;
+                }
+              }
+
+              state.queue.push(parsed);
+            });
+            return ws;
+          };
+
+          const waitFor = (ws, predicate, timeoutMs = 15000) => new Promise((resolve, reject) => {
+            const state = socketState.get(ws);
+            if (!state) return reject(new Error("socket is not attached"));
+
+            const queuedIndex = state.queue.findIndex((message) => predicate(message));
+            if (queuedIndex !== -1) {
+              resolve(state.queue.splice(queuedIndex, 1)[0]);
+              return;
+            }
+
+            const waiter = {
+              predicate,
+              resolve,
+              reject,
+              timer: setTimeout(() => {
+                const index = state.waiters.indexOf(waiter);
+                if (index !== -1) state.waiters.splice(index, 1);
+                reject(new Error("timed out waiting for expected protocol message"));
+              }, timeoutMs)
             };
-            ws.on("message", onMessage);
+            state.waiters.push(waiter);
           });
 
           const connect = async () => {
-            const ws = new WebSocket(url);
+            const ws = attachSocket(new WebSocket(url));
             await new Promise((resolve, reject) => {
               ws.once("open", resolve);
               ws.once("error", reject);
