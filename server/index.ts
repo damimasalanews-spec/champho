@@ -377,6 +377,12 @@ export async function start(): Promise<ServerApp> {
     console.log(
       `[startup] PostgreSQL connected (latency ${database.latencyMs}ms)`
     );
+    try {
+      const preflight = await runProductionPreflight(pool);
+      console.log("[preflight] " + JSON.stringify(preflight));
+    } catch (error) {
+      console.error("[preflight] failed:", error);
+    }
   } catch (error) {
     console.error("[startup] PostgreSQL connection failed:", error);
     await pool.end();
