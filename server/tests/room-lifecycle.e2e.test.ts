@@ -986,6 +986,7 @@ test("join_room when the room is full returns a protocol error without persistin
     roomId = createdSnapshot.roomId;
     await waitForMessage(owner, (message) => message.type === "event" && message.eventType === "room_created");
 
+    assert.ok(roomId, "created room must have an id");
     for (const playerId of playerIds) {
       await joinRoom(roomId, playerId);
     }
