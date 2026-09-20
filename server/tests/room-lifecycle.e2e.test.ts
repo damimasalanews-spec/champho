@@ -553,3 +553,150 @@ test("join_room with an invalid or unauthorized player identity returns a protoc
     await stopServer(server);
   }
 });
+
+
+test("disconnect and resume_room restore authoritative state without duplicate players or events", async () => {
+  const port = 8100 + Math.floor(Math.random() * 1000);
+  const ownerId = randomUUID();
+  const guestId = randomUUID();
+  const server = await startServer(port);
+  const owner = await connect(port);
+  let guest: WebSocket | undefined;
+  let resumed: WebSocket | undefined;
+  let roomId: string | undefined;
+
+  try {
+    owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
+    const createdSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot"
+    );
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      owner,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    guest = await connect(port);
+    guest.send(JSON.stringify({ type: "join_room", roomId, playerId: guestId }));
+    const joinedSnapshot = await waitForMessage(
+      guest,
+      (message) => message.type === "room_snapshot" && message.eventSequence === 2
+    );
+    await waitForMessage(
+      guest,
+      (message) => message.type === "event" && message.eventType === "player_joined"
+    );
+
+    assert.deepEqual(joinedSnapshot.players, [
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+    ]);
+
+    guest.close();
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(resolve, 500).unref();
+      const check = async () => {
+        try {
+          const result = await pool.query(
+            `SELECT connected
+             FROM public.room_players
+             WHERE room_id = $1 AND player_id = $2`,
+            [roomId, guestId]
+          );
+          if (result.rowCount === 1 && result.rows[0].connected === false) {
+            clearTimeout(timer);
+            resolve();
+            return;
+          }
+          setTimeout(() => void check(), 25).unref();
+        } catch (error) {
+          clearTimeout(timer);
+          reject(error);
+        }
+      };
+      void check();
+    });
+
+    resumed = await connect(port);
+    resumed.send(JSON.stringify({
+      type: "resume_room",
+      roomId,
+      playerId: guestId
+    }));
+
+    const resumeStarted = await waitForMessage(
+      resumed,
+      (message) => message.type === "resume_started"
+    );
+    assert.equal(resumeStarted.roomId, roomId);
+
+    const resumedSnapshot = await waitForMessage(
+      resumed,
+      (message) => message.type === "room_snapshot"
+    );
+    assert.equal(resumedSnapshot.roomId, roomId);
+    assert.equal(resumedSnapshot.eventSequence, 2);
+    assert.deepEqual(resumedSnapshot.players, [
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+    ]);
+
+    const resumeComplete = await waitForMessage(
+      resumed,
+      (message) => message.type === "resume_complete"
+    );
+    assert.equal(resumeComplete.roomId, roomId);
+    assert.equal(resumeComplete.eventSequence, 2);
+
+    const players = await pool.query(
+      `SELECT player_id, seat_number, connected
+       FROM public.room_players
+       WHERE room_id = $1
+       ORDER BY seat_number`,
+      [roomId]
+    );
+    assert.equal(players.rowCount, 2);
+    assert.deepEqual(
+      players.rows.map((row) => ({
+        playerId: row.player_id,
+        seatNumber: row.seat_number,
+        connected: row.connected
+      })),
+      [
+        { playerId: ownerId, seatNumber: 0, connected: true },
+        { playerId: guestId, seatNumber: 1, connected: true }
+      ]
+    );
+
+    const events = await pool.query(
+      `SELECT event_sequence, event_type, payload
+       FROM public.room_events
+       WHERE room_id = $1
+       ORDER BY event_sequence`,
+      [roomId]
+    );
+    assert.equal(events.rowCount, 2);
+    assert.deepEqual(
+      events.rows.map((row) => ({
+        sequence: Number(row.event_sequence),
+        type: row.event_type,
+        payload: row.payload
+      })),
+      [
+        { sequence: 1, type: "room_created", payload: { playerId: ownerId } },
+        {
+          sequence: 2,
+          type: "player_joined",
+          payload: { playerId: guestId, seatNumber: 1 }
+        }
+      ]
+    );
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    owner.close();
+    guest?.close();
+    resumed?.close();
+    await stopServer(server);
+  }
+});
