@@ -1357,7 +1357,7 @@ test("resume_room on a new WebSocket restores the existing player without duplic
 test("stale disconnect cannot mark a newly resumed connection disconnected", async () => {
   const port = 9000 + Math.floor(Math.random() * 500);
   const ownerId = randomUUID();
-  let barrier: ReturnType<typeof createDisconnectBarrier>;
+  let barrier: ReturnType<typeof createDisconnectBarrier> | undefined;
   let serverSocketClosed = false;
   let serverSocketCloseCount = 0;
   let resolveServerSocketClose!: () => void;
@@ -1399,11 +1399,18 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       beforeDisconnectUpdate: () => {
         disconnectUpdateHookEntered = true;
         resolveDisconnectUpdateHookEntered();
-        return staleDisconnectBarrierEnabled ? barrier.wait() : Promise.resolve();
+        if (!staleDisconnectBarrierEnabled) return Promise.resolve();
+        if (!barrier) {
+          return Promise.reject(new Error("[stale disconnect] barrier not initialized before disconnect hook"));
+        }
+        return barrier.wait();
       },
       afterDisconnectUpdate: (rowCount) => {
         if (staleDisconnectBarrierEnabled) {
           staleDisconnectBarrierCompletionCount += 1;
+          if (!barrier) {
+            throw new Error("[stale disconnect] barrier not initialized before disconnect completion");
+          }
           barrier.afterDisconnectUpdate(rowCount);
         }
       }
@@ -1443,6 +1450,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     assert.equal(Number(initial.rows[0].connection_version), 0);
 
     barrier = createDisconnectBarrier(5_000);
+    assert.ok(barrier, "disconnect barrier must be initialized before terminating the stale socket");
     owner.terminate();
 
     await serverSocketClosePromise;
@@ -1543,7 +1551,7 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   } finally {
     const cleanupErrors: Error[] = [];
 
-    if (!released) {
+    if (!released && barrier) {
       barrier.release();
     }
 
