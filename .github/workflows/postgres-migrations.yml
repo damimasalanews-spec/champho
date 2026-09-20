@@ -133,7 +133,19 @@ jobs:
         run: npm run typecheck
 
       - name: Run backend PostgreSQL integration tests
-        run: npm test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test_files=(server/tests/*.test.ts)
+          for test_file in "${test_files[@]}"; do
+            echo "::group::Running $test_file"
+            echo "Starting $test_file with a 30s per-test timeout and a 90s file timeout."
+            timeout --signal=TERM --kill-after=10s 90s \
+              npx tsx --test --test-timeout=30000 --test-reporter=spec "$test_file"
+            echo "Completed $test_file"
+            echo "::endgroup::"
+          done
 
       - name: Build backend
         run: npm run build
