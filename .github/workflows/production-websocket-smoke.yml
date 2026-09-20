@@ -1,0 +1,228 @@
+name: Production WebSocket Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - protocol/authoritative-multiplayer-contract
+
+jobs:
+  websocket-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run production WebSocket smoke test
+        env:
+          WS_URL: wss://champword-backend.onrender.com
+        run: |
+          node --input-type=module <<'EOF'
+          import WebSocket from "ws";
+
+          const url = process.env.WS_URL;
+          const playerId = crypto.randomUUID();
+          const opponentId = crypto.randomUUID();
+
+          const fail = (message) => {
+            console.error(`SMOKE TEST FAILURE: ${message}`);
+            process.exitCode = 1;
+          };
+
+          const socketState = new WeakMap();
+
+          const attachSocket = (ws) => {
+            const state = { queue: [], waiters: [] };
+            socketState.set(ws, state);
+            ws.on("message", (data) => {
+              let parsed;
+              try {
+                parsed = JSON.parse(data.toString());
+              } catch {
+                for (const waiter of state.waiters.splice(0)) {
+                  clearTimeout(waiter.timer);
+                  waiter.reject(new Error("received non-JSON payload"));
+                }
+                return;
+              }
+
+              console.log("RECEIVED", JSON.stringify(parsed));
+
+              for (let i = 0; i < state.waiters.length; i += 1) {
+                const waiter = state.waiters[i];
+                if (parsed.type === "error") {
+                  state.waiters.splice(i, 1);
+                  clearTimeout(waiter.timer);
+                  waiter.reject(new Error(`server returned error: ${parsed.code ?? "unknown_error"}`));
+                  return;
+                }
+                if (waiter.predicate(parsed)) {
+                  state.waiters.splice(i, 1);
+                  clearTimeout(waiter.timer);
+                  waiter.resolve(parsed);
+                  return;
+                }
+              }
+
+              state.queue.push(parsed);
+            });
+            return ws;
+          };
+
+          const waitFor = (ws, predicate, timeoutMs = 15000) => new Promise((resolve, reject) => {
+            const state = socketState.get(ws);
+            if (!state) return reject(new Error("socket is not attached"));
+
+            const queuedIndex = state.queue.findIndex((message) => predicate(message));
+            if (queuedIndex !== -1) {
+              resolve(state.queue.splice(queuedIndex, 1)[0]);
+              return;
+            }
+
+            const waiter = {
+              predicate,
+              resolve,
+              reject,
+              timer: setTimeout(() => {
+                const index = state.waiters.indexOf(waiter);
+                if (index !== -1) state.waiters.splice(index, 1);
+                reject(new Error("timed out waiting for expected protocol message"));
+              }, timeoutMs)
+            };
+            state.waiters.push(waiter);
+          });
+
+          const connect = async () => {
+            const ws = attachSocket(new WebSocket(url));
+            await new Promise((resolve, reject) => {
+              ws.once("open", resolve);
+              ws.once("error", reject);
+            });
+            await waitFor(ws, (m) => m.type === "server_ready");
+            return ws;
+          };
+
+          const ws1 = await connect();
+          console.log("CREATE ROOM", playerId);
+          ws1.send(JSON.stringify({
+            type: "create_room",
+            requestId: crypto.randomUUID(),
+            playerId
+          }));
+
+          const createdSnapshot = await waitFor(ws1, (m) => m.type === "room_snapshot");
+          const roomId = createdSnapshot.roomId;
+          if (!roomId) throw new Error("create_room did not return roomId");
+          await waitFor(ws1, (m) => m.type === "event" && m.eventType === "room_created");
+
+          const ws2 = await connect();
+          console.log("JOIN PLAYER", opponentId, roomId);
+          ws2.send(JSON.stringify({
+            type: "join_room",
+            roomId,
+            playerId: opponentId
+          }));
+          await waitFor(ws2, (m) => m.type === "room_snapshot" && m.roomId === roomId);
+          await waitFor(ws1, (m) => m.type === "event" && m.eventType === "player_joined");
+
+          console.log("START ROUND");
+          ws1.send(JSON.stringify({
+            type: "start_round",
+            requestId: crypto.randomUUID()
+          }));
+          const playingSnapshot = await waitFor(ws1, (m) => m.type === "room_snapshot" && m.phase === "playing");
+          if (playingSnapshot.activePlayerId !== playerId) throw new Error("unexpected active player");
+
+          console.log("SUBMIT WORD");
+          ws1.send(JSON.stringify({
+            type: "submit_word",
+            requestId: crypto.randomUUID(),
+            roomId,
+            roundNumber: playingSnapshot.roundNumber,
+            turnNumber: playingSnapshot.turnNumber,
+            cards: ["smoke-card-a", "smoke-card-b"],
+            word: "ab"
+          }));
+
+          const submission = await waitFor(ws1, (m) => m.type === "word_submission_result");
+          if (submission.status !== "accepted" || submission.roundState !== "solve_window") {
+            throw new Error("submit_word was not accepted into solve_window");
+          }
+
+          const wordEvent = await waitFor(ws2, (m) => m.type === "event" && m.eventType === "word_submitted");
+          if (wordEvent.payload?.playerId !== playerId) throw new Error("word_submitted player mismatch");
+
+          console.log("SOLVER RESOLUTION");
+          ws2.send(JSON.stringify({
+            type: "submit_word",
+            requestId: crypto.randomUUID(),
+            roomId,
+            roundNumber: playingSnapshot.roundNumber,
+            turnNumber: playingSnapshot.turnNumber,
+            cards: ["smoke-card-a", "smoke-card-b"],
+            word: "ab"
+          }));
+          const secondSubmission = await waitFor(ws2, (m) => m.type === "word_submission_result");
+          if (secondSubmission.status !== "accepted") throw new Error("second solver was not accepted");
+
+          await new Promise((resolve) => setTimeout(resolve, 3200));
+
+          ws2.send(JSON.stringify({
+            type: "submit_word",
+            requestId: crypto.randomUUID(),
+            roomId,
+            roundNumber: playingSnapshot.roundNumber,
+            turnNumber: playingSnapshot.turnNumber,
+            cards: ["smoke-card-a", "smoke-card-b"],
+            word: "ab"
+          }));
+
+          const expired = await waitFor(ws2, (m) => m.type === "word_submission_result" && m.reason === "solve_window_expired");
+          if (expired.roundState !== "round_end") throw new Error("solve window did not expire");
+
+          const completed = await waitFor(ws2, (m) => m.type === "round_completed");
+          if (completed.roundNumber !== playingSnapshot.roundNumber) throw new Error("round_completed round mismatch");
+          if (!Array.isArray(completed.solvers) || completed.solvers.length < 2) throw new Error("solver resolution missing");
+
+          const nextRound = await waitFor(ws2, (m) => m.type === "room_snapshot" && m.roundNumber === playingSnapshot.roundNumber + 1);
+          if (nextRound.phase !== "playing") throw new Error("next round did not enter playing phase");
+
+          console.log("CLEAN RECONNECT");
+          ws1.close(1000, "smoke reconnect");
+          await new Promise((resolve) => ws1.once("close", resolve));
+
+          const resumed = await connect();
+          resumed.send(JSON.stringify({
+            type: "resume_room",
+            requestId: crypto.randomUUID(),
+            roomId,
+            playerId,
+            roundNumber: nextRound.roundNumber,
+            lastEventSequence: nextRound.eventSequence,
+            handVersion: 1
+          }));
+          const resumeStarted = await waitFor(resumed, (m) => m.type === "resume_started");
+          if (!resumeStarted.requestId) throw new Error("resume_started missing requestId");
+          const resumedSnapshot = await waitFor(resumed, (m) => m.type === "room_snapshot" && m.roomId === roomId);
+          if (resumedSnapshot.roundNumber !== nextRound.roundNumber) throw new Error("reconnect returned stale round");
+          const resumeComplete = await waitFor(resumed, (m) => m.type === "resume_complete");
+          if (resumeComplete.roundNumber !== nextRound.roundNumber) throw new Error("resume_complete round mismatch");
+
+          console.log("PRODUCTION MULTIPLAYER SMOKE VERIFIED");
+          for (const ws of [resumed, ws2]) {
+            await new Promise((resolve) => {
+              ws.once("close", resolve);
+              ws.close(1000, "smoke test complete");
+            });
+          }
+          process.exit(0);
+          EOF
