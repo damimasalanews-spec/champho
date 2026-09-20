@@ -24,7 +24,7 @@ EOF
   chmod +x "$temp_dir/bin/psql"
 
   set +e
-  PATH="$temp_dir/bin:$PATH" MIGRATION_DIR="$temp_dir/migrations" "$migration_script"     >"$temp_dir/output.log" 2>&1
+  PATH="$temp_dir/bin:$PATH" MIGRATION_DIR="$temp_dir/migrations" bash "$migration_script" >"$temp_dir/output.log" 2>&1
   local status=$?
   set -e
 
@@ -55,7 +55,7 @@ touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
 touch "$temp_dir/migrations/002_wrong_protocol_constraints.sql"
 touch "$temp_dir/migrations/004_connection_version.sql"
 
-assert_runner_rejects_without_psql   "misordered migration set"   "Migration order/file mismatch"
+assert_runner_rejects_without_psql "misordered migration set" "Migration order/file mismatch"
 
 echo "Misordered migration test passed."
 
@@ -69,7 +69,7 @@ touch "$temp_dir/migrations/002_protocol_constraints.sql"
 touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
 touch "$temp_dir/migrations/004_connection_version.sql"
 
-assert_runner_rejects_without_psql   "duplicate migration numeric prefix"   "Migration file count mismatch"
+assert_runner_rejects_without_psql "duplicate migration numeric prefix" "Migration file count mismatch"
 
 echo "Duplicate migration prefix test passed: migration script failed before psql."
 
@@ -81,8 +81,7 @@ touch "$temp_dir/migrations/001_game_rooms_and_submissions.sql"
 touch "$temp_dir/migrations/003_protocol_indexes_and_immutability.sql"
 touch "$temp_dir/migrations/004_connection_version.sql"
 
-assert_runner_rejects_without_psql   "missing migration prefix"   "Migration file count mismatch"
-
+assert_runner_rejects_without_psql "missing migration prefix" "Migration file count mismatch"
 echo "Missing migration prefix test passed: migration script failed before psql."
 
 summary_file="$temp_dir/summary.txt"
