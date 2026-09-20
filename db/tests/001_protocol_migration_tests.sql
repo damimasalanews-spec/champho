@@ -344,6 +344,30 @@ SELECT expect_failure($$INSERT INTO submissions(
  'accepted','correct','{"status":"accepted"}'
 )$$, 'second accepted submission for same player/round');
 
+INSERT INTO submissions(
+ room_id,player_id,submission_id,round_number,turn_number,
+ submitted_cards,submitted_word,request_hash,status,reason,result
+) VALUES (
+ '00000000-0000-0000-0000-000000000001',
+ '00000000-0000-0000-0000-000000000101',
+ '00000000-0000-0000-0000-000000000204',
+ 1,0,'["card-a"]','A',
+ 'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+ 'accepted','correct','{"status":"accepted"}'
+);
+
+SELECT expect_failure($INSERT INTO submissions(
+ room_id,player_id,submission_id,round_number,turn_number,
+ submitted_cards,submitted_word,request_hash,status,reason,result
+) VALUES (
+ '00000000-0000-0000-0000-000000000001',
+ '00000000-0000-0000-0000-000000000101',
+ '00000000-0000-0000-0000-000000000205',
+ 1,0,'["card-a"]','A',
+ 'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+ 'accepted','correct','{"status":"accepted"}'
+)$, 'one accepted submission per player/round');
+
 -- ---------- index presence ----------
 
 SELECT assert_true(
