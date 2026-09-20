@@ -93,7 +93,7 @@ export async function runProductionPreflight(pool: Pool): Promise<Record<string,
   const multipleActivePlayers = await pool.query(`
     SELECT room_id, COUNT(*)::int AS active_players
     FROM room_players
-    WHERE state='active'
+    WHERE connected=true AND turn_state='active'
     GROUP BY room_id
     HAVING COUNT(*) > 1
     ORDER BY room_id
