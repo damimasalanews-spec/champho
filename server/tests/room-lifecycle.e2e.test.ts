@@ -1368,7 +1368,13 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   let released = false;
   let staleDisconnectBarrierEnabled = true;
   let staleDisconnectBarrierCompletionCount = 0;
+  let disconnectUpdateHookEntered = false;
+  let resolveDisconnectUpdateHookEntered!: () => void;
   let testError: unknown;
+
+  const disconnectUpdateHookEnteredPromise = new Promise<void>((resolve) => {
+    resolveDisconnectUpdateHookEntered = resolve;
+  });
 
   const serverSocketClosePromise = new Promise<void>((resolve) => {
     resolveServerSocketClose = resolve;
@@ -1390,8 +1396,11 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       }
     },
     disconnectHooks: {
-      beforeDisconnectUpdate: () =>
-        staleDisconnectBarrierEnabled ? barrier.wait() : Promise.resolve(),
+      beforeDisconnectUpdate: () => {
+        disconnectUpdateHookEntered = true;
+        resolveDisconnectUpdateHookEntered();
+        return staleDisconnectBarrierEnabled ? barrier.wait() : Promise.resolve();
+      },
       afterDisconnectUpdate: (rowCount) => {
         if (staleDisconnectBarrierEnabled) {
           staleDisconnectBarrierCompletionCount += 1;
@@ -1448,6 +1457,12 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       "only the stale socket should have closed before the resumed connection is established"
     );
 
+    await disconnectUpdateHookEnteredPromise;
+    assert.equal(
+      disconnectUpdateHookEntered,
+      true,
+      "stale disconnect must enter the disconnect update hook after the server-side socket close"
+    );
     await barrier.waitUntilBlocked();
 
     resumed = await connect(port);
