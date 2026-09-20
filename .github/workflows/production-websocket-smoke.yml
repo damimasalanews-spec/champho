@@ -220,24 +220,27 @@ jobs:
           ws1.close(1000, "stale socket disconnect");
           await new Promise((resolve) => ws1.once("close", resolve));
 
-          resumed.send(JSON.stringify({
+          const observer = await connect();
+          observer.send(JSON.stringify({
             type: "resume_room",
             requestId: crypto.randomUUID(),
             roomId,
-            playerId,
+            playerId: opponentId,
             roundNumber: nextRound.roundNumber,
             lastEventSequence: nextRound.eventSequence,
             handVersion: 1
           }));
-          await waitFor(resumed, (m) => m.type === "resume_started");
+          await waitFor(observer, (m) => m.type === "resume_started");
           const staleDisconnectCheck = await waitFor(
-            resumed,
+            observer,
             (m) => m.type === "room_snapshot" && m.roomId === roomId
           );
           const resumedPlayer = staleDisconnectCheck.players?.find((p) => p.playerId === playerId);
           if (!resumedPlayer?.connected) {
             throw new Error("stale disconnect incorrectly marked the newer connection disconnected");
           }
+          observer.close(1000, "smoke observer complete");
+          await new Promise((resolve) => observer.once("close", resolve));
 
           console.log("PRODUCTION MULTIPLAYER SMOKE VERIFIED");
           for (const ws of [resumed, ws2]) {
