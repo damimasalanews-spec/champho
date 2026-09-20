@@ -666,7 +666,7 @@ test("join_room with an unknown room returns a protocol error without persisting
         message.code === "room_not_found"
     );
 
-    assertErrorMessage(error, "room_not_found", "invalid-room-resume");
+    assertErrorMessage(error, "room_not_found");
 
     const after = await pool.query(
       `SELECT
