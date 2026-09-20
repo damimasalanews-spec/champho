@@ -28,6 +28,25 @@ after(async () => {
   await pool.end();
 });
 
+test("baselines pre-existing protocol migrations without rerunning them", async () => {
+  const before = await pool.query(
+    "SELECT version, name FROM public.schema_migrations WHERE version IN (1, 2, 3, 4) ORDER BY version"
+  );
+  assert.deepEqual(before.rows, []);
+
+  await runMigrations(pool);
+
+  const ledger = await pool.query(
+    "SELECT version, name FROM public.schema_migrations WHERE version IN (1, 2, 3, 4) ORDER BY version"
+  );
+  assert.deepEqual(ledger.rows, [
+    { version: 1, name: "game_rooms_and_submissions" },
+    { version: 2, name: "protocol_constraints" },
+    { version: 3, name: "protocol_indexes_and_immutability" },
+    { version: 4, name: "connection_version" }
+  ]);
+});
+
 test("serializes concurrent startup and applies a migration once", async () => {
   const poolA = new Pool({ connectionString });
   const poolB = new Pool({ connectionString });
