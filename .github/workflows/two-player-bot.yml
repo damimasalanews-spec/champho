@@ -1,0 +1,32 @@
+name: Production Two-Player Bot Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      ws_url:
+        description: WebSocket endpoint to test
+        required: false
+        default: wss://champword-backend.onrender.com
+        type: string
+
+jobs:
+  two-player-bot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run two-player production bot
+        env:
+          WS_URL: ${{ inputs.ws_url }}
+        run: npx tsx scripts/two-player-bot.ts
