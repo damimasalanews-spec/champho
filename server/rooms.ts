@@ -1,6 +1,8 @@
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 
+const MAX_ROOM_PLAYERS = 8;
+
 export type RoomPlayer = {
   playerId: string;
   seatNumber: number;
@@ -213,6 +215,16 @@ export async function joinRoom(
     );
     if (room.rowCount !== 1) throw new Error("room_not_found");
     if (room.rows[0].state !== "waiting") throw new Error("room_not_joinable");
+
+    const playerCount = await client.query(
+      `SELECT count(*) AS count
+       FROM public.room_players
+       WHERE room_id = $1`,
+      [roomId]
+    );
+    if (Number(playerCount.rows[0].count) >= MAX_ROOM_PLAYERS) {
+      throw new Error("room_full");
+    }
 
     const existing = await client.query(
       `SELECT player_id FROM public.room_players
