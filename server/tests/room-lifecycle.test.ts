@@ -1,8 +1,12 @@
-import test from "node:test";
+import test, { after } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { pool } from "../db.js";
 import { createRoom, joinRoom } from "../rooms.js";
+
+after(async () => {
+  await pool.end();
+});
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required for integration tests");
