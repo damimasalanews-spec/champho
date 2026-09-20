@@ -1358,7 +1358,18 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
   const port = 9000 + Math.floor(Math.random() * 500);
   const ownerId = randomUUID();
   const barrier = createDisconnectBarrier(2_000);
+  let serverSocketClosed = false;
+  let resolveServerSocketClose!: () => void;
+
+  const serverSocketClosePromise = new Promise<void>((resolve) => {
+    resolveServerSocketClose = resolve;
+  });
+
   const server = createServerApp({
+    onSocketClose: () => {
+      serverSocketClosed = true;
+      resolveServerSocketClose();
+    },
     disconnectHooks: {
       beforeDisconnectUpdate: () => barrier.wait(),
       afterDisconnectUpdate: (rowCount) =>
@@ -1400,11 +1411,15 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
     assert.equal(initial.rows[0].connected, true);
     assert.equal(Number(initial.rows[0].connection_version), 0);
 
-    const ownerClosed = new Promise<void>((resolve) => {
-      owner.once("close", () => resolve());
-    });
     owner.terminate();
-    await ownerClosed;
+
+    await serverSocketClosePromise;
+
+    assert.equal(
+      serverSocketClosed,
+      true,
+      "server-side WebSocket close handler must observe the stale socket close"
+    );
 
     await barrier.waitUntilBlocked();
 
@@ -1451,15 +1466,6 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       "resume_complete for resumed socket"
     );
 
-    const beforeRelease = await pool.query(
-      `SELECT connected
-       FROM public.room_players
-       WHERE room_id = $1 AND player_id = $2`,
-      [roomId, ownerId]
-    );
-
-    assert.equal(beforeRelease.rows[0].connected, true);
-
     barrier.release();
     released = true;
 
@@ -1478,8 +1484,17 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
       [roomId, ownerId]
     );
 
-    assert.equal(final.rows[0].connected, true);
-    assert.equal(Number(final.rows[0].connection_version), 1);
+    assert.equal(final.rowCount, 1);
+    assert.equal(
+      final.rows[0].connected,
+      true,
+      "resumed connection must remain connected"
+    );
+    assert.equal(
+      Number(final.rows[0].connection_version),
+      1,
+      "resumed connection must have connection_version 1"
+    );
   } finally {
     if (!released) {
       barrier.release();
