@@ -100,6 +100,9 @@ webSocketServer.on("connection", (socket) => {
         if (typeof message.playerId !== "string" || !message.playerId) {
           throw new Error("invalid_player_id");
         }
+        if (joinedRoomId !== null || joinedPlayerId !== null) {
+          throw new Error("resume_already_active");
+        }
 
         send(socket, {
           type: "resume_started",
