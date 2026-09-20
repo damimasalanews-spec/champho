@@ -184,8 +184,9 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     });
 
     socket.on("close", () => {
-      options.onSocketClose?.(socket);
       if (!joinedRoomId || !joinedPlayerId || connectionVersion === null) return;
+
+      options.onSocketClose?.(socket);
 
       const roomId = joinedRoomId;
       const playerId = joinedPlayerId;
