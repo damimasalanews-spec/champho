@@ -93,17 +93,21 @@ log("test", "ROOM JOIN PASS");
 
 send(bot1, { type: "start_round", requestId: randomUUID() });
 const round = await waitFor(bot1, (m) => m.type === "room_snapshot" && m.phase === "playing");
-const bot2Round = await waitFor(bot2, (m) => m.type === "room_snapshot" && m.phase === "playing");
-const hand = Array.isArray(bot2Round.hand) ? bot2Round.hand : Array.isArray(bot2Round.cards) ? bot2Round.cards : null;
-if (!hand) throw new Error("bot-2 round snapshot did not include a hand/cards array");
+await waitFor(bot2, (m) => m.type === "room_snapshot" && m.phase === "playing");
+const handSync = await waitFor(
+  bot2,
+  (m) => m.type === "hand_sync" && m.roomId === activeRoomId && m.playerId === player2 && m.roundNumber === round.roundNumber,
+);
+const hand = handSync.hand;
+if (!Array.isArray(hand)) throw new Error("bot-2 hand_sync did not include a hand array");
 if (hand.length !== 14) throw new Error(`bot-2 expected exactly 14 cards, got ${hand.length}`);
-const handVersion = bot2Round.handVersion;
-if (typeof handVersion !== "number") throw new Error("bot-2 round snapshot did not include a numeric handVersion");
-const expectedHand = [...hand];
+const handVersion = handSync.handVersion;
+if (typeof handVersion !== "number") throw new Error("bot-2 hand_sync did not include a numeric handVersion");
+const expectedHand = hand.map((card: Message) => ({ ...card }));
 log("test", `ROUND START PASS round=${round.roundNumber} hand=14 handVersion=${handVersion}`);
 
-const cards = expectedHand.slice(0, 2);
-send(bot1, {
+const cards = expectedHand.slice(0, 2).map((card) => card.cardId);
+send(bot2, {
   type: "submit_word",
   requestId: randomUUID(),
   roomId: activeRoomId,
@@ -112,8 +116,8 @@ send(bot1, {
   cards,
   word: "ab"
 });
-const submission = await waitFor(bot1, (m) => m.type === "word_submission_result");
-if (submission.status !== "accepted") throw new Error(`bot-1 submission rejected: ${submission.reason ?? "unknown"}`);
+const submission = await waitFor(bot2, (m) => m.type === "word_submission_result");
+if (submission.status !== "accepted") throw new Error(`bot-2 submission rejected: ${submission.reason ?? "unknown"}`);
 log("test", "WORD SUBMISSION PASS");
 
 await close(bot2);
@@ -131,11 +135,15 @@ send(bot2, {
   handVersion
 });
 await waitFor(bot2, (m) => m.type === "resume_started");
-const resumed = await waitFor(bot2, (m) => m.type === "room_snapshot" && m.roomId === activeRoomId);
-const resumedHand = Array.isArray(resumed.hand) ? resumed.hand : Array.isArray(resumed.cards) ? resumed.cards : null;
-if (!resumedHand) throw new Error("resume snapshot did not include a hand/cards array");
+await waitFor(bot2, (m) => m.type === "room_snapshot" && m.roomId === activeRoomId);
+const resumedHandSync = await waitFor(
+  bot2,
+  (m) => m.type === "hand_sync" && m.roomId === activeRoomId && m.playerId === player2 && m.roundNumber === round.roundNumber && m.reason === "resume",
+);
+const resumedHand = resumedHandSync.hand;
+if (!Array.isArray(resumedHand)) throw new Error("resume hand_sync did not include a hand array");
 if (resumedHand.length !== 14) throw new Error(`resume expected exactly 14 cards, got ${resumedHand.length}`);
-const resumedHandVersion = resumed.handVersion;
+const resumedHandVersion = resumedHandSync.handVersion;
 if (resumedHandVersion !== handVersion) throw new Error(`resume returned handVersion ${resumedHandVersion}, expected ${handVersion}`);
 if (JSON.stringify(resumedHand) !== JSON.stringify(expectedHand)) throw new Error("resume returned a different 14-card hand");
 const complete = await waitFor(bot2, (m) => m.type === "resume_complete" && m.roomId === activeRoomId);
