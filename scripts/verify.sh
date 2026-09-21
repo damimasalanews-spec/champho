@@ -79,6 +79,11 @@ step "migration runner tests" npx tsx --test --test-timeout=45000 server/tests/m
 step "turn engine tests" npx tsx --test --test-timeout=45000 server/tests/turn-engine.test.ts
 step "room lifecycle tests" npx tsx --test --test-timeout=45000 server/tests/room-lifecycle.test.ts
 
+# No database required. Runs before the DB suites so a broken static route is
+# reported even if PostgreSQL is unavailable — a page that cannot reach the
+# server is unplayable regardless of how healthy the backend is.
+step "static routing tests" npx tsx --test --test-timeout=45000 server/tests/static-routing.test.ts
+
 step "room lifecycle e2e" npx tsx --test --test-timeout=45000 server/tests/room-lifecycle.e2e.test.ts
 step "submit word e2e" npx tsx --test --test-timeout=45000 server/tests/submit-word.e2e.test.ts
 

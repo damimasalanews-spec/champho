@@ -90,6 +90,19 @@ try {
   }, 30000, "hand_sync");
   check("private hand_sync carries exactly 14 cards", hand.length === 14, "cards=" + hand.length);
 
+  // The countdown can only exist once a turn has started. `hand_sync` is sent
+  // before `turn_started`, and before the first turn there is no deadline, so
+  // "--" is the *correct* render at that instant — snapshotting the DOM the
+  // moment hand_sync lands makes this check race the server.
+  //
+  // Waiting for turn_started AND for the timer to actually tick keeps this a
+  // real assertion: a countdown that never runs still fails here, it just fails
+  // by timing out instead of by reading a placeholder.
+  await waitFor(() => {
+    const started = (window.__frames || []).some((m) => m.type === "turn_started");
+    return started && /\d\.\d/.test(document.getElementById("timer").textContent);
+  }, 30000, "a live countdown after turn_started");
+
   const dom = await page.evaluate(() => ({
     cards: document.querySelectorAll(".letter").length,
     names: [...document.querySelectorAll(".seat .name")].map((n) => n.textContent),

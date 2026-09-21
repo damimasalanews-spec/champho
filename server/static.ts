@@ -44,10 +44,28 @@ function safeResolve(urlPath: string): string | null {
 
 export type StaticResult = "served" | "not_found" | "forbidden";
 
+/**
+ * The root must serve the authoritative client.
+ *
+ * `index.html` is the legacy Firebase-era page. It is 533 KB and contains no
+ * WebSocket code at all — it never contacts this server, so serving it at `/`
+ * hands every visitor a client that cannot play a game. That is precisely the
+ * frontend/backend split this module exists to prevent, so the root is mapped
+ * to the authoritative `classic.html` instead.
+ *
+ * The legacy page is kept, not deleted: it stays reachable at `/legacy.html`.
+ */
+function routeFor(urlPath: string): string {
+  if (urlPath === "/" || urlPath === "/index.html") return "/classic.html";
+  if (urlPath === "/legacy.html") return "/index.html";
+  return urlPath;
+}
+
 export async function serveStatic(request: IncomingMessage, response: ServerResponse): Promise<StaticResult> {
   if (request.method !== "GET" && request.method !== "HEAD") return "not_found";
 
-  const target = safeResolve(request.url ?? "/");
+  const requested = (request.url ?? "/").split("?")[0] ?? "/";
+  const target = safeResolve(routeFor(requested));
   if (!target) return "forbidden";
 
   let filePath = target;
