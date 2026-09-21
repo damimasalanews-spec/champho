@@ -26,7 +26,7 @@ test("create_room persists an authoritative snapshot and room_created event", as
     assert.equal(result.snapshot.turnNumber, 0);
     assert.equal(result.snapshot.eventSequence, 1);
     assert.deepEqual(result.snapshot.players, [
-      { playerId, seatNumber: 0, connected: true, score: 0 }
+      { playerId, seatNumber: 0, connected: true, score: 0, isBot: false, displayName: null }
     ]);
 
     assert.equal(result.events.length, 1);
@@ -59,8 +59,8 @@ test("join_room persists the new player and authoritative player_joined event", 
     assert.equal(joined.snapshot.roomId, created.snapshot.roomId);
     assert.equal(joined.snapshot.eventSequence, 2);
     assert.deepEqual(joined.snapshot.players, [
-      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
-      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0, isBot: false, displayName: null },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0, isBot: false, displayName: null }
     ]);
 
     assert.equal(joined.events.length, 1);

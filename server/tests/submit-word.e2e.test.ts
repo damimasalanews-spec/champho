@@ -153,7 +153,8 @@ async function seedActiveRoom(roomId: string, playerId: string, guestId: string)
          active_player_id = $2,
          first_solver_id = NULL,
          solved_at = NULL,
-         solve_window_ends_at = NULL
+         solve_window_ends_at = NULL,
+         target_word = 'ab'
      WHERE id = $1`,
     [roomId, playerId]
   );
@@ -214,12 +215,20 @@ test("submit_word authoritatively accepts a valid word, assigns the first solver
     assert.equal(result.status, "accepted");
     assert.equal(result.reason, "accepted");
     assert.equal(result.cardsConsumed, 2);
-    assert.equal(result.cardsDrawn, 0);
+    // §12: two cards consumed, two drawn back.
+    assert.equal(result.cardsDrawn, 2);
     assert.equal(result.handChanged, true);
     assert.equal(result.handVersion, 1);
-    assert.deepEqual(result.hand, []);
+    assert.equal(result.hand?.length, 2, "hand is refilled to its pre-submit size");
+    assert.equal(
+      result.hand?.some((card: { cardId: string }) => card.cardId === "card-a" || card.cardId === "card-b"),
+      false,
+      "consumed cards must be gone"
+    );
     assert.equal(result.scoreDelta, 1);
-    assert.equal(result.roundState, "solve_window");
+    // The field is named `phase` on the new result shape, and a first solve
+    // moves the turn into its solve window.
+    assert.equal(result.phase, "solve_window");
 
     const event = await waitForMessage(socket, (m) => m.type === "event" && m.eventType === "word_submitted");
     assert.equal(event.payload.playerId, playerId);
@@ -385,8 +394,18 @@ test("solve window accepts a second solver before the deadline and then transiti
     assertSubmissionResult(secondResult);
     assert.equal(secondResult.status, "accepted");
 
-    await new Promise((resolve) => setTimeout(resolve, 3_100));
+    // Nobody else answers, so the window simply runs out. §18: the SERVER closes
+    // the turn — no client is needed to make progress. That server-owned close
+    // is exactly what used to be missing, and it is why the game could hang.
+    const ended = await waitForMessage(second, (m) => m.type === "turn_ended" && m.turnNumber === 0, 6_000);
+    assert.equal(ended.terminalState, "solved", "someone solved, so the close reports 'solved'");
+    assert.equal(ended.firstSolverId, playerId, "§22: the first solver is whoever answered first");
+    assert.equal(ended.word, "ab");
 
+    // A submission arriving after the close is refused and must not touch the
+    // new turn. Whether it reports expiry or a stale turn is a genuine race with
+    // the sweeper, so both correct refusals are accepted — the point is that it
+    // changes nothing.
     second.send(JSON.stringify({
       type: "submit_word",
       requestId: randomUUID(),
@@ -400,17 +419,10 @@ test("solve window accepts a second solver before the deadline and then transiti
     const expiredResult = await waitForMessage(second, (m) => m.type === "word_submission_result");
     assertSubmissionResult(expiredResult);
     assert.equal(expiredResult.status, "rejected");
-    assert.equal(expiredResult.reason, "solve_window_expired");
-    assert.equal(expiredResult.roundState, "round_end");
-
-    const completed = await waitForMessage(second, (m) => m.type === "round_completed");
-    assert.equal(completed.roundNumber, 1);
-    assert.equal(completed.roundState, "round_end");
-    assert.equal(completed.word, "ab");
-    assert.deepEqual(completed.solvers, [
-      { playerId, position: 1 },
-      { playerId: guestId, position: 2 }
-    ]);
+    assert.ok(
+      ["solve_window_expired", "stale_turn"].includes(expiredResult.reason),
+      `a late submission must be refused, got ${expiredResult.reason}`
+    );
 
     const nextSnapshot = await waitForMessage(second, (m) => m.type === "room_snapshot" && m.roundNumber === 2);
     assert.equal(nextSnapshot.phase, "playing");
@@ -419,6 +431,7 @@ test("solve window accepts a second solver before the deadline and then transiti
     assert.equal(nextSnapshot.firstSolverId, null);
     assert.equal(nextSnapshot.solvedAt, null);
     assert.equal(nextSnapshot.solveWindowEndsAt, null);
+    assert.ok(nextSnapshot.turnDeadlineAt, "the next turn carries a server-owned deadline");
 
     const room = await pool.query(
       `SELECT round_number, phase, active_player_id, first_solver_id, solved_at, solve_window_ends_at
@@ -427,7 +440,9 @@ test("solve window accepts a second solver before the deadline and then transiti
     );
     assert.equal(Number(room.rows[0].round_number), 2);
     assert.equal(room.rows[0].phase, "playing");
-    assert.equal(room.rows[0].active_player_id, playerId);
+    // §14: the turn rotates deterministically clockwise instead of always
+    // returning the next turn to the lowest seat.
+    assert.equal(room.rows[0].active_player_id, guestId, "the turn passes to the next seat clockwise");
     assert.equal(room.rows[0].first_solver_id, null);
   } finally {
     if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
@@ -464,7 +479,7 @@ test("submit_word rejects an incorrect word without mutating the hand or score",
     const result = await waitForMessage(socket, (m) => m.type === "word_submission_result");
     assertSubmissionResult(result);
     assert.equal(result.status, "rejected");
-    assert.equal(result.reason, "incorrect_word");
+    assert.equal(result.reason, "wrong_answer");
 
     const persisted = await pool.query(
       `SELECT score, hand_version, private_hand, phase, first_solver_id

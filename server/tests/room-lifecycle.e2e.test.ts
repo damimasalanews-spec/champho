@@ -368,7 +368,7 @@ test("two WebSocket clients create and join a room with authoritative snapshots 
     assert.equal(createdSnapshot.roundNumber, 1);
     assert.equal(createdSnapshot.eventSequence, 1);
     assert.deepEqual(createdSnapshot.players, [
-      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 }
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0, isBot: false, displayName: null }
     ]);
 
     const createdEvent = await waitForMessage(
@@ -413,8 +413,8 @@ test("two WebSocket clients create and join a room with authoritative snapshots 
     assert.equal(joinedSnapshot.roomId, roomId);
     assert.equal(joinedSnapshot.eventSequence, 2);
     assert.deepEqual(joinedSnapshot.players, [
-      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
-      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0, isBot: false, displayName: null },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0, isBot: false, displayName: null }
     ]);
 
     for (const event of [ownerJoinedEvent, guestJoinedEvent]) {
@@ -568,8 +568,8 @@ test("duplicate join_room requests return a protocol error without duplicate pla
       (message) => message.type === "room_snapshot" && message.eventSequence === 2
     );
     assert.deepEqual(firstJoinSnapshot.players, [
-      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
-      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0, isBot: false, displayName: null },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0, isBot: false, displayName: null }
     ]);
     await waitForMessage(
       guest,
@@ -812,8 +812,8 @@ test("disconnect and resume_room restore authoritative state without duplicate p
     );
 
     assert.deepEqual(joinedSnapshot.players, [
-      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
-      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0, isBot: false, displayName: null },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0, isBot: false, displayName: null }
     ]);
 
     guest.close();
@@ -873,8 +873,8 @@ test("disconnect and resume_room restore authoritative state without duplicate p
     assert.equal(resumedSnapshot.roomId, roomId);
     assert.equal(resumedSnapshot.eventSequence, 2);
     assert.deepEqual(resumedSnapshot.players, [
-      { playerId: ownerId, seatNumber: 0, connected: true, score: 0 },
-      { playerId: guestId, seatNumber: 1, connected: true, score: 0 }
+      { playerId: ownerId, seatNumber: 0, connected: true, score: 0, isBot: false, displayName: null },
+      { playerId: guestId, seatNumber: 1, connected: true, score: 0, isBot: false, displayName: null }
     ]);
 
     const resumeComplete = await waitForMessage(
@@ -1364,7 +1364,9 @@ test("resume_room on a new WebSocket restores the existing player without duplic
       playerId: ownerId,
       seatNumber: 0,
       connected: true,
-      score: 0
+      score: 0,
+      isBot: false,
+      displayName: null
     });
 
     const complete = await waitForMessage(
@@ -1669,7 +1671,9 @@ test("stale disconnect cannot mark a newly resumed connection disconnected", asy
         playerId: ownerId,
         seatNumber: 0,
         connected: true,
-        score: 0
+        score: 0,
+        isBot: false,
+        displayName: null
       }
     ]);
 

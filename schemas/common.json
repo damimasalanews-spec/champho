@@ -1,1 +1,181 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"champword://schemas/common.json","title":"CHAMP WORD Common","$defs":{"identifier":{"type":"string","minLength":1,"maxLength":128},"requestId":{"$ref":"#/$defs/identifier"},"roomId":{"$ref":"#/$defs/identifier"},"playerId":{"$ref":"#/$defs/identifier"},"cardId":{"$ref":"#/$defs/identifier"},"timestamp":{"type":"string","format":"date-time"},"nonNegativeInteger":{"type":"integer","minimum":0},"positiveInteger":{"type":"integer","minimum":1},"roundNumber":{"$ref":"#/$defs/positiveInteger"},"turnNumber":{"$ref":"#/$defs/nonNegativeInteger"},"eventSequence":{"$ref":"#/$defs/nonNegativeInteger"},"handVersion":{"$ref":"#/$defs/nonNegativeInteger"},"handHash":{"type":"string","pattern":"^sha256:[A-Fa-f0-9]{64}$"},"roomState":{"type":"string","enum":["waiting","active","finished"]},"roomPhase":{"type":"string","enum":["waiting","playing","solve_window","round_end","finished"]},"cardValue":{"type":"string","minLength":1,"maxLength":16},"card":{"type":"object","additionalProperties":false,"required":["cardId","value"],"properties":{"cardId":{"$ref":"#/$defs/cardId"},"value":{"$ref":"#/$defs/cardValue"}}},"hand":{"type":"array","minItems":0,"maxItems":14,"items":{"$ref":"#/$defs/card"}},"playerRecord":{"type":"object","additionalProperties":false,"required":["playerId","connected","score"],"properties":{"playerId":{"$ref":"#/$defs/playerId"},"connected":{"type":"boolean"},"score":{"type":"integer","minimum":0}}},"eventPayload":{"type":"object"},"eventEnvelope":{"type":"object","additionalProperties":false,"required":["type","eventSequence","roomId","roundNumber","eventType","serverTime","payload"],"properties":{"type":{"const":"event"},"eventSequence":{"$ref":"#/$defs/eventSequence"},"roomId":{"$ref":"#/$defs/roomId"},"roundNumber":{"$ref":"#/$defs/roundNumber"},"eventType":{"type":"string","minLength":1,"maxLength":64},"serverTime":{"$ref":"#/$defs/timestamp"},"payload":{"$ref":"#/$defs/eventPayload"}}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "champword://schemas/common.json",
+  "title": "CHAMP WORD Common",
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "requestId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "roomId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "playerId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "cardId": {
+      "$ref": "#/$defs/identifier"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positiveInteger": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "roundNumber": {
+      "$ref": "#/$defs/positiveInteger"
+    },
+    "turnNumber": {
+      "$ref": "#/$defs/nonNegativeInteger"
+    },
+    "eventSequence": {
+      "$ref": "#/$defs/nonNegativeInteger"
+    },
+    "handVersion": {
+      "$ref": "#/$defs/nonNegativeInteger"
+    },
+    "handHash": {
+      "type": "string",
+      "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+    },
+    "roomState": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "active",
+        "finished"
+      ]
+    },
+    "roomPhase": {
+      "type": "string",
+      "enum": [
+        "waiting",
+        "playing",
+        "solve_window",
+        "round_end",
+        "finished"
+      ]
+    },
+    "cardValue": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 16
+    },
+    "card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cardId",
+        "value"
+      ],
+      "properties": {
+        "cardId": {
+          "$ref": "#/$defs/cardId"
+        },
+        "value": {
+          "$ref": "#/$defs/cardValue"
+        }
+      }
+    },
+    "hand": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 14,
+      "items": {
+        "$ref": "#/$defs/card"
+      }
+    },
+    "playerRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "playerId",
+        "connected",
+        "score",
+        "seatNumber",
+        "isBot",
+        "displayName"
+      ],
+      "properties": {
+        "playerId": {
+          "$ref": "#/$defs/playerId"
+        },
+        "connected": {
+          "type": "boolean"
+        },
+        "score": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "seatNumber": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "isBot": {
+          "type": "boolean"
+        },
+        "displayName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "eventPayload": {
+      "type": "object"
+    },
+    "eventEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "eventSequence",
+        "roomId",
+        "roundNumber",
+        "eventType",
+        "serverTime",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "event"
+        },
+        "eventSequence": {
+          "$ref": "#/$defs/eventSequence"
+        },
+        "roomId": {
+          "$ref": "#/$defs/roomId"
+        },
+        "roundNumber": {
+          "$ref": "#/$defs/roundNumber"
+        },
+        "eventType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "serverTime": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "payload": {
+          "$ref": "#/$defs/eventPayload"
+        }
+      }
+    }
+  }
+}

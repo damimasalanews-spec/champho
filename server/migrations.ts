@@ -19,7 +19,8 @@ export const migrations: Migration[] = [
   { version: 1, name: "game_rooms_and_submissions", filename: "db/001_game_rooms_and_submissions.sql" },
   { version: 2, name: "protocol_constraints", filename: "db/002_protocol_constraints.sql" },
   { version: 3, name: "protocol_indexes_and_immutability", filename: "db/003_protocol_indexes_and_immutability.sql" },
-  { version: 4, name: "connection_version", filename: "db/004_connection_version.sql" }
+  { version: 4, name: "connection_version", filename: "db/004_connection_version.sql" },
+  { version: 5, name: "turn_engine", filename: "db/005_turn_engine.sql" }
 ];
 
 function stripTransactionWrapper(sql: string): string {

@@ -1,1 +1,127 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"champword://schemas/room_snapshot.json","title":"CHAMP WORD room_snapshot","type":"object","additionalProperties":false,"required":["type","roomId","eventSequence","state","phase","roundNumber","turnNumber","activePlayerId","firstSolverId","solvedAt","solveWindowEndsAt","serverTime","players"],"properties":{"type":{"const":"room_snapshot"},"roomId":{"$ref":"common.json#/$defs/roomId"},"eventSequence":{"$ref":"common.json#/$defs/eventSequence"},"state":{"$ref":"common.json#/$defs/roomState"},"phase":{"$ref":"common.json#/$defs/roomPhase"},"roundNumber":{"$ref":"common.json#/$defs/roundNumber"},"turnNumber":{"$ref":"common.json#/$defs/turnNumber"},"activePlayerId":{"anyOf":[{"$ref":"common.json#/$defs/playerId"},{"type":"null"}]},"firstSolverId":{"anyOf":[{"$ref":"common.json#/$defs/playerId"},{"type":"null"}]},"solvedAt":{"anyOf":[{"$ref":"common.json#/$defs/timestamp"},{"type":"null"}]},"solveWindowEndsAt":{"anyOf":[{"$ref":"common.json#/$defs/timestamp"},{"type":"null"}]},"serverTime":{"$ref":"common.json#/$defs/timestamp"},"players":{"type":"array","items":{"$ref":"common.json#/$defs/playerRecord"}}}}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "champword://schemas/room_snapshot.json",
+  "title": "CHAMP WORD room_snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "roomId",
+    "eventSequence",
+    "state",
+    "phase",
+    "roundNumber",
+    "turnNumber",
+    "activePlayerId",
+    "firstSolverId",
+    "solvedAt",
+    "solveWindowEndsAt",
+    "serverTime",
+    "players",
+    "turnStartedAt",
+    "turnDeadlineAt",
+    "targetWordLength"
+  ],
+  "properties": {
+    "type": {
+      "const": "room_snapshot"
+    },
+    "roomId": {
+      "$ref": "common.json#/$defs/roomId"
+    },
+    "eventSequence": {
+      "$ref": "common.json#/$defs/eventSequence"
+    },
+    "state": {
+      "$ref": "common.json#/$defs/roomState"
+    },
+    "phase": {
+      "$ref": "common.json#/$defs/roomPhase"
+    },
+    "roundNumber": {
+      "$ref": "common.json#/$defs/roundNumber"
+    },
+    "turnNumber": {
+      "$ref": "common.json#/$defs/turnNumber"
+    },
+    "activePlayerId": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/playerId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "firstSolverId": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/playerId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "solvedAt": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "solveWindowEndsAt": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "serverTime": {
+      "$ref": "common.json#/$defs/timestamp"
+    },
+    "players": {
+      "type": "array",
+      "items": {
+        "$ref": "common.json#/$defs/playerRecord"
+      }
+    },
+    "turnStartedAt": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "turnDeadlineAt": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "targetWordLength": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
