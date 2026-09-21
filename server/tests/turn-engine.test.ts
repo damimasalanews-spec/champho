@@ -124,7 +124,7 @@ test("a solve closes as 'solved' once the window expires, not as timed_out", asy
     const turnNumber = started!.snapshot.turnNumber;
     const room = await readRoom(roomId);
     const target = room.target_word as string;
-    const playerId = humanIds[0]!;
+    const playerId = humanIds[1]!;
 
     // Give the human the exact cards, then solve.
     const hand = await pool.query(`SELECT private_hand FROM public.room_players WHERE room_id=$1 AND player_id=$2`, [
@@ -185,7 +185,7 @@ test("a submit and a timeout racing the same turn produce exactly one terminal t
     const turnNumber = started!.snapshot.turnNumber;
     await forceDeadlinePast(roomId);
 
-    const playerId = humanIds[0]!;
+    const playerId = humanIds[1]!;
     const cards = await pool.query(`SELECT private_hand FROM public.room_players WHERE room_id=$1 AND player_id=$2`, [
       roomId,
       playerId
@@ -318,7 +318,7 @@ test("cards that are not in the player's hand are rejected without consuming any
       roomId,
       turnNumber,
       actionId: randomUUID(),
-      playerId: humanIds[0]!,
+      playerId: humanIds[1]!,
       cards: [randomUUID()],
       word: "ab"
     });
@@ -327,7 +327,7 @@ test("cards that are not in the player's hand are rejected without consuming any
     assert.equal(outcome.code, "invalid_cards");
     const player = await pool.query(`SELECT score FROM public.room_players WHERE room_id=$1 AND player_id=$2`, [
       roomId,
-      humanIds[0]
+      humanIds[1]
     ]);
     assert.equal(Number(player.rows[0].score), 0, "no score awarded");
   } finally {
@@ -340,7 +340,7 @@ test("cards that are not in the player's hand are rejected without consuming any
 // ---------------------------------------------------------------------------
 
 test("the active bot with no possible move ends the turn early as no_valid_move", async () => {
-  const { roomId, botIds } = await makeRoom(1, 1);
+  const { roomId, humanIds, botIds } = await makeRoom(1, 1);
   try {
     await beginFirstTurn(roomId);
     const botId = botIds[0]!;
@@ -357,6 +357,12 @@ test("the active bot with no possible move ends the turn early as no_valid_move"
         { cardId: randomUUID(), value: "a" },
         { cardId: randomUUID(), value: "b" }
       ])
+    ]);
+    // Nobody else can spell 'zzz' either, so the turn is genuinely dead.
+    await pool.query(`UPDATE public.room_players SET private_hand=$3::jsonb WHERE room_id=$1 AND player_id=$2`, [
+      roomId,
+      humanIds[0],
+      JSON.stringify(Array.from({ length: 14 }, () => ({ cardId: randomUUID(), value: "a" })))
     ]);
 
     const room = await readRoom(roomId);
@@ -382,7 +388,7 @@ test("the active bot with no possible move ends the turn early as no_valid_move"
 });
 
 test("a bot claiming no valid move while it does hold one is rejected", async () => {
-  const { roomId, botIds } = await makeRoom(1, 1);
+  const { roomId, humanIds, botIds } = await makeRoom(1, 1);
   try {
     await beginFirstTurn(roomId);
     const botId = botIds[0]!;
@@ -393,6 +399,15 @@ test("a bot claiming no valid move while it does hold one is rejected", async ()
     await pool.query(`UPDATE public.room_players SET private_hand=$3::jsonb WHERE room_id=$1 AND player_id=$2`, [
       roomId,
       botId,
+      JSON.stringify([
+        { cardId: randomUUID(), value: "a" },
+        { cardId: randomUUID(), value: "b" }
+      ])
+    ]);
+    // Another player CAN spell 'ab', so the bot's claim is false.
+    await pool.query(`UPDATE public.room_players SET private_hand=$3::jsonb WHERE room_id=$1 AND player_id=$2`, [
+      roomId,
+      humanIds[0],
       JSON.stringify([
         { cardId: randomUUID(), value: "a" },
         { cardId: randomUUID(), value: "b" }
@@ -453,7 +468,7 @@ test("randomised concurrent pressure never advances a turn more than once", asyn
       // Half the rounds are expired (so timeout can win); half are live.
       if (iteration % 2 === 0) await forceDeadlinePast(roomId);
 
-      const playerId = humanIds[iteration % humanIds.length]!;
+      const playerId = humanIds[1]!; // seat 0 is the artist, so seat 1 solves
       const player = await pool.query(`SELECT private_hand FROM public.room_players WHERE room_id=$1 AND player_id=$2`, [
         roomId,
         playerId
@@ -580,4 +595,101 @@ test("a hand never holds two cards with the same id", () => {
   );
   const ids = new Set(hand.map((card) => card.cardId));
   assert.equal(ids.size, hand.length, "card ids must stay unique");
+});
+
+// ---------------------------------------------------------------------------
+// Regression: action ids are opaque strings, never UUIDs.
+//
+// submissions.submission_id was declared UUID while the protocol specifies a
+// free-form id. Both real callers send non-UUID ids, so every submit aborted
+// transactionally and no turn could ever be solved. db/006 fixes the column.
+// ---------------------------------------------------------------------------
+
+test("non-UUID action ids are accepted, in both real caller formats", async () => {
+  const formats: Array<(roomId: string, turn: number, playerId: string) => string> = [
+    () => "r1758441234567-1",
+    (roomId, turn, playerId) => `bot:${roomId}:${turn}:${playerId}`
+  ];
+
+  for (const makeId of formats) {
+    const { roomId, humanIds } = await makeRoom(2, 0);
+    try {
+      const started = await beginFirstTurn(roomId);
+      const turnNumber = started!.snapshot.turnNumber;
+      const room = await readRoom(roomId);
+      const target = room.target_word as string;
+      const playerId = humanIds[1]!;
+
+      const hand = await pool.query(
+        `SELECT private_hand FROM public.room_players WHERE room_id=$1 AND player_id=$2`,
+        [roomId, playerId]
+      );
+      const cardIds = selectCardsForWord(hand.rows[0].private_hand, target);
+      assert.ok(cardIds, "the solver's hand must be able to spell the target");
+
+      const actionId = makeId(roomId, turnNumber, playerId);
+      const outcome = await transition({
+        kind: "submit",
+        roomId,
+        turnNumber,
+        actionId,
+        playerId,
+        cards: cardIds!,
+        word: target
+      });
+
+      assert.equal(outcome.ok, true, `actionId "${actionId}" must be accepted, got ${outcome.code}`);
+      assert.equal(outcome.result?.status, "accepted");
+      assert.equal(outcome.result?.scoreDelta, 1);
+    } finally {
+      await pool.query(`DELETE FROM public.game_rooms WHERE id=$1`, [roomId]);
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
+// §13: the artist draws; they do not solve their own drawing.
+// ---------------------------------------------------------------------------
+
+test("the artist cannot solve their own drawing", async () => {
+  const { roomId, humanIds } = await makeRoom(2, 0);
+  try {
+    const started = await beginFirstTurn(roomId);
+    const turnNumber = started!.snapshot.turnNumber;
+    const room = await readRoom(roomId);
+    const target = room.target_word as string;
+    const artistId = room.active_player_id as string;
+    assert.equal(artistId, humanIds[0], "seat 0 draws first");
+
+    const hand = await pool.query(
+      `SELECT private_hand FROM public.room_players WHERE room_id=$1 AND player_id=$2`,
+      [roomId, artistId]
+    );
+    const cardIds = selectCardsForWord(hand.rows[0].private_hand, target);
+    assert.ok(cardIds, "the artist's hand can spell it — which is exactly why they must not submit");
+
+    const outcome = await transition({
+      kind: "submit",
+      roomId,
+      turnNumber,
+      actionId: "r1758441234567-9",
+      playerId: artistId,
+      cards: cardIds!,
+      word: target
+    });
+
+    assert.equal(outcome.ok, false);
+    assert.equal(outcome.code, "artist_cannot_solve");
+
+    const after = await readRoom(roomId);
+    assert.equal(Number(after.turn_number), turnNumber, "the turn must not advance");
+    assert.equal(after.first_solver_id, null, "no first solver may be awarded");
+    const scored = await pool.query(
+      `SELECT score FROM public.room_players WHERE room_id=$1 AND player_id=$2`,
+      [roomId, artistId]
+    );
+    assert.equal(Number(scored.rows[0].score), 0, "the artist must not score");
+  } finally {
+    await pool.query(`DELETE FROM public.game_rooms WHERE id=$1`, [roomId]);
+  }
 });

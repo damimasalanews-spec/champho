@@ -211,6 +211,15 @@ async function writeTurn(
 
   const handChanges = new Map<string, { hand: Card[]; handVersion: number }>();
 
+  // Retire the previous active seat BEFORE nominating the next one.
+  //
+  // room_players_one_active_idx allows a single 'active' row per room and is
+  // checked per statement, so clearing and setting must not happen in the same
+  // statement. Doing this per player inside the loop below trips the index on a
+  // wrap-around turn (highest seat -> seat 0), because the new active is written
+  // while the old one is still marked active.
+  await client.query(`UPDATE public.room_players SET turn_state='waiting' WHERE room_id=$1`, [roomId]);
+
   for (const row of players.rows) {
     const playerId = row.player_id as string;
     const isBot = Boolean(row.is_bot);
@@ -221,18 +230,24 @@ async function writeTurn(
     const dealt = dealForTurn(currentHand, targetWord, guarantee);
     const handVersion = Number(row.hand_version) + (dealt.changed > 0 ? 1 : 0);
 
-    const turnState = playerId === activePlayerId ? "active" : "waiting";
+    // turn_state is deliberately NOT touched here — see the note above.
     await client.query(
       `UPDATE public.room_players
-       SET private_hand=$3::jsonb,hand_version=$4,hand_round_number=$5,turn_state=$6,updated_at=clock_timestamp()
+       SET private_hand=$3::jsonb,hand_version=$4,hand_round_number=$5,updated_at=clock_timestamp()
        WHERE room_id=$1 AND player_id=$2`,
-      [roomId, playerId, JSON.stringify(dealt.hand), handVersion, roundNumber, turnState]
+      [roomId, playerId, JSON.stringify(dealt.hand), handVersion, roundNumber]
     );
 
     if (handVersion !== Number(row.hand_version)) {
       handChanges.set(playerId, { hand: dealt.hand, handVersion });
     }
   }
+
+  // Now exactly one 'active' row exists again.
+  await client.query(`UPDATE public.room_players SET turn_state='active' WHERE room_id=$1 AND player_id=$2`, [
+    roomId,
+    activePlayerId
+  ]);
 
   await client.query(
     `UPDATE public.game_rooms
@@ -456,6 +471,15 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
         return { ...idle, code: "invalid_identity" };
       }
 
+      // §13: the artist draws the word; the OTHER players solve it. Allowing the
+      // artist to submit would let the one player who knows the answer win every
+      // turn they draw, so it is refused outright rather than merely discouraged
+      // in the client.
+      if (playerId === r.active_player_id) {
+        await client.query("ROLLBACK");
+        return { ...idle, code: "artist_cannot_solve" };
+      }
+
       const cards = input.cards ?? [];
       const word = (input.word ?? "").trim().toLowerCase();
       const hand = asHand(player.rows[0].private_hand);
@@ -628,19 +652,33 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
         await client.query("ROLLBACK");
         return { ...idle, code: "bot_actions_are_server_owned" };
       }
-      const target = typeof r.target_word === "string" ? r.target_word : "";
-      if (target && canSpell(asHand(player.rows[0].private_hand), target)) {
-        // The claim is false; the bot does have a move. Do not advance.
-        await recordRejected("valid_move_exists", input.turnNumber, playerId);
-        const snapshot = await readSnapshot(client, input.roomId);
-        await client.query("COMMIT");
-        return { ...idle, code: "valid_move_exists", snapshot };
-      }
+      // Only the artist's side may declare a dead turn: everyone else answering
+      // "no move" would just be a player declining to answer.
       if (playerId !== r.active_player_id) {
         await recordRejected("not_your_turn", input.turnNumber, playerId);
         const snapshot = await readSnapshot(client, input.roomId);
         await client.query("COMMIT");
         return { ...idle, code: "not_your_turn", snapshot };
+      }
+
+      // §17 is about the TURN having no valid move, not about the artist's own
+      // hand (the artist does not solve). The claim holds only when no other
+      // player can spell the target — otherwise the server rejects it and the
+      // turn keeps running.
+      const target = typeof r.target_word === "string" ? r.target_word : "";
+      const others = await client.query(
+        `SELECT player_id, private_hand, connected FROM public.room_players
+          WHERE room_id=$1 AND player_id<>$2`,
+        [input.roomId, playerId]
+      );
+      const someoneSolvable = others.rows.some(
+        (row) => (row.connected || row.is_bot !== false) && canSpell(asHand(row.private_hand), target)
+      );
+      if (!target || someoneSolvable) {
+        await recordRejected("valid_move_exists", input.turnNumber, playerId);
+        const snapshot = await readSnapshot(client, input.roomId);
+        await client.query("COMMIT");
+        return { ...idle, code: "valid_move_exists", snapshot };
       }
       terminal = "no_valid_move";
     }

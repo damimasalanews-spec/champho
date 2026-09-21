@@ -13,7 +13,7 @@ import {
 import { createRoom, getPrivateHand, joinRoom, markPlayerDisconnected, resumeRoom, type DisconnectHooks } from "./rooms.js";
 import { startScheduler, sweepExpiredTurns, type Scheduler } from "./scheduler.js";
 import { clampToWindow, planBotTurn } from "./bots.js";
-import { enqueuePlayer, leaveQueue, runMatchmakingPass } from "./matchmaking.js";
+import { enqueuePlayer, leaveQueue, runMatchmakingPass, type MatchResult } from "./matchmaking.js";
 import { serveStatic } from "./static.js";
 import { issueSession, verifySession, type SessionIdentity } from "./identity.js";
 import { telemetry, telemetryError } from "./telemetry.js";
@@ -82,9 +82,24 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
   const webSocketServer = new WebSocketServer({ server: httpServer });
   const roomSockets = new Map<string, Map<WebSocket, string>>();
   const contexts = new Map<WebSocket, SocketContext>();
+  /** playerId -> live socket, so matchmaking can reach a player before they are in a room. */
+  const playerSockets = new Map<string, WebSocket>();
   const drawStrokes = new Map<string, unknown[]>();
   /** Bot timers keyed by `roomId:turnNumber` so a finished turn cancels its own. */
   const botTimers = new Map<string, NodeJS.Timeout[]>();
+
+  /** Join a socket's membership of a room. Safe to call more than once. */
+  const attachToRoom = (socket: WebSocket, roomId: string, playerId: string, connectionVersion: number | null) => {
+    const context = contexts.get(socket);
+    if (context) {
+      context.roomId = roomId;
+      context.playerId = playerId;
+      context.connectionVersion = connectionVersion;
+    }
+    const sockets = roomSockets.get(roomId) ?? new Map<WebSocket, string>();
+    sockets.set(socket, playerId);
+    roomSockets.set(roomId, sockets);
+  };
 
   const send = (socket: WebSocket, message: unknown) => {
     if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
@@ -226,6 +241,68 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     botTimers.set(`${roomId}:${turnNumber}`, timers);
   };
 
+  /**
+   * Announce a freshly written turn (§13).
+   *
+   * Everyone receives the public shape of the turn; ONLY the artist's socket
+   * receives the word itself. Without this the artist has nothing to draw — and
+   * if it were broadcast the answer would be public and the game pointless.
+   */
+  const announceTurn = async (roomId: string, turnNumber: number) => {
+    const room = await pool.query<{
+      turn_number: string;
+      round_number: number;
+      active_player_id: string | null;
+      target_word: string | null;
+      turn_deadline_at: string | null;
+    }>(
+      `SELECT turn_number,round_number,active_player_id,target_word,turn_deadline_at
+         FROM public.game_rooms WHERE id=$1`,
+      [roomId]
+    );
+    const row = room.rows[0];
+    // The turn may already have moved on; never announce a stale one.
+    if (!row || Number(row.turn_number) !== turnNumber) return;
+
+    const target = typeof row.target_word === "string" && row.target_word ? row.target_word : null;
+
+    // A new turn starts with a blank board.
+    drawStrokes.delete(`${roomId}:${turnNumber}`);
+
+    broadcast(roomId, {
+      type: "turn_started",
+      roomId,
+      roundNumber: Number(row.round_number),
+      turnNumber: Number(row.turn_number),
+      activePlayerId: row.active_player_id,
+      artistId: row.active_player_id,
+      targetWordLength: target ? target.length : null,
+      turnDeadlineAt: row.turn_deadline_at ? new Date(row.turn_deadline_at).toISOString() : null,
+      solveWindowEndsAt: null
+    });
+
+    if (target && row.active_player_id) {
+      for (const [socket, socketPlayerId] of socketsFor(roomId)) {
+        if (socketPlayerId === row.active_player_id) {
+          send(socket, {
+            type: "word_reveal",
+            roomId,
+            turnNumber: Number(row.turn_number),
+            targetWord: target
+          });
+        }
+      }
+    }
+
+    // `writeTurn` re-deals as part of starting a turn — patching each hand so
+    // the target is spellable — so every player needs a fresh private hand now.
+    // Sending hands before the deal (as the match path used to) hands out empty
+    // arrays and the player never learns their cards.
+    for (const playerId of new Set(socketsFor(roomId).values())) {
+      await sendHandTo(roomId, playerId);
+    }
+  };
+
   /** Push one transition outcome to everyone who should see it. */
   const publishOutcome = async (roomId: string, outcome: TransitionOutcome) => {
     if (outcome.result && outcome.result.type === "word_submission_result") {
@@ -244,6 +321,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         telemetry("no_valid_move", { roomId, turnNumber: ended.turnNumber });
       }
       if (ended.nextActivePlayerId !== null) {
+        await announceTurn(roomId, ended.turnNumber + 1);
         await scheduleBots(roomId, ended.turnNumber + 1);
       }
     }
@@ -251,14 +329,38 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     if (outcome.snapshot) broadcast(roomId, outcome.snapshot);
   };
 
-  const deliverMatch = async (roomId: string, playerIds: string[]) => {
-    for (const playerId of playerIds) {
-      for (const [socket, socketPlayerId] of socketsFor(roomId)) {
-        if (socketPlayerId !== playerId) continue;
-        send(socket, { type: "match_found", roomId, seatNumber: 0 });
-      }
-      await sendHandTo(roomId, playerId);
+  /**
+   * Seat a freshly matched table and start play.
+   *
+   * Order matters: sockets must be attached to the room BEFORE anything is
+   * broadcast to it. Broadcasting to a room whose members are not yet attached
+   * sends to nobody, which left the client waiting forever for its first
+   * snapshot even though the server considered the match delivered.
+   */
+  const startMatchedTable = async (results: MatchResult[]) => {
+    const roomId = results[0]!.roomId;
+
+    for (const result of results) {
+      const socket = playerSockets.get(result.playerId);
+      if (socket) attachToRoom(socket, roomId, result.playerId, 0);
     }
+
+    for (const result of results) {
+      const socket = playerSockets.get(result.playerId);
+      if (socket) send(socket, { type: "match_found", roomId, seatNumber: result.seatNumber });
+    }
+
+    broadcast(roomId, results[0]!.snapshot);
+
+    // Hands are deliberately NOT sent here: the deal happens inside
+    // beginFirstTurn below, and announceTurn delivers each player's cards
+    // afterwards. Sending here would ship empty hands.
+    const started = await beginFirstTurn(roomId);
+    if (!started) return;
+    for (const event of started.events) broadcast(roomId, event);
+    broadcast(roomId, started.snapshot);
+    await announceTurn(roomId, started.snapshot.turnNumber);
+    await scheduleBots(roomId, started.snapshot.turnNumber);
   };
 
   const matchmakingTimer = enableMatchmaking
@@ -266,18 +368,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         void runMatchmakingPass()
           .then(async (results) => {
             if (results.length === 0) return;
-            const roomId = results[0]!.roomId;
-            const snapshot = results[0]!.snapshot;
-            broadcast(roomId, snapshot);
-            await deliverMatch(roomId, results.map((result) => result.playerId));
-            // A full Classic table starts immediately — the player never presses
-            // "start" and never shares a code (§4).
-            const started = await beginFirstTurn(roomId);
-            if (started) {
-              for (const event of started.events) broadcast(roomId, event);
-              broadcast(roomId, started.snapshot);
-              await scheduleBots(roomId, started.snapshot.turnNumber);
-            }
+            await startMatchedTable(results);
           })
           .catch((error) => telemetryError("matchmaking_pass_failed", error));
       }, 400)
@@ -294,18 +385,8 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     contexts.set(socket, { playerId: null, roomId: null, connectionVersion: null, chatWindowStartedAt: 0, chatCount: 0 });
     send(socket, { type: "server_ready", serverTime: new Date().toISOString(), protocol: 2 });
 
-    const attachToRoom = (roomId: string, playerId: string, connectionVersion: number | null) => {
-      const context = contexts.get(socket);
-      if (context) {
-        context.roomId = roomId;
-        context.playerId = playerId;
-        context.connectionVersion = connectionVersion;
-      }
-      const sockets = roomSockets.get(roomId) ?? new Map<WebSocket, string>();
-      sockets.set(socket, playerId);
-      roomSockets.set(roomId, sockets);
-    };
-
+    // attachToRoom lives in the outer scope so matchmaking can seat a player
+    // before that player has joined a room themselves.
     socket.on("message", async (raw) => {
       let requestId: unknown;
       try {
@@ -337,7 +418,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         if (type === "create_room") {
           if (typeof message.playerId !== "string" || !message.playerId) throw new Error("invalid_player_id");
           const result = await createRoom(message.playerId);
-          attachToRoom(result.snapshot.roomId, message.playerId, 0);
+          attachToRoom(socket, result.snapshot.roomId, message.playerId, 0);
           send(socket, result.snapshot);
           for (const event of result.events) send(socket, event);
           return;
@@ -347,7 +428,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           if (typeof message.roomId !== "string" || !message.roomId) throw new Error("invalid_room_id");
           if (typeof message.playerId !== "string" || !message.playerId) throw new Error("invalid_player_id");
           const result = await joinRoom(message.roomId, message.playerId);
-          attachToRoom(result.snapshot.roomId, message.playerId, 0);
+          attachToRoom(socket, result.snapshot.roomId, message.playerId, 0);
           send(socket, result.snapshot);
           broadcast(result.snapshot.roomId, result.snapshot);
           for (const event of result.events) broadcast(result.snapshot.roomId, event);
@@ -387,21 +468,14 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           telemetry("legacy_identity_used", { playerId: identity.playerId, type: String(type) });
         }
         context.playerId = identity.playerId;
+        playerSockets.set(identity.playerId, socket);
 
         if (type === "find_match") {
           const displayName = typeof message.displayName === "string" ? message.displayName.slice(0, 24) : null;
           await enqueuePlayer(identity.playerId, displayName);
           const results = await runMatchmakingPass();
           if (results.length > 0) {
-            const roomId = results[0]!.roomId;
-            broadcast(roomId, results[0]!.snapshot);
-            await deliverMatch(roomId, results.map((result) => result.playerId));
-            const started = await beginFirstTurn(roomId);
-            if (started) {
-              for (const event of started.events) broadcast(roomId, event);
-              broadcast(roomId, started.snapshot);
-              await scheduleBots(roomId, started.snapshot.turnNumber);
-            }
+            await startMatchedTable(results);
           } else {
             send(socket, { type: "match_queued", serverTime: new Date().toISOString() });
           }
@@ -420,7 +494,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
             serverTime: new Date().toISOString()
           });
           const result = await resumeRoom(message.roomId, identity.playerId);
-          attachToRoom(result.snapshot.roomId, identity.playerId, result.connectionVersion);
+          attachToRoom(socket, result.snapshot.roomId, identity.playerId, result.connectionVersion);
           send(socket, result.snapshot);
           await sendHandToSocket(socket, result.snapshot.roomId, identity.playerId);
           send(socket, {
@@ -442,6 +516,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           if (started) {
             for (const event of started.events) broadcast(context.roomId, event);
             broadcast(context.roomId, started.snapshot);
+            await announceTurn(context.roomId, started.snapshot.turnNumber);
             await scheduleBots(context.roomId, started.snapshot.turnNumber);
           }
           return;
@@ -579,6 +654,9 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     socket.on("close", () => {
       const context = contexts.get(socket);
       contexts.delete(socket);
+      if (context?.playerId && playerSockets.get(context.playerId) === socket) {
+        playerSockets.delete(context.playerId);
+      }
       options.onSocketClose?.(socket);
       if (!context?.roomId || !context.playerId || context.connectionVersion === null) return;
       const { roomId, playerId, connectionVersion } = context;

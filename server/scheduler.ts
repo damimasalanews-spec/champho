@@ -37,7 +37,9 @@ export async function sweepExpiredTurns(onClosed?: SweepHandler): Promise<number
       const outcome = await closeTurn({ roomId: row.room_id, turnNumber: Number(row.turn_number) });
       if (!outcome.ok) continue;
       closed += 1;
-      telemetry("turn_timeout", {
+      // §47 distinguishes these. The sweeper closes a solved turn just as often
+      // as a dead one, and reporting both as turn_timeout hid that.
+      telemetry(outcome.terminal === "solved" ? "turn_solved" : "turn_timeout", {
         roomId: row.room_id,
         turnNumber: Number(row.turn_number),
         terminalState: outcome.terminal

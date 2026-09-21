@@ -83,12 +83,40 @@ export async function planBotTurn(
     [roomId]
   );
 
+  // Is this turn winnable by anyone at all? Only the artist's side may declare
+  // §17's no_valid_move, and only when no OTHER player can answer.
+  const everyone = await pool.query(
+    `SELECT player_id, private_hand FROM public.room_players WHERE room_id=$1`,
+    [roomId]
+  );
+  const anyoneElseSolvable = everyone.rows.some(
+    (row) => row.player_id !== roomRow.active_player_id && canSpell(asHand(row.private_hand), target)
+  );
+
   const plans: BotPlan[] = [];
   for (const bot of bots.rows) {
     const personality = (bot.bot_personality as BotPersonality | null) ?? "normal";
     const hand = asHand(bot.private_hand);
     const isActivePlayer = bot.player_id === roomRow.active_player_id;
     const cardIds = selectCardsForWord(hand, target);
+
+    // §13: the artist draws and never solves its own drawing, so an artist bot
+    // never submits. It either waits for the others, or reports a dead turn
+    // early (§17) instead of burning the whole window.
+    if (isActivePlayer) {
+      plans.push({
+        roomId,
+        turnNumber,
+        playerId: bot.player_id as string,
+        personality,
+        kind: anyoneElseSolvable ? "idle" : "no_valid_move",
+        decisionMs: randomDelayInRange(BOT_TIMING[personality].noMove, random),
+        cardIds: [],
+        word: null,
+        isActivePlayer
+      });
+      continue;
+    }
 
     if (cardIds && cardIds.length > 0) {
       plans.push({
@@ -105,17 +133,15 @@ export async function planBotTurn(
       continue;
     }
 
-    // No move available. §17: the active bot must not sit out the full window.
-    // A non-active bot simply stays silent, which is indistinguishable from a
-    // player who does not answer.
-    const timing = BOT_TIMING[personality].noMove;
+    // A solver with no move simply stays silent, which is indistinguishable
+    // from a player who does not answer.
     plans.push({
       roomId,
       turnNumber,
       playerId: bot.player_id as string,
       personality,
-      kind: isActivePlayer ? "no_valid_move" : "idle",
-      decisionMs: randomDelayInRange(timing, random),
+      kind: "idle",
+      decisionMs: randomDelayInRange(BOT_TIMING[personality].noMove, random),
       cardIds: [],
       word: null,
       isActivePlayer

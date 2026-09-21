@@ -1,10 +1,722 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Champ Word Classic</title><style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;font-family:Inter,Arial,sans-serif;color:#fff}body{display:grid;place-items:center}#stage{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center;overflow:hidden}#sceneBg,#classicTableScene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}#sceneBg{z-index:0}#stage:after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(4,17,28,.16),transparent 35%,rgba(2,10,18,.22))}#classicTableScene{z-index:5;pointer-events:none}.header{position:absolute;z-index:30;left:34px;right:34px;top:24px;height:58px;display:flex;align-items:center;justify-content:space-between}.brand{font-size:34px;font-weight:1000;font-style:italic;text-shadow:0 3px 0 #000}.mode,.pill{background:rgba(3,34,53,.82);border:1px solid rgba(99,220,255,.6);box-shadow:0 5px 16px rgba(0,0,0,.3)}.mode{margin-left:12px;padding:8px 18px;border-radius:18px;font-weight:900}.headRight{display:flex;gap:10px;align-items:center}.pill{padding:10px 18px;border-radius:24px;font-weight:900;white-space:nowrap}.players{position:absolute;inset:0;z-index:15}.player{position:absolute;display:flex;align-items:center;gap:10px;text-shadow:0 2px 6px #000}.avatar{width:96px;height:96px;border-radius:50%;padding:4px;background:conic-gradient(#ffe44d,#25d9ff,#ffdc3d,#25d9ff,#ffe44d);box-shadow:0 0 0 4px rgba(3,31,47,.9),0 0 22px rgba(53,220,255,.55),0 10px 22px rgba(0,0,0,.5)}.avatar div{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:#0b78ad;font-size:38px}.meta{min-width:145px;padding:8px 12px;border-radius:13px;background:rgba(3,39,60,.86);border:1px solid rgba(74,213,255,.72)}.name{font-size:20px;font-weight:1000;white-space:nowrap}.score{margin-top:4px;color:#ffd85b;font-size:16px;font-weight:900}.p0{left:300px;top:92px}.p1{left:20px;top:300px}.p2{left:1080px;top:105px}.p2 .meta{order:2}.p2 .avatar{order:1}.empty{opacity:.55}.side{position:absolute;z-index:25;left:24px;top:575px;display:flex;flex-direction:column;gap:12px}.react{width:58px;height:58px;border-radius:50%;border:1px solid #43d8ff;background:rgba(3,50,78,.88);color:#fff;font-size:25px}.chat{position:absolute;z-index:25;right:24px;top:575px;width:350px;height:255px;border-radius:20px;padding:15px;background:rgba(3,25,43,.93);border:1px solid #4ad5ff;box-shadow:0 15px 30px rgba(0,0,0,.38);display:flex;flex-direction:column}.chat h3{margin:0 0 10px;color:#73e9ff;font-size:15px;display:flex;justify-content:space-between}.msgs{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:7px}.msg{padding:7px 9px;border-radius:10px;background:rgba(8,57,86,.75);font-size:12px}.msg b{color:#ffd85b}.chatInput{display:flex;gap:7px;margin-top:10px}.chatInput input{flex:1;min-width:0;border:1px solid #55d7ff;border-radius:17px;background:#041b2d;color:#fff;padding:8px 10px}.send{width:42px;border:0;border-radius:17px;background:#0b79ba;color:#fff}.bottom{position:absolute;z-index:25;left:430px;bottom:42px;width:740px;height:170px;padding:12px 18px;border-radius:20px;background:rgba(3,25,43,.92);border:1px solid #4ad5ff;box-shadow:0 15px 30px rgba(0,0,0,.42);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px}.hand{display:flex;align-items:flex-end;height:72px;max-width:700px;overflow:hidden}.letter{width:46px;height:58px;margin-left:-5px;border-radius:10px;border:2px solid #58d8ff;background:linear-gradient(180deg,#159be6,#0758a5);color:#fff;font-size:25px;font-weight:1000;box-shadow:0 8px 18px rgba(0,0,0,.32);cursor:pointer}.letter:first-child{margin-left:0}.letter.selected{transform:translateY(-9px);filter:brightness(1.22)}.actions{display:flex;gap:10px}.action{height:38px;padding:0 22px;border-radius:20px;border:1px solid #58dcff;background:rgba(7,73,112,.92);color:#fff;font-weight:1000;cursor:pointer}.submit{background:#0ca66e}.status{position:absolute;z-index:40;left:50%;top:95px;transform:translateX(-50%);padding:7px 15px;border-radius:16px;background:rgba(3,25,43,.85);border:1px solid #4ad5ff;font-size:13px;font-weight:900}.status.bad{border-color:#ff7070}.room{cursor:pointer}@media(max-width:900px) and (orientation:portrait){body{display:none!important}}@media(orientation:landscape) and (max-height:720px){.header{left:24px;right:24px;top:16px}.brand{font-size:30px}.avatar{width:88px;height:88px}.p0{left:285px;top:82px}.p1{left:16px;top:290px}.p2{left:1090px;top:94px}.side{left:18px;top:560px}.chat{right:18px;top:565px;width:340px;height:245px}.bottom{left:415px;bottom:34px;width:650px;height:155px}.letter{width:42px;height:54px;font-size:23px}}
-</style></head><body><div id="stage"><img id="sceneBg" src="classic-bg/classic-scene-hd.webp"><img id="classicTableScene" src="classic-bg/classic-table-scene.webp"><header class="header"><div><span class="brand">CHAMP WORD</span><span class="mode">CLASSIC</span></div><div class="headRight"><span class="pill" id="roundPill">WAITING</span><span class="pill room" id="roomPill">ROOM —</span><span class="pill">🪙 <b id="coins">0</b></span></div></header><div class="status" id="status">Connecting…</div><div class="players"><div class="player p0" id="p0"><div class="avatar"><div>😀</div></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div></div></div><div class="player p1" id="p1"><div class="avatar"><div>🙂</div></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div></div></div><div class="player p2" id="p2"><div class="avatar"><div>😎</div></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div></div></div></div><div class="side"><button class="react">🙂</button><button class="react">🎁</button><button class="react">💬</button></div><aside class="chat"><h3><span>LIVE CHAT</span><span id="count">• 0</span></h3><div class="msgs" id="msgs"></div><div class="chatInput"><input id="chatInput" placeholder="Type a message…"><button class="send" id="send">➤</button></div></aside><div class="bottom"><div class="hand" id="hand"></div><div class="actions"><button class="action" id="shuffle">↝ SHUFFLE</button><button class="action submit" id="submit">✓ SUBMIT</button></div></div></div><script>
-(()=>{const $=id=>document.getElementById(id);let vv=window.visualViewport;function fit(){const w=vv?vv.width:innerWidth,h=vv?vv.height:innerHeight;document.documentElement.style.setProperty('--s',Math.min(w/1600,h/900))}addEventListener('resize',fit,{passive:true});vv?.addEventListener('resize',fit,{passive:true});fit();
-const key='champword.playerId';let playerId=localStorage.getItem(key);if(!playerId){playerId=crypto.randomUUID();localStorage.setItem(key,playerId)}const qs=new URLSearchParams(location.search);let roomId=qs.get('room');let ws;let snapshot=null;let hand=[];let selected=new Set();let req=0;const status=$('status');const log=(m,bad=false)=>{status.textContent=m;status.classList.toggle('bad',bad)};const rid=()=>`r${Date.now()}-${++req}`;
-function renderPlayers(){if(!snapshot)return;snapshot.players.slice(0,3).forEach((p,i)=>{const el=$('p'+i);el.querySelector('.name').textContent=p.playerId===playerId?'You':p.playerId.slice(0,10);el.querySelector('.score').textContent='🪙 '+p.score;el.classList.remove('empty')});for(let i=snapshot.players.length;i<3;i++){$('p'+i).classList.add('empty');$('p'+i+' .name').textContent='Waiting…';$('p'+i+' .score').textContent='🪙 0'}$('roundPill').textContent=`ROUND ${snapshot.roundNumber} · ${snapshot.phase.toUpperCase()}`;$('roomPill').textContent='ROOM '+snapshot.roomId.slice(0,8)}
-function renderHand(){const root=$('hand');root.innerHTML='';hand.forEach(c=>{const b=document.createElement('button');b.className='letter'+(selected.has(c.cardId)?' selected':'');b.textContent=c.value.toUpperCase();b.onclick=()=>{selected.has(c.cardId)?selected.delete(c.cardId):selected.add(c.cardId);renderHand()};root.appendChild(b)})}
-function connect(){const proto=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${proto}://${location.host}`);ws.onopen=()=>{log('Connected');if(roomId){ws.send(JSON.stringify({type:'join_room',roomId,playerId}))}else{ws.send(JSON.stringify({type:'create_room',playerId}))}};ws.onclose=()=>log('Disconnected — reconnecting',true);ws.onerror=()=>log('WebSocket error',true);ws.onmessage=async e=>{let m;try{m=JSON.parse(e.data)}catch{return}if(m.type==='server_ready')return;if(m.type==='error'){log(m.code,true);return}if(m.type==='room_snapshot'){snapshot=m;roomId=m.roomId;if(!qs.get('room'))history.replaceState(null,'',`?room=${roomId}`);renderPlayers();if(m.players.length<2)log('Share the ROOM code with player 2');else{log('2 players connected');if(m.players[0]?.playerId===playerId&&m.phase==='waiting')ws.send(JSON.stringify({type:'start_round',requestId:rid()}))}return}if(m.type==='hand_sync'){hand=m.hand||[];selected.clear();renderHand();log(`Your private hand: ${hand.length} cards`);return}if(m.type==='word_submission_result'){if(m.status==='accepted')log('Accepted ✓');else log(m.reason,true);if(m.handChanged)renderHand();return}if(m.type==='event'){if(m.eventType==='player_joined')log('Player joined ✓');return}if(m.type==='round_completed'){log('Round completed ✓');return}}}connect();
-$('shuffle').onclick=()=>{hand=[...hand].sort(()=>Math.random()-.5);renderHand()};$('submit').onclick=()=>{if(!snapshot||selected.size===0||!ws||ws.readyState!==1)return;const cards=hand.filter(c=>selected.has(c.cardId));const word=cards.map(c=>c.value).join('');ws.send(JSON.stringify({type:'submit_word',requestId:rid(),roomId:snapshot.roomId,roundNumber:snapshot.roundNumber,turnNumber:snapshot.turnNumber,cards:cards.map(c=>c.cardId),word}));selected.clear()};$('roomPill').onclick=async()=>{if(roomId)await navigator.clipboard?.writeText(`${location.origin}${location.pathname}?room=${roomId}`);log('Room link copied')};$('send').onclick=()=>{const v=$('chatInput').value.trim();if(v){const d=document.createElement('div');d.className='msg';d.textContent='You: '+v;$('msgs').appendChild(d);$('chatInput').value=''}};document.querySelectorAll('.react').forEach(b=>b.onclick=()=>log('Reaction '+b.textContent));})();
-</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Champ Word Classic</title>
+<style>
+/* ===========================================================================
+   CHAMP WORD — Classic client
+   One logical stage of exactly 1600x900, scaled uniformly by a single
+   transform. Nothing inside sizes itself from the viewport, so the artwork can
+   never stretch and the layout can never drift out of proportion.
+   =========================================================================== */
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
+  font-family:Inter,-apple-system,"Segoe UI",Arial,sans-serif;color:#fff}
+/* Uniform scaling means a viewport that is not exactly 16:9 must letterbox.
+   Instead of letting that read as a grey band around the game, the same scene
+   art is bled across the whole viewport behind the stage, blurred and dimmed,
+   so the "margin" looks like part of the room. */
+#bleed{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:url(classic-bg/classic-scene-hd.webp) center/cover no-repeat;
+  filter:blur(18px) brightness(.5) saturate(.85);transform:scale(1.1)}
+#stage{position:absolute;z-index:1;left:50%;top:50%;width:1600px;height:900px;
+  transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center;overflow:hidden}
+
+/* --- art layers: static art underneath, all interactive UI above it -------- */
+#sceneBg,#tableScene{position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center;display:block}
+#sceneBg{z-index:0}
+#stage::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(4,17,28,.20),transparent 34%,rgba(2,10,18,.30))}
+#tableScene{z-index:2;pointer-events:none}
+
+/* --- header --------------------------------------------------------------- */
+.header{position:absolute;z-index:30;left:32px;right:32px;top:16px;height:60px;
+  display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:36px;font-weight:900;font-style:italic;text-shadow:0 3px 0 #000}
+.mode{margin-left:12px;padding:7px 18px;border-radius:18px;font-weight:900;
+  background:rgba(3,34,53,.82);border:1px solid rgba(99,220,255,.6)}
+.headRight{display:flex;gap:10px;align-items:center}
+.pill{padding:9px 18px;border-radius:22px;font-weight:900;white-space:nowrap;
+  background:rgba(3,34,53,.82);border:1px solid rgba(99,220,255,.6)}
+
+/* --- opponents: compact identity, no big bordered panels ------------------ */
+.players{position:absolute;inset:0;z-index:15;pointer-events:none}
+.seat{position:absolute;display:flex;align-items:center;gap:12px;text-shadow:0 2px 6px #000}
+.seat[data-where="left"]{left:36px;top:250px}
+.seat[data-where="right"]{left:1300px;top:250px;flex-direction:row-reverse;text-align:right}
+.seat[data-where="top"]{left:690px;top:88px}
+.avatar{width:88px;height:88px;flex:0 0 88px;border-radius:50%;padding:4px;
+  background:conic-gradient(#ffe44d,#25d9ff,#ffdc3d,#25d9ff,#ffe44d);
+  box-shadow:0 0 0 4px rgba(3,31,47,.9),0 0 20px rgba(53,220,255,.5)}
+.avatar>span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;
+  background:#0b78ad;font-size:34px}
+.seat.is-active .avatar{box-shadow:0 0 0 5px #ffe44d,0 0 26px 6px rgba(255,228,77,.75)}
+.meta{min-width:150px;padding:7px 13px;border-radius:13px;
+  background:rgba(3,39,60,.86);border:1px solid rgba(74,213,255,.7)}
+.name{font-size:19px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score{margin-top:3px;color:#ffd85b;font-size:15px;font-weight:900}
+.thinking{color:#8be9ff;font-size:13px;font-weight:800;min-height:15px}
+
+/* --- drawing board -------------------------------------------------------- */
+.boardWrap{position:absolute;z-index:20;left:520px;top:228px;width:560px;height:320px}
+#board{width:560px;height:320px;display:block;border-radius:12px;
+  background:rgba(247,250,252,.94);border:3px solid rgba(3,31,47,.85);
+  box-shadow:0 12px 30px rgba(0,0,0,.45);touch-action:none}
+.boardWrap.readonly #board{cursor:default}
+.boardWrap:not(.readonly) #board{cursor:crosshair}
+.boardHint{position:absolute;left:0;right:0;top:100%;margin-top:8px;text-align:center;
+  font-size:14px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
+.boardTools{position:absolute;z-index:21;left:520px;top:190px;width:560px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.swatch,.clearBtn{pointer-events:auto;border-radius:10px;border:1px solid rgba(99,220,255,.6);
+  background:rgba(3,34,53,.85);color:#fff;font-weight:900;font-size:13px;padding:6px 10px;cursor:pointer}
+.swatch.on{outline:2px solid #ffe44d}
+.timer{font-variant-numeric:tabular-nums;font-weight:900;font-size:16px;padding:5px 12px;
+  border-radius:10px;background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
+.timer.urgent{background:rgba(120,20,20,.9);border-color:#ff6b6b;color:#ffd9d9}
+
+/* --- reveal banner -------------------------------------------------------- */
+.banner{position:absolute;z-index:21;left:520px;top:186px;width:560px;height:0}
+.reveal{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);
+  padding:9px 22px;border-radius:14px;font-weight:900;font-size:19px;white-space:nowrap;
+  background:rgba(3,34,53,.92);border:2px solid #ffe44d;box-shadow:0 8px 22px rgba(0,0,0,.45)}
+.reveal .blanks{letter-spacing:7px;color:#8be9ff}
+
+/* --- local 14-card hand --------------------------------------------------- */
+.bottom{position:absolute;z-index:25;left:0;right:0;bottom:0;height:180px}
+.hand{position:absolute;left:313px;bottom:70px;display:flex;gap:6px}
+.letter{width:64px;height:88px;border-radius:10px;cursor:pointer;user-select:none;
+  font-family:inherit;font-size:38px;font-weight:900;color:#12303f;
+  background:linear-gradient(180deg,#ffffff,#e6eef4);
+  border:2px solid rgba(3,31,47,.75);box-shadow:0 5px 0 rgba(0,0,0,.35);
+  display:grid;place-items:center;transition:transform .08s,box-shadow .08s}
+.letter:hover{transform:translateY(-4px)}
+.letter.selected{transform:translateY(-14px);color:#1b1000;
+  background:linear-gradient(180deg,#fff3b0,#ffd54a);border-color:#fff;}
+.handEmpty{position:absolute;left:313px;bottom:96px;width:974px;text-align:center;
+  font-size:15px;font-weight:800;color:#cdefff}
+.wordPreview{position:absolute;left:0;right:0;bottom:26px;text-align:center;
+  font-size:24px;font-weight:900;letter-spacing:5px;min-height:30px;color:#ffe44d;
+  text-shadow:0 3px 8px #000}
+.actions{position:absolute;right:32px;bottom:70px;width:246px;display:flex;flex-direction:column;gap:12px}
+.action{font-family:inherit;font-size:17px;font-weight:900;padding:14px 0;border-radius:14px;
+  cursor:pointer;color:#fff;background:rgba(3,34,53,.9);border:2px solid rgba(99,220,255,.65);
+  box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.action:disabled{opacity:.45;cursor:not-allowed}
+.action.submit{background:linear-gradient(180deg,#39c26a,#1f8c48);border-color:#8bf0b0}
+
+/* --- chat (right) and reactions (left): small, out of the way ------------- */
+.chat{position:absolute;z-index:26;left:1292px;top:396px;width:276px;height:304px;
+  display:flex;flex-direction:column;border-radius:14px;
+  background:rgba(3,31,47,.86);border:1px solid rgba(74,213,255,.55);overflow:hidden}
+.chat h3{margin:0;padding:9px 13px;font-size:13px;letter-spacing:1px;
+  background:rgba(0,0,0,.28);display:flex;justify-content:space-between}
+.msgs{flex:1;overflow:hidden;padding:8px 12px;font-size:13px;line-height:1.5}
+.msg{word-break:break-word}
+.msg b{color:#8be9ff}
+.chatInput{display:flex;border-top:1px solid rgba(74,213,255,.35)}
+.chatInput input{flex:1;min-width:0;border:0;background:transparent;color:#fff;
+  padding:10px 12px;font-family:inherit;font-size:13px;outline:none}
+.chatInput button{border:0;background:#0b78ad;color:#fff;font-weight:900;
+  padding:0 15px;cursor:pointer}
+
+.reactions{position:absolute;z-index:26;left:30px;top:400px;width:70px;
+  display:flex;flex-direction:column;gap:10px}
+.react{width:66px;height:52px;font-size:24px;border-radius:12px;cursor:pointer;
+  background:rgba(3,31,47,.86);border:1px solid rgba(74,213,255,.55)}
+.react:hover{background:rgba(11,120,173,.9)}
+/* floating reaction bubbles */
+.bubbleLayer{position:absolute;inset:0;z-index:27;pointer-events:none;overflow:hidden}
+.bubble{position:absolute;font-size:40px;animation:float 2.4s ease-out forwards}
+@keyframes float{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-90px)}}
+
+/* --- status line ---------------------------------------------------------- */
+.status{position:absolute;z-index:30;left:0;right:0;top:82px;text-align:center;
+  font-size:15px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
+.status.bad{color:#ff9c9c}
+
+/* --- portrait / too-narrow guard ----------------------------------------- */
+#rotate{position:fixed;inset:0;z-index:200;display:none;place-items:center;
+  background:#061827;text-align:center;padding:28px}
+#rotate.on{display:grid}
+#rotate .box{max-width:420px}
+#rotate .ico{font-size:64px;margin-bottom:14px}
+#rotate h2{margin:0 0 8px;font-size:22px}
+#rotate p{margin:0;color:#9fc4d8;font-size:15px;line-height:1.5}
+</style>
+</head>
+<body>
+<div id="bleed"></div>
+<div id="stage">
+  <img id="sceneBg" src="classic-bg/classic-scene-hd.webp" alt="">
+  <img id="tableScene" src="classic-bg/classic-table-scene.webp" alt="">
+
+  <header class="header">
+    <div><span class="brand">CHAMP WORD</span><span class="mode">CLASSIC</span></div>
+    <div class="headRight">
+      <span class="pill" id="turnPill">WAITING</span>
+      <span class="pill" id="seatPill">SEAT —</span>
+      <span class="pill">🪙 <b id="myScore">0</b></span>
+    </div>
+  </header>
+
+  <div class="status" id="status">Connecting…</div>
+
+  <div class="players">
+    <div class="seat" data-where="left"  id="seat-left">  <div class="avatar"><span>🙂</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
+    <div class="seat" data-where="right" id="seat-right"> <div class="avatar"><span>😎</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
+    <div class="seat" data-where="top"   id="seat-top">   <div class="avatar"><span>🧐</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
+  </div>
+
+  <div class="banner"><div class="reveal" id="reveal">Waiting for the first turn…</div></div>
+
+  <div class="boardTools">
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="swatch on" data-color="#12303f" style="background:#12303f">&#9679;</button>
+      <button class="swatch" data-color="#c0392b" style="background:#c0392b">&#9679;</button>
+      <button class="swatch" data-color="#1f6feb" style="background:#1f6feb">&#9679;</button>
+      <button class="clearBtn" id="clearBoard">CLEAR</button>
+    </div>
+    <div class="timer" id="timer">--</div>
+  </div>
+
+  <div class="boardWrap readonly" id="boardWrap">
+    <canvas id="board" width="1120" height="640"></canvas>
+    <div class="boardHint" id="boardHint">Waiting for a turn…</div>
+  </div>
+
+  <div class="reactions">
+    <button class="react" data-emoji="😀">😀</button>
+    <button class="react" data-emoji="😂">😂</button>
+    <button class="react" data-emoji="😮">😮</button>
+    <button class="react" data-emoji="❤️">❤️</button>
+  </div>
+
+  <aside class="chat">
+    <h3><span>LIVE CHAT</span><span id="chatCount">· 0</span></h3>
+    <div class="msgs" id="msgs"></div>
+    <div class="chatInput"><input id="chatInput" placeholder="Type a message…" maxlength="200"><button id="send">➤</button></div>
+  </aside>
+
+  <div class="bottom">
+    <div class="hand" id="hand"></div>
+    <div class="handEmpty" id="handEmpty" style="display:none">Waiting for your cards…</div>
+    <div class="wordPreview" id="wordPreview"></div>
+    <div class="actions">
+      <button class="action" id="shuffle">↝ SHUFFLE</button>
+      <button class="action submit" id="submit" disabled>✓ SUBMIT</button>
+    </div>
+  </div>
+
+  <div class="bubbleLayer" id="bubbles"></div>
+</div>
+
+<div id="rotate"><div class="box">
+  <div class="ico">📱↻</div>
+  <h2>Rotate your device</h2>
+  <p>CHAMP WORD Classic is played in landscape. Turn your device sideways to continue.</p>
+</div></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const PLACEHOLDER = "-";
+
+  /* --- uniform stage scaling: the only place viewport size is ever read ---- */
+  function fit() {
+    const w = window.innerWidth, h = window.innerHeight;
+    document.documentElement.style.setProperty("--s", Math.min(w / 1600, h / 900));
+    // Landscape-first: below ~1.15 aspect the 16:9 stage would shrink to the
+    // point of being unplayable, so ask for landscape instead of squashing it.
+    $("rotate").classList.toggle("on", w / h < 1.15);
+  }
+  window.addEventListener("resize", fit, { passive: true });
+  window.addEventListener("orientationchange", fit, { passive: true });
+  fit();
+
+  const DEMO = new URLSearchParams(location.search).get("demo") === "1";
+
+  const state = {
+    sessionToken: localStorage.getItem("champword.session") || null,
+    playerId: null,
+    roomId: null,
+    snapshot: null,
+    hand: [],
+    selected: [],          // ordered: click order is the answer order
+    targetWord: null,      // only ever set for the artist
+    turnNumber: 0,
+    deadline: null,
+    clockOffset: 0,        // serverNow - clientNow, so countdowns ignore skew
+    strokes: [],
+    color: "#12303f",
+    seq: 0
+  };
+
+  let ws = null;
+
+  /* --- small helpers ------------------------------------------------------ */
+  const rid = () => "r" + Date.now() + "-" + (++state.seq);
+  function setStatus(text, bad) {
+    const el = $("status");
+    el.textContent = text;
+    el.classList.toggle("bad", !!bad);
+  }
+  const serverNow = () => Date.now() + state.clockOffset;
+  const isArtist = () => !!state.snapshot && state.snapshot.activePlayerId === state.playerId;
+  const nameOf = (p) => (p.playerId === state.playerId ? "You" : (p.displayName || p.playerId.slice(0, 8)));
+  const send = (msg) => {
+    if (ws && ws.readyState === 1) { ws.send(JSON.stringify(msg)); return true; }
+    return false;
+  };
+  const withToken = (msg) => (state.sessionToken ? Object.assign({ sessionToken: state.sessionToken }, msg) : msg);
+
+  /* ======================================================================
+     Rendering
+     ====================================================================== */
+
+  function renderPlayers() {
+    const snap = state.snapshot;
+    if (!snap) return;
+    const me = snap.players.find((p) => p.playerId === state.playerId);
+    const others = snap.players.filter((p) => p.playerId !== state.playerId);
+    const where = ["left", "right", "top"];
+    where.forEach((spot, i) => {
+      const p = others[i];
+      const el = $("seat-" + spot);
+      if (!p) {
+        el.style.visibility = "hidden";
+        return;
+      }
+      el.style.visibility = "visible";
+      el.querySelector(".name").textContent = nameOf(p);
+      el.querySelector(".score").textContent = "🪙 " + p.score + (p.isBot ? "  ·BOT" : "");
+      el.querySelector(".avatar > span").textContent = p.isBot ? (i === 0 ? "🙂" : i === 1 ? "😎" : "🧐") : "🧑";
+      el.classList.toggle("is-active", p.playerId === snap.activePlayerId);
+    });
+    $("myScore").textContent = me ? me.score : 0;
+    $("seatPill").textContent = "SEAT " + (me ? me.seatNumber + 1 : PLACEHOLDER);
+    $("turnPill").textContent = "TURN " + snap.turnNumber + " · " + String(snap.phase).toUpperCase();
+  }
+
+  function renderHand() {
+    const root = $("hand");
+    root.textContent = "";
+    if (state.hand.length === 0) {
+      $("handEmpty").style.display = "block";
+      $("handEmpty").textContent = "Waiting for your cards…";
+      return;
+    }
+    $("handEmpty").style.display = "none";
+    for (const card of state.hand) {
+      const btn = document.createElement("button");
+      const picked = state.selected.includes(card.cardId);
+      btn.className = "letter" + (picked ? " selected" : "");
+      btn.type = "button";
+      btn.textContent = card.value.toUpperCase();
+      btn.setAttribute("aria-label", "letter " + card.value);
+      btn.setAttribute("aria-pressed", String(picked));
+      btn.addEventListener("click", () => toggleCard(card.cardId));
+      root.appendChild(btn);
+    }
+    renderWordPreview();
+  }
+
+  function renderWordPreview() {
+    const word = state.selected
+      .map((id) => state.hand.find((c) => c.cardId === id))
+      .filter(Boolean)
+      .map((c) => c.value.toUpperCase())
+      .join("");
+    $("wordPreview").textContent = word;
+    // §13: the artist draws and does not solve. The server refuses it anyway;
+    // disabling the button just avoids offering an action that cannot work.
+    $("submit").disabled = word.length === 0 || state.hand.length === 0 || isArtist();
+  }
+
+  function toggleCard(cardId) {
+    const at = state.selected.indexOf(cardId);
+    if (at >= 0) state.selected.splice(at, 1);
+    else state.selected.push(cardId);
+    renderHand();
+  }
+
+  function renderTurn() {
+    const snap = state.snapshot;
+    const artist = isArtist();
+    const wrap = $("boardWrap");
+
+    wrap.classList.toggle("readonly", !artist);
+    $("clearBoard").style.display = artist ? "" : "none";
+    document.querySelectorAll(".swatch").forEach((s) => (s.style.display = artist ? "" : "none"));
+
+    if (artist && state.targetWord) {
+      $("reveal").innerHTML = 'DRAW THIS: <span style="color:#ffe44d">' + state.targetWord.toUpperCase() + "</span>";
+      $("boardHint").textContent = "You are the artist — draw it. You cannot solve your own drawing.";
+    } else if (snap && snap.targetWordLength) {
+      const blanks = Array.from({ length: snap.targetWordLength }, () => "_").join(" ");
+      $("reveal").innerHTML = 'GUESS THE DRAWING: <span class="blanks">' + blanks + "</span>";
+      $("boardHint").textContent = "Pick letters from your hand to spell the answer.";
+    } else {
+      $("reveal").textContent = "Waiting for the first turn…";
+      $("boardHint").textContent = "Waiting for a turn…";
+    }
+  }
+
+  function tickTimer() {
+    const el = $("timer");
+    const deadline = state.deadline;
+    if (!deadline) { el.textContent = "--"; el.classList.remove("urgent"); return; }
+    const left = Math.max(0, deadline - serverNow());
+    el.textContent = (left / 1000).toFixed(1) + "s";
+    el.classList.toggle("urgent", left <= 1000);
+  }
+  setInterval(tickTimer, 100);
+
+  function renderChat() {
+    const root = $("msgs");
+    $("chatCount").textContent = "· " + root.childElementCount;
+    while (root.childElementCount > 60) root.removeChild(root.firstChild);
+    root.scrollTop = root.scrollHeight;
+  }
+  function addChat(who, text) {
+    const d = document.createElement("div");
+    d.className = "msg";
+    const b = document.createElement("b");
+    b.textContent = who + ": ";
+    d.appendChild(b);
+    d.appendChild(document.createTextNode(text));
+    $("msgs").appendChild(d);
+    renderChat();
+  }
+  function addBubble(emoji) {
+    const spots = [18, 36, 54, 72, 88];
+    const b = document.createElement("div");
+    b.className = "bubble";
+    b.textContent = emoji;
+    b.style.left = spots[Math.floor(Math.random() * spots.length)] + "%";
+    b.style.top = (30 + Math.random() * 40) + "%";
+    $("bubbles").appendChild(b);
+    setTimeout(() => b.remove(), 2500);
+  }
+
+  /* --- drawing board ------------------------------------------------------ */
+  const board = $("board");
+  const ctx = board.getContext("2d");
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  function drawStroke(stroke) {
+    if (!stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) return;
+    ctx.strokeStyle = stroke.color || "#12303f";
+    ctx.lineWidth = (stroke.width || 4) * (board.width / 560);
+    ctx.beginPath();
+    stroke.points.forEach(([nx, ny], i) => {
+      const x = nx * board.width, y = ny * board.height;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    if (stroke.points.length === 1) {
+      const [nx, ny] = stroke.points[0];
+      ctx.lineTo(nx * board.width + 0.6, ny * board.height + 0.6);
+    }
+    ctx.stroke();
+  }
+  function clearBoard() {
+    ctx.clearRect(0, 0, board.width, board.height);
+    state.strokes = [];
+  }
+  function applyLocalStroke(stroke) {
+    state.strokes.push(stroke);
+    drawStroke(stroke);
+  }
+
+  let drawing = null;
+  function normalise(ev) {
+    const r = board.getBoundingClientRect();
+    return [
+      Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)),
+      Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height))
+    ];
+  }
+  board.addEventListener("pointerdown", (ev) => {
+    if (!isArtist()) return;
+    board.setPointerCapture(ev.pointerId);
+    drawing = { points: [normalise(ev)], color: state.color, width: 4 };
+    drawStroke(drawing);
+  });
+  board.addEventListener("pointermove", (ev) => {
+    if (!drawing) return;
+    drawing.points.push(normalise(ev));
+    drawStroke({ points: drawing.points.slice(-2), color: drawing.color, width: drawing.width });
+  });
+  const endStroke = () => {
+    if (!drawing) return;
+    const stroke = drawing;
+    drawing = null;
+    applyLocalStroke(stroke);
+    send(withToken({
+      type: "draw_op",
+      requestId: rid(),
+      roomId: state.roomId,
+      turnNumber: state.turnNumber,
+      strokes: [stroke]
+    }));
+  };
+  board.addEventListener("pointerup", endStroke);
+  board.addEventListener("pointercancel", endStroke);
+  board.addEventListener("pointerleave", endStroke);
+
+  document.querySelectorAll(".swatch").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.color = btn.dataset.color;
+      document.querySelectorAll(".swatch").forEach((s) => s.classList.toggle("on", s === btn));
+    });
+  });
+  $("clearBoard").addEventListener("click", clearBoard);
+
+  /* ======================================================================
+     Server messages — the client renders what it is told and decides nothing
+     ====================================================================== */
+
+  function onMessage(msg) {
+    switch (msg.type) {
+      case "server_ready":
+        send({ type: "hello", requestId: rid(), clientVersion: "2.0" });
+        break;
+
+      case "welcome":
+        state.playerId = msg.playerId;
+        state.sessionToken = msg.sessionToken;
+        localStorage.setItem("champword.session", msg.sessionToken);
+        if (msg.serverTime) state.clockOffset = new Date(msg.serverTime).getTime() - Date.now();
+        setStatus("Finding players…");
+        send(withToken({
+          type: "find_match",
+          requestId: rid(),
+          displayName: localStorage.getItem("champword.name") || "You"
+        }));
+        break;
+
+      case "match_queued":
+        setStatus("Waiting for players…");
+        break;
+
+      case "match_found":
+        state.roomId = msg.roomId;
+        $("seatPill").textContent = "SEAT " + (msg.seatNumber + 1);
+        setStatus("Match found — starting…");
+        break;
+
+      case "room_snapshot":
+        state.snapshot = msg;
+        state.roomId = msg.roomId;
+        if (msg.serverTime) state.clockOffset = new Date(msg.serverTime).getTime() - Date.now();
+        if (msg.turnDeadlineAt) state.deadline = new Date(msg.turnDeadlineAt).getTime();
+        if (typeof msg.turnNumber === "number" && msg.turnNumber !== state.turnNumber) {
+          state.turnNumber = msg.turnNumber;
+          clearBoard();
+        }
+        renderPlayers();
+        renderTurn();
+        break;
+
+      case "hand_sync": {
+        state.hand = Array.isArray(msg.hand) ? msg.hand : [];
+        const keep = state.selected.filter((id) => state.hand.some((c) => c.cardId === id));
+        state.selected = keep;
+        renderHand();
+        setStatus("Your private hand: " + state.hand.length + " cards");
+        break;
+      }
+
+      case "turn_started":
+        state.turnNumber = msg.turnNumber;
+        state.deadline = msg.turnDeadlineAt ? new Date(msg.turnDeadlineAt).getTime() : null;
+        state.targetWord = null;          // revealed only to the artist
+        clearBoard();
+        state.selected = [];
+        renderHand();
+        if (state.snapshot) {
+          state.snapshot.activePlayerId = msg.activePlayerId;
+          state.snapshot.turnNumber = msg.turnNumber;
+          state.snapshot.roundNumber = msg.roundNumber;
+          state.snapshot.phase = "playing";
+          state.snapshot.targetWordLength = msg.targetWordLength;
+          state.snapshot.turnDeadlineAt = msg.turnDeadlineAt;
+        }
+        renderPlayers();
+        renderTurn();
+        setStatus(msg.activePlayerId === state.playerId ? "Your turn to draw!" : "Someone is drawing…");
+        break;
+
+      case "word_reveal":
+        state.targetWord = msg.targetWord;
+        renderTurn();
+        break;
+
+      case "bot_action": {
+        // Bot status is decoration only — the server still owns the outcome.
+        if (!state.snapshot) break;
+        const others = state.snapshot.players.filter((p) => p.playerId !== state.playerId);
+        const idx = others.findIndex((p) => p.playerId === msg.playerId);
+        const where = ["left", "right", "top"][idx];
+        if (where) {
+          const slot = $("seat-" + where).querySelector(".thinking");
+          if (slot) slot.textContent = msg.kind === "submit" ? "solving…" : "no move";
+        }
+        break;
+      }
+
+      case "word_submission_result":
+        if (msg.hand && Array.isArray(msg.hand)) {
+          state.hand = msg.hand;
+          state.selected = [];
+          renderHand();
+        }
+        if (msg.status === "accepted") { setStatus("Accepted ✓  +" + (msg.scoreDelta || 0)); state.selected = []; renderWordPreview(); }
+        else if (msg.status === "duplicate") setStatus("Already submitted");
+        else setStatus(msg.reason, true);
+        break;
+
+      case "turn_ended": {
+        const label = msg.terminalState === "solved" ? "SOLVED"
+                    : msg.terminalState === "timed_out" ? "TIME UP"
+                    : "NO MOVE";
+        addChat("Turn " + msg.turnNumber, label + (msg.word ? " — the word was " + msg.word.toUpperCase() : ""));
+        setStatus("Turn " + msg.turnNumber + " ended: " + label);
+        state.selected = [];
+        state.targetWord = null;
+        document.querySelectorAll(".thinking").forEach((t) => (t.textContent = ""));
+        clearBoard();
+        renderHand();
+        break;
+      }
+
+      case "chat_message":
+        addChat(nameOf({ playerId: msg.playerId, displayName: localStorage.getItem("champword.name") }), msg.text);
+        break;
+
+      case "reaction":
+        addBubble(msg.emoji);
+        break;
+
+      case "draw_op":
+        if (!isArtist()) (msg.strokes || []).forEach(drawStroke);
+        break;
+
+      case "draw_sync":
+        clearBoard();
+        (msg.strokes || []).forEach(drawStroke);
+        break;
+
+      case "error":
+        // A refused late submission is normal; do not shout about it.
+        if (msg.code === "solve_window_expired" || msg.code === "stale_turn") setStatus("Too late — the turn moved on", true);
+        else setStatus(msg.code, true);
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  /* --- connection --------------------------------------------------------- */
+  function connect() {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(proto + "://" + location.host);
+    ws.addEventListener("open", () => setStatus("Connected — finding players…"));
+    ws.addEventListener("close", () => setStatus("Disconnected — reload to reconnect", true));
+    ws.addEventListener("error", () => setStatus("Connection error", true));
+    ws.addEventListener("message", (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg && typeof msg === "object") onMessage(msg);
+    });
+  }
+
+  /* --- controls ----------------------------------------------------------- */
+  $("shuffle").addEventListener("click", () => {
+    // Presentation only: shuffling reorders the view, never the authoritative hand.
+    state.hand = state.hand.slice().sort(() => Math.random() - 0.5);
+    renderHand();
+  });
+
+  $("submit").addEventListener("click", () => {
+    if (state.selected.length === 0) return;
+    const cards = state.selected
+      .map((id) => state.hand.find((c) => c.cardId === id))
+      .filter(Boolean);
+    if (cards.length !== state.selected.length) return;
+    const word = cards.map((c) => c.value).join("");
+    const ok = send(withToken({
+      type: "submit_word",
+      requestId: rid(),
+      roomId: state.roomId,
+      roundNumber: state.snapshot ? state.snapshot.roundNumber : 0,
+      turnNumber: state.turnNumber,
+      cards: cards.map((c) => c.cardId),
+      word
+    }));
+    setStatus(ok ? "Submitting " + word.toUpperCase() + "…" : "Not connected");
+  });
+
+  $("send").addEventListener("click", sendChat);
+  $("chatInput").addEventListener("keydown", (ev) => { if (ev.key === "Enter") sendChat(); });
+  function sendChat() {
+    const input = $("chatInput");
+    const text = input.value.trim();
+    if (!text) return;
+    const name = localStorage.getItem("champword.name") || "You";
+    localStorage.setItem("champword.name", name);
+    send(withToken({ type: "chat_send", requestId: rid(), text }));
+    input.value = "";
+  }
+
+  document.querySelectorAll(".react").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      addBubble(btn.dataset.emoji);
+      send(withToken({ type: "reaction_send", requestId: rid(), emoji: btn.dataset.emoji }));
+    });
+  });
+
+  /* ======================================================================
+     Offline demo fixture — VISUAL QA ONLY (?demo=1). Never runs otherwise.
+     ====================================================================== */
+  function runDemo() {
+    const mk = (id, name, score, isBot) => ({ playerId: id, seatNumber: 0, connected: true, score, isBot, displayName: name });
+    state.playerId = "me";
+    state.roomId = "demo-room";
+    state.snapshot = {
+      type: "room_snapshot", roomId: "demo-room", eventSequence: 1,
+      state: "active", phase: "playing", roundNumber: 1, turnNumber: 7,
+      activePlayerId: "me", firstSolverId: null, solvedAt: null, solveWindowEndsAt: null,
+      turnStartedAt: new Date(Date.now() - 800).toISOString(),
+      turnDeadlineAt: new Date(Date.now() + 2200).toISOString(),
+      targetWordLength: 7,
+      players: [mk("me", "You", 1450, false), mk("b1", "Aiko", 1240, true), mk("b2", "Kai", 980, true), mk("b3", "Mina", 1320, true)],
+      serverTime: new Date().toISOString()
+    };
+    state.deadline = new Date(state.snapshot.turnDeadlineAt).getTime();
+    state.targetWord = "lantern";
+    state.turnNumber = 7;
+    // Exactly 14 cards: the 7 letters of "lantern" plus 7 filler letters.
+    state.hand = "LANTERNXQZMKPY".split("").map((ch, i) => ({ cardId: "c" + i, value: ch.toLowerCase() }));
+    state.selected = [state.hand[0].cardId, state.hand[1].cardId];
+    renderPlayers(); renderHand(); renderTurn();
+    setStatus("DEMO MODE — no server connection");
+    addChat("Aiko", "that looks like a lamp?");
+    addChat("Kai", "is it 7 letters?");
+    addBubble("😂");
+    applyLocalStroke({ points: [[0.15,0.55],[0.3,0.2],[0.45,0.55],[0.6,0.2],[0.75,0.55]], color: "#12303f", width: 4 });
+    applyLocalStroke({ points: [[0.22,0.7],[0.8,0.72]], color: "#c0392b", width: 5 });
+  }
+
+  if (DEMO) runDemo();
+  else connect();
+})();
+</script>
+</body>
+</html>
