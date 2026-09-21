@@ -1,46 +1,71 @@
-# Render Blueprint — one-click deployment of CHAMP WORD.
+# Render Blueprint — CHAMP WORD (authoritative classic redesign).
 #
-# Why this file exists: the project previously had NO deployment configuration at
-# all, which is how the frontend and backend drifted onto two separate services
-# and stopped talking to each other. Everything the service needs is declared
-# here so the topology is reviewable in code.
+# WHY THIS FILE EXISTS
+# The project previously had NO deployment configuration at all, which is how the
+# frontend and backend drifted onto two separate services and stopped talking to
+# each other. The running service — https://champword-classic.onrender.com — uses
+# the values below. Because the service name matches an existing service, a
+# Blueprint apply adopts and reconfigures that service rather than creating a
+# duplicate.
 #
-# To deploy: Render dashboard -> New -> Blueprint -> pick this repository.
-# Render reads this file, provisions the database, and wires DATABASE_URL in.
+# ---------------------------------------------------------------------------
+# READ THIS BEFORE RUNNING A BLUEPRINT APPLY
 #
-# IMPORTANT: this must be a WEB SERVICE, not a Static Site. CHAMP WORD needs a
-# long-lived Node process for WebSockets and for serving the client; a Static
-# Site cannot run either.
+# The database is deliberately NOT declared here.
+#
+# Render permits only ONE free Postgres database per workspace, and this workspace
+# already has one: `champword-db`, region oregon. A Blueprint that declares a
+# second free database is rejected, so DATABASE_URL is set by hand (`sync: false`
+# below, which prompts for it in the dashboard) from:
+#
+#   Dashboard -> champword-db -> Connect -> Internal connection string
+#
+# Reusing that database is safe rather than merely expedient: migrations 001-004
+# are byte identical between this branch and the branch the older backend runs,
+# and this branch only adds 005 and 006 on top. The migration ledger keys on
+# version and takes an advisory lock, so applying it there is additive.
+#
+# The service MUST be in the database's region (oregon). The internal connection
+# string does not route cross-region, and a free web service reaching a database
+# over the public internet risks suspension under Render's
+# service-initiated-traffic policy.
+# ---------------------------------------------------------------------------
 
 services:
   - type: web
-    name: champword
+    name: champword-classic
     runtime: node
     plan: free
-    region: singapore
+    region: oregon
     branch: redesign/authoritative-classic
-    # `npm start` runs `node dist/server/main.js`, so the build step is required.
-    buildCommand: npm install && npm run build
+
+    # `--include=dev` is load-bearing, not decoration. `typescript`, `@types/node`
+    # and `@types/pg` are devDependencies, and NODE_ENV=production below makes npm
+    # omit them. Without the flag the build installs 16 packages, compiles with no
+    # Node typings, and dies with 73 errors: "Cannot find name 'process'",
+    # "Cannot find name 'Buffer'", "Could not find a declaration file for module
+    # 'pg'". That failure is invisible locally, where devDependencies are present.
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
+
+    # This must be a WEB SERVICE, not a Static Site. The game needs a long-lived
+    # Node process for WebSockets, and it serves the client from the same origin so
+    # the client cannot be pointed at the wrong host. /health returning JSON is
+    # also how a Static Site misdeployment is detected: a static host answers 404
+    # there.
     healthCheckPath: /health
+
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
-      # Generated once by Render and stable across deploys. Without this the
-      # server falls back to a per-process secret and every restart invalidates
-      # every player's session.
+
+      # Generated once by Render and stable across deploys. Without it the server
+      # falls back to a per-process secret, so every restart invalidates every
+      # player's session. (The older backend service is missing this.)
       - key: SESSION_SECRET
         generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: champword-db
-          property: connectionString
-      # Render sets PORT itself; HOST defaults to 0.0.0.0, which is what Render
-      # requires the process to bind.
 
-databases:
-  - name: champword-db
-    plan: free
-    region: singapore
-    postgresMajorVersion: "16"
+      # Set by hand — see the note at the top of this file.
+      - key: DATABASE_URL
+        sync: false
