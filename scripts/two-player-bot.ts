@@ -93,10 +93,16 @@ log("test", "ROOM JOIN PASS");
 
 send(bot1, { type: "start_round", requestId: randomUUID() });
 const round = await waitFor(bot1, (m) => m.type === "room_snapshot" && m.phase === "playing");
-await waitFor(bot2, (m) => m.type === "room_snapshot" && m.phase === "playing");
-log("test", `ROUND START PASS round=${round.roundNumber}`);
+const bot2Round = await waitFor(bot2, (m) => m.type === "room_snapshot" && m.phase === "playing");
+const hand = Array.isArray(bot2Round.hand) ? bot2Round.hand : Array.isArray(bot2Round.cards) ? bot2Round.cards : null;
+if (!hand) throw new Error("bot-2 round snapshot did not include a hand/cards array");
+if (hand.length !== 14) throw new Error(`bot-2 expected exactly 14 cards, got ${hand.length}`);
+const handVersion = bot2Round.handVersion;
+if (typeof handVersion !== "number") throw new Error("bot-2 round snapshot did not include a numeric handVersion");
+const expectedHand = [...hand];
+log("test", `ROUND START PASS round=${round.roundNumber} hand=14 handVersion=${handVersion}`);
 
-const cards = ["smoke-card-a", "smoke-card-b"];
+const cards = expectedHand.slice(0, 2);
 send(bot1, {
   type: "submit_word",
   requestId: randomUUID(),
@@ -122,14 +128,19 @@ send(bot2, {
   playerId: player2,
   roundNumber: round.roundNumber,
   lastEventSequence: round.eventSequence,
-  handVersion: 1
+  handVersion
 });
 await waitFor(bot2, (m) => m.type === "resume_started");
 const resumed = await waitFor(bot2, (m) => m.type === "room_snapshot" && m.roomId === activeRoomId);
+const resumedHand = Array.isArray(resumed.hand) ? resumed.hand : Array.isArray(resumed.cards) ? resumed.cards : null;
+if (!resumedHand) throw new Error("resume snapshot did not include a hand/cards array");
+if (resumedHand.length !== 14) throw new Error(`resume expected exactly 14 cards, got ${resumedHand.length}`);
+const resumedHandVersion = resumed.handVersion;
+if (resumedHandVersion !== handVersion) throw new Error(`resume returned handVersion ${resumedHandVersion}, expected ${handVersion}`);
+if (JSON.stringify(resumedHand) !== JSON.stringify(expectedHand)) throw new Error("resume returned a different 14-card hand");
 const complete = await waitFor(bot2, (m) => m.type === "resume_complete" && m.roomId === activeRoomId);
-if (resumed.roundNumber !== round.roundNumber) throw new Error("resume returned the wrong round");
 if (complete.roundNumber !== round.roundNumber) throw new Error("resume_complete returned the wrong round");
-log("test", `RECONNECT/STATE RESUME PASS round=${complete.roundNumber}`);
+log("test", `RECONNECT/STATE RESUME PASS round=${complete.roundNumber} hand=14 handVersion=${resumedHandVersion}`);
 
 await close(bot1);
 await close(bot2);
