@@ -1,0 +1,46 @@
+# Render Blueprint — one-click deployment of CHAMP WORD.
+#
+# Why this file exists: the project previously had NO deployment configuration at
+# all, which is how the frontend and backend drifted onto two separate services
+# and stopped talking to each other. Everything the service needs is declared
+# here so the topology is reviewable in code.
+#
+# To deploy: Render dashboard -> New -> Blueprint -> pick this repository.
+# Render reads this file, provisions the database, and wires DATABASE_URL in.
+#
+# IMPORTANT: this must be a WEB SERVICE, not a Static Site. CHAMP WORD needs a
+# long-lived Node process for WebSockets and for serving the client; a Static
+# Site cannot run either.
+
+services:
+  - type: web
+    name: champword
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    # `npm start` runs `node dist/server/main.js`, so the build step is required.
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Generated once by Render and stable across deploys. Without this the
+      # server falls back to a per-process secret and every restart invalidates
+      # every player's session.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: champword-db
+          property: connectionString
+      # Render sets PORT itself; HOST defaults to 0.0.0.0, which is what Render
+      # requires the process to bind.
+
+databases:
+  - name: champword-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"
