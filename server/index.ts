@@ -484,6 +484,14 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
 
         if (type === "resume_room") {
           if (typeof message.roomId !== "string" || !message.roomId) throw new Error("invalid_room_id");
+          // A connection that is already attached to a room must not resume
+          // again. A second resume can only duplicate state and bump
+          // connection_version a second time, which then breaks the
+          // version-guarded disconnect path.
+          if (context.roomId !== null) {
+            protocolError(socket, "resume_already_active", requestId);
+            return;
+          }
           if (typeof message.lastEventSequence !== "number" && typeof message.handVersion !== "number") {
             // Tolerated: the client may only know its room.
           }
@@ -549,7 +557,25 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
             send(socket, outcome.result as WordSubmissionResult);
             if (outcome.handChanged) await sendHandToSocket(socket, context.roomId, identity.playerId);
           } else if (outcome.code) {
-            protocolError(socket, outcome.code, requestId);
+            // §5: a submit ALWAYS answers with a word_submission_result, even
+            // when it is refused. Sending a bare `error` for stale_turn (and
+            // friends) left the client waiting for a result that never arrived,
+            // which is indistinguishable from a lost network response.
+            send(socket, {
+              type: "word_submission_result",
+              requestId: typeof requestId === "string" ? requestId : "",
+              roomId: context.roomId,
+              roundNumber: outcome.snapshot ? outcome.snapshot.roundNumber : 0,
+              status: "rejected",
+              reason: outcome.code,
+              serverTime: new Date().toISOString(),
+              phase: outcome.snapshot ? outcome.snapshot.phase : "playing",
+              cardsConsumed: 0,
+              cardsDrawn: 0,
+              handChanged: false,
+              scoreDelta: 0,
+              coinDelta: 0
+            } satisfies WordSubmissionResult);
           }
 
           // Tell the room a word landed, then schedule the next turn's bots.

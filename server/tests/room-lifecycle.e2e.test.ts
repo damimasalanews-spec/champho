@@ -52,7 +52,8 @@ function assertRoomSnapshotMessage(message: Message): void {
   assertExactKeys(message, [
     "type", "roomId", "eventSequence", "state", "phase", "roundNumber",
     "turnNumber", "activePlayerId", "firstSolverId", "solvedAt",
-    "solveWindowEndsAt", "serverTime", "players"
+    "solveWindowEndsAt", "turnStartedAt", "turnDeadlineAt", "targetWordLength",
+    "serverTime", "players"
   ]);
   assert.equal(message.type, "room_snapshot");
   assert.equal(typeof message.roomId, "string");
@@ -68,6 +69,13 @@ function assertRoomSnapshotMessage(message: Message): void {
   assert.ok(message.firstSolverId === null || typeof message.firstSolverId === "string");
   assert.ok(message.solvedAt === null || typeof message.solvedAt === "string");
   assert.ok(message.solveWindowEndsAt === null || typeof message.solveWindowEndsAt === "string");
+  // §18: the turn clock is server-owned state, so it is public on the snapshot.
+  assert.ok(message.turnStartedAt === null || typeof message.turnStartedAt === "string");
+  assert.ok(message.turnDeadlineAt === null || typeof message.turnDeadlineAt === "string");
+  if (message.turnStartedAt !== null) assertTimestamp(message.turnStartedAt);
+  if (message.turnDeadlineAt !== null) assertTimestamp(message.turnDeadlineAt);
+  // §13: only the LENGTH of the target is public; the word stays private.
+  assert.ok(message.targetWordLength === null || Number.isInteger(message.targetWordLength));
   assertTimestamp(message.serverTime);
   assert.ok(Array.isArray(message.players));
 }

@@ -79,13 +79,8 @@ step "migration runner tests" npx tsx --test --test-timeout=45000 server/tests/m
 step "turn engine tests" npx tsx --test --test-timeout=45000 server/tests/turn-engine.test.ts
 step "room lifecycle tests" npx tsx --test --test-timeout=45000 server/tests/room-lifecycle.test.ts
 
-# NOTE: room-lifecycle.e2e.test.ts and submit-word.e2e.test.ts still have known
-# failures (#1, #15, #16 and #3). They are run for information only and cannot
-# fail this script until those are fixed.
-echo
-echo "== known-failing suites (informational) =="
-npx tsx --test --test-timeout=45000 server/tests/room-lifecycle.e2e.test.ts 2>&1 | grep -E '^# (tests|pass|fail)' || true
-npx tsx --test --test-timeout=45000 server/tests/submit-word.e2e.test.ts 2>&1 | grep -E '^# (tests|pass|fail)' || true
+step "room lifecycle e2e" npx tsx --test --test-timeout=45000 server/tests/room-lifecycle.e2e.test.ts
+step "submit word e2e" npx tsx --test --test-timeout=45000 server/tests/submit-word.e2e.test.ts
 
 # ------------------------------------------------------------------- UI layout
 if [ -d node_modules/puppeteer ]; then
