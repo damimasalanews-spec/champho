@@ -18,7 +18,7 @@ services:
     runtime: node
     plan: free
     region: singapore
-    branch: main
+    branch: redesign/authoritative-classic
     # `npm start` runs `node dist/server/main.js`, so the build step is required.
     buildCommand: npm install && npm run build
     startCommand: npm start
