@@ -144,6 +144,18 @@ function assertSubmissionResult(message: Message): void {
 }
 
 async function seedActiveRoom(roomId: string, playerId: string, guestId: string): Promise<void> {
+  // A THIRD seat is the artist. §13 forbids the artist from solving their own
+  // drawing, so the two players under test must not be holding that role — if
+  // one of them did, its submission would be refused as artist_cannot_solve and
+  // this suite would be testing the wrong path entirely.
+  const artistId = randomUUID();
+  await pool.query(
+    `INSERT INTO public.room_players
+       (room_id,player_id,seat_number,connected,turn_state,is_bot,bot_personality,display_name)
+     VALUES($1,$2,2,true,'active',true,'normal','Artist')
+     ON CONFLICT (room_id,player_id) DO NOTHING`,
+    [roomId, artistId]
+  );
   await pool.query(
     `UPDATE public.game_rooms
      SET state = 'active',
@@ -156,18 +168,19 @@ async function seedActiveRoom(roomId: string, playerId: string, guestId: string)
          solve_window_ends_at = NULL,
          target_word = 'ab'
      WHERE id = $1`,
-    [roomId, playerId]
+    [roomId, artistId]
   );
+  // Note: does NOT touch turn_state — the artist already holds the single
+  // 'active' slot that room_players_one_active_idx permits.
   await pool.query(
     `UPDATE public.room_players
-     SET turn_state = CASE WHEN player_id = $2 THEN 'active' ELSE 'waiting' END,
-         private_hand = CASE
+     SET private_hand = CASE
            WHEN player_id = $2 THEN $3::jsonb
            WHEN player_id = $4 THEN $5::jsonb
            ELSE private_hand
          END,
          hand_version = 0
-     WHERE room_id = $1`,
+     WHERE room_id = $1 AND player_id IN ($2, $4)`,
     [
       roomId,
       playerId,
@@ -442,7 +455,8 @@ test("solve window accepts a second solver before the deadline and then transiti
     assert.equal(room.rows[0].phase, "playing");
     // §14: the turn rotates deterministically clockwise instead of always
     // returning the next turn to the lowest seat.
-    assert.equal(room.rows[0].active_player_id, guestId, "the turn passes to the next seat clockwise");
+    // The artist sits at seat 2, so the clockwise succession lands on seat 0.
+    assert.equal(room.rows[0].active_player_id, playerId, "the turn passes to the next seat clockwise");
     assert.equal(room.rows[0].first_solver_id, null);
   } finally {
     if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
