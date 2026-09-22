@@ -452,6 +452,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   text-shadow:0 1px 3px rgba(10,40,80,.45)}
 /* when the button is offering to equip rather than clear */
 .cwRemove.equip{background:linear-gradient(180deg,#6ade4c,#2f9c1e);border-color:rgba(255,255,255,.75)}
+/* locked: earned from missions, events or the shop - not available to wear yet */
+.cwRemove.lock{background:linear-gradient(180deg,#8a97a6,#5a6675);border-color:rgba(255,255,255,.55)}
 .cwRemove{margin-top:auto;padding:3.2% 11%;border-radius:15px;border:2px solid rgba(255,255,255,.6);
   cursor:pointer;pointer-events:auto;font-weight:900;font-size:clamp(11px,1.95vh,24px);color:#fff;
   background:linear-gradient(180deg,#f8664f,#c92a1c);
@@ -806,16 +808,16 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     // one plain free portrait, everything else premium
     portraits:[
       {id:'classic', name:'Classic Champ', desc:'The everyday grin. Plain, and free.',  from:'Starter Gift',    free:1},
-      {id:'knight',  name:'Sir Gourd',     desc:'Polished helm and a brave plume.',     from:'Ranked Season 3', locked:1},
-      {id:'ninja',   name:'Shadow Squash', desc:'Hooded, silent, arms folded.',         from:'Ranked Season 4', locked:1},
-      {id:'wizard',  name:'Wizard Zucc',   desc:'Starry hat and a long white beard.',   from:'Spring Event',    locked:1},
-      {id:'pirate',  name:'Captain Gourd', desc:'Tricorn, eyepatch and a gold tooth.',  from:'Tournament Win',  locked:1},
-      {id:'vampire', name:'Baron Vine',    desc:'High collar and two small fangs.',     from:'Night Event',     locked:1},
-      {id:'scholar', name:'Professor Pip', desc:'Round spectacles and a bow tie.',      from:'Collection Set',  locked:1},
-      {id:'robot',   name:'Unit Blip',     desc:'Visor glow and a single antenna.',     from:'Hall of Fame',    locked:1},
-      {id:'ghost',   name:'Cheeky Boo',    desc:'A sheet with a mischievous grin.',     from:'Night Event',     locked:1},
-      {id:'alien',   name:'Zog',           desc:'One big eye, two thin antennae.',      from:'Spring Event',    locked:1},
-      {id:'genie',   name:'Djinn',         desc:'Turban, hoop earring, folded arms.',   from:'Ranked Season 3', locked:1}
+      {id:'knight',  name:'Sir Gourd',     desc:'Polished helm and a brave plume.',     from:'Ranked Season 3', src:'mission', locked:1},
+      {id:'ninja',   name:'Shadow Squash', desc:'Hooded, silent, arms folded.',         from:'Ranked Season 4', src:'mission', locked:1},
+      {id:'wizard',  name:'Wizard Zucc',   desc:'Starry hat and a long white beard.',   from:'Shop - 1,200 coins', src:'shop', locked:1},
+      {id:'pirate',  name:'Captain Gourd', desc:'Tricorn, eyepatch and a gold tooth.',  from:'Tournament Win',  src:'event',   locked:1},
+      {id:'vampire', name:'Baron Vine',    desc:'High collar and two small fangs.',     from:'Night Event',     src:'event',   locked:1},
+      {id:'scholar', name:'Professor Pip', desc:'Round spectacles and a bow tie.',      from:'Collection Set',  src:'mission', locked:1},
+      {id:'robot',   name:'Unit Blip',     desc:'Visor glow and a single antenna.',     from:'Hall of Fame',    src:'mission', locked:1},
+      {id:'ghost',   name:'Cheeky Boo',    desc:'A sheet with a mischievous grin.',     from:'Night Event',     src:'event',   locked:1},
+      {id:'alien',   name:'Zog',           desc:'One big eye, two thin antennae.',      from:'Shop - 900 coins',src:'shop',    locked:1},
+      {id:'genie',   name:'Djinn',         desc:'Turban, hoop earring, folded arms.',   from:'Ranked Season 3', src:'mission', locked:1}
     ],
     frames:[
       {id:'crystal', name:'Aqua Crystal', desc:'Glass cut into a smooth ring.',       from:'Starter Gift',    free:1,   cls:'crystal'},
@@ -889,6 +891,14 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var AVATAR='';
   var DEFAULT_AVATAR='assets/avatars/classic.webp';   // the free portrait is the profile's face
   var EQUIPPED_AV='classic';                          // which portrait shows in game
+
+  // Locked cosmetics are ONLY ever earned: missions, events or shop purchase.
+  // Ownership is what gates equipping - a locked tile can never be worn straight
+  // off the shelf, so isOwned() is checked before any equip happens.
+  var OWNED={portraits:['classic'], frames:['crystal'], titles:[], effects:[], filters:[]};
+  var LOOT={mission:'Mission reward', event:'Event reward', shop:'Shop purchase'};
+  function isOwned(k,id){ return (OWNED[k]||[]).indexOf(id)>-1; }
+  function lootLabel(it){ return LOOT[it.src] || 'Earn it'; }
 
   function byId(id){ return document.getElementById(id); }
   // rendered frame artwork + its masked sheen/glow layers
@@ -1010,6 +1020,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     var b=byId('cwRemove'); if(!b) return;
     if(cat!=='portraits'){ b.textContent='Remove'; b.classList.remove('equip'); return; }
     var s=sel.portraits;
+    if(s && !isOwned('portraits',s.id)){        // earned or bought only - never worn off the lock
+      b.textContent='Locked'; b.classList.remove('equip'); b.classList.add('lock'); return;
+    }
+    b.classList.remove('lock');
     if(!s || s.id===EQUIPPED_AV){ b.textContent='Equipped'; b.classList.remove('equip'); }
     else { b.textContent='Equip'; b.classList.add('equip'); }
   }
@@ -1080,12 +1094,23 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     // it when you pick another), everywhere else it clears the preview
     byId('cwRemove').addEventListener('click',function(){
       var b=this;
-      if(cat==='portraits' && sel.portraits && sel.portraits.id!==EQUIPPED_AV){
-        EQUIPPED_AV=sel.portraits.id;
-        b.textContent='Equipped'; b.classList.remove('equip');
-        byId('cwChip').innerHTML='EQUIPPED &middot; <b>shows in game</b>';
-        renderGrid();
-        return;
+      if(cat==='portraits' && sel.portraits){
+        var s=sel.portraits;
+        // gate on ownership first: a locked item is a goal, not a freebie
+        if(!isOwned('portraits',s.id)){
+          byId('cwChip').innerHTML='LOCKED &middot; <b>'+lootLabel(s)+'</b>';
+          byId('cwPFrom').textContent=s.from;
+          b.textContent='Locked';
+          return;
+        }
+        if(s.id!==EQUIPPED_AV){
+          EQUIPPED_AV=s.id;
+          b.textContent='Equipped'; b.classList.remove('equip');
+          byId('cwChip').innerHTML='EQUIPPED &middot; <b>shows in game</b>';
+          renderGrid();
+          return;
+        }
+        return;                                  // already equipped: nothing to do
       }
       b.textContent='Cleared'; b.classList.remove('equip');
       clearPreview();
