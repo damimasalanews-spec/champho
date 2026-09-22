@@ -29,12 +29,9 @@ const RED = "#c0392b";
 
 type Pt = [number, number];
 
-const nx = (x: number): number => Math.round((x / GRID_W) * 10000) / 10000;
-const ny = (y: number): number => Math.round((y / GRID_H) * 10000) / 10000;
-const norm = (points: Pt[]): Pt[] => points.map(([x, y]) => [nx(x), ny(y)] as Pt);
-
+/** Templates stay in grid coordinates; {@link doodleFor} fits and normalises. */
 const stroke = (points: Pt[], color: string = INK, width = 4): DoodleStroke => ({
-  points: norm(points),
+  points,
   color,
   width
 });
@@ -46,7 +43,7 @@ const shape = (points: Pt[], color: string = INK, width = 4): DoodleStroke =>
   stroke([...points, points[0] as Pt], color, width);
 
 const dot = (x: number, y: number, color: string = INK, width = 9): DoodleStroke => ({
-  points: [[nx(x), ny(y)]],
+  points: [[x, y]],
   color,
   width
 });
@@ -95,6 +92,56 @@ function snowflake(cx: number, cy: number, r: number, color: string = BLUE): Doo
     out.push(line(cx - r * Math.cos(angle), cy - r * Math.sin(angle), cx + r * Math.cos(angle), cy + r * Math.sin(angle), color, 4));
   }
   return out;
+}
+
+/** Margin kept around a sketch, in 560x320 board units. */
+const FIT_MARGIN = 16;
+
+/**
+ * Centre a sketch on the board and scale it up until it fills the space. Without
+ * this a doodle landed as a small mark in the middle of a much larger board —
+ * the templates are authored roughly a third of the board wide, and the board on
+ * the table is the whole canvas. A uniform scale is used on the grid (560x320,
+ * the board's own aspect) so shapes never stretch.
+ */
+function fitToBoard(strokes: DoodleStroke[]): DoodleStroke[] {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const item of strokes) {
+    for (const [x, y] of item.points) {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return strokes;
+
+  const spanX = Math.max(maxX - minX, 1);
+  const spanY = Math.max(maxY - minY, 1);
+  const scale = Math.min((GRID_W - FIT_MARGIN * 2) / spanX, (GRID_H - FIT_MARGIN * 2) / spanY);
+  const offsetX = GRID_W / 2 - (minX + spanX / 2) * scale;
+  const offsetY = GRID_H / 2 - (minY + spanY / 2) * scale;
+  const round = (value: number): number => Math.round(value * 10000) / 10000;
+
+  return strokes.map((item) => ({
+    color: item.color,
+    // Slightly heavier line for the larger drawing, capped so it stays a pen.
+    width: Math.min(9, Math.round(item.width * 1.4)) || item.width,
+    points: item.points.map(([x, y]) => [round(x * scale + offsetX), round(y * scale + offsetY)] as Pt)
+  }));
+}
+
+/** Grid coordinates -> the 0..1 space the client maps onto the board. */
+function toNormalized(strokes: DoodleStroke[]): DoodleStroke[] {
+  const round = (value: number): number => Math.round(value * 10000) / 10000;
+  return strokes.map((item) => ({
+    color: item.color,
+    width: item.width,
+    points: item.points.map(([x, y]) => [round(x / GRID_W), round(y / GRID_H)] as Pt)
+  }));
 }
 
 /** Word -> sketch. Only words listed here are ever dealt to a bot artist. */
@@ -783,8 +830,15 @@ export function doodleFor(word: string): DoodleStroke[] | null {
   if (cached) return cached;
   const template = DOODLES[key];
   if (!template) return null;
-  // Copy so callers can never mutate the template.
-  const copy = template.map((s) => ({ points: s.points.map(([x, y]) => [x, y] as Pt), color: s.color, width: s.width }));
+  // Copy so callers can never mutate the template, then scale it to the board.
+  const fitted = fitToBoard(
+    template.map((s) => ({
+      points: s.points.map(([x, y]) => [x, y] as Pt),
+      color: s.color,
+      width: s.width
+    }))
+  );
+  const copy = toNormalized(fitted);
   cache.set(key, copy);
   return copy;
 }
