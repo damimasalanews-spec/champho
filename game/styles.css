@@ -59,6 +59,19 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
    a fraction, so the portrait, ring, title and badge all grow together instead of
    the avatar staying pinned at a fixed 80px while the page scales around it. */
 :root{--seat:clamp(104px,15vmin,190px)}
+/* the rivals sit across the table: tilted in toward the board and lit cooler, so
+   they read as one group facing the player rather than four identical cards */
+.pcard.pos-tl .plate{transform:rotate(-8deg)}
+.pcard.pos-tr .plate{transform:rotate(8deg)}
+.pcard.pos-mr .plate{transform:rotate(7deg)}
+.pcard:not(.you) .atile{box-shadow:0 calc(var(--seat)*.06) calc(var(--seat)*.15) rgba(0,0,0,.5)}
+.pcard:not(.you)::after{content:"";position:absolute;left:50%;top:34%;
+  width:190%;height:190%;transform:translate(-50%,-50%);border-radius:50%;
+  pointer-events:none;z-index:-1;
+  background:radial-gradient(circle,rgba(120,180,255,.16),transparent 62%)}
+
+/* every seat sits on the table with one grounded shadow, so the arrangement reads
+   as a whole rather than as separate cards */
 .plate{filter:drop-shadow(0 calc(var(--seat)*.05) calc(var(--seat)*.1) rgba(0,0,0,.38))}
 .atile{position:relative;width:var(--seat);height:var(--seat);border-radius:calc(var(--seat)*.25);
   background:radial-gradient(circle at 35% 28%,#ffe9d6,#f3c39c);
@@ -112,7 +125,7 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 .pcard.pos-ml{left:1.5%;top:30%}
 /* the player's own seat: front of the table, and the largest on the board, since
    it is the one the player actually looks at */
-.pcard.pos-front{left:3%;bottom:17%;top:auto}
+.pcard.pos-front{left:19.5%;bottom:5%;top:auto}
 .pcard.pos-mr{right:1.5%;top:27%}
 .bubble{position:absolute;top:-40px;left:50%;transform:translateX(-50%) scale(0);opacity:0;
   background:#fff;border-radius:14px;padding:4px 9px;font-size:22px;line-height:1;z-index:6;
