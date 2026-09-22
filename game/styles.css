@@ -61,14 +61,14 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 :root{--seat:clamp(104px,15vmin,190px)}
 /* the rivals sit across the table: tilted in toward the board and lit cooler, so
    they read as one group facing the player rather than four identical cards */
-.pcard.pos-tl .plate{transform:rotate(-8deg)}
-.pcard.pos-tr .plate{transform:rotate(8deg)}
-.pcard.pos-mr .plate{transform:rotate(7deg)}
 .pcard:not(.you) .atile{box-shadow:0 calc(var(--seat)*.06) calc(var(--seat)*.15) rgba(0,0,0,.5)}
 .pcard:not(.you)::after{content:"";position:absolute;left:50%;top:34%;
-  width:190%;height:190%;transform:translate(-50%,-50%);border-radius:50%;
+  width:180%;height:180%;transform:translate(-50%,-50%);border-radius:50%;
   pointer-events:none;z-index:-1;
-  background:radial-gradient(circle,rgba(120,180,255,.16),transparent 62%)}
+  background:radial-gradient(circle,rgba(150,200,255,.14),transparent 64%)}
+/* the rivals sit a step back: marginally smaller and cooled, so the eye lands on
+   the player's own seat first and the four still read as one ring */
+.pcard:not(.you) .atile{transform:scale(.955);transform-origin:50% 50%}
 
 /* every seat sits on the table with one grounded shadow, so the arrangement reads
    as a whole rather than as separate cards */
@@ -120,13 +120,13 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   background:radial-gradient(circle,rgba(255,236,170,.34),rgba(255,210,110,.13) 46%,transparent 70%)}
 .pcard.you .plate{position:relative}
 .pcard.you .atile{box-shadow:0 calc(var(--seat)*.07) calc(var(--seat)*.16) rgba(0,0,0,.55)}
-.pcard.pos-tl{left:17%;top:4%}
-.pcard.pos-tr{right:17%;top:4%}
+.pcard.pos-tl{left:14.5%;top:15%}
+.pcard.pos-tr{right:14.5%;top:15%}
 .pcard.pos-ml{left:1.5%;top:30%}
 /* the player's own seat: front of the table, and the largest on the board, since
    it is the one the player actually looks at */
 .pcard.pos-front{left:19.5%;bottom:5%;top:auto}
-.pcard.pos-mr{right:1.5%;top:27%}
+.pcard.pos-mr{right:1.5%;top:30%}
 .bubble{position:absolute;top:-40px;left:50%;transform:translateX(-50%) scale(0);opacity:0;
   background:#fff;border-radius:14px;padding:4px 9px;font-size:22px;line-height:1;z-index:6;
   box-shadow:0 4px 12px rgba(0,0,0,.35);pointer-events:none}
