@@ -98,10 +98,13 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   background:linear-gradient(90deg,#ffe9a3,#f59e0b);transition:width .5s ease}
 .pcoins{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:900;color:var(--gold);
   background:rgba(6,33,63,.65);border:1px solid rgba(251,191,36,.55);border-radius:999px;padding:2px 11px}
-.pcard .emote-btn{width:36px;height:26px;border-radius:9px;font-size:14px;
+/* the emote picker sits beside the avatar, centred on it, rather than at the
+   bottom of the seat */
+.pcard .emote-btn{position:absolute;left:calc(var(--seat)*-.62);top:calc(var(--seat)*.5);
+  transform:translateY(-50%);width:36px;height:26px;border-radius:9px;font-size:14px;
   background:linear-gradient(#1b5a9e,#0d3f77);border:2px solid #2f7dc0;display:inline-flex;
-  align-items:center;justify-content:center}
-.pcard .emote-btn:active{transform:scale(.92)}
+  align-items:center;justify-content:center;z-index:6}
+.pcard .emote-btn:active{transform:translateY(-50%) scale(.92)}
 .pcard.you{z-index:8}
 /* a warm spotlight and a grounded shadow, so the front seat reads as the player's
    own place at the table rather than another rival */
