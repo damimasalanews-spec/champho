@@ -48,7 +48,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .seat[data-where="left"]{left:36px;top:250px}
 .seat[data-where="right"]{left:1300px;top:250px;flex-direction:row-reverse;text-align:right}
 .seat[data-where="top"]{left:690px;top:88px}
-.seat[data-where="bottom"]{left:600px;top:640px;flex-direction:column;text-align:center;gap:8px}
+/* Seated at the near-left edge of the table, clear of the drawing board. */
+.seat[data-where="bottom"]{left:150px;top:572px;flex-direction:column;text-align:center;gap:8px}
 .seat[data-where="bottom"] .meta{min-width:190px}
 .avatar>img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .avatar{width:88px;height:88px;flex:0 0 88px;border-radius:50%;padding:4px;
@@ -64,15 +65,20 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .thinking{color:#8be9ff;font-size:13px;font-weight:800;min-height:15px}
 
 /* --- drawing board -------------------------------------------------------- */
-.boardWrap{position:absolute;z-index:20;left:520px;top:228px;width:560px;height:320px}
-#board{width:560px;height:320px;display:block;border-radius:12px;
-  background:rgba(247,250,252,.94);border:3px solid rgba(3,31,47,.85);
-  box-shadow:0 12px 30px rgba(0,0,0,.45);touch-action:none}
+/* The stage geometry is measured from classic-bg/classic-table-scene.webp:
+   the drawing surface painted on the table is a trapezoid (perspective), whose
+   corners land at stage (532.6,466.4) (1080.8,466.4) (1144.2,705.7)
+   (454.8,705.7). The canvas is that trapezoid's bounding box, clipped to the
+   trapezoid itself, so the drawing sits IN the table's board and the wooden
+   border of the artwork stays visible around it. */
+.boardWrap{position:absolute;z-index:20;left:455px;top:466px;width:689px;height:239px}
+#board{width:689px;height:239px;display:block;background:rgba(247,250,252,.94);
+  clip-path:polygon(11.3% 0%,90.8% 0%,100% 100%,0% 100%);touch-action:none}
 .boardWrap.readonly #board{cursor:default}
 .boardWrap:not(.readonly) #board{cursor:crosshair}
 .boardHint{position:absolute;left:0;right:0;top:100%;margin-top:8px;text-align:center;
   font-size:14px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
-.boardTools{position:absolute;z-index:21;left:520px;top:190px;width:560px;
+.boardTools{position:absolute;z-index:21;left:455px;top:424px;width:689px;
   display:flex;justify-content:space-between;align-items:center;gap:8px}
 .swatch,.clearBtn{pointer-events:auto;border-radius:10px;border:1px solid rgba(99,220,255,.6);
   background:rgba(3,34,53,.85);color:#fff;font-weight:900;font-size:13px;padding:6px 10px;cursor:pointer}
@@ -82,7 +88,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .timer.urgent{background:rgba(120,20,20,.9);border-color:#ff6b6b;color:#ffd9d9}
 
 /* --- reveal banner -------------------------------------------------------- */
-.banner{position:absolute;z-index:21;left:520px;top:186px;width:560px;height:0}
+.banner{position:absolute;z-index:21;left:455px;top:414px;width:689px;height:0}
 .reveal{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);
   padding:9px 22px;border-radius:14px;font-weight:900;font-size:19px;white-space:nowrap;
   background:rgba(3,34,53,.92);border:2px solid #ffe44d;box-shadow:0 8px 22px rgba(0,0,0,.45)}
@@ -188,7 +194,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   </div>
 
   <div class="boardWrap readonly" id="boardWrap">
-    <canvas id="board" width="1120" height="640"></canvas>
+    <canvas id="board" width="1378" height="478"></canvas>
     <div class="boardHint" id="boardHint">Waiting for a turn…</div>
   </div>
 
@@ -431,7 +437,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   function drawStroke(stroke) {
     if (!stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) return;
     ctx.strokeStyle = stroke.color || "#12303f";
-    ctx.lineWidth = (stroke.width || 4) * (board.width / 560);
+    // board.width is the 2x backing store of the 689px-wide CSS board.
+    ctx.lineWidth = (stroke.width || 4) * (board.width / 689);
     ctx.beginPath();
     stroke.points.forEach(([nx, ny], i) => {
       const x = nx * board.width, y = ny * board.height;
