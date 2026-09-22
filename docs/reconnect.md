@@ -19,7 +19,7 @@ roundNumber is evaluated before event or hand version. A newer round replaces ol
 ## Solve-window reconnect
 
 solveWindowEndsAt is absolute server time. Reconnect does not restart the window: a round
-runs for ROUND_WINDOW_MS (12s), shortened to POST_SOLVE_REVEAL_MS (1.2s) once somebody has
+runs for ROUND_WINDOW_MS (60s), shortened to POST_SOLVE_REVEAL_MS (1.2s) once somebody has
 answered correctly. If expired, the room is round_end and THROW remains disabled.
 
 ## Dropped submission response

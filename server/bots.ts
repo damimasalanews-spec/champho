@@ -172,11 +172,15 @@ export function clampToWindow(decisionMs: number, windowRemainingMs: number): nu
  * the bots beatable, and the spread IS the difficulty ramp — an easy bot only
  * answers near the end (and often cannot answer at all), while an aggressive one
  * punishes a slow guess.
+ *
+ * Because these are shares, they stretch with the window: a minute-long round
+ * means the quickest bot still waits about 27s, so the minute is time the player
+ * actually gets to use rather than a longer wait for the same early loss.
  */
 export const ANSWER_WINDOW_SHARE: Record<BotPersonality, [number, number]> = {
-  easy: [0.65, 0.95],
-  normal: [0.45, 0.75],
-  aggressive: [0.28, 0.55]
+  easy: [0.75, 0.95],
+  normal: [0.6, 0.82],
+  aggressive: [0.45, 0.7]
 };
 
 export function botAnswerDelayMs(

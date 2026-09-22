@@ -97,10 +97,12 @@ of them.
 
 Two timings follow from that:
 
-- `turnDeadlineAt = serverNow + ROUND_WINDOW_MS` (12s) — how long the guessers get. The
+- `turnDeadlineAt = serverNow + ROUND_WINDOW_MS` (60s) — how long the guessers get. The
   window is theirs, so a bot's answer is paced as a *share* of it (see
   `ANSWER_WINDOW_SHARE` in `server/bots.ts`) instead of the fixed §16 milliseconds, which
-  would have let a bot answer before a human had looked at the sketch.
+  would have let a bot answer before a human had looked at the sketch. Because those are
+  shares, a longer round is longer thinking time for the player, not just a longer wait:
+  the quickest bot still waits about 27s of the minute.
 - a correct answer is what ends the round: the first solve sets
   `solveWindowEndsAt = min(turnDeadlineAt, now + POST_SOLVE_REVEAL_MS)` (1.2s). The
   server-owned sweeper closes the turn there and **writes the next turn in the same
