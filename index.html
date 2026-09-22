@@ -1590,7 +1590,15 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var overlay=document.getElementById('champGameProOverlay'),frame=document.getElementById('champGameProFrame'),back=document.getElementById('champGameBack');
   function sendProfile(){
     var av=document.getElementById('homeAvatar'),nm=document.getElementById('homeName'),coins=document.getElementById('homeCoins');
-    try{frame.contentWindow.postMessage({champEquippedAvatar:av&&av.src?av.src:'',champName:nm&&nm.textContent?nm.textContent:'Champ',champCoins:coins&&coins.textContent?coins.textContent:'1,450'},'*')}catch(e){}
+    var name=nm&&nm.textContent?nm.textContent:'Champ';
+    var cash=coins&&coins.textContent?coins.textContent:'1,450';
+    // what each seat should wear. The game draws the portrait, the frame ring and
+    // the title on the board, so the equipped look has to travel with the profile.
+    var eq=function(k){ try{ return (typeof window.champGetEquipped==='function'&&window.champGetEquipped(k))||''; }catch(e){ return ''; } };
+    var prof={name:name, portrait:eq('portraits')||'classic', frame:eq('frames')||'crystal',
+              coins:(function(){ var n=parseInt(String(cash).replace(/[^0-9]/g,''),10); return isNaN(n)?0:n; })()};
+    var t=eq('titles'); if(t) prof.title=t;   // omitted rather than blank, so the game keeps its default
+    try{frame.contentWindow.postMessage({champEquippedAvatar:av&&av.src?av.src:'',champName:name,champCoins:cash,champProfile:prof},'*')}catch(e){}
   }
   function openChampProGame(){
     if(!overlay||!frame)return;
