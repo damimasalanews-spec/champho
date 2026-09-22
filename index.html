@@ -796,7 +796,31 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var SIDE=[["info","INFO",24.80],["personalize","PERSONALIZE",36.20],["chatter","CHATTER",47.60],
             ["achievements","ACHV.",59.00],["bag","BAG",70.40],["mail","MAIL",81.80]];
   var TOP_TABS=["Portraits","Card Themes","Effects","Scenes"];
-  var EQUIPPED='crystal';
+  // Which frame/title is worn. Both live in the saved profile, exactly like the
+  // portrait, so a choice survives a reload and reaches the game. The starter
+  // item of each category is the default.
+  function equippedId(cat,fallback){
+    if(typeof window.champGetEquipped==='function'){
+      var v=window.champGetEquipped(cat);
+      if(v) return v;
+    }
+    return fallback;
+  }
+  function equippedFr(){ return equippedId('frames','crystal'); }
+  function equippedTt(){ return equippedId('titles','crystal'); }
+  // portraits, frames and titles can all be worn; effects and filters are
+  // applied, not equipped, so they still just preview
+  function canEquip(k){ return k==='portraits'||k==='frames'||k==='titles'; }
+  function equippedIn(k){
+    if(k==='portraits') return equippedAvId();
+    if(k==='frames') return equippedFr();
+    if(k==='titles') return equippedTt();
+    return '';
+  }
+  function equipIn(k,id){
+    if(k==='portraits'){ equipAv(id); return; }
+    if(canEquip(k) && typeof window.champSetEquipped==='function') window.champSetEquipped(k,id);
+  }
 
   var CATS=[
     {k:'portraits',l:'Portraits',sw:'radial-gradient(circle at 50% 34%,#ffd7a0,#e2761c 62%,#7a3403)'},
@@ -1000,7 +1024,6 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       t.className='cwTile';
       if(cat==='frames'){
         t.innerHTML=art(it.id);
-        if(it.id===EQUIPPED) t.classList.add('use');
       } else if(cat==='titles'){
         t.innerHTML='<div class="cwTl"><img class="cwTitleImg" src="assets/titles/'+it.id+'.webp" alt="">'
           +'<b class="cwTxt">'+it.txt+'</b></div>';
@@ -1018,14 +1041,16 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         t.innerHTML='<div class="cwFilTile '+it.cls+'">'+(AVATAR?'<img src="'+AVATAR+'" alt="">':'')+
                     '<i class="cwFilFx"></i></div><span class="cwFilTag">'+it.name+'</span>';
       }
-      if(it.id===EQUIPPED && cat==='frames' || (cat==='portraits' && it.id===equippedAvId())){
+      // one place marks the worn item, so every equippable category behaves alike
+      if(canEquip(cat) && it.id===equippedIn(cat)){
+        t.classList.add('use');
         t.insertAdjacentHTML('beforeend','<span class="cwRibbon">In Use</span>');
       } else if(it.free){
         t.insertAdjacentHTML('beforeend','<span class="cwFree">FREE</span>');
       } else if(it.locked){
         t.insertAdjacentHTML('beforeend','<span class="cwLock">'+padlock+'<s>1</s>'+hourglass+'</span>');
       }
-      if(sel[cat] && sel[cat].id===it.id && !(cat==='frames'&&it.id===EQUIPPED)) t.classList.add('preview');
+      if(sel[cat] && sel[cat].id===it.id && !(cat==='frames'&&it.id===equippedFr())) t.classList.add('preview');
       t.addEventListener('click',function(){ preview(cat,it); });
       g.appendChild(t);
     });
@@ -1036,15 +1061,15 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   function syncAction(){
     var b=byId('cwRemove'); if(!b) return;
     b.classList.remove('equip','buy','lock');
-    if(cat!=='portraits'){ b.textContent='Remove'; return; }
-    var s=sel.portraits;
-    if(s && !isOwned('portraits',s.id)){
+    if(!canEquip(cat)){ b.textContent='Remove'; return; }
+    var s=sel[cat];
+    if(s && !isOwned(cat,s.id)){
       // a priced item is a shop purchase; anything else must be earned in play
       if(s.price){ b.textContent='Buy \u00b7 '+fmt(s.price); b.classList.add('buy'); }
       else { b.textContent='Locked'; b.classList.add('lock'); }
       return;
     }
-    if(!s || s.id===equippedAvId()){ b.textContent='Equipped'; }
+    if(!s || s.id===equippedIn(cat)){ b.textContent='Equipped'; }
     else { b.textContent='Equip'; b.classList.add('equip'); }
   }
 
@@ -1074,7 +1099,9 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         +'<b class="cwTxt">'+it.txt+'</b>';
       el.className='cwPrevTitle on';
     }
-    byId('cwChip').innerHTML='PREVIEW ONLY &middot; <b>'+CATS.filter(function(c){return c.k===k})[0].l+' not equipped</b>';
+    byId('cwChip').innerHTML=(canEquip(k)
+      ? 'EQUIPPED &middot; <b>shows in game</b>'
+      : 'PREVIEW ONLY &middot; <b>'+CATS.filter(function(c){return c.k===k})[0].l+' not equipped</b>');
     byId('cwPName').textContent=it.name;
     byId('cwPDesc').textContent=it.desc;
     byId('cwPFrom').textContent=it.from;
@@ -1083,7 +1110,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
   function clearPreview(){
     sel={frames:null,titles:null,effects:null,filters:null};
-    var e0=find('frames',EQUIPPED);
+    var e0=find('frames',equippedFr());
     var pf0=byId('cwPrevFr');
     var au0='assets/frames/'+e0.id+'.webp';
     pf0.className='cwPrevFr cw-a-'+e0.id;
@@ -1096,8 +1123,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     var t=byId('cwPrevTitle'); t.innerHTML=''; t.className='cwPrevTitle';
     var p=byId('cwPrev'); p.className='cwPrev';
     // the panel describes whichever section is open, so Portraits names the face
-    var e = cat==='portraits' ? find('portraits',equippedAvId()) : find('frames',EQUIPPED);
-    byId('cwChip').innerHTML=(cat==='portraits'
+    var e = (canEquip(cat) ? find(cat,equippedIn(cat)) : null) || find('frames',equippedFr());
+    byId('cwChip').innerHTML=(canEquip(cat)
       ? 'EQUIPPED &middot; <b>shows in game</b>'
       : 'PREVIEW ONLY &middot; <b>not equipped</b>');
     byId('cwPName').textContent=e.name; byId('cwPDesc').textContent=e.desc; byId('cwPFrom').textContent=e.from;
@@ -1114,10 +1141,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     // it when you pick another), everywhere else it clears the preview
     byId('cwRemove').addEventListener('click',function(){
       var b=this;
-      if(cat==='portraits' && sel.portraits){
-        var s=sel.portraits;
+      if(canEquip(cat) && sel[cat]){
+        var s=sel[cat];
         // gate on ownership first: a locked item is a goal, not a freebie
-        if(!isOwned('portraits',s.id)){
+        if(!isOwned(cat,s.id)){
           // the shop route pays coins and unlocks. Missions and events unlock
           // through champGrant() when they are completed, and cannot be bought.
           if(s.price){
@@ -1127,8 +1154,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
               byId('cwPFrom').textContent=s.from;
               return;
             }
-            window.champGrant('portraits',s.id,'shop');
-            equipAv(s.id);
+            window.champGrant(cat,s.id,'shop');
+            equipIn(cat,s.id);
             b.textContent='Equipped'; b.classList.remove('buy','equip');
             byId('cwChip').innerHTML='BOUGHT &middot; <b>worn and saved</b>';
             renderGrid();
@@ -1139,8 +1166,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
           b.textContent='Locked';
           return;
         }
-        if(s.id!==equippedAvId()){
-          equipAv(s.id);
+        if(s.id!==equippedIn(cat)){
+          equipIn(cat,s.id);
           b.textContent='Equipped'; b.classList.remove('equip');
           byId('cwChip').innerHTML='EQUIPPED &middot; <b>shows in game</b>';
           renderGrid();
@@ -1342,7 +1369,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     return {displayName:'Guest',coins:0,gems:0,level:1,xp:0,wins:0,games:0,activity:[],
       // what the guest actually owns. champGrant() is the only thing that adds to
       // this, so an item can never be worn without a recorded source behind it.
-      owned:{portraits:['classic'],frames:['crystal'],titles:[],effects:[],filters:[]},
+      owned:{portraits:['classic'],frames:['crystal'],titles:['crystal'],effects:[],filters:[]},
       // what is actually worn - without this the player's choice was lost on reload
       equipped:{portraits:'classic',frames:'crystal'}};
   }
@@ -1359,6 +1386,13 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     else for(var c in d.owned){ if(!Array.isArray(s.owned[c])) s.owned[c]=d.owned[c].slice(); }
     if(!s.equipped||typeof s.equipped!=='object') s.equipped=d.equipped;
     else for(var e in d.equipped){ if(!s.equipped[e]) s.equipped[e]=d.equipped[e]; }
+    // the starter item of each category is always owned, even for a save that
+    // predates it, so a player can never end up unable to wear the default
+    var ALWAYS={portraits:['classic'],frames:['crystal'],titles:['crystal']};
+    for(var a in ALWAYS){
+      if(!Array.isArray(s.owned[a])) s.owned[a]=[];
+      ALWAYS[a].forEach(function(id){ if(s.owned[a].indexOf(id)<0) s.owned[a].push(id); });
+    }
     return s;
   }
   var champState=champLoad();
