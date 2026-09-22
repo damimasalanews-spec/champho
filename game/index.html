@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Champ Words</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="game">
+  <div id="bg"></div>
+
+  <header id="hud">
+    <div id="logo">
+      <span class="crown">👑</span>
+      <span class="l1">CHAMP</span>
+      <span class="l2">WORD</span>
+    </div>
+    <div class="pill mode-pill" id="modePill">CLASSIC</div>
+    <div class="hud-right">
+      <div class="pill" id="roundPill">ROUND 0/30</div>
+      <div class="pill" id="timerPill">⏱ 0:45</div>
+      <button class="icon-btn" id="soundBtn" title="Sound on/off">🔊</button>
+      <button class="icon-btn" id="musicBtn" title="Music on/off">🎼</button>
+      <div class="pill coin-pill"><span class="coin">🪙</span><span id="hudCoins">0</span></div>
+      <button class="icon-btn" id="homeBtn" title="Menu">🏠</button>
+    </div>
+  </header>
+
+  <div id="cards"></div>
+
+  <div id="parchment">
+    <div class="p-crown">👑</div>
+    <div class="p-title">CHAMP<br>WORDS</div>
+    <div id="pTheme" class="p-theme"></div>
+    <div id="pFound" class="p-found"></div>
+  </div>
+
+  <div id="sketchBoard" class="hidden">
+    <div class="board-3d">
+      <div class="board-frame">
+        <div class="board-face">
+          <svg id="sketchSvg" viewBox="0 0 240 200" preserveAspectRatio="xMidYMid meet"></svg>
+          <div id="sketchWord"></div>
+        </div>
+      </div>
+      <div class="board-hint">🎨 Guess what's being sketched</div>
+    </div>
+    <div id="sketchAnnounce"></div>
+  </div>
+
+  <div id="sideBtns">
+    <button class="side-btn" id="reactBtn" title="Send a reaction">😄</button>
+    <button class="side-btn" id="giftBtn" title="Claim gift">🎁</button>
+    <button class="side-btn" id="chatBtn" title="Toggle chat">💬</button>
+  </div>
+
+  <div id="bottomPanel">
+    <div id="slots"></div>
+    <div id="tiles"></div>
+    <div id="panelBtns">
+      <button class="btn btn-blue" id="shuffleBtn">🔀 SHUFFLE</button>
+      <button class="btn btn-green" id="submitBtn">✓ SUBMIT</button>
+    </div>
+  </div>
+
+  <aside id="chatPanel">
+    <div class="chat-head">
+      <span>LIVE CHAT</span>
+      <span class="chat-count">👥 4</span>
+    </div>
+    <div id="chatMsgs"></div>
+    <div class="chat-input">
+      <input id="chatText" type="text" maxlength="80" placeholder="Type a message..." autocomplete="off">
+      <button id="chatSend" title="Send">➤</button>
+    </div>
+  </aside>
+
+  <div id="emojiPicker" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
+  <div id="fx"></div>
+
+  <div class="overlay" id="menuOverlay">
+    <div class="menu-card">
+      <div class="menu-logo"><span class="crown">👑</span><br>CHAMP<br>WORDS</div>
+      <p class="menu-tag">Unscramble the letters before your rivals do!</p>
+      <ul class="menu-howto">
+        <li>Classic: tap letters to spell the hidden word, then SUBMIT.</li>
+        <li>Sketch: watch the drawing, arrange the letters, guess the word.</li>
+        <li>First correct answer ends the round — the next one starts straight away.</li>
+        <li>30 rounds of coin racing, then the final leaderboard pops up.</li>
+      </ul>
+      <button class="btn btn-green big" id="playBtn">▶ PLAY CLASSIC</button>
+      <button class="btn btn-blue big" id="sketchBtn">🎨 PLAY SKETCH</button>
+      <button class="btn btn-green big hidden" id="resumeBtn">RESUME</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="splashOverlay">
+    <div class="splash-card">
+      <div id="splashRound">ROUND 1/30</div>
+      <div id="splashTheme">Theme: Nature</div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="endOverlay">
+    <div class="menu-card leaderboard">
+      <div class="lb-crown">👑</div>
+      <div class="result-title" id="endTitle">🏆 Final results</div>
+      <div class="lb-sub" id="endSub"></div>
+      <div id="endBody" class="lb-body"></div>
+      <button class="btn btn-green big" id="againBtn">▶ PLAY AGAIN</button>
+      <button class="btn btn-blue big" id="menuBtn">🏠 MENU</button>
+    </div>
+  </div>
+
+</div>
+<script src="sketches.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
