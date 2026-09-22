@@ -25,10 +25,13 @@ jobs:
         run: |
           set -euo pipefail
 
+          # A deploy job that cannot deploy must not report green. Exiting 0 here
+          # made three consecutive pushes look successful while nothing reached
+          # Render at all.
           if [ -z "${RENDER_API_KEY:-}" ]; then
-            echo "::warning::RENDER_API_KEY is not set, so no Render deploy was triggered."
+            echo "::error::RENDER_API_KEY is not set, so no Render deploy was triggered."
             echo "Add it under Settings > Secrets and variables > Actions > Secrets."
-            exit 0
+            exit 1
           fi
 
           # Services on this repository that track main.
