@@ -388,17 +388,19 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwPrev{position:relative;width:min(92%,52vh);aspect-ratio:1/1;margin-bottom:5%}
 .cwPrevFrame{position:absolute;border-radius:26%;overflow:hidden;
   background:linear-gradient(180deg,#12395c,#06182b);
+  left:0;top:0;right:0;bottom:0;width:auto;height:auto;
+  background:none;box-shadow:none;border-radius:0;overflow:hidden;
+  -webkit-mask-image:var(--hm);mask-image:var(--hm);
+  -webkit-mask-size:100% 100%;mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* the portrait is cut to the ring's own opening via the --hm mask set in setGeom,
+   so it meets the band exactly on every frame instead of leaving a gap wherever
+   the opening is wider than the largest circle that fits inside it */
+.cwPrevFrame img{position:absolute;
   left:calc((var(--cx,.5) - var(--av,50)/200) * 100%);
   top:calc((var(--cy,.5) - var(--av,50)/200) * 100%);
   width:calc(var(--av,50) * 1%);height:calc(var(--av,50) * 1%);
-  box-shadow:inset 0 0 0 2px rgba(255,255,255,.14),inset 0 0 0 3px rgba(0,8,25,.5),
-             inset 0 0 14px rgba(0,6,18,.8)}
-/* the portrait fills the opening exactly. At 87% it left a visible bezel gap
-   between the face and the ring, which read as the avatar not being attached.
-   At 100% the face meets the band on every side and its corners tuck under it. */
-.cwPrevFrame img{position:absolute;left:50%;top:50%;width:100%;height:100%;
-  transform:translate(-50%,-50%);border-radius:26%;object-fit:cover;display:block;
-  transition:filter .25s ease}
+  border-radius:22%;object-fit:cover;display:block;transition:filter .25s ease}
 /* filters: colour grades */
 .cwFil-vivid  .cwPrevFrame img{filter:saturate(1.75) contrast(1.08)}
 .cwFil-noir   .cwPrevFrame img{filter:grayscale(1) contrast(1.22) brightness(.96)}
@@ -524,12 +526,14 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   -webkit-mask-image:var(--m);mask-image:var(--m);
   -webkit-mask-size:100% 100%;mask-size:100% 100%;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
-.cwGlow{background:radial-gradient(circle at 50% 50%,var(--gl,rgba(255,255,255,.5)),transparent 64%);
+/* these sit on top of the ring in screen blend, so their alpha is what keeps the
+   artwork's colour: at .5/0.95 they bleached every frame to white */
+.cwGlow{background:radial-gradient(circle at 50% 50%,var(--gl,rgba(255,255,255,.16)),transparent 58%);
   animation:cwPulse 2.4s ease-in-out infinite}
-.cwSheen{background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.95) 50%,transparent 60%);
+.cwSheen{background:linear-gradient(115deg,transparent 43%,rgba(255,255,255,.30) 50%,transparent 57%);
   background-size:260% 260%;animation:cwSweep 2.8s linear infinite}
 @keyframes cwSweep{from{background-position:230% 0}to{background-position:-130% 0}}
-@keyframes cwPulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes cwPulse{0%,100%{opacity:.30}50%{opacity:.62}}
 @keyframes cwBob{0%,100%{transform:translateY(-1.5%) scale(1)}50%{transform:translateY(1.5%) scale(1.015)}}
 @keyframes cwSway{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.4deg)}}
 @keyframes cwFlap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.95)}}
@@ -865,16 +869,19 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   // measured off each frame's own alpha: d = the largest circle that fits inside
   // the ring's opening, as a % of the tile; cx/cy = that circle's centre. The
   // portrait is cut to this circle, so it always sits inside the ring.
+  // d = a square box covering each ring's opening (measured off the artwork), not
+  // the inscribed circle: Aqua Crystal and Storm Arcs have squarish openings, so a
+  // circle left their corners empty and the portrait only fitted some frames
   var FG={
-    crystal:  {d:45.2, cx:0.497, cy:0.573},
-    royal:    {d:49.6, cx:0.497, cy:0.608},
-    emerald:  {d:48.7, cx:0.510, cy:0.549},
-    thorn:    {d:48.1, cx:0.497, cy:0.507},
-    silk:     {d:46.6, cx:0.497, cy:0.566},
-    pearl:    {d:45.9, cx:0.493, cy:0.514},
-    volt:     {d:40.9, cx:0.500, cy:0.510},
-    cosmos:   {d:56.9, cx:0.507, cy:0.503},
-    prism:    {d:48.9, cx:0.451, cy:0.556}
+    crystal:  {d:56.0, cx:0.495, cy:0.564},
+    royal:    {d:49.6, cx:0.495, cy:0.609},
+    emerald:  {d:55.2, cx:0.502, cy:0.552},
+    thorn:    {d:48.2, cx:0.498, cy:0.509},
+    silk:     {d:57.4, cx:0.498, cy:0.533},
+    pearl:    {d:45.7, cx:0.493, cy:0.514},
+    volt:     {d:53.5, cx:0.507, cy:0.519},
+    cosmos:   {d:56.3, cx:0.507, cy:0.505},
+    prism:    {d:51.7, cx:0.450, cy:0.557}
   };
 
   var cat='portraits';                    // active section (matches the active top tab)
@@ -1099,6 +1106,9 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     p.style.setProperty('--av',g.d);
     p.style.setProperty('--cx',g.cx);
     p.style.setProperty('--cy',g.cy);
+    // the ring's real opening as a mask: the portrait is cut to the true shape of
+    // each hole, so it fits all nine exactly instead of only the round ones
+    p.style.setProperty('--hm','url(assets/frames/'+id+'_hole.webp)');
   }
   window.__openChampPersonalize=function(){
     if(!AVATAR) grabAvatar();
