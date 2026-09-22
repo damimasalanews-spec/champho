@@ -12,7 +12,7 @@ import {
 } from "./engine.js";
 import { createRoom, getPrivateHand, joinRoom, markPlayerDisconnected, resumeRoom, type DisconnectHooks } from "./rooms.js";
 import { startScheduler, sweepExpiredTurns, type Scheduler } from "./scheduler.js";
-import { clampToWindow, planBotTurn } from "./bots.js";
+import { botAnswerDelayMs, clampToWindow, planBotTurn } from "./bots.js";
 import { enqueuePlayer, leaveQueue, runMatchmakingPass, type MatchResult } from "./matchmaking.js";
 import { serveStatic } from "./static.js";
 import { doodleFor } from "./doodles.js";
@@ -178,10 +178,11 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
   };
 
   /**
-   * An artist bot has no pointer, so it sketches the target word with the
-   * templates in doodles.ts (§8) — otherwise a bot turn showed an empty board
-   * that no solver could answer. Strokes are stored exactly like a human
-   * artist's, so `draw_sync` replays them to anyone who joins or reconnects.
+   * Whoever draws without a pointer — the house in the current game, or a bot
+   * artist — sketches the target word with the templates in doodles.ts (§8);
+   * otherwise the turn shows an empty board that no solver could answer. Strokes
+   * are stored exactly like a human artist's, so `draw_sync` replays them to
+   * anyone who joins or reconnects.
    */
   const scheduleBotDoodle = async (roomId: string, turnNumber: number) => {
     const room = await pool.query<{
@@ -197,7 +198,11 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
       [roomId]
     );
     const row = room.rows[0];
-    if (!row || row.is_bot !== true || !row.target_word) return;
+    // Draw unless a human owns the turn: `active_player_id === null` is the
+    // house, and a bot artist is equally pointerless. A human artist draws with
+    // their own pointer, so their board must be left alone.
+    const artistIsHuman = Boolean(row && row.active_player_id !== null && row.is_bot !== true);
+    if (!row || artistIsHuman || !row.target_word) return;
 
     const doodle = doodleFor(row.target_word);
     if (!doodle || doodle.length === 0) return;
@@ -263,7 +268,10 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     const timers: NodeJS.Timeout[] = [];
     for (const plan of plans) {
       if (plan.kind === "idle") continue;
-      const delay = clampToWindow(plan.decisionMs, remaining);
+      // A solver's answer is paced across the round (ANSWER_WINDOW_SHARE), so a
+      // human can beat it; idle/no-move plans keep the fixed §16 timings.
+      const delay =
+        plan.kind === "submit" ? botAnswerDelayMs(plan.personality, remaining) : clampToWindow(plan.decisionMs, remaining);
       const timer = setTimeout(() => {
         void (async () => {
           try {
@@ -401,9 +409,11 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
       if (ended.terminalState === "no_valid_move") {
         telemetry("no_valid_move", { roomId, turnNumber: ended.turnNumber });
       }
-      if (ended.nextActivePlayerId !== null) {
-        await announceTurn(roomId, ended.turnNumber + 1);
-        await scheduleBots(roomId, ended.turnNumber + 1);
+      // `nextActivePlayerId` is null now that the house draws every turn, so the
+      // signal that the room plays on is the turn the transition already wrote.
+      if (ended.nextTurnNumber !== null) {
+        await announceTurn(roomId, ended.nextTurnNumber);
+        await scheduleBots(roomId, ended.nextTurnNumber);
       }
     }
 

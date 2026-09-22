@@ -453,10 +453,10 @@ test("solve window accepts a second solver before the deadline and then transiti
     );
     assert.equal(Number(room.rows[0].round_number), 2);
     assert.equal(room.rows[0].phase, "playing");
-    // §14: the turn rotates deterministically clockwise instead of always
-    // returning the next turn to the lowest seat.
-    // The artist sits at seat 2, so the clockwise succession lands on seat 0.
-    assert.equal(room.rows[0].active_player_id, playerId, "the turn passes to the next seat clockwise");
+    // The house draws every turn, so the successor turn belongs to no seat: the
+    // artist here was a seeded player, and even that play is followed by a house
+    // turn rather than being handed on to the next seat.
+    assert.equal(room.rows[0].active_player_id, null, "the next turn is another house drawing");
     assert.equal(room.rows[0].first_solver_id, null);
   } finally {
     if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);

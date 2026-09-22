@@ -12,10 +12,30 @@ import {
   type RoomEvent,
   type RoomSnapshot
 } from "./rooms.js";
-import { canSpell, pickTargetWord, selectCardsForWord, shouldGuaranteeSolution } from "./words.js";
+import { canSpell, pickHouseWord, selectCardsForWord, shouldGuaranteeSolution } from "./words.js";
 import { telemetry } from "./telemetry.js";
 
-/** §15: every turn has a three-second window. */
+/**
+ * How long players get to answer the house's drawing.
+ *
+ * This is a guessing game, not a reflex game: the sketch takes about a second to
+ * appear, so a three-second window would leave no time to look at it AND spell a
+ * five-letter word out of a fourteen-card hand.
+ */
+export const ROUND_WINDOW_MS = 12_000;
+
+/**
+ * A correct answer wraps the round up on its own (§13/§18 turned around): the
+ * winner is decided the moment someone lands the word, and this short beat is
+ * what is left for the reveal before the next drawing starts.
+ */
+export const POST_SOLVE_REVEAL_MS = 1_200;
+
+/**
+ * §15's three-second window, kept as the derived deadline for rooms seeded
+ * outside `writeTurn` (diagnostic rooms, fixtures). Played turns use
+ * `ROUND_WINDOW_MS`.
+ */
 export const SOLVE_WINDOW_MS = 3000;
 
 /** §10: every player always holds fourteen letter cards. */
@@ -54,7 +74,10 @@ export type TurnEnded = {
   terminalState: TerminalState;
   firstSolverId: string | null;
   word: string | null;
+  /** Always null: the house draws every turn, so no seat inherits one. */
   nextActivePlayerId: string | null;
+  /** The turn that has already been written, or null when the room is done. */
+  nextTurnNumber: number | null;
   nextTurnDeadlineAt: string | null;
 };
 
@@ -186,13 +209,17 @@ function dealForTurn(hand: Card[], word: string, guaranteeSolution: boolean): { 
 type TurnStartOptions = {
   turnNumber: number;
   roundNumber: number;
-  activePlayerId: string;
+  /**
+   * The seat whose job is to draw this turn, or **null when the house draws** —
+   * which is the game: the server sketches, everybody else guesses.
+   */
+  artistPlayerId: string | null;
   targetWord: string;
   now: Date;
 };
 
 /**
- * Write one fresh turn: the clock, the target, the active seat, and the hands.
+ * Write one fresh turn: the clock, the target, the artist, and the hands.
  * Caller must already hold the room row lock and be inside a transaction.
  */
 async function writeTurn(
@@ -200,8 +227,8 @@ async function writeTurn(
   roomId: string,
   options: TurnStartOptions
 ): Promise<{ events: RoomEvent[]; handChanges: Map<string, { hand: Card[]; handVersion: number }> }> {
-  const { turnNumber, roundNumber, activePlayerId, targetWord, now } = options;
-  const deadline = new Date(now.getTime() + SOLVE_WINDOW_MS);
+  const { turnNumber, roundNumber, artistPlayerId, targetWord, now } = options;
+  const deadline = new Date(now.getTime() + ROUND_WINDOW_MS);
 
   const players = await client.query(
     `SELECT player_id,seat_number,private_hand,hand_version,is_bot,bot_personality
@@ -243,11 +270,16 @@ async function writeTurn(
     }
   }
 
-  // Now exactly one 'active' row exists again.
-  await client.query(`UPDATE public.room_players SET turn_state='active' WHERE room_id=$1 AND player_id=$2`, [
-    roomId,
-    activePlayerId
-  ]);
+  // Now exactly one 'active' row exists again — or none at all, when the house
+  // draws. `room_players_one_active_idx` permits zero active rows, and both
+  // `active_player_id` and `artist_id` are nullable, so the house needs no seat
+  // of its own and no synthetic player has to be invented for it.
+  if (artistPlayerId) {
+    await client.query(`UPDATE public.room_players SET turn_state='active' WHERE room_id=$1 AND player_id=$2`, [
+      roomId,
+      artistPlayerId
+    ]);
+  }
 
   await client.query(
     `UPDATE public.game_rooms
@@ -257,12 +289,12 @@ async function writeTurn(
          first_solver_id=NULL,solved_at=NULL,solve_window_ends_at=NULL,
          updated_at=clock_timestamp()
      WHERE id=$1`,
-    [roomId, roundNumber, turnNumber, activePlayerId, targetWord, now, deadline]
+    [roomId, roundNumber, turnNumber, artistPlayerId, targetWord, now, deadline]
   );
 
   const event = await appendEvent(client, roomId, roundNumber, "turn_started", {
     turnNumber,
-    activePlayerId,
+    activePlayerId: artistPlayerId,
     targetWordLength: targetWord.length,
     turnDeadlineAt: deadline.toISOString()
   });
@@ -270,32 +302,12 @@ async function writeTurn(
   return { events: [event], handChanges };
 }
 
-/** Deterministic clockwise rotation over connected seats (§14). */
-function nextSeat(
-  players: Array<{ playerId: string; seatNumber: number; connected: boolean }>,
-  currentActiveId: string | null
-): string | null {
-  if (players.length === 0) return null;
-  const ordered = [...players].sort((a, b) => a.seatNumber - b.seatNumber);
-  const currentIndex = ordered.findIndex((p) => p.playerId === currentActiveId);
-  const start = currentIndex < 0 ? -1 : currentIndex;
-
-  for (let step = 1; step <= ordered.length; step += 1) {
-    const candidate = ordered[(start + step + ordered.length) % ordered.length];
-    if (candidate && candidate.connected) return candidate.playerId;
-  }
-  // Everyone appears disconnected: still advance deterministically so the game
-  // can never wedge (§18: "must never hang").
-  const fallbackIndex = (start + 1 + ordered.length) % ordered.length;
-  return ordered[fallbackIndex]?.playerId ?? null;
-}
-
 export async function beginFirstTurn(roomId: string): Promise<{ snapshot: RoomSnapshot; events: RoomEvent[] } | null> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     const room = await client.query(
-      `SELECT id,state,phase,round_number,turn_number FROM public.game_rooms WHERE id=$1 FOR UPDATE`,
+      `SELECT id,state,phase,round_number,turn_number,target_word FROM public.game_rooms WHERE id=$1 FOR UPDATE`,
       [roomId]
     );
     if (room.rowCount !== 1) throw new Error("room_not_found");
@@ -315,21 +327,22 @@ export async function beginFirstTurn(roomId: string): Promise<{ snapshot: RoomSn
       return null;
     }
 
-    const first = players.rows[0] as { player_id: string; is_bot: boolean; bot_personality: BotPersonality | null };
-    const personality = first.is_bot ? first.bot_personality ?? "normal" : "normal";
     const now = new Date();
+    const previousWord = typeof room.rows[0].target_word === "string" ? room.rows[0].target_word : null;
 
     const { events } = await writeTurn(client, roomId, {
       turnNumber: Number(room.rows[0].turn_number) + 1,
       roundNumber: Number(room.rows[0].round_number),
-      activePlayerId: first.player_id,
-      targetWord: pickTargetWord(personality, Math.random, { drawableOnly: first.is_bot }),
+      // The house draws. Nobody at the table is the artist, so nobody is
+      // withheld from solving.
+      artistPlayerId: null,
+      targetWord: pickHouseWord(Math.random, previousWord),
       now
     });
 
     const snapshot = await readSnapshot(client, roomId);
     await client.query("COMMIT");
-    telemetry("turn_started", { roomId, turnNumber: snapshot.turnNumber, activePlayerId: first.player_id });
+    telemetry("turn_started", { roomId, turnNumber: snapshot.turnNumber, artist: "house" });
     return { snapshot, events };
   } catch (error) {
     await client.query("ROLLBACK");
@@ -590,19 +603,27 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
       });
 
       // First solve opens the window; §22 keeps firstSolverId immutable after.
+      //
+      // The round is then wrapped up on its own: the window closes
+      // POST_SOLVE_REVEAL_MS after the winning answer rather than running to the
+      // full ROUND_WINDOW_MS, so a correct guess is what starts the next round
+      // instead of the clock. `least()` keeps that from ever *extending* a turn
+      // that was already nearly out.
       if (r.phase === "playing" && !r.first_solver_id) {
+        const revealAt = new Date(Math.min(deadline.getTime(), now.getTime() + POST_SOLVE_REVEAL_MS));
         await client.query(
           `UPDATE public.game_rooms
            SET first_solver_id=$2::uuid, solved_at=$3, solve_window_ends_at=$4, phase='solve_window',
                updated_at=clock_timestamp()
            WHERE id=$1`,
-          [input.roomId, playerId, now, deadline]
+          [input.roomId, playerId, now, revealAt]
         );
         submissionResult.phase = "solve_window";
       }
 
-      // A scored solve is NOT terminal: the turn stays open until its deadline
-      // so other players can still answer (§13). Only the close is terminal.
+      // A scored solve is still NOT terminal by itself; it is the sweeper that
+      // closes the turn at `solve_window_ends_at` — which is now just over a
+      // second away, so the next round follows the answer immediately.
       await client.query(
         `INSERT INTO public.turn_actions(room_id,turn_number,action_id,kind,player_id,status,reason,result)
          VALUES($1,$2,$3,'submit',$4,'accepted','accepted',$5::jsonb)`,
@@ -746,19 +767,15 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
     ).catch(() => undefined);
 
     // ---- Advance exactly once. -----------------------------------------
+    // The house draws every turn, so there is no artist to rotate to: a room
+    // keeps playing for as long as it has any players left, and each close hands
+    // out a brand-new drawing. That is what makes the round self-propelling —
+    // nothing has to be clicked for the next one to begin.
     const players = await client.query(
-      `SELECT player_id,seat_number,connected,is_bot,bot_personality FROM public.room_players
-       WHERE room_id=$1 ORDER BY seat_number`,
+      `SELECT player_id FROM public.room_players WHERE room_id=$1`,
       [input.roomId]
     );
-    const nextActiveId = nextSeat(
-      players.rows.map((row) => ({
-        playerId: row.player_id as string,
-        seatNumber: Number(row.seat_number),
-        connected: Boolean(row.connected)
-      })),
-      r.active_player_id as string | null
-    );
+    const hasNextTurn = (players.rowCount ?? 0) > 0;
 
     const nextTurnNumber = endedTurnNumber + 1;
     const nextRoundNumber = endedRoundNumber + 1; // round tracks turn: keeps the
@@ -767,21 +784,16 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
     let nextDeadlineAt: string | null = null;
     let turnEvents: RoomEvent[] = [];
 
-    if (nextActiveId) {
-      const nextPlayer = players.rows.find((row) => row.player_id === nextActiveId) as
-        | { is_bot: boolean; bot_personality: BotPersonality | null }
-        | undefined;
-      const personality = nextPlayer?.is_bot ? nextPlayer.bot_personality ?? "normal" : "normal";
-
+    if (hasNextTurn) {
       const written = await writeTurn(client, input.roomId, {
         turnNumber: nextTurnNumber,
         roundNumber: nextRoundNumber,
-        activePlayerId: nextActiveId,
-        targetWord: pickTargetWord(personality, Math.random, { drawableOnly: Boolean(nextPlayer?.is_bot) }),
+        artistPlayerId: null,
+        targetWord: pickHouseWord(Math.random, endedWord),
         now
       });
       turnEvents = written.events;
-      nextDeadlineAt = new Date(now.getTime() + SOLVE_WINDOW_MS).toISOString();
+      nextDeadlineAt = new Date(now.getTime() + ROUND_WINDOW_MS).toISOString();
     } else {
       await client.query(
         `UPDATE public.game_rooms SET state='finished',phase='finished',updated_at=clock_timestamp() WHERE id=$1`,
@@ -797,7 +809,7 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
     });
 
     // A full lap of the table is one round (§47 observability).
-    const roundComplete = nextActiveId !== null && endedTurnNumber % TURNS_PER_ROUND === 0;
+    const roundComplete = hasNextTurn && endedTurnNumber % TURNS_PER_ROUND === 0;
     let roundCompleted: RoomEvent | null = null;
     if (roundComplete) {
       const solvers = await client.query(
@@ -818,8 +830,8 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
       turnNumber: endedTurnNumber,
       terminalState: terminal,
       firstSolverId,
-      nextTurnNumber,
-      nextActivePlayerId: nextActiveId
+      nextTurnNumber: hasNextTurn ? nextTurnNumber : null,
+      artist: "house"
     });
 
     return {
@@ -838,7 +850,11 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
         terminalState: terminal,
         firstSolverId,
         word: endedWord,
-        nextActivePlayerId: nextActiveId,
+        // No seat owns the next turn any more — the house draws all of them. The
+        // field is kept (always null) so the message shape stays stable, and
+        // `nextTurnNumber` is what tells a listener whether the room plays on.
+        nextActivePlayerId: null,
+        nextTurnNumber: hasNextTurn ? nextTurnNumber : null,
         nextTurnDeadlineAt: nextDeadlineAt
       }
     };

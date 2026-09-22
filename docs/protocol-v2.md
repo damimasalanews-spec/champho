@@ -56,7 +56,7 @@ S→C room_snapshot {
       state:  "waiting"|"active"|"finished",
       phase:  "waiting"|"playing"|"solve_window"|"turn_end"|"round_end"|"finished",
       roundNumber, turnNumber,
-      activePlayerId: string|null,      // the artist for this turn
+      activePlayerId: string|null,      // the artist for this turn; null = the house draws
       firstSolverId:  string|null,      // immutable once set (§22)
       solvedAt: string|null,
       solveWindowEndsAt: string|null,
@@ -87,19 +87,38 @@ S→C hand_sync { type:"hand_sync", roomId, roundNumber, handVersion, hand:[{car
 
 ## 5. Turn lifecycle
 
+**The house draws (changed 2026-09-22).** Every turn belongs to the game, not to a seat:
+`activePlayerId` and `artistId` are **null**, no `room_players` row holds
+`turn_state='active'`, and the server publishes the sketch itself. Nobody is the artist, so
+nobody is excluded from solving — `activePlayerId === playerId` is not a state a client can
+be in any more, and the client renders every turn as "guess the drawing". The per-word
+templates the house draws from live in `server/doodles.ts`; the target word is always one
+of them.
+
+Two timings follow from that:
+
+- `turnDeadlineAt = serverNow + ROUND_WINDOW_MS` (12s) — how long the guessers get. The
+  window is theirs, so a bot's answer is paced as a *share* of it (see
+  `ANSWER_WINDOW_SHARE` in `server/bots.ts`) instead of the fixed §16 milliseconds, which
+  would have let a bot answer before a human had looked at the sketch.
+- a correct answer is what ends the round: the first solve sets
+  `solveWindowEndsAt = min(turnDeadlineAt, now + POST_SOLVE_REVEAL_MS)` (1.2s). The
+  server-owned sweeper closes the turn there and **writes the next turn in the same
+  transaction**, so the next round starts on its own — no client action, no waiting for the
+  clock. §13's "the turn stays open so others may also answer" therefore lasts that beat.
+
 ```
 S→C turn_started {
       type:"turn_started", roomId, roundNumber, turnNumber,
-      artistId,                       // = activePlayerId
-      targetWord,                     // ONLY to the artist's socket
+      artistId,                       // = activePlayerId; null — the house draws
+      targetWord,                     // ONLY to the artist's socket (nobody, in this mode)
       targetWordLength,               // public
       turnDeadlineAt,                 // server clock, absolute
       solveWindowEndsAt: null         // set when the first solve lands
     }
 ```
 
-The server sets `turnDeadlineAt = serverNow + 3000ms` (§15). The client displays it and
-never extends it.
+The client displays `turnDeadlineAt` and never extends it.
 
 ```
 C→S  submit_word { requestId, sessionToken, roomId, roundNumber, turnNumber, cards:[cardId], word }
@@ -119,8 +138,9 @@ S→C turn_ended {
       terminalState: "solved"|"timed_out"|"no_valid_move",
       firstSolverId: string|null,
       word: string|null,              // revealed after the turn closes
-      nextActivePlayerId: string,
-      nextTurnDeadlineAt: string
+      nextActivePlayerId: null,       // no seat inherits a turn; the house draws the next
+      nextTurnNumber: number|null,    // the turn already written, or null when the room is done
+      nextTurnDeadlineAt: string|null
     }
 ```
 
