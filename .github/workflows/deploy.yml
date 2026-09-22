@@ -1,0 +1,59 @@
+name: Deploy to Render
+
+# This repo's Render services are configured with autoDeploy=yes, but pushes to
+# main have not been triggering builds (verified across three consecutive
+# pushes). This workflow restores that behaviour by calling Render's deploy API
+# directly from Actions, so it does not depend on the GitHub -> Render webhook.
+#
+# Setup (one time): add a repository secret named RENDER_API_KEY
+#   GitHub -> Settings -> Secrets and variables -> Actions -> New repository secret
+#   Value: a Render API key (Render dashboard -> Account Settings -> API Keys)
+# Until that secret exists this workflow runs and skips cleanly - it will not fail.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RENDER_API_KEY:-}" ]; then
+            echo "::warning::RENDER_API_KEY is not set, so no Render deploy was triggered."
+            echo "Add it under Settings > Secrets and variables > Actions > Secrets."
+            exit 0
+          fi
+
+          # Services on this repository that track main.
+          # champword-backend is already included but commented out below -
+          # uncomment it if you want pushes to redeploy the backend too.
+          SERVICES="
+            srv-dameb4e7bikc73bas330
+          "
+          # srv-danunq6k1f9s73a1m69g
+
+          failed=0
+          for id in $SERVICES; do
+            echo "Triggering deploy for $id"
+            code=$(curl -sS -o /tmp/render-resp.json -w '%{http_code}' \
+              -X POST "https://api.render.com/v1/services/${id}/deploys" \
+              -H "Authorization: Bearer ${RENDER_API_KEY}" \
+              -H "Content-Type: application/json" \
+              -d '{"clearCache":"do_not_clear"}')
+
+            echo "HTTP ${code}: $(cat /tmp/render-resp.json)"
+
+            if [ "${code}" != "201" ] && [ "${code}" != "200" ]; then
+              echo "::error::Render deploy trigger for ${id} failed with HTTP ${code}"
+              failed=1
+            fi
+          done
+
+          exit "${failed}"
