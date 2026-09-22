@@ -745,7 +745,22 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
    on the dark seat bezel, so the tile and the preview read as the same object */
 /* portraits are square faces, so they take four columns and three rows instead of
    the frames' three - that keeps every portrait at a usable size without scrolling */
+/* mission tiles carry a progress bar, so they are wider than a cosmetic tile */
 .cwGrid.cw4{grid-template-columns:repeat(4,1fr)}
+.cwMsn{position:absolute;inset:0;display:flex;flex-direction:column;gap:.18em;
+  padding:.5em .6em;border-radius:inherit;overflow:hidden;
+  background:linear-gradient(180deg,#12395c,#082035);color:#eaf6ff}
+.cwMsn b{font-size:clamp(8px,1.5vh,17px);font-weight:900;color:#fff}
+.cwMsnD{font-size:clamp(7px,1.2vh,13px);opacity:.8;font-weight:700}
+.cwMsnBar{margin-top:auto;display:block;height:.55em;border-radius:.3em;
+  background:rgba(0,10,30,.6);overflow:hidden}
+.cwMsnBar i{display:block;height:100%;border-radius:.3em;
+  background:linear-gradient(90deg,#4fd07a,#a8f06a)}
+.cwMsnP{font-size:clamp(7px,1.2vh,13px);font-weight:900;color:#bdf3c4}
+.cwMsnR{font-size:clamp(6.5px,1.1vh,12px);font-weight:900;color:#ffd45e}
+.cwTile.ready{box-shadow:0 0 0 2px rgba(120,255,150,.85),0 0 14px rgba(60,220,120,.55)}
+.cwTile.done{opacity:.62}
+.cwTile.done .cwMsnR{color:#9fe0a8}
 .cwAvTile{position:absolute;inset:0;border-radius:inherit;overflow:hidden;
   background:linear-gradient(180deg,#12395c,#06182b);
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.14),inset 0 0 0 3px rgba(0,8,25,.5),
@@ -827,7 +842,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     {k:'frames', l:'Frames',  sw:'radial-gradient(circle at 50% 34%,#d8faff,#28a8d0 60%,#0b4f74)'},
     {k:'titles', l:'Titles',  sw:'linear-gradient(180deg,#ffe888,#e79c0c)'},
     {k:'effects',l:'Effects', sw:'radial-gradient(circle at 50% 118%,#ffb02a,rgba(255,60,0,.5) 45%,#123d66)'},
-    {k:'filters',l:'Filters', sw:'conic-gradient(#ff4d6d,#ffd93d,#4dd4ff,#b06cf0,#ff4d6d)'}
+    {k:'filters',l:'Filters', sw:'conic-gradient(#ff4d6d,#ffd93d,#4dd4ff,#b06cf0,#ff4d6d)'},
+    {k:'missions',l:'Missions',sw:'radial-gradient(circle at 50% 36%,#d6ffe4,#2fbf62 62%,#0d5c2c)'}
   ];
 
   var D={
@@ -919,6 +935,34 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var EQUIPPED_AV='classic';                          // which portrait shows in game
   // the worn portrait lives in the saved profile, so it survives a reload instead
   // of silently reverting to the free one
+  /* Missions are one of the three ways a locked cosmetic is earned, alongside
+     events and the shop. Progress comes from the saved guest state, and claiming
+     calls champGrant() - the only function allowed to add to owned. */
+  D.missions=[
+    {id:'first_win', name:'First Blood', desc:'Win a round',       metric:'wins',  goal:1,     cat:'portraits', item:'knight',  from:'Mission reward'},
+    {id:'warm_up',   name:'Warm Up',     desc:'Play 3 rounds',     metric:'games', goal:3,     cat:'frames',    item:'royal',   from:'Mission reward'},
+    {id:'sharpen',   name:'Sharpen Up',  desc:'Win 5 rounds',      metric:'wins',  goal:5,     cat:'titles',    item:'royal',   from:'Mission reward'},
+    {id:'regular',   name:'Regular',     desc:'Play 10 rounds',    metric:'games', goal:10,    cat:'portraits', item:'ninja',   from:'Mission reward'},
+    {id:'veteran',   name:'Veteran',     desc:'Win 15 rounds',     metric:'wins',  goal:15,    cat:'portraits', item:'genie',   from:'Mission reward'},
+    {id:'banker',    name:'Coin Banker', desc:'Bank 20,000 coins', metric:'coins', goal:20000, cat:'frames',    item:'emerald', from:'Mission reward'}
+  ];
+  function missionHave(m){
+    var st=(typeof window.champGetState==='function') ? window.champGetState() : null;
+    if(!st) return 0;
+    if(m.metric==='coins') return Number(st.coins)||0;
+    if(m.metric==='wins')  return Number(st.wins)||0;
+    if(m.metric==='games') return Number(st.games)||0;
+    return 0;
+  }
+  function claimMission(m){
+    var chip=byId('cwChip');
+    if(isOwned(m.cat,m.item)){ chip.innerHTML='ALREADY CLAIMED &middot; <b>'+m.name+'</b>'; return; }
+    if(missionHave(m)<m.goal){ chip.innerHTML='IN PROGRESS &middot; <b>'+m.name+'</b>'; return; }
+    if(typeof window.champGrant==='function') window.champGrant(m.cat,m.item,'mission');
+    chip.innerHTML='CLAIMED &middot; <b>'+m.item+' '+m.cat+' unlocked</b>';
+    renderGrid();
+  }
+
   function equippedAvId(){
     if(typeof window.champGetEquipped==='function'){
       var v=window.champGetEquipped('portraits');
@@ -1028,6 +1072,15 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         t.innerHTML='<div class="cwTl"><img class="cwTitleImg" src="assets/titles/'+it.id+'.webp" alt="">'
           +'<b class="cwTxt">'+it.txt+'</b></div>';
         t.classList.add('cw-tl-'+it.cls);
+      } else if(cat==='missions'){
+        var have=missionHave(it), done=have>=it.goal, got=isOwned(it.cat,it.item);
+        var pct=Math.min(100,Math.round(have/it.goal*100));
+        t.innerHTML='<div class="cwMsn"><b>'+it.name+'</b>'
+          +'<span class="cwMsnD">'+it.desc+'</span>'
+          +'<span class="cwMsnBar"><i style="width:'+pct+'%"></i></span>'
+          +'<span class="cwMsnP">'+Math.min(have,it.goal).toLocaleString('en-US')+' / '+it.goal.toLocaleString('en-US')+'</span>'
+          +'<span class="cwMsnR">'+(got?'CLAIMED':(done?'READY TO CLAIM':'Reward: '+it.item+' '+it.cat))+'</span></div>';
+        if(got) t.classList.add('done'); else if(done) t.classList.add('ready');
       } else if(cat==='portraits'){
         t.innerHTML='<div class="cwAvTile"><img src="assets/avatars/'+it.id+'.webp" alt=""></div>'
           +'<span class="cwAvName">'+it.name+'</span>';
@@ -1051,7 +1104,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         t.insertAdjacentHTML('beforeend','<span class="cwLock">'+padlock+'<s>1</s>'+hourglass+'</span>');
       }
       if(sel[cat] && sel[cat].id===it.id && !(cat==='frames'&&it.id===equippedFr())) t.classList.add('preview');
-      t.addEventListener('click',function(){ preview(cat,it); });
+      t.addEventListener('click',function(){
+        if(cat==='missions'){ claimMission(it); return; }   // missions are claimed, not previewed
+        preview(cat,it);
+      });
       g.appendChild(t);
     });
     syncAction();
