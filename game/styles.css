@@ -362,7 +362,7 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 /* the title art is a square whose banner sits in the middle band, so this is a
    wide, short window onto that band rather than the whole square - it reads as a
    plaque and never covers the portrait */
-.atitle{position:relative;width:104%;height:calc(var(--seat)*.34);object-fit:cover;
-  object-position:50% 52%;pointer-events:none;margin-top:calc(var(--seat)*-.04);
+.atitle{position:relative;width:calc(var(--seat)*1.04);height:auto;aspect-ratio:1.45;object-fit:contain;
+  pointer-events:none;margin-top:calc(var(--seat)*-.02);
   filter:drop-shadow(0 calc(var(--seat)*.025) calc(var(--seat)*.04) rgba(0,0,0,.55))}
 

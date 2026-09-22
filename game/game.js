@@ -413,7 +413,7 @@ function renderCards() {
       '<span class="nname">' + p.name + '</span></div>' +
       '<div class="racebar"><i></i></div>' +
       '<div class="pcoins">🪙 <span class="pcoinval">' + p.coins + '</span></div>' +
-      '<button class="emote-btn" data-i="' + i + '">😄 ▾</button>' +
+      (p.you ? '<button class="emote-btn" data-i="' + i + '">😄 ▾</button>' : '') +
       '</div>';
     wrap.appendChild(card);
   });
