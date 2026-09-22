@@ -83,8 +83,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .swatch,.clearBtn{pointer-events:auto;border-radius:10px;border:1px solid rgba(99,220,255,.6);
   background:rgba(3,34,53,.85);color:#fff;font-weight:900;font-size:13px;padding:6px 10px;cursor:pointer}
 .swatch.on{outline:2px solid #ffe44d}
+/* Nobody draws by hand any more, so the swatches are hidden and the timer is
+   the only thing left in this row — keep it pinned to the board's right edge. */
 .timer{font-variant-numeric:tabular-nums;font-weight:900;font-size:16px;padding:5px 12px;
-  border-radius:10px;background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
+  margin-left:auto;border-radius:10px;background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
 .timer.urgent{background:rgba(120,20,20,.9);border-color:#ff6b6b;color:#ffd9d9}
 
 /* --- reveal banner -------------------------------------------------------- */
@@ -382,9 +384,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       $("reveal").innerHTML = 'DRAW THIS: <span style="color:#ffe44d">' + state.targetWord.toUpperCase() + "</span>";
       $("boardHint").textContent = "You are the artist — draw it. You cannot solve your own drawing.";
     } else if (snap && snap.targetWordLength) {
+      // The house draws every round, so this is the state every player is
+      // always in: nobody is the artist, everybody can answer.
       const blanks = Array.from({ length: snap.targetWordLength }, () => "_").join(" ");
       $("reveal").innerHTML = 'GUESS THE DRAWING: <span class="blanks">' + blanks + "</span>";
-      $("boardHint").textContent = "Pick letters from your hand to spell the answer.";
+      $("boardHint").textContent = "The house drew this — pick letters from your hand to spell it.";
     } else {
       $("reveal").textContent = "Waiting for the first turn…";
       $("boardHint").textContent = "Waiting for a turn…";
@@ -575,7 +579,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         }
         renderPlayers();
         renderTurn();
-        setStatus(msg.activePlayerId === state.playerId ? "Your turn to draw!" : "Someone is drawing…");
+        setStatus(
+          msg.activePlayerId === null
+            ? "The house is drawing — guess the word"
+            : msg.activePlayerId === state.playerId ? "Your turn to draw!" : "Someone is drawing…"
+        );
         break;
 
       case "word_reveal":
@@ -718,15 +726,16 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     state.snapshot = {
       type: "room_snapshot", roomId: "demo-room", eventSequence: 1,
       state: "active", phase: "playing", roundNumber: 1, turnNumber: 7,
-      activePlayerId: "me", firstSolverId: null, solvedAt: null, solveWindowEndsAt: null,
-      turnStartedAt: new Date(Date.now() - 800).toISOString(),
-      turnDeadlineAt: new Date(Date.now() + 2200).toISOString(),
+      // The house draws, so no seat is the artist and nobody is handed the word.
+      activePlayerId: null, firstSolverId: null, solvedAt: null, solveWindowEndsAt: null,
+      turnStartedAt: new Date(Date.now() - 2600).toISOString(),
+      turnDeadlineAt: new Date(Date.now() + 9400).toISOString(),
       targetWordLength: 7,
       players: [mk("me", "You", 1450, false), mk("b1", "Aiko", 1240, true), mk("b2", "Kai", 980, true), mk("b3", "Mina", 1320, true)],
       serverTime: new Date().toISOString()
     };
     state.deadline = new Date(state.snapshot.turnDeadlineAt).getTime();
-    state.targetWord = "lantern";
+    state.targetWord = null;   // only an artist is told the word, and there isn't one
     state.turnNumber = 7;
     // Exactly 14 cards: the 7 letters of "lantern" plus 7 filler letters.
     state.hand = "LANTERNXQZMKPY".split("").map((ch, i) => ({ cardId: "c" + i, value: ch.toLowerCase() }));

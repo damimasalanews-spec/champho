@@ -152,13 +152,41 @@ export async function planBotTurn(
 }
 
 /**
- * §16: "Bots must never intentionally submit after the 3-second solve window
- * when they have a valid move." Nudge the decision inside the deadline if the
- * sampled delay would land outside it.
+ * §16: "Bots must never intentionally submit after the solve window when they
+ * have a valid move." Nudge the decision inside the deadline if the sampled
+ * delay would land outside it.
  */
 export function clampToWindow(decisionMs: number, windowRemainingMs: number): number {
   if (windowRemainingMs <= 0) return 0;
   return Math.max(0, Math.min(decisionMs, windowRemainingMs - 50));
+}
+
+/**
+ * A SOLVER's answer time, expressed as a share of the round's window rather than
+ * as fixed milliseconds.
+ *
+ * The whole window now belongs to the guessers (the house draws, see
+ * ROUND_WINDOW_MS), so absolute timings no longer make sense: an aggressive bot
+ * answering 350ms after the turn began would win every round before the human
+ * had finished looking at the sketch. Answering as a share of the window keeps
+ * the bots beatable, and the spread IS the difficulty ramp — an easy bot only
+ * answers near the end (and often cannot answer at all), while an aggressive one
+ * punishes a slow guess.
+ */
+export const ANSWER_WINDOW_SHARE: Record<BotPersonality, [number, number]> = {
+  easy: [0.65, 0.95],
+  normal: [0.45, 0.75],
+  aggressive: [0.28, 0.55]
+};
+
+export function botAnswerDelayMs(
+  personality: BotPersonality,
+  windowRemainingMs: number,
+  random: () => number = Math.random
+): number {
+  const [low, high] = ANSWER_WINDOW_SHARE[personality];
+  const share = low + random() * (high - low);
+  return clampToWindow(Math.round(windowRemainingMs * share), windowRemainingMs);
 }
 
 /** True when the bot genuinely cannot answer — used by tests and by §17. */

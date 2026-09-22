@@ -3,10 +3,19 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { pool } from "../db.js";
 import { runMigrations } from "../migrations.js";
-import { beginFirstTurn, closeTurn, transition, SOLVE_WINDOW_MS, type TransitionOutcome } from "../engine.js";
+import {
+  beginFirstTurn,
+  closeTurn,
+  transition,
+  POST_SOLVE_REVEAL_MS,
+  ROUND_WINDOW_MS,
+  SOLVE_WINDOW_MS,
+  type TransitionOutcome
+} from "../engine.js";
 import { sweepExpiredTurns } from "../scheduler.js";
 import { BOT_TIMING, randomDelayInRange, clampToWindow, botHasValidMove } from "../bots.js";
 import { canSpell, selectCardsForWord } from "../words.js";
+import { isDrawable } from "../doodles.js";
 import { ensureHandCanSpell } from "../engine.js";
 
 before(async () => {
@@ -75,7 +84,8 @@ async function forceDeadlinePast(roomId: string, offsetMs = -500): Promise<void>
 
 async function readRoom(roomId: string) {
   const result = await pool.query(
-    `SELECT turn_number,round_number,phase,active_player_id,first_solver_id,solve_window_ends_at,turn_deadline_at,target_word,state
+    `SELECT turn_number,round_number,phase,active_player_id,artist_id,first_solver_id,solve_window_ends_at,
+            turn_started_at,turn_deadline_at,target_word,state
        FROM public.game_rooms WHERE id=$1`,
     [roomId]
   );
@@ -648,47 +658,129 @@ test("non-UUID action ids are accepted, in both real caller formats", async () =
 });
 
 // ---------------------------------------------------------------------------
-// §13: the artist draws; they do not solve their own drawing.
+// §13, inverted: the HOUSE draws every round, so no seat is ever the artist and
+// every seat may solve. This is the game mode the client plays — "instead of
+// players making a drawing, the game draws and the players guess".
 // ---------------------------------------------------------------------------
 
-test("the artist cannot solve their own drawing", async () => {
+test("the house draws: no seat holds the artist role and every seat may solve", async () => {
   const { roomId, humanIds } = await makeRoom(2, 0);
   try {
     const started = await beginFirstTurn(roomId);
     const turnNumber = started!.snapshot.turnNumber;
     const room = await readRoom(roomId);
     const target = room.target_word as string;
-    const artistId = room.active_player_id as string;
-    assert.equal(artistId, humanIds[0], "seat 0 draws first");
 
+    assert.equal(room.active_player_id, null, "the house draws, so no seat is active");
+    assert.equal(room.artist_id, null, "artist_id is the house, not a player");
+    assert.ok(target, "the house turn still carries a word to draw");
+    assert.ok(isDrawable(target), `the house can only draw words with a template, got "${target}"`);
+
+    const active = await pool.query(
+      `SELECT count(*)::int AS count FROM public.room_players WHERE room_id=$1 AND turn_state='active'`,
+      [roomId]
+    );
+    assert.equal(Number(active.rows[0].count), 0, "nobody holds the single 'active' slot");
+
+    // Seat 0 used to be the artist and was refused its own drawing. Now every
+    // seat, seat 0 included, is a guesser.
+    const solverId = humanIds[0]!;
     const hand = await pool.query(
       `SELECT private_hand FROM public.room_players WHERE room_id=$1 AND player_id=$2`,
-      [roomId, artistId]
+      [roomId, solverId]
     );
     const cardIds = selectCardsForWord(hand.rows[0].private_hand, target);
-    assert.ok(cardIds, "the artist's hand can spell it — which is exactly why they must not submit");
+    assert.ok(cardIds, "a human hand is always dealt a solvable answer");
 
     const outcome = await transition({
       kind: "submit",
       roomId,
       turnNumber,
-      actionId: "r1758441234567-9",
-      playerId: artistId,
+      actionId: `house:${randomUUID()}`,
+      playerId: solverId,
       cards: cardIds!,
       word: target
     });
 
-    assert.equal(outcome.ok, false);
-    assert.equal(outcome.code, "artist_cannot_solve");
+    assert.equal(outcome.ok, true, `seat 0 must be allowed to solve, got ${outcome.code}`);
+    assert.equal(outcome.result?.status, "accepted");
+    assert.equal(outcome.result?.scoreDelta, 1);
+  } finally {
+    await pool.query(`DELETE FROM public.game_rooms WHERE id=$1`, [roomId]);
+  }
+});
 
-    const after = await readRoom(roomId);
-    assert.equal(Number(after.turn_number), turnNumber, "the turn must not advance");
-    assert.equal(after.first_solver_id, null, "no first solver may be awarded");
-    const scored = await pool.query(
-      `SELECT score FROM public.room_players WHERE room_id=$1 AND player_id=$2`,
-      [roomId, artistId]
+test("a house turn gives the guessers the whole round window", async () => {
+  const { roomId } = await makeRoom(2, 0);
+  try {
+    await beginFirstTurn(roomId);
+    const room = await readRoom(roomId);
+    const window =
+      new Date(room.turn_deadline_at as string).getTime() - new Date(room.turn_started_at as string).getTime();
+
+    assert.ok(
+      Math.abs(window - ROUND_WINDOW_MS) < 1000,
+      `expected about ${ROUND_WINDOW_MS}ms to answer a drawing, got ${window}ms`
     );
-    assert.equal(Number(scored.rows[0].score), 0, "the artist must not score");
+  } finally {
+    await pool.query(`DELETE FROM public.game_rooms WHERE id=$1`, [roomId]);
+  }
+});
+
+test("a correct answer wraps the round up on its own and starts the next one", async () => {
+  const { roomId, humanIds } = await makeRoom(2, 0);
+  try {
+    const started = await beginFirstTurn(roomId);
+    const turnNumber = started!.snapshot.turnNumber;
+    const room = await readRoom(roomId);
+    const target = room.target_word as string;
+    const solverId = humanIds[0]!;
+
+    const hand = await pool.query(
+      `SELECT private_hand FROM public.room_players WHERE room_id=$1 AND player_id=$2`,
+      [roomId, solverId]
+    );
+    const cardIds = selectCardsForWord(hand.rows[0].private_hand, target)!;
+
+    const solved = await transition({
+      kind: "submit",
+      roomId,
+      turnNumber,
+      actionId: `house-solve:${randomUUID()}`,
+      playerId: solverId,
+      cards: cardIds,
+      word: target
+    });
+    assert.equal(solved.ok, true);
+
+    // The score lands, but the round has not advanced yet: the close is what
+    // advances it, and the close is now scheduled just after the answer rather
+    // than at the end of the round.
+    const scheduled = await readRoom(roomId);
+    assert.equal(Number(scheduled.turn_number), turnNumber, "the winner is recorded first");
+    const revealMs = new Date(scheduled.solve_window_ends_at as string).getTime() - Date.now();
+    assert.ok(
+      revealMs > 0 && revealMs <= POST_SOLVE_REVEAL_MS + 400,
+      `the round must wrap up right after the answer, got ${revealMs}ms`
+    );
+
+    // Nobody clicks anything: the server closes the solved round itself.
+    await new Promise((resolve) => setTimeout(resolve, POST_SOLVE_REVEAL_MS + 200));
+    const closed = await sweepExpiredTurns();
+    assert.ok(closed >= 1, "the sweeper closes the solved round");
+
+    const next = await readRoom(roomId);
+    assert.equal(Number(next.turn_number), turnNumber + 1, "the next round already started");
+    assert.equal(next.phase, "playing");
+    assert.equal(next.active_player_id, null, "and it is another house drawing");
+    assert.ok(next.target_word, "with a word of its own");
+    assert.equal(await terminalCount(roomId, turnNumber), 1, "exactly one terminal transition");
+
+    const events = await pool.query(
+      `SELECT event_type FROM public.room_events WHERE room_id=$1 AND event_type='turn_ended' AND (payload->>'turnNumber')::int=$2`,
+      [roomId, turnNumber]
+    );
+    assert.equal(events.rowCount, 1, "the close is recorded as a turn_ended event");
   } finally {
     await pool.query(`DELETE FROM public.game_rooms WHERE id=$1`, [roomId]);
   }

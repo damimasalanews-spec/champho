@@ -37,11 +37,28 @@ export function pickTargetWord(
 ): string {
   const bank = WORD_BANK[personality];
   // A bot artist has no pointer, so it can only sketch words that have a doodle
-  // template. Restrict its bank to those; fall back to the full bank if the
-  // intersection is ever empty so a turn can never come up without a word.
+  // template. Restrict its bank to those. If the intersection is empty (the
+  // aggressive bank shares no words with the templates) the fallback has to stay
+  // inside the drawable set too — falling back to the full bank would hand the
+  // turn a word that cannot be drawn at all.
   const restricted = options.drawableOnly ? bank.filter((word) => DRAWABLE_SET.has(word)) : bank;
-  const pool = restricted.length > 0 ? restricted : bank;
+  const pool = restricted.length > 0 ? restricted : options.drawableOnly ? DRAWABLE_WORDS : bank;
   return pool[Math.floor(random() * pool.length)] as string;
+}
+
+/**
+ * The house's word: the artist in the current game is the game itself, so the
+ * only requirement is that a doodle exists for the word.
+ *
+ * Drawn from the whole drawable set rather than one personality bank, which
+ * keeps the pool at every template (a 3-letter `cat` next to a 6-letter
+ * `lantern`) instead of narrowing it to one difficulty band. `exclude` is the
+ * previous word, so the same drawing never comes up twice running.
+ */
+export function pickHouseWord(random: () => number = Math.random, exclude: string | null = null): string {
+  const pool = exclude ? DRAWABLE_WORDS.filter((word) => word !== exclude) : DRAWABLE_WORDS;
+  const source = pool.length > 0 ? pool : DRAWABLE_WORDS;
+  return source[Math.floor(random() * source.length)] as string;
 }
 
 /**
