@@ -381,9 +381,18 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwRight{flex:1;display:grid;grid-template-rows:20% 1fr;padding:2.2% 2.5%}
 
 /* --- avatar preview: frame + filter + effect + title, preview only --- */
-.cwPrev{position:relative;width:40%;aspect-ratio:1/1;margin-bottom:27%}
-.cwPrevFrame{position:absolute;inset:0;border-radius:14%;overflow:hidden;background:#0e4f8c;
-  box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),0 8px 20px rgba(0,20,50,.35)}
+/* The frame artwork sits at its own natural size and the avatar is sized to the
+   ring's opening instead - measured per frame (-av = opening diameter as a % of
+   the tile, -cx/-cy = the opening's centre). Nothing is scaled up past 100%, so
+   no artwork ever spills out of the tile. */
+.cwPrev{position:relative;width:min(92%,52vh);aspect-ratio:1/1;margin-bottom:5%}
+.cwPrevFrame{position:absolute;border-radius:50%;overflow:hidden;background:#0e4f8c;
+  left:calc((var(--cx,.5) - var(--av,50)/200) * 100%);
+  top:calc((var(--cy,.5) - var(--av,50)/200) * 100%);
+  width:calc(var(--av,50) * 1%);height:calc(var(--av,50) * 1%);
+  box-shadow:inset 0 0 0 2px rgba(0,8,25,.42)}
+.cwPrevFrame::after{content:"";position:absolute;inset:0;border-radius:50%;pointer-events:none;
+  box-shadow:inset 0 0 12px rgba(0,10,30,.55),inset 0 -7px 12px rgba(0,10,30,.4)}
 .cwPrevFrame img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .25s ease}
 /* filters: colour grades */
 .cwFil-vivid  .cwPrevFrame img{filter:saturate(1.75) contrast(1.08)}
@@ -395,7 +404,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwFil-candy  .cwPrevFrame img{filter:hue-rotate(-48deg) saturate(1.55) brightness(1.08)}
 .cwFil-retro  .cwPrevFrame img{filter:contrast(1.3) saturate(1.2) sepia(.28)}
 .cwFil-neon   .cwPrevFrame img{filter:saturate(2.1) contrast(1.15) hue-rotate(12deg)}
-.cwPrevFr{position:absolute;inset:-10%;border-radius:16%;pointer-events:none;background:transparent!important}
+.cwPrevFr{position:absolute;inset:0;border-radius:16%;pointer-events:none;background:transparent!important}
 .cwPrevFx{position:absolute;inset:0;border-radius:14%;overflow:hidden;pointer-events:none}
 .cwPrevFx i{position:absolute;inset:0;display:block;opacity:0}
 .cwPrevFx.on i{opacity:1}
@@ -406,7 +415,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   inset 0 2px 0 rgba(255,255,255,.55),inset 0 -3px 0 rgba(0,0,0,.25);
   text-shadow:0 2px 3px rgba(0,20,50,.6);transition:opacity .2s ease}
 .cwPrevTitle.on{opacity:1}
-.cwSwap{position:absolute;right:-18%;top:-6%;width:24%;aspect-ratio:1/1;border-radius:50%;
+.cwSwap{position:absolute;right:3%;top:37%;width:15%;aspect-ratio:1/1;border-radius:50%;
   border:3px solid #eafff2;cursor:pointer;pointer-events:auto;
   background:radial-gradient(circle at 35% 30%,#9cf07f,#2f9c18);
   box-shadow:inset 0 -4px 0 rgba(0,60,0,.35),0 5px 14px rgba(0,40,10,.4)}
@@ -415,7 +424,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwSwap::before{content:"";position:absolute;left:50%;top:16%;width:0;height:0;
   border-left:9px solid #fff;border-top:6px solid transparent;border-bottom:6px solid transparent;
   transform:rotate(-25deg)}
-.cwBadge{position:absolute;right:4%;top:5%;width:15%;aspect-ratio:1/1;border-radius:50%;
+/* level badge, pinned to the portrait's shoulder so it never floats loose */
+.cwBadge{position:absolute;aspect-ratio:1/1;border-radius:50%;
+  left:calc((var(--cx,.5) + var(--av,50)/200*0.66) * 100%);
+  top:calc((var(--cy,.5) - var(--av,50)/200*0.66) * 100%);
+  width:calc(var(--av,50) * 0.3 * 1%);transform:translate(-50%,-50%);
   background:linear-gradient(180deg,#c489ff,#7a2fd0);border:2px solid #efe0ff;
   box-shadow:inset 0 -3px 0 rgba(40,0,80,.4),0 4px 10px rgba(40,0,80,.45)}
 
@@ -555,9 +568,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
 @keyframes cwSpin{to{transform:rotate(360deg)}}
 
-/* the avatar preview: artwork scaled so the ring's hollow centre matches the
-   portrait (holes average 44% of the artwork, so it needs to be ~229%) */
-.cwPrev .cwPrevFr{position:absolute!important;inset:-64.5%!important}
+/* the avatar preview: the ring keeps its designed size and the portrait is cut
+   to the ring's measured opening, so the frame is never blown up */
 .cwPrev .cwPrevFr .cwGlow{animation-duration:2.2s}
 .cwPrev .cwPrevFr .cwSheen{background-size:280% 280%;animation-duration:3.2s}
 
@@ -589,20 +601,24 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwTitleImg{animation:cwTlGlint 4.6s ease-in-out infinite}
 @keyframes cwTlGlint{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
 
-/* preview: the same plate shown as a banner across the avatar's base */
-.cwPrevTitle{position:absolute;left:-8%;right:-8%;bottom:-2%;height:38%;
+/* preview: the same plate shown as a banner across the ring's lower band */
+.cwPrevTitle{position:absolute;left:-3%;right:-3%;bottom:3%;height:30%;
   display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;
   transition:opacity .22s ease}
 .cwPrevTitle.on{opacity:1}
 .cwPrevTitle .cwTitleImg{inset:0;width:100%;height:100%}
-.cwPrevTitle .cwTxt{font-size:clamp(9px,1.75vh,19px);margin-top:0}
+.cwPrevTitle .cwTxt{font-size:clamp(9px,1.6vh,17px);margin-top:0;max-width:88%}
 
 /* ============ EFFECTS ============
    Rendered glow artwork on pure black, blended with screen so the black backdrop
    simply disappears - no keying, no fringing, and the glow keeps its soft falloff. */
 
-.cwFxImg{position:absolute;inset:-12%;width:124%;height:124%;object-fit:contain;
+.cwFxImg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
   mix-blend-mode:screen;pointer-events:none}
+/* the aura hugs the ring: full tile (the ring's own size), shifted so that its
+   empty centre lands on the ring's opening, then painted over the band */
+.cwPrev .cwPrevFx{position:absolute!important;inset:0!important;z-index:6!important;
+  transform:translate(calc((var(--cx,.5) - 0.5) * 100%),calc((var(--cy,.5) - 0.5) * 100%))!important}
 .cw-a-sparkle  .cwFxImg{animation:cwFxTwinkle 2.2s ease-in-out infinite}
 .cw-a-solar2   .cwFxImg{animation:cwFxSpin 26s linear infinite}
 .cw-a-leaf     .cwFxImg{animation:cwFxRise 7s ease-in-out infinite}
@@ -621,8 +637,13 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
 /* effect thumbnail tiles */
 .cwFxSwatch{position:absolute;inset:0;border-radius:inherit;overflow:hidden;
-  background:linear-gradient(180deg,#1b5f9c,#175690)}
-.cwFxSwatch .cwFxImg{inset:-6%;width:112%;height:112%}
+  background:radial-gradient(circle at 50% 46%,#2c81c2,#123a63 82%)}
+.cwFxSwatch .cwFxImg{inset:0;width:100%;height:100%;z-index:2}
+/* the aura artwork is deliberately clear over the portrait, so each tile shows
+   the same mini avatar at exactly the diameter the aura opens up to */
+.cwFxAvatar{position:absolute;left:50%;top:50%;width:57.5%;height:57.5%;border-radius:50%;
+  transform:translate(-50%,-50%);object-fit:cover;z-index:1;
+  box-shadow:inset 0 0 0 2px rgba(0,8,25,.5),0 2px 8px rgba(0,10,30,.5)}
 
 /* ============ FILTERS ============
    Regraded to the same material family as the frames, so every filter reads as a
@@ -683,7 +704,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwFil-volt    .cwPrevFrame img{filter:saturate(1.7) contrast(1.35) hue-rotate(186deg) brightness(1.08)}
 .cwFil-cosmos  .cwPrevFrame img{filter:hue-rotate(-62deg) saturate(1.7) brightness(.94) contrast(1.12)}
 .cwFil-spectral .cwPrevFrame img{filter:saturate(2.2) contrast(1.14) hue-rotate(16deg)}
-.cwPrevTint{position:absolute;inset:0;border-radius:14%;pointer-events:none;opacity:0;transition:opacity .22s ease}
+/* the filter's grade rides on the portrait, so it is cut to the same circle */
+.cwPrevTint{position:absolute;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .22s ease;
+  left:calc((var(--cx,.5) - var(--av,50)/200) * 100%);
+  top:calc((var(--cy,.5) - var(--av,50)/200) * 100%);
+  width:calc(var(--av,50) * 1%);height:calc(var(--av,50) * 1%)}
 .cwPrevTint.on{opacity:1}
 .cwFil-crystal .cwPrevTint{background:radial-gradient(circle at 50% 48%,rgba(150,240,255,.3),transparent 66%)}
 .cwFil-solar   .cwPrevTint{background:radial-gradient(circle at 74% 20%,rgba(255,244,190,.9) 0 8%,rgba(255,196,90,.5) 17%,transparent 42%)}
@@ -799,6 +824,21 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var padlock='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#7fd7f5" d="M12 2a5 5 0 0 0-5 5v2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 7V7a3 3 0 1 1 6 0v2H9Z"/></svg>';
   var hourglass='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffe066" d="M7 2h10v3l-3.2 4.2L17 13v7H7v-7l3.2-3.8L7 5V2Zm2 2v1l3 3.8L15 5V4H9Zm3 7.4L9 15v3h6v-3l-3-3.6Z"/></svg>';
 
+  // measured off each frame's own alpha: d = the largest circle that fits inside
+  // the ring's opening, as a % of the tile; cx/cy = that circle's centre. The
+  // portrait is cut to this circle, so it always sits inside the ring.
+  var FG={
+    crystal:  {d:45.2, cx:0.497, cy:0.573},
+    royal:    {d:49.6, cx:0.497, cy:0.608},
+    emerald:  {d:48.7, cx:0.510, cy:0.549},
+    thorn:    {d:48.1, cx:0.497, cy:0.507},
+    silk:     {d:46.6, cx:0.497, cy:0.566},
+    pearl:    {d:45.9, cx:0.493, cy:0.514},
+    volt:     {d:40.9, cx:0.500, cy:0.510},
+    cosmos:   {d:56.9, cx:0.507, cy:0.503},
+    prism:    {d:48.9, cx:0.451, cy:0.556}
+  };
+
   var cat='frames';                       // active section
   var sel={frames:null,titles:null,effects:null,filters:null};   // PREVIEW selection only
   var AVATAR='';
@@ -889,6 +929,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         t.classList.add('cw-tl-'+it.cls);
       } else if(cat==='effects'){
         t.innerHTML='<div class="cwFxSwatch cw-a-'+it.anim+'">'
+          +(AVATAR?'<img class="cwFxAvatar" src="'+AVATAR+'" alt="">':'')
           +'<img class="cwFxImg" src="assets/effects/'+it.id+'.webp" alt=""></div>'
           +'<span class="cwFxName">'+it.name+'</span>';
       } else {
@@ -916,6 +957,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       var au='assets/frames/'+it.id+'.webp';
       pf.className='cwPrevFr cw-a-'+it.id;
       pf.style.setProperty('--m','url('+au+')');
+      setGeom(it.id);
       pf.innerHTML='<img class="cwRingImg" src="'+au+'" alt=""><i class="cwGlow"></i><i class="cwSheen"></i>';
     } else if(k==='filters'){
       var p=byId('cwPrev');
@@ -945,6 +987,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     var au0='assets/frames/'+e0.id+'.webp';
     pf0.className='cwPrevFr cw-a-'+e0.id;
     pf0.style.setProperty('--m','url('+au0+')');
+    setGeom(e0.id);
     pf0.innerHTML='<img class="cwRingImg" src="'+au0+'" alt=""><i class="cwGlow"></i><i class="cwSheen"></i>';
     var fx0=byId('cwPrevFx'); fx0.className='cwPrevFx'; fx0.innerHTML='';
     byId('cwPrevTint').className='cwPrevTint';
@@ -974,6 +1017,15 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     });
   }
 
+  // one source of truth: the preview root carries the opening's geometry and the
+  // portrait, the filter grade and the aura all read it
+  function setGeom(id){
+    var p=byId('cwPrev'); if(!p) return;
+    var g=FG[id]||{d:50,cx:0.5,cy:0.5};
+    p.style.setProperty('--av',g.d);
+    p.style.setProperty('--cx',g.cx);
+    p.style.setProperty('--cy',g.cy);
+  }
   window.__openChampPersonalize=function(){
     if(!AVATAR) grabAvatar();
     build();
