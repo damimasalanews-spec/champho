@@ -126,7 +126,7 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 /* the player's own seat: front of the table, and the largest on the board, since
    it is the one the player actually looks at */
 .pcard.pos-front{left:19.5%;bottom:5%;top:auto}
-.pcard.pos-mr{right:1.5%;top:30%}
+.pcard.pos-mr{right:24.3%;bottom:5%;top:auto}
 .bubble{position:absolute;top:-40px;left:50%;transform:translateX(-50%) scale(0);opacity:0;
   background:#fff;border-radius:14px;padding:4px 9px;font-size:22px;line-height:1;z-index:6;
   box-shadow:0 4px 12px rgba(0,0,0,.35);pointer-events:none}
