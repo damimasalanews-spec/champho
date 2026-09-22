@@ -16,13 +16,15 @@ import { canSpell, pickHouseWord, selectCardsForWord, shouldGuaranteeSolution } 
 import { telemetry } from "./telemetry.js";
 
 /**
- * How long players get to answer the house's drawing.
+ * How long players get to answer the house's drawing: a full minute to look at
+ * the sketch, think, and spell the word out of a fourteen-card hand.
  *
- * This is a guessing game, not a reflex game: the sketch takes about a second to
- * appear, so a three-second window would leave no time to look at it AND spell a
- * five-letter word out of a fourteen-card hand.
+ * This is a guessing game, not a reflex game, so the window is generous on
+ * purpose — and the bots are paced against it rather than against the clock (see
+ * ANSWER_WINDOW_SHARE), which is what keeps the minute usable instead of
+ * decorative.
  */
-export const ROUND_WINDOW_MS = 12_000;
+export const ROUND_WINDOW_MS = 60_000;
 
 /**
  * A correct answer wraps the round up on its own (§13/§18 turned around): the

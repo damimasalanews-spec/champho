@@ -184,9 +184,11 @@ async function main(): Promise<void> {
       console.log("  not answering — the round must close on its own");
     }
 
+    // A round runs the full ROUND_WINDOW_MS and the bots are paced across it, so
+    // an unanswered round can legitimately take the whole minute to close.
     const ended = await waitFor(
       (m) => m.type === "turn_ended" && Number(m.turnNumber) === Number(started.turnNumber),
-      25000
+      75000
     );
     console.log(
       `  turn ${started.turnNumber} closed as ${ended.terminalState}` +

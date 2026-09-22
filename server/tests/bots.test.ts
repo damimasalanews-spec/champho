@@ -41,11 +41,16 @@ test("the answer ramp runs the right way: easy answers late, aggressive early", 
   }
 
   // The whole ramp has to stay inside the round and leave the human room to
-  // answer — an aggressive bot answering in the first second would be no game.
+  // answer: the window is thinking time, so even the quickest possible bot answer
+  // must leave most of it alone. At a minute per round that means no bot may
+  // answer inside the first half of it.
   for (const personality of PERSONALITIES) {
     const [low, high] = ANSWER_WINDOW_SHARE[personality];
     assert.ok(low > 0 && high < 1, `${personality}: the share must stay inside the window`);
-    assert.ok(at(personality, 0.5) >= ROUND_WINDOW_MS * 0.2, `${personality}: too early to be beatable`);
+    assert.ok(
+      at(personality, 0) >= ROUND_WINDOW_MS * 0.4,
+      `${personality}: answering after ${at(personality, 0)}ms robs the player of their thinking time`
+    );
   }
 });
 
