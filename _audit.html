@@ -825,12 +825,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   function equippedTt(){ return equippedId('titles','crystal'); }
   // portraits, frames and titles can all be worn; effects and filters are
   // applied, not equipped, so they still just preview
-  function canEquip(k){ return k==='portraits'||k==='frames'||k==='titles'||k==='effects'||k==='filters'; }
+  function canEquip(k){ return k==='portraits'||k==='frames'||k==='titles'; }
   function equippedIn(k){
     if(k==='portraits') return equippedAvId();
     if(k==='frames') return equippedFr();
     if(k==='titles') return equippedTt();
-    if(k==='effects'||k==='filters') return equippedId(k,'crystal');
     return '';
   }
   function equipIn(k,id){
@@ -982,9 +981,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var LOOT={mission:'Mission reward', event:'Event reward', shop:'Shop purchase'};
   // ownership lives in the saved guest profile (see champGrant), not in this file,
   // so a locked item can never be worn without a recorded source behind it
-  function isOwner(){ return (typeof window.champIsOwner==='function') && window.champIsOwner(); }
-  // the owner owns everything; a player owns only what has been earned or bought
-  function isOwned(k,id){ return isOwner() || ((typeof window.champOwns==='function') && window.champOwns(k,id)); }
+  function isOwned(k,id){ return (typeof window.champOwns==='function') && window.champOwns(k,id); }
   function lootLabel(it){ return LOOT[it.src] || 'Earn it'; }
   function fmt(n){ return Number(n).toLocaleString('en-US'); }
 
@@ -1101,9 +1098,9 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       if(canEquip(cat) && it.id===equippedIn(cat)){
         t.classList.add('use');
         t.insertAdjacentHTML('beforeend','<span class="cwRibbon">In Use</span>');
-      } else if(it.free && !isOwner()){
+      } else if(it.free){
         t.insertAdjacentHTML('beforeend','<span class="cwFree">FREE</span>');
-      } else if(it.locked && !isOwner()){
+      } else if(it.locked){
         t.insertAdjacentHTML('beforeend','<span class="cwLock">'+padlock+'<s>1</s>'+hourglass+'</span>');
       }
       if(sel[cat] && sel[cat].id===it.id && !(cat==='frames'&&it.id===equippedFr())) t.classList.add('preview');
@@ -1428,13 +1425,9 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     return {displayName:'Guest',coins:0,gems:0,level:1,xp:0,wins:0,games:0,activity:[],
       // what the guest actually owns. champGrant() is the only thing that adds to
       // this, so an item can never be worn without a recorded source behind it.
-      owned:{portraits:['classic'],frames:['crystal'],titles:['crystal'],
-             effects:['crystal'],filters:['crystal']},
+      owned:{portraits:['classic'],frames:['crystal'],titles:['crystal'],effects:[],filters:[]},
       // what is actually worn - without this the player's choice was lost on reload
-      equipped:{portraits:'classic',frames:'crystal',titles:'crystal',
-                effects:'crystal',filters:'crystal'},
-      // the game owner sees every cosmetic unlocked; a player never gets this
-      owner:false};
+      equipped:{portraits:'classic',frames:'crystal'}};
   }
   function champLoad(){
     var s=null;
@@ -1451,8 +1444,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     else for(var e in d.equipped){ if(!s.equipped[e]) s.equipped[e]=d.equipped[e]; }
     // the starter item of each category is always owned, even for a save that
     // predates it, so a player can never end up unable to wear the default
-    var ALWAYS={portraits:['classic'],frames:['crystal'],titles:['crystal'],
-                effects:['crystal'],filters:['crystal']};
+    var ALWAYS={portraits:['classic'],frames:['crystal'],titles:['crystal']};
     for(var a in ALWAYS){
       if(!Array.isArray(s.owned[a])) s.owned[a]=[];
       ALWAYS[a].forEach(function(id){ if(s.owned[a].indexOf(id)<0) s.owned[a].push(id); });
@@ -1531,15 +1523,6 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   window.champGetEquipped=champGetEquipped; window.champSetEquipped=champSetEquipped;
   // live handle instead of a snapshot: enterGuestFallback() replaces champState, so
   // an object handed out earlier would go stale and read the wrong numbers
-  function champIsOwner(){ return !!champState.owner; }
-  window.champIsOwner=champIsOwner;
-  // Owner switch. Everything is unlocked for the game owner; a normal player never
-  // carries this flag, so their locks still hold.
-  //   ?owner=1  grants it here, ?owner=0 removes it again
-  try{
-    var om=location.search.match(/[?&]owner=([01])/);
-    if(om){ champState.owner=(om[1]==='1'); champSave(); }
-  }catch(e){}
   window.champGetState=function(){ return champState; };
   window.champSetState=function(s){ champState=s; champSave(); champRender(); };
 
@@ -1751,4 +1734,41 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch();},true);
   });
 })();
+</script><script>
+window.addEventListener("load",function(){
+  setTimeout(function(){
+    try{ if(window.enterGuestFallback) window.enterGuestFallback(); }catch(e){}
+    setTimeout(function(){
+      try{ window.__openChampProfile(); }catch(e){}
+      setTimeout(function(){
+        try{ window.__openChampPersonalize(); }catch(e){}
+        var cats=["portraits","frames","titles","effects","filters"];
+        var out=[], ci=0;
+        function stateOf(){ return JSON.stringify(window.champGetState().owned); }
+        function step(){
+          if(ci>=cats.length){ var d=document.createElement("div"); d.id="RECTINFO"; d.textContent=JSON.stringify(out); document.body.appendChild(d); return; }
+          var k=cats[ci++];
+          var chip=[].slice.call(document.querySelectorAll("#cwCatHead .cwCat")).filter(function(d){return d.dataset.cat===k})[0];
+          if(!chip){ out.push({cat:k,note:"no chip"}); step(); return; }
+          chip.click();
+          setTimeout(function(){
+            var t=[].slice.call(document.querySelectorAll("#cwGrid .cwTile"));
+            var before=stateOf();
+            if(t[1]) t[1].click();
+            setTimeout(function(){
+              var b=document.getElementById("cwRemove");
+              var label=b.textContent;
+              for(var i=0;i<2;i++) b.click();
+              setTimeout(function(){
+                out.push({cat:k, button:label, chip:document.getElementById("cwChip").textContent.trim().slice(0,44), ownershipGained: before!==stateOf()});
+                step();
+              },140);
+            },240);
+          },280);
+        }
+        step();
+      },350);
+    },250);
+  },400);
+});
 </script></body></html>
