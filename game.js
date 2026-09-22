@@ -346,11 +346,11 @@ async function leaveParty(){if(!partyId)return;if(demo){localStorage.removeItem(
 async function startParty(){if(!partyId)return;if(demo){localStartGame();return}try{const r=await call('startParty')({partyId});if(r.data.code){roomId=r.data.code;localStorage.setItem('wordunoRoom',roomId);subscribeRoom(roomId);show('room')}}catch(e){alert(e.message)}}
 
 function leave(){reactionUnsub?.();unsubscribe?.();unsubscribe=null;reactionUnsub=null;clearInterval(roomHeartbeatId);clearInterval(matchPollId);roomHeartbeatId=matchPollId=null;if(roomId)call('leaveRoom')({code:roomId}).catch(()=>{});roomId=null;state=null;roomReady=false;localStorage.removeItem('wordunoRoom');show('home');updateHome()}
-$('readyRoomBtn')?.onclick=setReady;$('leaveRoomBtn')?.onclick=leaveRoomLobby;
-$('loginBtn')?.onclick=()=>authAction('login');$('signupBtn')?.onclick=()=>authAction('signup');$('guestBtn')?.addEventListener('click',()=>{enterGuest();});$('createBtn')?.onclick=createRoom;$('joinBtn')?.onclick=joinRoom;$('startRoomBtn')?.onclick=startRoom;$('drawBtn')?.onclick=draw;$('unoBtn')?.onclick=uno;$('logoutBtn')?.onclick=()=>demo?(localStorage.removeItem('wordunoLocalUser'),user=null,show('auth')):signOut(auth);$('quickBtn')?.onclick=quickMatch;
-$('socialBtn')?.onclick=()=>{show('social');loadFriends()};$('dailyBtn')?.onclick=claimDaily;$('achievementsBtn')?.onclick=async()=>{await refreshProgress();show('progress');renderProgress('achievements')};$('inventoryBtn')?.onclick=async()=>{await refreshProgress();show('progress');renderProgress('inventory')};$('historyBtn')?.onclick=async()=>{await refreshProgress();show('progress');renderProgress('history')};$('leavePartyBtn')?.onclick=leaveParty;$('partyBtn')?.onclick=()=>{show('party');if(!partyId){}else subscribeParty(partyId)};$('createPartyBtn')?.onclick=createParty;$('startPartyBtn')?.onclick=startParty;$('sendFriendBtn')?.onclick=sendFriend;$('refreshSocial')?.onclick=loadFriends;
-$('emoteBtn')?.onclick=()=>{$('giftMenu').classList.add('hidden');$('emoteMenu').classList.toggle('hidden')};$('giftBtn')?.onclick=()=>{$('emoteMenu').classList.add('hidden');$('giftMenu').classList.toggle('hidden')};
-$('challengePlus4Btn')?.onclick=()=>resolvePlus4(true);$('acceptPlus4Btn')?.onclick=()=>resolvePlus4(false);$('challengeUnoBtn')?.onclick=challengeUno;$('leaveGame')?.onclick=leave;document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>show('home'));
+($('readyRoomBtn')||{}).onclick=setReady;($('leaveRoomBtn')||{}).onclick=leaveRoomLobby;
+($('loginBtn')||{}).onclick=()=>authAction('login');($('signupBtn')||{}).onclick=()=>authAction('signup');$('guestBtn')?.addEventListener('click',()=>{enterGuest();});($('createBtn')||{}).onclick=createRoom;($('joinBtn')||{}).onclick=joinRoom;($('startRoomBtn')||{}).onclick=startRoom;($('drawBtn')||{}).onclick=draw;($('unoBtn')||{}).onclick=uno;($('logoutBtn')||{}).onclick=()=>demo?(localStorage.removeItem('wordunoLocalUser'),user=null,show('auth')):signOut(auth);($('quickBtn')||{}).onclick=quickMatch;
+($('socialBtn')||{}).onclick=()=>{show('social');loadFriends()};($('dailyBtn')||{}).onclick=claimDaily;($('achievementsBtn')||{}).onclick=async()=>{await refreshProgress();show('progress');renderProgress('achievements')};($('inventoryBtn')||{}).onclick=async()=>{await refreshProgress();show('progress');renderProgress('inventory')};($('historyBtn')||{}).onclick=async()=>{await refreshProgress();show('progress');renderProgress('history')};($('leavePartyBtn')||{}).onclick=leaveParty;($('partyBtn')||{}).onclick=()=>{show('party');if(!partyId){}else subscribeParty(partyId)};($('createPartyBtn')||{}).onclick=createParty;($('startPartyBtn')||{}).onclick=startParty;($('sendFriendBtn')||{}).onclick=sendFriend;($('refreshSocial')||{}).onclick=loadFriends;
+($('emoteBtn')||{}).onclick=()=>{$('giftMenu').classList.add('hidden');$('emoteMenu').classList.toggle('hidden')};($('giftBtn')||{}).onclick=()=>{$('emoteMenu').classList.add('hidden');$('giftMenu').classList.toggle('hidden')};
+($('challengePlus4Btn')||{}).onclick=()=>resolvePlus4(true);($('acceptPlus4Btn')||{}).onclick=()=>resolvePlus4(false);($('challengeUnoBtn')||{}).onclick=challengeUno;($('leaveGame')||{}).onclick=leave;document.querySelectorAll('[data-home]').forEach(b=>b.onclick=()=>show('home'));
 function openProfile(){
   editingAvatar=avatarData();
   const profileScreen=document.getElementById('profile');
@@ -375,14 +375,14 @@ $('profileShareBtn')?.addEventListener('click',async()=>{const text=`${profile.d
 document.querySelectorAll('[data-profile-view]').forEach(b=>b.addEventListener('click',()=>{const v=b.dataset.profileView;showProfileView(v);if(v==='personalize'){editingAvatar=avatarData();renderProfileAvatars();renderStyleTab('avatars')}}));
 document.querySelectorAll('[data-profile-tab]').forEach(b=>b.addEventListener('click',()=>showProfileView(b.dataset.profileTab)));
 document.querySelector('.profile-studio-back')?.addEventListener('click',()=>showProfileView('basic'));
-$('customizeBtn')?.onclick=()=>{$('profileBtn').click()};
-$('saveAvatarBtn')?.onclick=saveAvatar;
+($('customizeBtn')||{}).onclick=()=>{$('profileBtn').click()};
+($('saveAvatarBtn')||{}).onclick=saveAvatar;
 document.querySelectorAll('[data-style-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-style-tab]').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderStyleTab(b.dataset.styleTab)});
-$('shopBtn')?.onclick=()=>{show('shop');renderShop()};
-$('notificationsBtn')?.onclick=()=>{show('notifications');renderNotifications()};$('eventsBtn')?.onclick=()=>{show('events');renderEvents()};
-$('settingsBtn')?.onclick=()=>{show('settings');initSettings()};
+($('shopBtn')||{}).onclick=()=>{show('shop');renderShop()};
+($('notificationsBtn')||{}).onclick=()=>{show('notifications');renderNotifications()};($('eventsBtn')||{}).onclick=()=>{show('events');renderEvents()};
+($('settingsBtn')||{}).onclick=()=>{show('settings');initSettings()};
 if($('soundBtn')){$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').classList.toggle('muted',!soundOn);}
-$('soundBtn')?.onclick=()=>{soundOn=!soundOn;localStorage.setItem('wordunoSound',soundOn?'on':'off');if($('soundBtn')){$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').classList.toggle('muted',!soundOn);}if(soundOn)tone(660,.08)};
+($('soundBtn')||{}).onclick=()=>{soundOn=!soundOn;localStorage.setItem('wordunoSound',soundOn?'on':'off');if($('soundBtn')){$('soundBtn').textContent=soundOn?'🔊':'🔇';$('soundBtn').classList.toggle('muted',!soundOn);}if(soundOn)tone(660,.08)};
 
 function renderFinalDashboard(){
  const name=profile.displayName||'ShyamJoshi',coins=Number(profile.coins??12480),xp=Number(profile.xp??680),level=Number(profile.level??12),need=Math.max(100,level*100),pct=Math.min(100,xp/need*100);

@@ -9,3 +9,6 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 window.CHAMP_WORD_FIREBASE_CONFIG = firebaseConfig;
+
+// The dashboard shell imports this module as `./firebase.js`.
+export { firebaseConfig };
