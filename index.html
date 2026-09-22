@@ -1296,15 +1296,90 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 </div>
 <script>
 (function(){
+  /* ---- guest progress: coins, gems and every activity, kept on the device ----
+     A guest has no account, so localStorage is the only place their earnings can
+     live. The old code re-seeded this profile on every entry, which silently
+     wiped whatever the guest had already earned.                          */
+  var CHAMP_KEY='champwordLocalProfile_guest_local';
+  var CHAMP_LOG_MAX=60;
+  function champDefaults(){ return {displayName:'Guest',coins:0,gems:0,level:1,xp:0,wins:0,games:0,activity:[]}; }
+  function champLoad(){
+    var s=null;
+    try{ s=JSON.parse(localStorage.getItem(CHAMP_KEY)||'null'); }catch(e){ s=null; }
+    if(!s||typeof s!=='object') s=champDefaults();
+    var d=champDefaults();
+    for(var k in d){ if(!(k in s)) s[k]=d[k]; }
+    if(!Array.isArray(s.activity)) s.activity=[];
+    return s;
+  }
+  var champState=champLoad();
+  function champNum(v){ var n=parseInt(String(v==null?'':v).replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
+  function champSave(){
+    try{
+      localStorage.setItem(CHAMP_KEY, JSON.stringify(champState));
+      localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(champState));
+    }catch(e){}
+  }
+  function champRender(){
+    var c=document.getElementById('homeCoins'); if(c) c.textContent=champNum(champState.coins).toLocaleString('en-US');
+    var g=document.getElementById('homeGems');  if(g) g.textContent=champNum(champState.gems).toLocaleString('en-US');
+  }
+  // every earning funnels through champAward so nothing is credited twice or lost
+  function champAward(o){
+    o=o||{};
+    var coins=champNum(o.coins), gems=champNum(o.gems);
+    if(!coins && !gems && !o.result) return champState;
+    champState.coins=champNum(champState.coins)+coins;
+    champState.gems=champNum(champState.gems)+gems;
+    if(o.result==='win'){ champState.wins=champNum(champState.wins)+1; champState.games=champNum(champState.games)+1; }
+    else if(o.result==='loss'||o.result==='draw'){ champState.games=champNum(champState.games)+1; }
+    if(o.xp) champState.xp=champNum(champState.xp)+champNum(o.xp);
+    champState.activity.push({at:new Date().toISOString(),type:(o.result||o.type||'earning'),
+      coins:coins,gems:gems,detail:o.detail||''});
+    if(champState.activity.length>CHAMP_LOG_MAX) champState.activity=champState.activity.slice(-CHAMP_LOG_MAX);
+    champSave(); champRender(); champSend();
+    return champState;
+  }
+  function champTotals(){
+    var ec=0,eg=0;
+    champState.activity.forEach(function(a){ ec+=champNum(a.coins); eg+=champNum(a.gems); });
+    return {coins:champNum(champState.coins),gems:champNum(champState.gems),wins:champNum(champState.wins),
+            games:champNum(champState.games),logged:champState.activity.length,
+            coinsEarned:ec,gemsEarned:eg};
+  }
+  // push the new totals back into the running game, if it is open
+  function champSend(){ try{ if(typeof sendProfile==='function') sendProfile(); }catch(e){} }
+
+  // the game iframe posts finished rounds in a few shapes - accept all of them
+  window.addEventListener('message',function(e){
+    var d=e&&e.data; if(!d||typeof d!=='object') return;
+    var p=d.champEarn||d.champRound||d.champResult||d;
+    if(p && (p.coins!=null||p.gems!=null||p.result||p.win!=null)){
+      champAward({coins:p.coins,gems:p.gems,xp:p.xp,
+        result:(p.result||(p.win===true?'win':(p.win===false?'loss':''))),detail:p.detail||p.mode||''});
+    }
+  });
+  // safety net: a round can end as the tab is backgrounded or closed
+  window.addEventListener('beforeunload',champSave);
+  document.addEventListener('visibilitychange',function(){ if(document.hidden) champSave(); });
+  window.champAward=champAward; window.champTotals=champTotals;
+  window.champSaveNow=champSave; window.champState=champState;
+
   function enterGuestFallback(){
     try{
       var guest={uid:'guest_local',email:'guest@champword.local',displayName:'Guest'};
-      var guestProfile={displayName:'Guest',coins:12480,gems:320,level:12,xp:680,wins:0,games:0};
       localStorage.setItem('wordunoLocalUser', JSON.stringify(guest));
-      localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(guestProfile));
       localStorage.setItem('champwordLocalUser', JSON.stringify(guest));
-      localStorage.setItem('champwordLocalProfile_guest_local', JSON.stringify(guestProfile));
+      // seed the starting balance only on the very first run. Re-seeding on every
+      // entry is what reset a guest's earned coins back to the starting figure.
+      if(!localStorage.getItem(CHAMP_KEY)){
+        var seed={displayName:'Guest',coins:12480,gems:320,level:12,xp:680,wins:0,games:0,activity:[]};
+        localStorage.setItem(CHAMP_KEY, JSON.stringify(seed));
+        localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(seed));
+      }
+      champState=champLoad();
     }catch(e){}
+    champRender();
     document.body.classList.remove('auth-open');
     document.body.classList.add('app-open');
     document.querySelectorAll('.screen').forEach(function(x){x.classList.add('hidden')});
