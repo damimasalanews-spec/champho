@@ -490,170 +490,431 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwSoon{grid-column:1/-1;align-self:center;color:#e8f5ff;font-weight:800;
   font-size:clamp(11px,2vh,22px);text-align:center;opacity:.92;text-shadow:0 2px 4px rgba(0,30,70,.5)}
 
-/* ===== 3D anime frame artwork =====
-   Each frame is a bevelled ring: a coloured rim, a top specular highlight, a
-   bottom shade for depth, a glass gloss sweep and a faceted gem on the crown. */
-.cwFr{
-  position:relative;border-radius:16%;
+/* ============ FRAMES ============
+   Each frame is a masked ring (transparent centre, so it works both in the grid
+   and wrapped around the avatar) and each one is a different shape, material and
+   ornament - circle / squircle / square-ish, glass / gold / emerald / steel /
+   silk / pearl / electric / cosmic / prism. */
+
+.cwFr{position:absolute;inset:13%}
+.cwRing{position:absolute;inset:0;display:block;padding:9%;border-radius:17%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  filter:drop-shadow(0 5px 9px rgba(0,22,52,.5))}
+.cwOrn{position:absolute;display:block;pointer-events:none;z-index:3}
+
+/* 1 - crystal : free. glass squircle with a cut-gem crown */
+.cw-fr-crystal .cwRing{background:
+  linear-gradient(150deg,rgba(255,255,255,.95),#7fe8ff 16%,#22b6d8 46%,#0b6a8c 78%,#063f57)}
+.o-gem{left:50%;top:-11%;width:24%;height:24%;transform:translateX(-50%) rotate(45deg);
+  border-radius:26%;background:linear-gradient(160deg,#ffffff,#a8f0ff 40%,#28a8d0);
+  box-shadow:0 0 0 2px rgba(255,255,255,.95),0 0 14px rgba(150,235,255,.95),0 3px 7px rgba(0,20,50,.5)}
+
+/* 2 - royal : metallic gold, triple-peak crown with jewels */
+.cw-fr-royal .cwRing{padding:11%;border-radius:15%;background:
+  linear-gradient(150deg,#fff6cc,#ffd24a 18%,#e09a12 52%,#8a5200 84%,#5a3400)}
+.o-crown{left:50%;top:-15%;width:52%;height:24%;transform:translateX(-50%);
   background:
-    radial-gradient(120% 90% at 50% 34%,rgba(255,255,255,.10),rgba(8,22,42,.55) 70%),
-    linear-gradient(180deg,rgba(10,26,48,.35),rgba(6,18,34,.6));
-  box-shadow:
-    inset 0 0 0 5px currentColor,
-    inset 0 4px 0 rgba(255,255,255,.55),
-    inset 0 -5px 0 rgba(0,0,0,.38),
-    0 0 0 3px rgba(255,255,255,.55),
-    0 5px 12px rgba(0,20,50,.5);
-}
-.cwFr::after{content:"";position:absolute;inset:3%;border-radius:14%;pointer-events:none;
-  background:linear-gradient(142deg,rgba(255,255,255,.55) 0 14%,rgba(255,255,255,.13) 26%,transparent 46%)}
-.cwFr::before{content:"";position:absolute;left:50%;top:-8%;width:17%;height:17%;z-index:2;
-  transform:translateX(-50%) rotate(45deg);border-radius:24%;
-  background:linear-gradient(180deg,#fff,#d8f2ff 42%,#6cc0ec);
-  box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 12px rgba(160,230,255,.9),0 3px 7px rgba(0,20,50,.5)}
+    radial-gradient(circle at 50% 84%,#8fe8ff 0 13%,transparent 14%),
+    radial-gradient(circle at 20% 86%,#ff7ab8 0 10%,transparent 11%),
+    radial-gradient(circle at 80% 86%,#ff7ab8 0 10%,transparent 11%),
+    linear-gradient(180deg,#fff8d8,#ffcf3c 45%,#b8720a);
+  clip-path:polygon(0 100%,7% 20%,26% 54%,50% 0,74% 54%,93% 20%,100% 100%);
+  filter:drop-shadow(0 2px 4px rgba(0,20,50,.55))}
 
-/* 1 - free / equipped */
-.cw-fr-aqua{color:#38dbe8;
-  background:radial-gradient(circle at 50% 42%,rgba(56,219,232,.35),rgba(8,30,50,.7) 72%),
-             linear-gradient(180deg,rgba(8,30,50,.4),rgba(6,18,34,.62))}
-/* 2 - gold crown */
-.cw-fr-solar{color:#ffc93c;
-  background:radial-gradient(circle at 50% 42%,rgba(255,201,60,.38),rgba(40,24,4,.72) 72%),
-             linear-gradient(180deg,rgba(48,30,6,.5),rgba(22,12,2,.68))}
-.cw-fr-solar::before{background:linear-gradient(180deg,#fff6c8,#ffc93c 45%,#c07a10)}
-/* 3 - ember */
-.cw-fr-ember{color:#ff8a3c;
-  background:radial-gradient(circle at 50% 62%,rgba(255,120,40,.42),rgba(40,14,4,.72) 72%),
-             linear-gradient(180deg,rgba(52,18,4,.5),rgba(24,8,2,.66))}
-.cw-fr-ember::before{background:linear-gradient(180deg,#fff0c0,#ff9a2f 45%,#c03d00)}
-/* 4 - amethyst */
-.cw-fr-amethyst{color:#b779ff;
-  background:radial-gradient(circle at 50% 42%,rgba(150,90,255,.38),rgba(24,10,50,.74) 72%),
-             linear-gradient(180deg,rgba(38,16,70,.5),rgba(18,8,36,.68))}
-.cw-fr-amethyst::before{background:linear-gradient(180deg,#f0dcff,#b779ff 45%,#6a2fc0)}
-/* 5 - sakura */
-.cw-fr-sakura{color:#ff92c4;
-  background:radial-gradient(circle at 50% 42%,rgba(255,146,196,.36),rgba(50,14,32,.74) 72%),
-             linear-gradient(180deg,rgba(70,20,44,.5),rgba(34,10,22,.66))}
-.cw-fr-sakura::before{background:linear-gradient(180deg,#ffe4f2,#ff92c4 45%,#d63f85)}
-/* 6 - frost crystal */
-.cw-fr-frost{color:#c8ecff;
-  background:radial-gradient(circle at 50% 42%,rgba(200,236,255,.34),rgba(14,38,60,.74) 72%),
-             linear-gradient(180deg,rgba(20,48,74,.5),rgba(10,24,40,.68))}
-.cw-fr-frost::before{background:linear-gradient(180deg,#fff,#c8ecff 45%,#6aa8d0)}
-/* 7 - neon pulse (animated) */
-.cw-fr-neon{color:#7bf07b;
-  background:radial-gradient(circle at 50% 42%,rgba(90,240,120,.40),rgba(6,34,18,.74) 72%),
-             linear-gradient(180deg,rgba(10,46,24,.5),rgba(4,20,12,.68));
-  animation:cwNeon 1.8s ease-in-out infinite}
-.cw-fr-neon::before{background:linear-gradient(180deg,#f0fff0,#7bf07b 45%,#1f9c3c)}
-/* 8 - inferno (animated) */
-.cw-fr-inferno{color:#ff6a1f;
-  background:conic-gradient(from 0deg,rgba(255,90,20,.55),rgba(255,200,60,.30),rgba(200,20,0,.55),rgba(255,90,20,.55));
-  animation:cwDrift 4s linear infinite}
-.cw-fr-inferno::before{background:linear-gradient(180deg,#fff3c8,#ffa22f 45%,#c02a00)}
-/* 9 - prism (animated) */
-.cw-fr-prism{color:#ff9ae0;
-  background:conic-gradient(from 40deg,rgba(255,90,150,.55),rgba(255,215,80,.45),rgba(90,220,255,.5),
-             rgba(180,120,255,.55),rgba(255,90,150,.55));
-  animation:cwHue 6s linear infinite}
-.cw-fr-prism::before{background:linear-gradient(180deg,#fff,#ffd7f4 45%,#c05fd0)}
+/* 3 - emerald : vine-wrapped, leafy band */
+.cw-fr-emerald .cwRing{padding:12%;border-radius:22%;background:
+  radial-gradient(circle at 12% 8%,rgba(180,255,190,.95) 0 9%,transparent 10%),
+  radial-gradient(circle at 88% 14%,rgba(150,240,170,.9) 0 8%,transparent 9%),
+  radial-gradient(circle at 20% 92%,rgba(150,240,170,.9) 0 8%,transparent 9%),
+  radial-gradient(circle at 82% 88%,rgba(180,255,190,.95) 0 9%,transparent 10%),
+  radial-gradient(circle at 50% 2%,rgba(220,255,220,.85) 0 6%,transparent 7%),
+  linear-gradient(150deg,#e8ffdc,#6fdc63 20%,#1f9c3c 55%,#0c5a22 88%)}
 
-@keyframes cwNeon{0%,100%{filter:brightness(1) saturate(1)}50%{filter:brightness(1.45) saturate(1.35)}}
-@keyframes cwDrift{0%,100%{filter:brightness(1.05)}50%{filter:brightness(1.4)}}
-@keyframes cwHue{to{filter:hue-rotate(360deg)}}
+/* 4 - thorn : steel squircle over a spiked star collar */
+.cw-fr-thorn .cwRing{padding:9%;border-radius:13%;background:
+  linear-gradient(150deg,#f0f4f8,#9fb2c4 20%,#5a6c80 55%,#2b3743 88%)}
+.o-spikes{inset:-11%;z-index:0;
+  background:linear-gradient(160deg,#ffd0d0,#c8321f 45%,#7a1408);
+  clip-path:polygon(50% 0,61% 11%,76% 5%,79% 21%,95% 23%,88% 37%,100% 50%,88% 63%,95% 77%,
+    79% 79%,76% 95%,61% 89%,50% 100%,39% 89%,24% 95%,21% 79%,5% 77%,12% 63%,0 50%,12% 37%,
+    5% 23%,21% 21%,24% 5%,39% 11%);
+  /* a radial mask hollows the star into a spiked collar; a content-box mask
+     cannot be combined with clip-path (they conflict), a radial one can */
+  -webkit-mask:radial-gradient(circle at 50% 50%,transparent 0 47%,#000 48%);
+  mask:radial-gradient(circle at 50% 50%,transparent 0 47%,#000 48%);
+  filter:drop-shadow(0 4px 8px rgba(60,0,0,.45))}
 
-/* ===== 3D metallic title plates ===== */
-.cwTitlePl{position:absolute;inset:27% 7%;border-radius:10px;display:flex;align-items:center;
-  justify-content:center;font-weight:900;white-space:nowrap;overflow:hidden;
-  font-size:clamp(8px,1.5vh,17px);color:#fff;letter-spacing:.4px;
-  border:2px solid rgba(255,255,255,.8);
-  box-shadow:inset 0 3px 0 rgba(255,255,255,.6),inset 0 -4px 0 rgba(0,0,0,.35),
-             0 4px 10px rgba(0,20,50,.45);text-shadow:0 2px 3px rgba(0,20,50,.65)}
-.cwTitlePl::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(142deg,rgba(255,255,255,.45) 0 18%,transparent 42%)}
-.cw-tl-champion .cwTitlePl{background:linear-gradient(180deg,#ffe888,#e79c0c)}
-.cw-tl-warrior  .cwTitlePl{background:linear-gradient(180deg,#ff9a5c,#c92a12)}
-.cw-tl-star     .cwTitlePl{background:linear-gradient(180deg,#8fe6ff,#1f8fd0)}
-.cw-tl-owl      .cwTitlePl{background:linear-gradient(180deg,#c39bff,#5a2fb0)}
-.cw-tl-shark    .cwTitlePl{background:linear-gradient(180deg,#66f0d0,#12776a)}
-.cw-tl-wizard   .cwTitlePl{background:linear-gradient(180deg,#a8f07a,#2f8f18)}
-.cw-tl-unstop   .cwTitlePl{background:linear-gradient(180deg,#ff9ac8,#b81f6b)}
-.cw-tl-legend   .cwTitlePl{background:linear-gradient(180deg,#fff0b8,#c8791a);color:#4a2a00;
-  text-shadow:0 1px 2px rgba(255,255,255,.5)}
-.cw-tl-rookie   .cwTitlePl{background:linear-gradient(180deg,#b8d4ff,#3a63c8)}
+/* 5 - silk : a true circle of woven pink with a bow */
+.cw-fr-silk .cwRing{padding:10%;border-radius:50%;background:
+  repeating-linear-gradient(52deg,rgba(255,255,255,.28) 0 6%,transparent 6% 12%),
+  linear-gradient(150deg,#ffe6f2,#ff9ac8 22%,#e2569a 56%,#a01f5e 88%)}
+.o-bow{left:50%;top:-13%;width:42%;height:20%;transform:translateX(-50%);
+  background:
+    radial-gradient(circle at 50% 62%,#fff0f7 0 16%,transparent 17%),
+    linear-gradient(180deg,#ffd6ea,#ff7ab8 55%,#c02e77);
+  clip-path:polygon(50% 42%,100% 0,88% 100%,50% 62%,12% 100%,0 0);
+  filter:drop-shadow(0 2px 4px rgba(70,0,35,.5))}
 
-/* ===== effects: glowing animated overlays ===== */
-.cwFxTile{position:absolute;inset:0;border-radius:inherit}
+/* 6 - pearl : pale pearl circle flanked by cel-shaded wings */
+.cw-fr-pearl .cwRing{padding:9%;border-radius:50%;background:
+  radial-gradient(circle at 32% 22%,#ffffff 0 18%,transparent 40%),
+  linear-gradient(150deg,#ffffff,#e8f4ff 26%,#a9c9e8 60%,#5f86ad 90%)}
+.o-wing{top:26%;width:30%;height:44%;background:linear-gradient(180deg,#ffffff,#d8e8ff 55%,#8fb0d8);
+  filter:drop-shadow(0 2px 4px rgba(0,25,60,.45))}
+.o-wingL{left:-24%;clip-path:polygon(100% 8%,58% 0,16% 26%,0 50%,20% 72%,62% 100%,100% 90%,
+  80% 66%,92% 50%,78% 32%)}
+.o-wingR{right:-24%;transform:scaleX(-1);
+  clip-path:polygon(100% 8%,58% 0,16% 26%,0 50%,20% 72%,62% 100%,100% 90%,
+  80% 66%,92% 50%,78% 32%)}
+
+/* 7 - volt : electric square with crackling bolts (animated) */
+.cw-fr-volt .cwRing{padding:9%;border-radius:11%;background:
+  linear-gradient(150deg,#eaffff,#6fe4ff 18%,#2f8ce8 52%,#123a8a 86%);
+  animation:cwVolt 1.5s steps(3,end) infinite}
+.o-bolt{top:2%;width:18%;height:34%;background:linear-gradient(180deg,#ffffff,#fff06a 45%,#ffb020);
+  filter:drop-shadow(0 0 8px rgba(255,235,120,.95))}
+.o-boltL{left:6%;clip-path:polygon(58% 0,18% 44%,44% 44%,20% 100%,86% 46%,54% 46%,80% 0)}
+.o-boltR{right:6%;transform:scaleX(-1);
+  clip-path:polygon(58% 0,18% 44%,44% 44%,20% 100%,86% 46%,54% 46%,80% 0)}
+@keyframes cwVolt{0%,100%{filter:brightness(1) drop-shadow(0 5px 9px rgba(0,22,52,.5))}
+  50%{filter:brightness(1.6) drop-shadow(0 0 12px rgba(150,230,255,.95))}}
+
+/* 8 - cosmos : deep violet circle with two orbiting sparks (animated) */
+.cw-fr-cosmos .cwRing{padding:8%;border-radius:50%;background:
+  radial-gradient(circle at 70% 26%,rgba(255,255,255,.9) 0 3%,transparent 4%),
+  radial-gradient(circle at 26% 74%,rgba(255,255,255,.8) 0 2.4%,transparent 3.2%),
+  radial-gradient(circle at 40% 40%,rgba(255,255,255,.55) 0 1.6%,transparent 2.4%),
+  linear-gradient(150deg,#e6d4ff,#a06cff 22%,#5a2fb0 58%,#2a0e5a 90%)}
+.o-orbit{inset:-9%;z-index:0;animation:cwOrbit 5.5s linear infinite}
+.o-orbit::before,.o-orbit::after{content:"";position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#ffffff,#7fe0ff 55%,#2f8ce8);
+  box-shadow:0 0 10px rgba(140,225,255,.95)}
+.o-orbit::before{left:calc(50% - 6%);top:-3%;width:12%;height:12%}
+.o-orbit::after{right:calc(50% - 6%);bottom:-3%;width:9%;height:9%}
+@keyframes cwOrbit{to{transform:rotate(360deg)}}
+
+/* 9 - prism : rainbow ring with a refracting prism cut (animated) */
+.cw-fr-prism .cwRing{padding:10%;border-radius:19%;background:
+  conic-gradient(from 30deg,#ff5f7e,#ffd24a,#6fe86f,#4dd4ff,#b06cf0,#ff5f7e);
+  animation:cwPrism 7s linear infinite}
+.o-prism{left:50%;top:-12%;width:26%;height:22%;transform:translateX(-50%);
+  background:linear-gradient(160deg,#ffffff,#dff6ff 42%,#8fd8ff);
+  clip-path:polygon(50% 0,100% 100%,0 100%);
+  box-shadow:0 0 0 2px rgba(255,255,255,.9);filter:drop-shadow(0 2px 5px rgba(0,20,50,.5))}
+@keyframes cwPrism{to{filter:hue-rotate(360deg) drop-shadow(0 5px 9px rgba(0,22,52,.5))}}
+
+/* preview: the same ring, scaled up around the avatar */
+.cwPrev .cwPrevFr{position:absolute!important;inset:-11%!important}
+.cwPrev .cwPrevFr .cwRing{padding:7%}
+.cwPrev .cwPrevFr .o-orbit{inset:-7%}
+@media (prefers-reduced-motion:reduce){.cwRing,.o-orbit{animation:none}}
+
+/* ============ TITLES ============
+   Nine genuinely different plates: ribbon, shield, crowned, winged, neon tube,
+   riveted plaque, diagonal sash, crystal hexagon and a flame-licked plate. */
+
+.cwTl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.cwPlate{position:absolute;display:block}
+.cwTxt{position:relative;z-index:2;font-weight:900;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;letter-spacing:.5px;color:#fff;font-size:clamp(8px,1.5vh,17px);
+  text-shadow:0 2px 3px rgba(0,20,50,.7)}
+
+/* 1 - ribbon : free. notched ends with folded tails */
+.cw-tl-ribbon .cwPlate{left:6%;right:6%;top:50%;height:36%;transform:translateY(-50%);border-radius:5px;
+  background:linear-gradient(180deg,#ffe888,#e79c0c 60%,#c07a08);
+  clip-path:polygon(7% 0,93% 0,100% 50%,93% 100%,7% 100%,0 50%);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.6),inset 0 -4px 0 rgba(120,70,0,.45)}
+.cw-tl-ribbon .cwPlate::before,.cw-tl-ribbon .cwPlate::after{content:"";position:absolute;
+  top:14%;width:12%;height:72%;background:linear-gradient(180deg,#d8890c,#8a5200)}
+.cw-tl-ribbon .cwPlate::before{left:0;transform:translateX(-52%) skewY(14deg)}
+.cw-tl-ribbon .cwPlate::after{right:0;transform:translateX(52%) skewY(-14deg)}
+
+/* 2 - shield : riveted crest with a pointed base */
+.cw-tl-shield .cwPlate{left:16%;right:16%;top:50%;height:50%;transform:translateY(-50%);
+  background:linear-gradient(180deg,#ff9a5c,#c92a12 62%,#7a1408);
+  clip-path:polygon(0 0,100% 0,100% 58%,50% 100%,0 58%);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.45)}
+.cw-tl-shield .cwPlate::after{content:"";position:absolute;inset:8%;border:2px dashed rgba(255,235,200,.75);
+  clip-path:polygon(0 0,100% 0,100% 58%,50% 100%,0 58%)}
+
+/* 3 - crowned : plate with a crown standing on it */
+.cw-tl-crowned .cwPlate{left:8%;right:8%;top:58%;height:30%;transform:translateY(-50%);border-radius:8px;
+  background:linear-gradient(180deg,#ffe9a8,#d98a12 62%,#8a5200);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.6),inset 0 -4px 0 rgba(110,60,0,.5)}
+.cw-tl-crowned .cwOrn{left:50%;top:22%;width:34%;height:30%;transform:translateX(-50%);
+  background:radial-gradient(circle at 50% 88%,#8fe8ff 0 12%,transparent 13%),
+             linear-gradient(180deg,#fff6c8,#ffc93c 48%,#b8720a);
+  clip-path:polygon(0 100%,6% 18%,28% 56%,50% 0,72% 56%,94% 18%,100% 100%);
+  filter:drop-shadow(0 2px 3px rgba(0,20,50,.5))}
+
+/* 4 - winged : plate flanked by feathered wings */
+.cw-tl-winged .cwPlate{left:20%;right:20%;top:50%;height:36%;transform:translateY(-50%);border-radius:8px;
+  background:linear-gradient(180deg,#dff0ff,#5f9fe0 55%,#215a9c);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.7),inset 0 -4px 0 rgba(10,45,90,.5)}
+.cw-tl-winged .cwOrn{top:50%;transform:translateY(-50%);width:20%;height:32%;background:linear-gradient(180deg,#ffffff,#cfe4ff 55%,#7fa8dc)}
+.cw-tl-winged .o-wl{left:4%;clip-path:polygon(100% 6%,60% 0,20% 28%,0 50%,22% 74%,64% 100%,100% 92%,82% 68%,94% 50%,80% 30%)}
+.cw-tl-winged .o-wr{right:4%;transform:scaleX(-1);
+  clip-path:polygon(100% 6%,60% 0,20% 28%,0 50%,22% 74%,64% 100%,100% 92%,82% 68%,94% 50%,80% 30%)}
+
+/* 5 - neon : dark tube with a glowing edge and glowing type */
+.cw-tl-neon .cwPlate{left:8%;right:8%;top:50%;height:34%;transform:translateY(-50%);border-radius:10px;
+  background:rgba(6,18,36,.88);border:2px solid #6ff0ff;
+  box-shadow:0 0 12px rgba(110,240,255,.9),inset 0 0 14px rgba(110,240,255,.35)}
+.cw-tl-neon .cwTxt{color:#dffcff;text-shadow:0 0 8px #4dd8ff,0 0 16px rgba(80,200,255,.8)}
+.cw-tl-neon .cwPlate::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(180deg,rgba(255,255,255,.22),transparent 55%)}
+
+/* 6 - plaque : stone slab in a metal frame with four bolts */
+.cw-tl-plaque .cwPlate{left:7%;right:7%;top:50%;height:44%;transform:translateY(-50%);border-radius:6px;
+  background:linear-gradient(180deg,#8d99a8,#59636f 55%,#333a44);
+  border:3px solid #cfd8e2;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 -3px 0 rgba(10,15,22,.6);
+  background-image:radial-gradient(circle at 9% 16%,#e8f0f8 0 3.4%,transparent 4%),
+    radial-gradient(circle at 91% 16%,#e8f0f8 0 3.4%,transparent 4%),
+    radial-gradient(circle at 9% 84%,#e8f0f8 0 3.4%,transparent 4%),
+    radial-gradient(circle at 91% 84%,#e8f0f8 0 3.4%,transparent 4%),
+    linear-gradient(180deg,#8d99a8,#59636f 55%,#333a44)}
+
+/* 7 - sash : a diagonal band that cuts across the portrait */
+.cw-tl-sash .cwPlate{left:-4%;right:-4%;top:50%;height:30%;transform:translateY(-50%) rotate(-8deg);
+  background:linear-gradient(180deg,#ff9ac8,#b81f6b 60%,#7a1040);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.55),inset 0 -4px 0 rgba(70,0,30,.5)}
+.cw-tl-sash .cwOrn{right:6%;top:50%;width:16%;height:20%;transform:translateY(-50%) rotate(-8deg);
+  background:radial-gradient(circle at 50% 50%,#ffe0ef 0 26%,transparent 27%),
+             linear-gradient(180deg,#ffd0e8,#c02e77);
+  clip-path:polygon(50% 38%,100% 0,86% 100%,50% 58%,14% 100%,0 0)}
+
+/* 8 - crystal : translucent hexagon with a light core */
+.cw-tl-crystal .cwPlate{left:6%;right:6%;top:50%;height:40%;transform:translateY(-50%);
+  clip-path:polygon(9% 0,91% 0,100% 50%,91% 100%,9% 100%,0 50%);
+  background:linear-gradient(150deg,rgba(255,255,255,.95),#a8f0ff 30%,#3aa8d8 68%,#0d5f88);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.7),inset 0 -4px 0 rgba(5,45,70,.5)}
+.cw-tl-crystal .cwPlate::after{content:"";position:absolute;inset:18%;opacity:.6;
+  background:linear-gradient(150deg,rgba(255,255,255,.9),transparent 60%)}
+.cw-tl-crystal .cwTxt{color:#04384f;text-shadow:0 1px 2px rgba(255,255,255,.55)}
+
+/* 9 - fire : plate with flames licking the base (animated) */
+.cw-tl-fire .cwPlate{left:8%;right:8%;top:48%;height:40%;transform:translateY(-50%);border-radius:8px;
+  background:linear-gradient(180deg,#5a1a00,#8a3200 45%,#c8541a);
+  border:2px solid #ffb020;
+  box-shadow:inset 0 3px 0 rgba(255,220,140,.5),0 0 14px rgba(255,140,20,.6)}
+.cw-tl-fire .cwPlate::after{content:"";position:absolute;left:-4%;right:-4%;bottom:-30%;height:52%;
+  background:linear-gradient(180deg,#ffe066,#ff7a18 45%,#c81f00);
+  clip-path:polygon(0 100%,3% 46%,11% 78%,19% 30%,27% 74%,35% 22%,43% 70%,50% 12%,57% 70%,65% 26%,
+    73% 74%,81% 32%,89% 76%,97% 44%,100% 100%);
+  animation:cwLick 1.3s ease-in-out infinite;
+  filter:drop-shadow(0 -3px 8px rgba(255,120,20,.8))}
+@keyframes cwLick{0%,100%{transform:scaleY(1);opacity:.92}50%{transform:scaleY(1.22);opacity:1}}
+
+
+/* the crowned plate carries a crown above it, so nudge its label down onto the body */
+.cw-tl-crowned .cwTxt{margin-top:18%}
+/* preview: same plate shown as a banner across the avatar's base */
+.cwPrevTitle .cwPlate{left:0;right:0;top:auto;bottom:0;height:100%;transform:none}
+.cwPrevTitle .cwTxt{font-size:clamp(9px,1.6vh,19px)}
+
+.cwPrevTitle{display:flex;align-items:center;justify-content:center}
+
+/* ============ EFFECTS ============
+   Nine different animated overlays that sit on the avatar while previewing. */
+
+.cwFx{position:absolute;inset:0;display:block;border-radius:inherit}
+.cwFx::before,.cwFx::after{content:"";position:absolute;inset:0;border-radius:inherit}
+
+/* 1 - sparkle : free. four-point star glints at different phases */
 .cw-fx-sparkle{background:
-  radial-gradient(circle at 22% 26%,#fff 0 7%,transparent 8%),
-  radial-gradient(circle at 74% 18%,#fff 0 5%,transparent 6%),
-  radial-gradient(circle at 62% 72%,#fff 0 6%,transparent 7%),
-  radial-gradient(circle at 34% 66%,#fff 0 4%,transparent 5%);
-  animation:cwTwinkle 1.6s ease-in-out infinite}
-.cw-fx-flame{background:radial-gradient(circle at 50% 108%,rgba(255,170,40,1),rgba(255,60,0,.45) 42%,transparent 68%);
-  animation:cwBlaze 1.1s ease-in-out infinite}
-.cw-fx-frost{background:linear-gradient(135deg,rgba(200,240,255,.6),rgba(70,140,220,.25) 55%,rgba(255,255,255,.55));
-  animation:cwTwinkle 2.2s ease-in-out infinite}
-.cw-fx-lightning{background:linear-gradient(180deg,rgba(255,248,160,.9),transparent 60%);
-  animation:cwFlick .42s steps(2,end) infinite}
-.cw-fx-bubbles{background:
-  radial-gradient(circle at 26% 88%,rgba(255,255,255,.6) 0 6%,transparent 7%),
-  radial-gradient(circle at 66% 96%,rgba(255,255,255,.5) 0 5%,transparent 6%),
-  radial-gradient(circle at 48% 104%,rgba(255,255,255,.55) 0 7%,transparent 8%);
-  animation:cwRise 2.6s linear infinite}
-.cw-fx-starfall{background:
-  radial-gradient(circle at 18% 12%,#fff 0 4%,transparent 5%),
-  radial-gradient(circle at 58% 34%,#fff 0 3%,transparent 4%),
-  radial-gradient(circle at 82% 62%,#fff 0 4%,transparent 5%);
-  animation:cwFall 2.2s linear infinite}
-.cw-fx-emerald{background:radial-gradient(circle at 50% 50%,rgba(130,255,190,.5),transparent 72%);
-  animation:cwTwinkle 2s ease-in-out infinite}
-.cw-fx-shadow{background:radial-gradient(circle at 50% 45%,transparent 40%,rgba(0,10,30,.78) 100%)}
-.cw-fx-rainbow{background:linear-gradient(120deg,#ff4d6d,#ffd93d,#4dd4ff,#b06cf0,#ff4d6d);
-  mix-blend-mode:overlay;opacity:.8;animation:cwHue 5s linear infinite}
-@keyframes cwTwinkle{0%,100%{opacity:.55}50%{opacity:1}}
-@keyframes cwBlaze{0%,100%{opacity:.75;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.14)}}
-@keyframes cwFlick{0%,100%{opacity:.35}50%{opacity:.95}}
-@keyframes cwRise{from{transform:translateY(14%)}to{transform:translateY(-26%)}}
-@keyframes cwFall{from{transform:translateY(-18%)}to{transform:translateY(22%)}}
+  radial-gradient(circle at 24% 22%,#fff 0 3.4%,rgba(255,255,255,.35) 4.6%,transparent 7%),
+  radial-gradient(circle at 76% 30%,#fff 0 2.6%,rgba(255,255,255,.3) 3.6%,transparent 6%),
+  radial-gradient(circle at 62% 74%,#fff 0 3%,rgba(255,255,255,.3) 4%,transparent 6.4%),
+  radial-gradient(circle at 34% 68%,#fff 0 2.2%,rgba(255,255,255,.25) 3%,transparent 5%);
+  animation:cwTw 1.5s ease-in-out infinite}
+.cw-fx-sparkle::before{background:
+  linear-gradient(to bottom,transparent 46%,rgba(255,255,255,.95) 49% 51%,transparent 54%) 24% 22%/14% 14% no-repeat,
+  linear-gradient(to right,transparent 46%,rgba(255,255,255,.95) 49% 51%,transparent 54%) 24% 22%/14% 14% no-repeat,
+  linear-gradient(to bottom,transparent 46%,rgba(255,255,255,.95) 49% 51%,transparent 54%) 76% 30%/10% 10% no-repeat,
+  linear-gradient(to right,transparent 46%,rgba(255,255,255,.95) 49% 51%,transparent 54%) 76% 30%/10% 10% no-repeat;
+  animation:cwTw 1.9s ease-in-out infinite .35s}
 
-/* ===== filters: graded thumbnail with a glass vignette ===== */
+/* 2 - orbit : two sparks circling the avatar */
+.cw-fx-orbit{animation:cwSpin 6s linear infinite}
+.cw-fx-orbit::before{background:radial-gradient(circle at 34% 30%,#fff,#7fe0ff 55%,#2f8ce8);
+  width:11%;height:11%;left:44.5%;top:-2%;border-radius:50%;
+  box-shadow:0 0 12px rgba(140,225,255,.95)}
+.cw-fx-orbit::after{background:radial-gradient(circle at 34% 30%,#fff,#c39bff 55%,#7a3fd0);
+  width:8%;height:8%;left:46%;bottom:-2%;border-radius:50%;
+  box-shadow:0 0 10px rgba(200,160,255,.95)}
+
+/* 3 - aura : a slow breathing halo */
+.cw-fx-aura{background:radial-gradient(circle at 50% 54%,rgba(255,214,110,.55) 0 34%,transparent 72%);
+  animation:cwBreathe 2.6s ease-in-out infinite}
+.cw-fx-aura::before{box-shadow:inset 0 0 34px rgba(255,206,90,.85)}
+
+/* 4 - lightning : forked bolts flickering around the rim */
+.cw-fx-lightning::before{background:linear-gradient(180deg,#ffffff,#fff06a 45%,#ffb020);
+  clip-path:polygon(6% 0,14% 26%,8% 24%,18% 60%,11% 58%,22% 100%,4% 62%,11% 64%,2% 22%,9% 24%);
+  animation:cwFlick .5s steps(2,end) infinite;
+  filter:drop-shadow(0 0 8px rgba(255,240,140,.95))}
+.cw-fx-lightning::after{background:linear-gradient(180deg,#ffffff,#a8f0ff 45%,#4dd8ff);
+  clip-path:polygon(88% 0,96% 30%,90% 28%,99% 66%,92% 64%,100% 100%,84% 68%,91% 70%,82% 26%,89% 28%);
+  animation:cwFlick .42s steps(2,end) infinite .18s;
+  filter:drop-shadow(0 0 8px rgba(150,230,255,.95))}
+
+/* 5 - bubbles : soap bubbles drifting up */
+.cw-fx-bubbles{background:
+  radial-gradient(circle at 28% 88%,rgba(255,255,255,.75) 0 5%,rgba(180,230,255,.35) 6.5%,transparent 9%),
+  radial-gradient(circle at 66% 96%,rgba(255,255,255,.65) 0 4%,rgba(180,230,255,.3) 5.4%,transparent 8%),
+  radial-gradient(circle at 48% 104%,rgba(255,255,255,.7) 0 6%,rgba(180,230,255,.32) 7.6%,transparent 10%),
+  radial-gradient(circle at 82% 92%,rgba(255,255,255,.6) 0 3.4%,rgba(180,230,255,.28) 4.6%,transparent 7%);
+  animation:cwUp 2.8s linear infinite}
+.cw-fx-bubbles::before{background:
+  radial-gradient(circle at 30% 20%,rgba(255,255,255,.6) 0 4%,transparent 7%),
+  radial-gradient(circle at 12% 44%,rgba(255,255,255,.5) 0 3%,transparent 6%);
+  animation:cwUp 3.6s linear infinite .9s}
+
+/* 6 - confetti : falling paper that tumbles */
+.cw-fx-confetti{background:
+  linear-gradient(70deg,#ff5f7e,#ff5f7e) 18% 4%/7% 4% no-repeat,
+  linear-gradient(70deg,#ffd24a,#ffd24a) 44% 12%/6% 3.4% no-repeat,
+  linear-gradient(70deg,#4dd4ff,#4dd4ff) 70% 2%/6.5% 3.8% no-repeat,
+  linear-gradient(70deg,#6fe86f,#6fe86f) 30% 30%/6% 3.4% no-repeat,
+  linear-gradient(70deg,#b06cf0,#b06cf0) 84% 26%/6% 3.4% no-repeat;
+  animation:cwFall 2.6s linear infinite}
+.cw-fx-confetti::before{background:
+  linear-gradient(70deg,#ffd24a,#ffd24a) 24% 12%/6.4% 3.6% no-repeat,
+  linear-gradient(70deg,#ff5f7e,#ff5f7e) 60% 22%/6% 3.4% no-repeat,
+  linear-gradient(70deg,#4dd4ff,#4dd4ff) 88% 44%/6% 3.4% no-repeat,
+  linear-gradient(70deg,#6fe86f,#6fe86f) 12% 52%/6% 3.4% no-repeat;
+  animation:cwFall 3.4s linear infinite 1.1s}
+
+/* 7 - embers : warm motes rising */
+.cw-fx-embers{background:
+  radial-gradient(circle at 26% 92%,#ffd07a 0 2.6%,transparent 4.4%),
+  radial-gradient(circle at 58% 98%,#ff9a3c 0 2%,transparent 3.6%),
+  radial-gradient(circle at 78% 90%,#ffb85c 0 1.6%,transparent 3%),
+  radial-gradient(circle at 12% 74%,#ff8a2f 0 1.4%,transparent 2.6%);
+  animation:cwUp 2.2s linear infinite;
+  filter:drop-shadow(0 0 6px rgba(255,150,40,.9))}
+.cw-fx-embers::before{background:
+  radial-gradient(circle at 40% 86%,#ffe0a0 0 1.8%,transparent 3.2%),
+  radial-gradient(circle at 68% 80%,#ffab4a 0 1.5%,transparent 2.8%);
+  animation:cwUp 3s linear infinite .8s;
+  filter:drop-shadow(0 0 6px rgba(255,150,40,.8))}
+
+/* 8 - shadow : tendrils creeping in from the corners */
+.cw-fx-shadow{background:
+  radial-gradient(circle at 0% 0%,rgba(0,8,24,.92) 0 26%,transparent 52%),
+  radial-gradient(circle at 100% 0%,rgba(0,8,24,.9) 0 24%,transparent 50%),
+  radial-gradient(circle at 0% 100%,rgba(0,8,24,.9) 0 24%,transparent 50%),
+  radial-gradient(circle at 100% 100%,rgba(0,8,24,.92) 0 26%,transparent 52%),
+  radial-gradient(circle at 50% 50%,transparent 40%,rgba(0,10,28,.55) 100%);
+  animation:cwCreep 4.5s ease-in-out infinite}
+.cw-fx-shadow::before{background:repeating-conic-gradient(from 0deg at 50% 50%,
+  rgba(0,10,28,.5) 0 3deg,transparent 3deg 9deg);
+  -webkit-mask:radial-gradient(circle at 50% 50%,transparent 46%,#000 78%);
+  mask:radial-gradient(circle at 50% 50%,transparent 46%,#000 78%);
+  animation:cwSpin 22s linear infinite}
+
+/* 9 - hologram : scanlines with an RGB split */
+.cw-fx-holo{background:repeating-linear-gradient(0deg,rgba(140,235,255,.30) 0 2px,transparent 2px 6px);
+  mix-blend-mode:screen;animation:cwScan 2.4s linear infinite}
+.cw-fx-holo::before{background:linear-gradient(90deg,rgba(255,60,140,.5),transparent 22%),
+  linear-gradient(270deg,rgba(60,220,255,.5),transparent 22%);
+  mix-blend-mode:screen}
+.cw-fx-holo::after{background:linear-gradient(180deg,transparent 40%,rgba(160,240,255,.45) 50%,transparent 60%);
+  animation:cwSweep 3.2s linear infinite}
+
+@keyframes cwTw{0%,100%{opacity:.45}50%{opacity:1}}
+@keyframes cwBreathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.06);opacity:1}}
+@keyframes cwFlick{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes cwUp{from{transform:translateY(16%)}to{transform:translateY(-30%)}}
+@keyframes cwFall{from{transform:translateY(-22%) rotate(-8deg)}to{transform:translateY(26%) rotate(10deg)}}
+@keyframes cwCreep{0%,100%{opacity:.9}50%{opacity:1}}
+@keyframes cwScan{from{background-position:0 0}to{background-position:0 24px}}
+@keyframes cwSweep{from{transform:translateY(-40%)}to{transform:translateY(40%)}}
+
+/* ============ FILTERS ============
+   Each filter is a real grade plus its own signature treatment. */
+
 .cwFilTile{position:absolute;inset:0;border-radius:inherit;background:#0e4f8c;overflow:hidden}
 .cwFilTile img{width:100%;height:100%;object-fit:cover;display:block}
-.cwFilTile::after{content:"";position:absolute;inset:0;pointer-events:none;
-  background:linear-gradient(142deg,rgba(255,255,255,.35) 0 16%,transparent 40%),
-             radial-gradient(circle at 50% 55%,transparent 45%,rgba(6,20,40,.45) 100%)}
-.cw-fl-vivid  img{filter:saturate(1.75) contrast(1.08)}
-.cw-fl-noir   img{filter:grayscale(1) contrast(1.22) brightness(.96)}
-.cw-fl-sepia  img{filter:sepia(.85) contrast(1.05)}
-.cw-fl-frost  img{filter:hue-rotate(180deg) saturate(1.35) brightness(1.06)}
-.cw-fl-sunset img{filter:sepia(.35) saturate(1.6) hue-rotate(-18deg) brightness(1.05)}
-.cw-fl-emerald img{filter:hue-rotate(78deg) saturate(1.35)}
-.cw-fl-candy  img{filter:hue-rotate(-48deg) saturate(1.55) brightness(1.08)}
-.cw-fl-retro  img{filter:contrast(1.3) saturate(1.2) sepia(.28)}
-.cw-fl-neon   img{filter:saturate(2.1) contrast(1.15) hue-rotate(12deg)}
-.cwFilTag{position:absolute;left:0;right:0;bottom:0;padding:.16em .3em;text-align:center;
-  font-size:clamp(7px,1.25vh,14px);font-weight:900;color:#fff;
-  background:linear-gradient(180deg,transparent,rgba(0,20,50,.8));z-index:3;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.cwFilFx{position:absolute;inset:0;display:block;border-radius:inherit}
+.cwFilFx::before,.cwFilFx::after{content:"";position:absolute;inset:0;border-radius:inherit}
 
-/* ===== effect swatches ===== */
-.cwFxSwatch{position:absolute;inset:0;border-radius:inherit;
-  background:linear-gradient(180deg,#123d66,#0d2f52);overflow:hidden}
-.cwFxSwatch i{position:absolute;inset:0;border-radius:inherit;display:block}
-.cwFxName{position:absolute;left:0;right:0;bottom:0;padding:.16em .3em;text-align:center;
-  font-size:clamp(7px,1.25vh,14px);font-weight:900;color:#fff;
-  background:linear-gradient(180deg,transparent,rgba(0,20,50,.8));z-index:3;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.cw-fl-vivid img{filter:saturate(1.8) contrast(1.1)}
+.cw-fl-vivid .cwFilFx{background:radial-gradient(circle at 40% 34%,rgba(255,255,255,.22),transparent 62%)}
 
-@media (prefers-reduced-motion:reduce){
-  .cwFr,.cwPrevFx i,.cw-fx-rainbow{animation:none}
-}
+.cw-fl-noir img{filter:grayscale(1) contrast(1.3) brightness(.94)}
+.cw-fl-noir .cwFilFx{background:radial-gradient(circle at 50% 50%,transparent 42%,rgba(0,0,0,.6) 100%)}
+.cw-fl-noir .cwFilFx::before{background:repeating-conic-gradient(rgba(255,255,255,.05) 0 1deg,transparent 1deg 2deg);opacity:.6}
 
-/* preview ring: thicker bevelled rim + softer glass over the portrait */
-.cwPrevFr{box-shadow:inset 0 0 0 9px currentColor,inset 0 7px 0 rgba(255,255,255,.5),
-  inset 0 -8px 0 rgba(0,0,0,.35),0 0 0 3px rgba(255,255,255,.6),
-  0 7px 18px rgba(0,20,50,.5)!important}
-.cwPrevFr::after{background:linear-gradient(142deg,rgba(255,255,255,.30) 0 12%,transparent 36%)!important}
+.cw-fl-sepia img{filter:sepia(.9) saturate(.85) contrast(1.06)}
+.cw-fl-sepia .cwFilFx{background:radial-gradient(circle at 26% 30%,rgba(120,70,20,.28) 0 14%,transparent 30%),
+  radial-gradient(circle at 78% 74%,rgba(120,70,20,.24) 0 12%,transparent 28%),
+  radial-gradient(circle at 50% 50%,transparent 48%,rgba(70,40,10,.5) 100%)}
+
+.cw-fl-frost img{filter:hue-rotate(175deg) saturate(1.4) brightness(1.1)}
+.cw-fl-frost .cwFilFx{background:
+  radial-gradient(circle at 12% 14%,rgba(230,250,255,.85) 0 7%,transparent 12%),
+  radial-gradient(circle at 88% 20%,rgba(230,250,255,.8) 0 6%,transparent 11%),
+  radial-gradient(circle at 22% 86%,rgba(230,250,255,.8) 0 6%,transparent 11%),
+  radial-gradient(circle at 80% 88%,rgba(230,250,255,.85) 0 7%,transparent 12%)}
+
+.cw-fl-sunset img{filter:sepia(.4) saturate(1.7) hue-rotate(-20deg) brightness(1.06)}
+.cw-fl-sunset .cwFilFx{background:
+  radial-gradient(circle at 76% 22%,rgba(255,240,180,.9) 0 6%,rgba(255,190,90,.5) 12%,transparent 34%),
+  linear-gradient(180deg,rgba(255,170,60,.35),transparent 55%)}
+
+.cw-fl-emerald img{filter:hue-rotate(76deg) saturate(1.45) brightness(1.02)}
+.cw-fl-emerald .cwFilFx{box-shadow:inset 0 0 24px rgba(60,240,140,.75)}
+
+.cw-fl-candy img{filter:hue-rotate(-50deg) saturate(1.6) brightness(1.1)}
+.cw-fl-candy .cwFilFx{background:
+  radial-gradient(circle at 20% 24%,rgba(255,255,255,.6) 0 3%,transparent 6%),
+  radial-gradient(circle at 72% 34%,rgba(255,255,255,.5) 0 2.4%,transparent 5%),
+  radial-gradient(circle at 46% 76%,rgba(255,255,255,.55) 0 2.6%,transparent 5.4%),
+  radial-gradient(circle at 40% 40%,rgba(255,190,225,.35),transparent 62%)}
+
+.cw-fl-retro img{filter:contrast(1.35) saturate(1.15) sepia(.3)}
+.cw-fl-retro .cwFilFx{background:repeating-linear-gradient(0deg,rgba(0,0,0,.32) 0 1.5px,transparent 1.5px 4px);
+  mix-blend-mode:multiply}
+.cw-fl-retro .cwFilFx::before{background:linear-gradient(90deg,rgba(255,40,80,.28),transparent 16%),
+  linear-gradient(270deg,rgba(40,200,255,.28),transparent 16%);mix-blend-mode:screen}
+
+.cw-fl-neon img{filter:saturate(2.2) contrast(1.2) hue-rotate(14deg)}
+.cw-fl-neon .cwFilFx{box-shadow:inset 0 0 22px rgba(255,60,200,.7),inset 0 0 40px rgba(60,220,255,.45);
+  mix-blend-mode:screen}
+
+/* filters applied to the big avatar in the preview */
+.cwFil-vivid  .cwPrevFrame img{filter:saturate(1.8) contrast(1.1)}
+.cwFil-noir   .cwPrevFrame img{filter:grayscale(1) contrast(1.3) brightness(.94)}
+.cwFil-sepia  .cwPrevFrame img{filter:sepia(.9) saturate(.85) contrast(1.06)}
+.cwFil-frost  .cwPrevFrame img{filter:hue-rotate(175deg) saturate(1.4) brightness(1.1)}
+.cwFil-sunset .cwPrevFrame img{filter:sepia(.4) saturate(1.7) hue-rotate(-20deg) brightness(1.06)}
+.cwFil-emerald .cwPrevFrame img{filter:hue-rotate(76deg) saturate(1.45) brightness(1.02)}
+.cwFil-candy  .cwPrevFrame img{filter:hue-rotate(-50deg) saturate(1.6) brightness(1.1)}
+.cwFil-retro  .cwPrevFrame img{filter:contrast(1.35) saturate(1.15) sepia(.3)}
+.cwFil-neon   .cwPrevFrame img{filter:saturate(2.2) contrast(1.2) hue-rotate(14deg)}
+.cwPrevTint{position:absolute;inset:0;border-radius:14%;pointer-events:none;opacity:0;transition:opacity .22s ease}
+.cwPrevTint.on{opacity:1}
+.cwFil-vivid   .cwPrevTint{background:radial-gradient(circle at 40% 34%,rgba(255,255,255,.22),transparent 62%)}
+.cwFil-noir    .cwPrevTint{background:radial-gradient(circle at 50% 50%,transparent 42%,rgba(0,0,0,.6) 100%),
+  repeating-conic-gradient(rgba(255,255,255,.05) 0 1deg,transparent 1deg 2deg)}
+.cwFil-sepia   .cwPrevTint{background:radial-gradient(circle at 50% 50%,transparent 48%,rgba(70,40,10,.5) 100%)}
+.cwFil-frost   .cwPrevTint{background:radial-gradient(circle at 10% 12%,rgba(230,250,255,.8) 0 9%,transparent 16%),
+  radial-gradient(circle at 90% 22%,rgba(230,250,255,.75) 0 8%,transparent 15%),
+  radial-gradient(circle at 24% 88%,rgba(230,250,255,.75) 0 8%,transparent 15%),
+  radial-gradient(circle at 82% 90%,rgba(230,250,255,.8) 0 9%,transparent 16%)}
+.cwFil-sunset  .cwPrevTint{background:radial-gradient(circle at 76% 20%,rgba(255,240,180,.9) 0 8%,rgba(255,190,90,.5) 16%,transparent 40%),
+  linear-gradient(180deg,rgba(255,170,60,.32),transparent 55%)}
+.cwFil-emerald .cwPrevTint{box-shadow:inset 0 0 30px rgba(60,240,140,.75)}
+.cwFil-candy   .cwPrevTint{background:radial-gradient(circle at 40% 40%,rgba(255,190,225,.35),transparent 62%)}
+.cwFil-retro   .cwPrevTint{background:repeating-linear-gradient(0deg,rgba(0,0,0,.3) 0 1.5px,transparent 1.5px 4px)}
+.cwFil-neon    .cwPrevTint{box-shadow:inset 0 0 26px rgba(255,60,200,.7),inset 0 0 48px rgba(60,220,255,.45)}
+
+.cwFilTag,.cwFxName{position:absolute;left:0;right:0;bottom:0;padding:.16em .3em;text-align:center;
+  font-size:clamp(7px,1.25vh,14px);font-weight:900;color:#fff;z-index:3;
+  background:linear-gradient(180deg,transparent,rgba(0,20,50,.82));text-shadow:0 1px 2px rgba(0,0,0,.7)}
 
 /* .cwFr declares position:relative, which would otherwise beat the positioning
    of the tile/preview variants declared earlier - keep them absolute. */
@@ -669,6 +930,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       <div class="cwPrev" id="cwPrev">
         <div class="cwPrevFrame"><img id="cwPrevImg" alt="Avatar preview"></div>
         <div class="cwPrevFx" id="cwPrevFx"><i id="cwPrevFxI"></i></div>
+        <div class="cwPrevTint" id="cwPrevTint"></div>
         <div class="cwPrevFr cw-fr-sports" id="cwPrevFr"></div>
         <span class="cwPrevTitle" id="cwPrevTitle"></span>
         <span class="cwBadge"></span>
@@ -692,10 +954,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var SIDE=[["info","INFO",24.80],["personalize","PERSONALIZE",36.20],["chatter","CHATTER",47.60],
             ["achievements","ACHV.",59.00],["bag","BAG",70.40],["mail","MAIL",81.80]];
   var TOP_TABS=["Portraits","Card Themes","Effects","Scenes"];
-  var EQUIPPED='aqua';
+  var EQUIPPED='crystal';
 
   var CATS=[
-    {k:'frames', l:'Frames',  sw:'radial-gradient(circle at 50% 40%,#7ff0ff,#1899c0 60%,#0b4f74)'},
+    {k:'frames', l:'Frames',  sw:'radial-gradient(circle at 50% 34%,#d8faff,#28a8d0 60%,#0b4f74)'},
     {k:'titles', l:'Titles',  sw:'linear-gradient(180deg,#ffe888,#e79c0c)'},
     {k:'effects',l:'Effects', sw:'radial-gradient(circle at 50% 118%,#ffb02a,rgba(255,60,0,.5) 45%,#123d66)'},
     {k:'filters',l:'Filters', sw:'conic-gradient(#ff4d6d,#ffd93d,#4dd4ff,#b06cf0,#ff4d6d)'}
@@ -703,48 +965,56 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
   var D={
     frames:[
-      {id:'aqua',    name:'Aqua Core',  desc:'A glass ring with a faceted core.', from:'Starter Gift',    free:1,   cls:'aqua'},
-      {id:'solar',   name:'Solar Crown',desc:'Gold, bevelled, built to be seen.', from:'Ranked Season 3', locked:1, cls:'solar'},
-      {id:'ember',   name:'Ember Ring', desc:'Smouldering orange, molten core.',  from:'Victory Quest',  locked:1, cls:'ember'},
-      {id:'amethyst',name:'Amethyst',   desc:'Cut crystal in deep violet.',      from:'Collection Set', locked:1, cls:'amethyst'},
-      {id:'sakura',  name:'Sakura',     desc:'Soft petals over warm pink.',      from:'Spring Event',   locked:1, cls:'sakura'},
-      {id:'frost',   name:'Glacier',    desc:'Frozen crystal that never melts.', from:'Winter Event',   locked:1, cls:'frost'},
-      {id:'neon',    name:'Neon Pulse', desc:'A ring that breathes light.',      from:'Cosmetic Crate', locked:1, cls:'neon'},
-      {id:'inferno', name:'Inferno',    desc:'Living fire, circling forever.',   from:'Hall of Fame',   locked:1, cls:'inferno'},
-      {id:'prism',   name:'Prism',      desc:'Every colour, always shifting.',   from:'Hall of Fame',   locked:1, cls:'prism'}
+      {id:'crystal', name:'Aqua Crystal', desc:'Glass cut into a smooth ring.',        from:'Starter Gift',    free:1,   cls:'crystal',
+       orn:'<i class="cwOrn o-gem"></i>'},
+      {id:'royal',   name:'Royal Crown',  desc:'Solid gold, crowned and jewelled.',    from:'Ranked Season 3', locked:1, cls:'royal',
+       orn:'<i class="cwOrn o-crown"></i>'},
+      {id:'emerald', name:'Emerald Vine', desc:'Living leaves grown around the rim.',  from:'Spring Event',    locked:1, cls:'emerald', orn:''},
+      {id:'thorn',   name:'Thorn Guard',  desc:'Steel ring over a collar of spikes.',  from:'Ranked Season 4', locked:1, cls:'thorn',
+       orn:'<i class="cwOrn o-spikes"></i>'},
+      {id:'silk',    name:'Silk Knot',    desc:'Woven ribbon tied in a bow.',          from:'Collection Set',  locked:1, cls:'silk',
+       orn:'<i class="cwOrn o-bow"></i>'},
+      {id:'pearl',   name:'Pearl Wings',  desc:'Pearl white, flanked by wings.',       from:'Hall of Fame',    locked:1, cls:'pearl',
+       orn:'<i class="cwOrn o-wing o-wingL"></i><i class="cwOrn o-wing o-wingR"></i>'},
+      {id:'volt',    name:'Volt Edge',    desc:'Live current arcing around the rim.',  from:'Tournament Win',  locked:1, cls:'volt',
+       orn:'<i class="cwOrn o-bolt o-boltL"></i><i class="cwOrn o-bolt o-boltR"></i>'},
+      {id:'cosmos',  name:'Cosmos Orbit', desc:'Two sparks circling a violet ring.',   from:'Night Event',     locked:1, cls:'cosmos',
+       orn:'<i class="cwOrn o-orbit"></i>'},
+      {id:'prism',   name:'Prism Halo',   desc:'Refracts every colour, endlessly.',    from:'Hall of Fame',    locked:1, cls:'prism',
+       orn:'<i class="cwOrn o-prism"></i>'}
     ],
     titles:[
-      {id:'champion',name:'Champion',   desc:'Wear the crown with pride.',            from:'Starter Gift',    free:1,   txt:'CHAMPION',    bg:'linear-gradient(180deg,#ffe888,#e79c0c)'},
-      {id:'warrior', name:'Road Warrior',desc:'For those who never leave the table.', from:'Tournament Win',  locked:1, txt:'ROAD WARRIOR',bg:'linear-gradient(180deg,#ff9a5c,#c92a12)'},
-      {id:'star',    name:'Rising Star', desc:'On the way up, fast.',                from:'Level 20 Reward', locked:1, txt:'RISING STAR', bg:'linear-gradient(180deg,#8fe6ff,#1f8fd0)'},
-      {id:'owl',     name:'Night Owl',  desc:'Played past midnight more than once.', from:'Night Event',     locked:1, txt:'NIGHT OWL',   bg:'linear-gradient(180deg,#c39bff,#5a2fb0)'},
-      {id:'shark',   name:'Card Shark', desc:'You always hold the right card.',      from:'Win Streak 10',   locked:1, txt:'CARD SHARK',  bg:'linear-gradient(180deg,#66f0d0,#12776a)'},
-      {id:'wizard',  name:'Word Wizard',desc:'Words bend to your will.',             from:'Word Quest',      locked:1, txt:'WORD WIZARD', bg:'linear-gradient(180deg,#a8f07a,#2f8f18)'},
-      {id:'unstop',  name:'Unstoppable',desc:'Nobody has slowed you down yet.',      from:'Ranked Season 4', locked:1, txt:'UNSTOPPABLE', bg:'linear-gradient(180deg,#ff9ac8,#b81f6b)'},
-      {id:'legend',  name:'Legend',     desc:'A name the table remembers.',          from:'Hall of Fame',    locked:1, txt:'LEGEND',      bg:'linear-gradient(180deg,#fff0b8,#c8791a)'},
-      {id:'rookie',  name:'Rookie',     desc:'Everyone starts somewhere.',           from:'First Win',       locked:1, txt:'ROOKIE',      bg:'linear-gradient(180deg,#b8d4ff,#3a63c8)'}
+      {id:'ribbon', name:'Ribbon',    desc:'A classic ribbon tied off at both ends.', from:'Starter Gift',    free:1,   cls:'ribbon',  txt:'CHAMPION',     orn:'', cls2:'ribbon'},
+      {id:'shield', name:'Crest',     desc:'Riveted shield, earned the hard way.',    from:'Tournament Win',  locked:1, cls:'shield',  txt:'ROAD WARRIOR', orn:'', cls2:'shield'},
+      {id:'crowned',name:'Crowned',   desc:'A crown sits above this one.',           from:'Ranked Season 3', locked:1, cls:'crowned', txt:'RISING STAR',  orn:'<i class="cwOrn"></i>', cls2:'crowned'},
+      {id:'winged', name:'Winged',    desc:'Feathered wings on either side.',        from:'Level 20 Reward', locked:1, cls:'winged',  txt:'NIGHT OWL',    orn:'<i class="cwOrn o-wl"></i><i class="cwOrn o-wr"></i>', cls2:'winged'},
+      {id:'neon',   name:'Neon Tube', desc:'A glowing tube that hums.',              from:'Cosmetic Crate',  locked:1, cls:'neon',    txt:'CARD SHARK',   orn:'', cls2:'neon'},
+      {id:'plaque', name:'Plaque',    desc:'Bolted to a metal frame.',               from:'Word Quest',      locked:1, cls:'plaque',  txt:'WORD WIZARD',  orn:'', cls2:'plaque'},
+      {id:'sash',   name:'Sash',      desc:'Worn across the chest, angled.',         from:'Ranked Season 4', locked:1, cls:'sash',    txt:'UNSTOPPABLE',  orn:'<i class="cwOrn"></i>', cls2:'sash'},
+      {id:'xstal',  name:'Crystal',   desc:'A translucent hexagon of light.',        from:'Hall of Fame',    locked:1, cls:'crystal', txt:'LEGEND',       orn:'', cls2:'crystal'},
+      {id:'fire',   name:'Firebrand', desc:'Flames lick along the base.',            from:'Victory Quest',   locked:1, cls:'fire',    txt:'ROOKIE',       orn:'', cls2:'fire'}
     ],
     effects:[
-      {id:'sparkle',  name:'Sparkle',    desc:'Twinkling highlights.',        from:'Starter Gift',   free:1,   cls:'cw-fx-sparkle'},
-      {id:'flame',    name:'Flame Aura', desc:'Heat rising from below.',      from:'Victory Quest',  locked:1, cls:'cw-fx-flame'},
-      {id:'frost',    name:'Frost',      desc:'Cold shimmer over the frame.', from:'Winter Event',   locked:1, cls:'cw-fx-frost'},
-      {id:'lightning',name:'Lightning',  desc:'Sharp flashes on every beat.', from:'Cosmetic Crate', locked:1, cls:'cw-fx-lightning'},
-      {id:'bubbles',  name:'Bubbles',    desc:'Slow drifting circles.',       from:'Cosmetic Crate', locked:1, cls:'cw-fx-bubbles'},
-      {id:'starfall', name:'Starfall',   desc:'Stars dropping past you.',     from:'Night Event',    locked:1, cls:'cw-fx-starfall'},
-      {id:'emerald',  name:'Emerald',    desc:'A soft green glow.',           from:'Collection Set', locked:1, cls:'cw-fx-emerald'},
-      {id:'shadow',   name:'Shadow',     desc:'Dark vignette at the edges.',  from:'Ranked Season 3',locked:1, cls:'cw-fx-shadow'},
-      {id:'rainbow',  name:'Rainbow',    desc:'Shifting colours, moving.',    from:'Hall of Fame',   locked:1, cls:'cw-fx-rainbow'}
+      {id:'sparkle',  name:'Sparkle',   desc:'Star glints twinkling at random.', from:'Starter Gift',   free:1,   cls:'cw-fx-sparkle'},
+      {id:'orbit',    name:'Orbit',     desc:'Two sparks circling you.',         from:'Night Event',    locked:1, cls:'cw-fx-orbit'},
+      {id:'aura',     name:'Aura',      desc:'A halo that breathes.',            from:'Victory Quest',  locked:1, cls:'cw-fx-aura'},
+      {id:'lightning',name:'Storm',     desc:'Arcing bolts on both sides.',      from:'Tournament Win', locked:1, cls:'cw-fx-lightning'},
+      {id:'bubbles',  name:'Bubbles',   desc:'Soap bubbles drifting upward.',    from:'Cosmetic Crate', locked:1, cls:'cw-fx-bubbles'},
+      {id:'confetti', name:'Confetti',  desc:'Paper tumbling past you.',         from:'Level 20 Reward',locked:1, cls:'cw-fx-confetti'},
+      {id:'embers',   name:'Embers',    desc:'Warm motes rising from below.',    from:'Winter Event',   locked:1, cls:'cw-fx-embers'},
+      {id:'shadow',   name:'Shadow',    desc:'Tendrils creeping in from the corners.', from:'Ranked Season 3', locked:1, cls:'cw-fx-shadow'},
+      {id:'holo',     name:'Hologram',  desc:'Scanlines with an RGB split.',     from:'Hall of Fame',   locked:1, cls:'cw-fx-holo'}
     ],
     filters:[
-      {id:'vivid',  name:'Vivid',   desc:'Punchy saturated colour.',   from:'Starter Gift',    free:1,   cls:'cw-fl-vivid',   fil:'cwFil-vivid'},
-      {id:'noir',   name:'Noir',    desc:'Monochrome, hard contrast.', from:'Cosmetic Crate',  locked:1, cls:'cw-fl-noir',    fil:'cwFil-noir'},
-      {id:'sepia',  name:'Sepia',   desc:'Warm, aged tone.',           from:'Sketch Event',    locked:1, cls:'cw-fl-sepia',   fil:'cwFil-sepia'},
-      {id:'frost',  name:'Frost',   desc:'Icy blue shift.',            from:'Winter Event',    locked:1, cls:'cw-fl-frost',   fil:'cwFil-frost'},
-      {id:'sunset', name:'Sunset',  desc:'Golden hour glow.',          from:'Victory Quest',   locked:1, cls:'cw-fl-sunset',  fil:'cwFil-sunset'},
-      {id:'emerald',name:'Emerald', desc:'Deep green cast.',           from:'Collection Set',  locked:1, cls:'cw-fl-emerald', fil:'cwFil-emerald'},
-      {id:'candy',  name:'Candy',   desc:'Sweet pink wash.',           from:'Cosmetic Crate',  locked:1, cls:'cw-fl-candy',   fil:'cwFil-candy'},
-      {id:'retro',  name:'Retro',   desc:'Faded film look.',           from:'Sketch Event',    locked:1, cls:'cw-fl-retro',   fil:'cwFil-retro'},
-      {id:'neon',   name:'Neon',    desc:'Loud electric colour.',      from:'Ranked Season 4', locked:1, cls:'cw-fl-neon',    fil:'cwFil-neon'}
+      {id:'vivid',  name:'Vivid',   desc:'Saturated with a soft bloom.',  from:'Starter Gift',    free:1,   cls:'cw-fl-vivid'},
+      {id:'noir',   name:'Noir',    desc:'Monochrome, grained, vignetted.',from:'Cosmetic Crate',  locked:1, cls:'cw-fl-noir'},
+      {id:'sepia',  name:'Sepia',   desc:'Aged paper and warm blotches.', from:'Sketch Event',    locked:1, cls:'cw-fl-sepia'},
+      {id:'frost',  name:'Frost',   desc:'Iced over at the edges.',       from:'Winter Event',    locked:1, cls:'cw-fl-frost'},
+      {id:'sunset', name:'Sunset',  desc:'Golden hour with a flare.',     from:'Victory Quest',   locked:1, cls:'cw-fl-sunset'},
+      {id:'emerald',name:'Emerald', desc:'Green grade and glowing rim.',  from:'Spring Event',    locked:1, cls:'cw-fl-emerald'},
+      {id:'candy',  name:'Candy',   desc:'Sweet wash with sparkles.',     from:'Level 20 Reward', locked:1, cls:'cw-fl-candy'},
+      {id:'retro',  name:'Retro',   desc:'CRT scanlines and colour split.',from:'Sketch Event',   locked:1, cls:'cw-fl-retro'},
+      {id:'neon',   name:'Neon',    desc:'Loud colour with an edge glow.', from:'Ranked Season 4', locked:1, cls:'cw-fl-neon'}
     ]
   };
 
@@ -827,15 +1097,16 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       var t=document.createElement('div');
       t.className='cwTile';
       if(cat==='frames'){
-        t.innerHTML='<div class="cwFr cwTileFr cw-fr-'+it.cls+'"></div>';
+        t.innerHTML='<div class="cwFr cw-fr-'+it.cls+'"><i class="cwRing"></i>'+(it.orn||'')+'</div>';
         if(it.id===EQUIPPED) t.classList.add('use');
       } else if(cat==='titles'){
-        t.innerHTML='<div class="cwTitlePl" style="background:'+it.bg+'">'+it.txt+'</div>';
+        t.innerHTML='<div class="cwTl"><i class="cwPlate"></i><b class="cwTxt">'+it.txt+'</b></div>'+(it.orn||'');
+        t.classList.add('cw-tl-'+it.cls);
       } else if(cat==='effects'){
-        t.innerHTML='<div class="cwFxSwatch"><i class="'+it.cls+'"></i></div><span class="cwFxName">'+it.name+'</span>';
+        t.innerHTML='<i class="cwFx '+it.cls+'"></i><span class="cwFxName">'+it.name+'</span>';
       } else {
-        t.innerHTML='<div class="cwFilTile '+it.cls+'">'+(AVATAR?'<img src="'+AVATAR+'" alt="">':'')+'</div>'+
-                    '<span class="cwFilTag">'+it.name+'</span>';
+        t.innerHTML='<div class="cwFilTile '+it.cls+'">'+(AVATAR?'<img src="'+AVATAR+'" alt="">':'')+
+                    '<i class="cwFilFx"></i></div><span class="cwFilTag">'+it.name+'</span>';
       }
       if(it.id===EQUIPPED && cat==='frames'){
         t.insertAdjacentHTML('beforeend','<span class="cwRibbon">In Use</span>');
@@ -854,17 +1125,20 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   function preview(k,it){
     sel[k]=it;
     if(k==='frames'){
-      byId('cwPrevFr').className='cwPrevFr cw-fr-'+it.cls;
+      var pf=byId('cwPrevFr');
+      pf.className='cwPrevFr cw-fr-'+it.cls;
+      pf.innerHTML='<i class="cwRing"></i>'+(it.orn||'');
     } else if(k==='filters'){
       var p=byId('cwPrev');
-      p.className=p.className.replace(/\bcwFil-\S+/g,'').trim()+' '+it.fil;
+      p.className=p.className.replace(/\bcwFil-\S+/g,'').trim()+' cwFil-'+it.id;
+      byId('cwPrevTint').className='cwPrevTint on';
     } else if(k==='effects'){
       byId('cwPrevFx').className='cwPrevFx on';
-      byId('cwPrevFxI').className=it.cls;
-      byId('cwPrevFxI').style.opacity='';
+      byId('cwPrevFxI').className='cwFx '+it.cls;
     } else if(k==='titles'){
       var el=byId('cwPrevTitle');
-      el.textContent=it.txt; el.style.background=it.bg; el.className='cwPrevTitle on';
+      el.innerHTML='<i class="cwPlate"></i><b class="cwTxt">'+it.txt+'</b>'+(it.orn||'');
+      el.className='cwPrevTitle on cw-tl-'+it.cls;
     }
     byId('cwChip').innerHTML='PREVIEW ONLY &middot; <b>'+CATS.filter(function(c){return c.k===k})[0].l.replace(/s$/,'')+' not equipped</b>';
     byId('cwPName').textContent=it.name;
@@ -875,10 +1149,14 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
   function clearPreview(){
     sel={frames:null,titles:null,effects:null,filters:null};
-    byId('cwPrevFr').className='cwPrevFr cw-fr-'+find('frames',EQUIPPED).cls;
+    var e0=find('frames',EQUIPPED);
+    var pf0=byId('cwPrevFr');
+    pf0.className='cwPrevFr cw-fr-'+e0.cls;
+    pf0.innerHTML='<i class="cwRing"></i>'+(e0.orn||'');
     byId('cwPrevFx').className='cwPrevFx';
     byId('cwPrevFxI').className='';
-    var t=byId('cwPrevTitle'); t.textContent=''; t.className='cwPrevTitle'; t.style.background='';
+    byId('cwPrevTint').className='cwPrevTint';
+    var t=byId('cwPrevTitle'); t.innerHTML=''; t.className='cwPrevTitle';
     var p=byId('cwPrev'); p.className='cwPrev';
     var e=find('frames',EQUIPPED);
     byId('cwChip').innerHTML='PREVIEW ONLY &middot; <b>not equipped</b>';
