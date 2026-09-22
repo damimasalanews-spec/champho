@@ -214,10 +214,20 @@ test("submit_word authoritatively accepts a valid word, assigns the first solver
     assert.equal(result.status, "accepted");
     assert.equal(result.reason, "accepted");
     assert.equal(result.cardsConsumed, 2);
-    assert.equal(result.cardsDrawn, 0);
+    // Consuming cards must immediately draw the same number of replacements, so
+    // a hand never shrinks below its size (see the 14-card hand invariant test).
+    assert.equal(result.cardsDrawn, 2);
     assert.equal(result.handChanged, true);
     assert.equal(result.handVersion, 1);
-    assert.deepEqual(result.hand, []);
+    assert.ok(Array.isArray(result.hand));
+    assert.equal(result.hand.length, 2);
+    const replacementCards = result.hand as Array<{ cardId: string; value: string }>;
+    const replacementIds = replacementCards.map((card) => card.cardId);
+    assert.equal(replacementIds.includes("card-a"), false);
+    assert.equal(replacementIds.includes("card-b"), false);
+    assert.equal(new Set(replacementIds).size, 2);
+    for (const card of replacementCards) assert.match(card.value, /^[a-z]$/);
+    assert.equal(typeof result.handHash, "string");
     assert.equal(result.scoreDelta, 1);
     assert.equal(result.roundState, "solve_window");
 
@@ -249,6 +259,86 @@ test("submit_word authoritatively accepts a valid word, assigns the first solver
     assert.deepEqual(submission.rows[0].submitted_cards, ["card-a", "card-b"]);
     assert.equal(submission.rows[0].submitted_word, "ab");
     assert.equal(Number(submission.rows[0].hand_version), 1);
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    socket.close();
+    await stopServer(server);
+  }
+});
+
+test("submit_word keeps a full hand at 14 cards by drawing replacements", async () => {
+  const port = 9300 + Math.floor(Math.random() * 150);
+  const playerId = randomUUID();
+  const server = await startServer(port);
+  const socket = await connect(port);
+  let roomId: string | undefined;
+
+  try {
+    socket.send(JSON.stringify({ type: "create_room", playerId }));
+    const snapshot = await waitForMessage(socket, (m) => m.type === "room_snapshot");
+    roomId = snapshot.roomId;
+    await waitForMessage(socket, (m) => m.type === "event" && m.eventType === "room_created");
+
+    const fullHand = "abcdefghijklmn".split("").map((value, index) => ({
+      cardId: `card-${String(index + 1).padStart(2, "0")}`,
+      value
+    }));
+
+    await pool.query(
+      `UPDATE public.game_rooms
+       SET state = 'active',
+           phase = 'playing',
+           round_number = 1,
+           turn_number = 0,
+           active_player_id = $2,
+           first_solver_id = NULL,
+           solved_at = NULL,
+           solve_window_ends_at = NULL
+       WHERE id = $1`,
+      [roomId, playerId]
+    );
+    await pool.query(
+      `UPDATE public.room_players
+       SET turn_state = 'active', private_hand = $3::jsonb, hand_version = 0
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, playerId, JSON.stringify(fullHand)]
+    );
+
+    socket.send(JSON.stringify({
+      type: "submit_word",
+      requestId: randomUUID(),
+      roomId,
+      roundNumber: 1,
+      turnNumber: 0,
+      cards: ["card-01", "card-02"],
+      word: "ab"
+    }));
+
+    const result = await waitForMessage(socket, (m) => m.type === "word_submission_result");
+    assertSubmissionResult(result);
+    assert.equal(result.status, "accepted");
+    assert.equal(result.reason, "accepted");
+    assert.equal(result.cardsConsumed, 2);
+    assert.equal(result.cardsDrawn, 2);
+    assert.equal(result.handChanged, true);
+    assert.equal(result.handVersion, 1);
+
+    const hand = result.hand as Array<{ cardId: string; value: string }>;
+    assert.equal(hand.length, 14, "a 14-card hand must stay at 14 cards after consuming 2");
+    const handIds = hand.map((card) => card.cardId);
+    assert.equal(handIds.includes("card-01"), false);
+    assert.equal(handIds.includes("card-02"), false);
+    assert.equal(new Set(handIds).size, 14);
+    for (const card of hand) assert.match(card.value, /^[a-z]$/);
+
+    const persisted = await pool.query(
+      `SELECT private_hand, hand_version
+       FROM public.room_players
+       WHERE room_id = $1 AND player_id = $2`,
+      [roomId, playerId]
+    );
+    assert.equal(persisted.rows[0].private_hand.length, 14);
+    assert.equal(Number(persisted.rows[0].hand_version), 1);
   } finally {
     if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
     socket.close();
