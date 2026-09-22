@@ -386,20 +386,19 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
    the tile, -cx/-cy = the opening's centre). Nothing is scaled up past 100%, so
    no artwork ever spills out of the tile. */
 .cwPrev{position:relative;width:min(92%,52vh);aspect-ratio:1/1;margin-bottom:5%}
-.cwPrevFrame{position:absolute;border-radius:50%;overflow:hidden;
+.cwPrevFrame{position:absolute;border-radius:26%;overflow:hidden;
   background:linear-gradient(180deg,#12395c,#06182b);
   left:calc((var(--cx,.5) - var(--av,50)/200) * 100%);
   top:calc((var(--cy,.5) - var(--av,50)/200) * 100%);
   width:calc(var(--av,50) * 1%);height:calc(var(--av,50) * 1%);
   box-shadow:inset 0 0 0 2px rgba(255,255,255,.14),inset 0 0 0 3px rgba(0,8,25,.5),
              inset 0 0 14px rgba(0,6,18,.8)}
-/* the portrait itself is a rounded square on that bezel, like a table seat:
-   80% keeps its corners inside the opening circle, so no corner ever pokes
-   through the ring's band */
-.cwPrevFrame img{position:absolute;left:50%;top:50%;width:87%;height:87%;
-  transform:translate(-50%,-50%);border-radius:32%;object-fit:cover;display:block;
-  transition:filter .25s ease;
-  box-shadow:0 0 0 1.5px rgba(0,8,25,.7),0 3px 9px rgba(0,6,18,.55)}
+/* the portrait fills the opening exactly. At 87% it left a visible bezel gap
+   between the face and the ring, which read as the avatar not being attached.
+   At 100% the face meets the band on every side and its corners tuck under it. */
+.cwPrevFrame img{position:absolute;left:50%;top:50%;width:100%;height:100%;
+  transform:translate(-50%,-50%);border-radius:26%;object-fit:cover;display:block;
+  transition:filter .25s ease}
 /* filters: colour grades */
 .cwFil-vivid  .cwPrevFrame img{filter:saturate(1.75) contrast(1.08)}
 .cwFil-noir   .cwPrevFrame img{filter:grayscale(1) contrast(1.22) brightness(.96)}
@@ -449,6 +448,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   text-shadow:0 1px 3px rgba(10,40,80,.45)}
 .cwFrom{margin:0 0 4%;font-size:clamp(10px,1.7vh,21px);color:#fff;font-weight:800;
   text-shadow:0 1px 3px rgba(10,40,80,.45)}
+/* when the button is offering to equip rather than clear */
+.cwRemove.equip{background:linear-gradient(180deg,#6ade4c,#2f9c1e);border-color:rgba(255,255,255,.75)}
 .cwRemove{margin-top:auto;padding:3.2% 11%;border-radius:15px;border:2px solid rgba(255,255,255,.6);
   cursor:pointer;pointer-events:auto;font-weight:900;font-size:clamp(11px,1.95vh,24px);color:#fff;
   background:linear-gradient(180deg,#f8664f,#c92a1c);
@@ -743,9 +744,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
              inset 0 0 12px rgba(0,6,18,.8)}
 /* the tile is a landscape card, so size the portrait off its height and keep it
    square - width:87% would squash the artwork into a letterbox and crop the head */
-.cwAvTile img{position:absolute;left:50%;top:50%;height:87%;width:auto;aspect-ratio:1/1;
-  transform:translate(-50%,-50%);border-radius:32%;object-fit:cover;display:block;
-  box-shadow:0 0 0 1.5px rgba(0,8,25,.7),0 3px 9px rgba(0,6,18,.55)}
+.cwAvTile img{position:absolute;left:50%;top:50%;height:100%;width:auto;aspect-ratio:1/1;
+  transform:translate(-50%,-50%);border-radius:26%;object-fit:cover;display:block}
 
 .cwFilTag,.cwFxName,.cwAvName{position:absolute;left:0;right:0;bottom:0;padding:.16em .3em;text-align:center;
   font-size:clamp(7px,1.25vh,14px);font-weight:900;color:#fff;z-index:3;
@@ -880,6 +880,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var cat='portraits';                    // active section (matches the active top tab)
   var sel={frames:null,titles:null,effects:null,filters:null};   // PREVIEW selection only
   var AVATAR='';
+  var DEFAULT_AVATAR='assets/avatars/classic.webp';   // the free portrait is the profile's face
+  var EQUIPPED_AV='classic';                          // which portrait shows in game
 
   function byId(id){ return document.getElementById(id); }
   // rendered frame artwork + its masked sheen/glow layers
@@ -892,9 +894,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
   function grabAvatar(){
     var src=document.querySelector('#profileAvatarLarge img');
-    if(!src||!src.src) return false;
-    AVATAR=src.src;
+    // the old stock avatar is dropped: the free portrait is the default face, and
+    // the profile screen itself is repointed at it so both agree
+    AVATAR=DEFAULT_AVATAR;
     var img=byId('cwPrevImg');
+    if(src) src.setAttribute('src',AVATAR);
     if(img && img.getAttribute('src')!==AVATAR) img.setAttribute('src',AVATAR);
     return true;
   }
@@ -970,6 +974,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       } else if(cat==='portraits'){
         t.innerHTML='<div class="cwAvTile"><img src="assets/avatars/'+it.id+'.webp" alt=""></div>'
           +'<span class="cwAvName">'+it.name+'</span>';
+        if(it.id===EQUIPPED_AV) t.classList.add('use');
       } else if(cat==='effects'){
         t.innerHTML='<div class="cwFxSwatch cw-a-'+it.anim+'">'
           +(AVATAR?'<img class="cwFxAvatar" src="'+AVATAR+'" alt="">':'')
@@ -979,7 +984,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         t.innerHTML='<div class="cwFilTile '+it.cls+'">'+(AVATAR?'<img src="'+AVATAR+'" alt="">':'')+
                     '<i class="cwFilFx"></i></div><span class="cwFilTag">'+it.name+'</span>';
       }
-      if(it.id===EQUIPPED && cat==='frames'){
+      if(it.id===EQUIPPED && cat==='frames' || (cat==='portraits' && it.id===EQUIPPED_AV)){
         t.insertAdjacentHTML('beforeend','<span class="cwRibbon">In Use</span>');
       } else if(it.free){
         t.insertAdjacentHTML('beforeend','<span class="cwFree">FREE</span>');
@@ -990,6 +995,16 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       t.addEventListener('click',function(){ preview(cat,it); });
       g.appendChild(t);
     });
+    syncAction();
+  }
+
+  // the action button wears two hats: Portraits equips a face, the rest clear
+  function syncAction(){
+    var b=byId('cwRemove'); if(!b) return;
+    if(cat!=='portraits'){ b.textContent='Remove'; b.classList.remove('equip'); return; }
+    var s=sel.portraits;
+    if(!s || s.id===EQUIPPED_AV){ b.textContent='Equipped'; b.classList.remove('equip'); }
+    else { b.textContent='Equip'; b.classList.add('equip'); }
   }
 
   // everything is preview only - nothing here ever equips
@@ -1039,8 +1054,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     var av0=byId('cwPrevImg'); if(av0 && AVATAR) av0.setAttribute('src',AVATAR);
     var t=byId('cwPrevTitle'); t.innerHTML=''; t.className='cwPrevTitle';
     var p=byId('cwPrev'); p.className='cwPrev';
-    var e=find('frames',EQUIPPED);
-    byId('cwChip').innerHTML='PREVIEW ONLY &middot; <b>not equipped</b>';
+    // the panel describes whichever section is open, so Portraits names the face
+    var e = cat==='portraits' ? find('portraits',EQUIPPED_AV) : find('frames',EQUIPPED);
+    byId('cwChip').innerHTML=(cat==='portraits'
+      ? 'EQUIPPED &middot; <b>shows in game</b>'
+      : 'PREVIEW ONLY &middot; <b>not equipped</b>');
     byId('cwPName').textContent=e.name; byId('cwPDesc').textContent=e.desc; byId('cwPFrom').textContent=e.from;
     renderGrid();
   }
@@ -1051,8 +1069,18 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     root.dataset.built='1';
     buildSide(root); buildTabs(); buildCats();
     renderGrid();
+    // one button, two jobs: on Portraits it equips the chosen face (and switches
+    // it when you pick another), everywhere else it clears the preview
     byId('cwRemove').addEventListener('click',function(){
-      var b=this; b.textContent='Cleared';
+      var b=this;
+      if(cat==='portraits' && sel.portraits && sel.portraits.id!==EQUIPPED_AV){
+        EQUIPPED_AV=sel.portraits.id;
+        b.textContent='Equipped'; b.classList.remove('equip');
+        byId('cwChip').innerHTML='EQUIPPED &middot; <b>shows in game</b>';
+        renderGrid();
+        return;
+      }
+      b.textContent='Cleared'; b.classList.remove('equip');
       clearPreview();
       setTimeout(function(){ b.textContent='Remove'; },800);
     });
