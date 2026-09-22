@@ -475,8 +475,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   text-shadow:0 2px 3px rgba(10,50,90,.7)}
 .cwCat.active b{color:#fff2a8;text-shadow:0 2px 0 rgba(120,70,0,.8),0 2px 5px rgba(10,40,80,.6)}
 
-.cwGrid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-  gap:4.2%;padding-top:4%}
+/* rows auto-fit the item count: a fixed 3-row template gave any 10th/11th item an
+   implicit row of zero height, so those tiles were invisible and unreachable */
+.cwGrid{display:grid;grid-template-columns:repeat(3,1fr);
+  grid-auto-rows:minmax(0,1fr);gap:4.2%;padding-top:4%;overflow-y:auto}
 /* every tile is a chunky 3D card */
 .cwTile{position:relative;border-radius:14px;cursor:pointer;pointer-events:auto;overflow:hidden;
   background:linear-gradient(180deg,#2b7cc9,#175a99);
@@ -730,7 +732,22 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   rgba(111,232,111,.38),rgba(77,212,255,.42),rgba(176,108,240,.45),rgba(255,95,126,.45));
   mix-blend-mode:overlay;animation:cwFxHue 7s linear infinite}
 
-.cwFilTag,.cwFxName{position:absolute;left:0;right:0;bottom:0;padding:.16em .3em;text-align:center;
+/* portrait tiles: the artwork drawn exactly like the preview - a rounded square
+   on the dark seat bezel, so the tile and the preview read as the same object */
+/* portraits are square faces, so they take four columns and three rows instead of
+   the frames' three - that keeps every portrait at a usable size without scrolling */
+.cwGrid.cw4{grid-template-columns:repeat(4,1fr)}
+.cwAvTile{position:absolute;inset:0;border-radius:inherit;overflow:hidden;
+  background:linear-gradient(180deg,#12395c,#06182b);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.14),inset 0 0 0 3px rgba(0,8,25,.5),
+             inset 0 0 12px rgba(0,6,18,.8)}
+/* the tile is a landscape card, so size the portrait off its height and keep it
+   square - width:87% would squash the artwork into a letterbox and crop the head */
+.cwAvTile img{position:absolute;left:50%;top:50%;height:87%;width:auto;aspect-ratio:1/1;
+  transform:translate(-50%,-50%);border-radius:32%;object-fit:cover;display:block;
+  box-shadow:0 0 0 1.5px rgba(0,8,25,.7),0 3px 9px rgba(0,6,18,.55)}
+
+.cwFilTag,.cwFxName,.cwAvName{position:absolute;left:0;right:0;bottom:0;padding:.16em .3em;text-align:center;
   font-size:clamp(7px,1.25vh,14px);font-weight:900;color:#fff;z-index:3;
   background:linear-gradient(180deg,transparent,rgba(0,20,50,.85));text-shadow:0 1px 2px rgba(0,0,0,.75)}
 
@@ -774,6 +791,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var EQUIPPED='crystal';
 
   var CATS=[
+    {k:'portraits',l:'Portraits',sw:'radial-gradient(circle at 50% 34%,#ffd7a0,#e2761c 62%,#7a3403)'},
     {k:'frames', l:'Frames',  sw:'radial-gradient(circle at 50% 34%,#d8faff,#28a8d0 60%,#0b4f74)'},
     {k:'titles', l:'Titles',  sw:'linear-gradient(180deg,#ffe888,#e79c0c)'},
     {k:'effects',l:'Effects', sw:'radial-gradient(circle at 50% 118%,#ffb02a,rgba(255,60,0,.5) 45%,#123d66)'},
@@ -781,6 +799,20 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   ];
 
   var D={
+    // one plain free portrait, everything else premium
+    portraits:[
+      {id:'classic', name:'Classic Champ', desc:'The everyday grin. Plain, and free.',  from:'Starter Gift',    free:1},
+      {id:'knight',  name:'Sir Gourd',     desc:'Polished helm and a brave plume.',     from:'Ranked Season 3', locked:1},
+      {id:'ninja',   name:'Shadow Squash', desc:'Hooded, silent, arms folded.',         from:'Ranked Season 4', locked:1},
+      {id:'wizard',  name:'Wizard Zucc',   desc:'Starry hat and a long white beard.',   from:'Spring Event',    locked:1},
+      {id:'pirate',  name:'Captain Gourd', desc:'Tricorn, eyepatch and a gold tooth.',  from:'Tournament Win',  locked:1},
+      {id:'vampire', name:'Baron Vine',    desc:'High collar and two small fangs.',     from:'Night Event',     locked:1},
+      {id:'scholar', name:'Professor Pip', desc:'Round spectacles and a bow tie.',      from:'Collection Set',  locked:1},
+      {id:'robot',   name:'Unit Blip',     desc:'Visor glow and a single antenna.',     from:'Hall of Fame',    locked:1},
+      {id:'ghost',   name:'Cheeky Boo',    desc:'A sheet with a mischievous grin.',     from:'Night Event',     locked:1},
+      {id:'alien',   name:'Zog',           desc:'One big eye, two thin antennae.',      from:'Spring Event',    locked:1},
+      {id:'genie',   name:'Djinn',         desc:'Turban, hoop earring, folded arms.',   from:'Ranked Season 3', locked:1}
+    ],
     frames:[
       {id:'crystal', name:'Aqua Crystal', desc:'Glass cut into a smooth ring.',       from:'Starter Gift',    free:1,   cls:'crystal'},
       {id:'royal',   name:'Royal Crown',  desc:'Solid gold, crowned and jewelled.',   from:'Ranked Season 3', locked:1, cls:'royal'},
@@ -845,7 +877,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     prism:    {d:48.9, cx:0.451, cy:0.556}
   };
 
-  var cat='frames';                       // active section
+  var cat='portraits';                    // active section (matches the active top tab)
   var sel={frames:null,titles:null,effects:null,filters:null};   // PREVIEW selection only
   var AVATAR='';
 
@@ -889,6 +921,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       b.addEventListener('click',function(){
         wrap.querySelectorAll('button').forEach(function(x){x.classList.remove('active');});
         b.classList.add('active');
+        if(t==='Portraits'){ selectCat('portraits'); return; }  // linked to that section
         if(t==='Effects'){ selectCat('effects'); return; }   // linked to that section
         var g=byId('cwGrid'), soon=g.querySelector('.cwSoon');
         if(i===0){ g.querySelectorAll('.cwTile').forEach(function(x){x.style.display='';});
@@ -922,6 +955,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
   function renderGrid(){
     var g=byId('cwGrid'); g.innerHTML='';
+    g.className='cwGrid'+(cat==='portraits'?' cw4':'');   // portraits use a 4-across grid
     var soon=g.parentNode.querySelector('.cwSoon'); if(soon) soon.remove();
     D[cat].forEach(function(it){
       var t=document.createElement('div');
@@ -933,6 +967,9 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         t.innerHTML='<div class="cwTl"><img class="cwTitleImg" src="assets/titles/'+it.id+'.webp" alt="">'
           +'<b class="cwTxt">'+it.txt+'</b></div>';
         t.classList.add('cw-tl-'+it.cls);
+      } else if(cat==='portraits'){
+        t.innerHTML='<div class="cwAvTile"><img src="assets/avatars/'+it.id+'.webp" alt=""></div>'
+          +'<span class="cwAvName">'+it.name+'</span>';
       } else if(cat==='effects'){
         t.innerHTML='<div class="cwFxSwatch cw-a-'+it.anim+'">'
           +(AVATAR?'<img class="cwFxAvatar" src="'+AVATAR+'" alt="">':'')
@@ -965,6 +1002,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       pf.style.setProperty('--m','url('+au+')');
       setGeom(it.id);
       pf.innerHTML='<img class="cwRingImg" src="'+au+'" alt=""><i class="cwGlow"></i><i class="cwSheen"></i>';
+    } else if(k==='portraits'){
+      byId('cwPrevImg').setAttribute('src','assets/avatars/'+it.id+'.webp');
     } else if(k==='filters'){
       var p=byId('cwPrev');
       p.className=p.className.replace(/\bcwFil-\S+/g,'').trim()+' cwFil-'+it.id;
@@ -997,6 +1036,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     pf0.innerHTML='<img class="cwRingImg" src="'+au0+'" alt=""><i class="cwGlow"></i><i class="cwSheen"></i>';
     var fx0=byId('cwPrevFx'); fx0.className='cwPrevFx'; fx0.innerHTML='';
     byId('cwPrevTint').className='cwPrevTint';
+    var av0=byId('cwPrevImg'); if(av0 && AVATAR) av0.setAttribute('src',AVATAR);
     var t=byId('cwPrevTitle'); t.innerHTML=''; t.className='cwPrevTitle';
     var p=byId('cwPrev'); p.className='cwPrev';
     var e=find('frames',EQUIPPED);
