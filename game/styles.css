@@ -97,9 +97,21 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   align-items:center;justify-content:center}
 .pcard .emote-btn:active{transform:scale(.92)}
 .pcard.you .atile{outline:3px solid rgba(255,255,255,.6);outline-offset:2px}
+.pcard.you{--seat:clamp(104px,15vmin,196px);z-index:8}
+/* a warm spotlight and a grounded shadow, so the front seat reads as the player's
+   own place at the table rather than another rival */
+.pcard.you .plate::before{content:"";position:absolute;left:50%;top:44%;
+  width:215%;height:215%;transform:translate(-50%,-50%);border-radius:50%;
+  pointer-events:none;z-index:-1;
+  background:radial-gradient(circle,rgba(255,236,170,.34),rgba(255,210,110,.13) 46%,transparent 70%)}
+.pcard.you .plate{position:relative}
+.pcard.you .atile{box-shadow:0 calc(var(--seat)*.07) calc(var(--seat)*.16) rgba(0,0,0,.55)}
 .pcard.pos-tl{left:20%;top:5%}
 .pcard.pos-tr{right:20%;top:5%}
 .pcard.pos-ml{left:1.5%;top:30%}
+/* the player's own seat: front of the table, and the largest on the board, since
+   it is the one the player actually looks at */
+.pcard.pos-front{left:3.5%;bottom:19%;top:auto}
 .pcard.pos-mr{right:1.5%;top:29%}
 .bubble{position:absolute;top:-40px;left:50%;transform:translateX(-50%) scale(0);opacity:0;
   background:#fff;border-radius:14px;padding:4px 9px;font-size:22px;line-height:1;z-index:6;
@@ -323,6 +335,7 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 @media (max-width:1100px){
   #chatPanel{width:270px}
   .pcard.pos-tl{left:16%}.pcard.pos-tr{right:16%}
+  .pcard.pos-front{left:1.5%;bottom:15%;--seat:clamp(92px,13.5vmin,168px)}
   #parchment{width:64vw}
   #sketchBoard{width:60vw}
 }

@@ -230,7 +230,7 @@ function makePlayers() {
   return [
     { name: 'Surojit',    emoji: '🧑',   ring: '#22d3ee', bnr: '#0e7490', chat: '#fbbf24', coins: 0, pos: 'pos-tl' },
     { name: 'Isla.Criss', emoji: '👧', ring: '#f472b6', bnr: '#be185d', chat: '#fb923c', coins: 0, pos: 'pos-tr' },
-    { name: guest,        emoji: '🧑🏻', ring: '#f9a8d4', bnr: '#1d4ed8', chat: '#fde047', coins: 0, pos: 'pos-ml', you: true },
+    { name: guest,        emoji: '🧑🏻', ring: '#f9a8d4', bnr: '#1d4ed8', chat: '#fde047', coins: 0, pos: 'pos-front', you: true },
     { name: 'Champ',      emoji: '🧑',   ring: '#facc15', bnr: '#b45309', chat: '#fbbf24', coins: 0, pos: 'pos-mr' },
   ];
 }
