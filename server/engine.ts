@@ -323,7 +323,7 @@ export async function beginFirstTurn(roomId: string): Promise<{ snapshot: RoomSn
       turnNumber: Number(room.rows[0].turn_number) + 1,
       roundNumber: Number(room.rows[0].round_number),
       activePlayerId: first.player_id,
-      targetWord: pickTargetWord(personality),
+      targetWord: pickTargetWord(personality, Math.random, { drawableOnly: first.is_bot }),
       now
     });
 
@@ -777,7 +777,7 @@ export async function transition(input: TransitionInput): Promise<TransitionOutc
         turnNumber: nextTurnNumber,
         roundNumber: nextRoundNumber,
         activePlayerId: nextActiveId,
-        targetWord: pickTargetWord(personality),
+        targetWord: pickTargetWord(personality, Math.random, { drawableOnly: Boolean(nextPlayer?.is_bot) }),
         now
       });
       turnEvents = written.events;

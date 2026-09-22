@@ -48,6 +48,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .seat[data-where="left"]{left:36px;top:250px}
 .seat[data-where="right"]{left:1300px;top:250px;flex-direction:row-reverse;text-align:right}
 .seat[data-where="top"]{left:690px;top:88px}
+.seat[data-where="bottom"]{left:600px;top:640px;flex-direction:column;text-align:center;gap:8px}
+.seat[data-where="bottom"] .meta{min-width:190px}
+.avatar>img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .avatar{width:88px;height:88px;flex:0 0 88px;border-radius:50%;padding:4px;
   background:conic-gradient(#ffe44d,#25d9ff,#ffdc3d,#25d9ff,#ffe44d);
   box-shadow:0 0 0 4px rgba(3,31,47,.9),0 0 20px rgba(53,220,255,.5)}
@@ -169,6 +172,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     <div class="seat" data-where="left"  id="seat-left">  <div class="avatar"><span>🙂</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
     <div class="seat" data-where="right" id="seat-right"> <div class="avatar"><span>😎</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
     <div class="seat" data-where="top"   id="seat-top">   <div class="avatar"><span>🧐</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
+    <div class="seat" data-where="bottom" id="seat-me"><div class="avatar"><img id="meAvatar" alt="" hidden><span id="meAvatarFallback">🧑</span></div><div class="meta"><div class="name">You</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
   </div>
 
   <div class="banner"><div class="reveal" id="reveal">Waiting for the first turn…</div></div>
@@ -253,7 +257,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     clockOffset: 0,        // serverNow - clientNow, so countdowns ignore skew
     strokes: [],
     color: "#12303f",
-    seq: 0
+    seq: 0,
+    // Handed to us by the parent game frame (index.html) when embedded.
+    profile: { name: null, avatar: null, coins: null }
   };
 
   let ws = null;
@@ -297,6 +303,19 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       el.querySelector(".avatar > span").textContent = p.isBot ? (i === 0 ? "🙂" : i === 1 ? "😎" : "🧐") : "🧑";
       el.classList.toggle("is-active", p.playerId === snap.activePlayerId);
     });
+    // The local player is seated at the table too — a pill in the header is not
+    // an avatar sitting at the table.
+    const meSeat = $("seat-me");
+    meSeat.style.visibility = "visible";
+    meSeat.querySelector(".name").textContent = state.profile.name || "You";
+    meSeat.querySelector(".score").textContent = "🪙 " + (me ? me.score : state.profile.coins ?? 0);
+    meSeat.classList.toggle("is-active", !!me && me.playerId === snap.activePlayerId);
+    if (state.profile.avatar) {
+      const avatar = $("meAvatar");
+      if (avatar.getAttribute("src") !== state.profile.avatar) avatar.src = state.profile.avatar;
+      avatar.hidden = false;
+      $("meAvatarFallback").hidden = true;
+    }
     $("myScore").textContent = me ? me.score : 0;
     $("seatPill").textContent = "SEAT " + (me ? me.seatNumber + 1 : PLACEHOLDER);
     $("turnPill").textContent = "TURN " + snap.turnNumber + " · " + String(snap.phase).toUpperCase();
@@ -713,6 +732,20 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     applyLocalStroke({ points: [[0.15,0.55],[0.3,0.2],[0.45,0.55],[0.6,0.2],[0.75,0.55]], color: "#12303f", width: 4 });
     applyLocalStroke({ points: [[0.22,0.7],[0.8,0.72]], color: "#c0392b", width: 5 });
   }
+
+  /* The parent game frame (index.html) posts the player's profile when this page
+     is embedded: avatar image, display name and coin balance. */
+  addEventListener("message", (event) => {
+    const data = event && event.data ? event.data : {};
+    if (typeof data.champEquippedAvatar === "string" && data.champEquippedAvatar) {
+      state.profile.avatar = data.champEquippedAvatar;
+    }
+    if (typeof data.champName === "string" && data.champName) state.profile.name = data.champName;
+    if (data.champCoins !== undefined && data.champCoins !== null && data.champCoins !== "") {
+      state.profile.coins = data.champCoins;
+    }
+    if (state.snapshot) renderPlayers();
+  });
 
   if (DEMO) runDemo();
   else connect();

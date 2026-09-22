@@ -1,4 +1,8 @@
 import type { BotPersonality, Card } from "./rooms.js";
+import { DRAWABLE_WORDS } from "./doodles.js";
+
+/** Words that have a doodle template, so a bot artist can sketch them. */
+const DRAWABLE_SET = new Set(DRAWABLE_WORDS);
 
 /**
  * Word bank. Difficulty is expressed as word length, which is the only thing a
@@ -26,9 +30,18 @@ const WORD_BANK: Record<BotPersonality, readonly string[]> = {
 
 export const ALL_PERSONALITIES: readonly BotPersonality[] = ["easy", "normal", "aggressive"];
 
-export function pickTargetWord(personality: BotPersonality, random: () => number = Math.random): string {
+export function pickTargetWord(
+  personality: BotPersonality,
+  random: () => number = Math.random,
+  options: { drawableOnly?: boolean } = {}
+): string {
   const bank = WORD_BANK[personality];
-  return bank[Math.floor(random() * bank.length)] as string;
+  // A bot artist has no pointer, so it can only sketch words that have a doodle
+  // template. Restrict its bank to those; fall back to the full bank if the
+  // intersection is ever empty so a turn can never come up without a word.
+  const restricted = options.drawableOnly ? bank.filter((word) => DRAWABLE_SET.has(word)) : bank;
+  const pool = restricted.length > 0 ? restricted : bank;
+  return pool[Math.floor(random() * pool.length)] as string;
 }
 
 /**

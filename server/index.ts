@@ -15,6 +15,7 @@ import { startScheduler, sweepExpiredTurns, type Scheduler } from "./scheduler.j
 import { clampToWindow, planBotTurn } from "./bots.js";
 import { enqueuePlayer, leaveQueue, runMatchmakingPass, type MatchResult } from "./matchmaking.js";
 import { serveStatic } from "./static.js";
+import { doodleFor } from "./doodles.js";
 import { issueSession, verifySession, type SessionIdentity } from "./identity.js";
 import { telemetry, telemetryError } from "./telemetry.js";
 
@@ -87,6 +88,8 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
   const drawStrokes = new Map<string, unknown[]>();
   /** Bot timers keyed by `roomId:turnNumber` so a finished turn cancels its own. */
   const botTimers = new Map<string, NodeJS.Timeout[]>();
+  /** Same, for an artist bot's sketch: keyed `roomId:turnNumber:doodle`. */
+  const doodleTimers = new Map<string, NodeJS.Timeout[]>();
 
   /** Join a socket's membership of a room. Safe to call more than once. */
   const attachToRoom = (socket: WebSocket, roomId: string, playerId: string, connectionVersion: number | null) => {
@@ -164,6 +167,73 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     if (!timers) return;
     for (const timer of timers) clearTimeout(timer);
     botTimers.delete(key);
+  };
+
+  const cancelDoodleTimers = (roomId: string, turnNumber: number) => {
+    const key = `${roomId}:${turnNumber}:doodle`;
+    const timers = doodleTimers.get(key);
+    if (!timers) return;
+    for (const timer of timers) clearTimeout(timer);
+    doodleTimers.delete(key);
+  };
+
+  /**
+   * An artist bot has no pointer, so it sketches the target word with the
+   * templates in doodles.ts (§8) — otherwise a bot turn showed an empty board
+   * that no solver could answer. Strokes are stored exactly like a human
+   * artist's, so `draw_sync` replays them to anyone who joins or reconnects.
+   */
+  const scheduleBotDoodle = async (roomId: string, turnNumber: number) => {
+    const room = await pool.query<{
+      target_word: string | null;
+      active_player_id: string | null;
+      is_bot: boolean | null;
+    }>(
+      `SELECT g.target_word, g.active_player_id, p.is_bot
+         FROM public.game_rooms g
+         LEFT JOIN public.room_players p
+           ON p.room_id = g.id AND p.player_id = g.active_player_id
+        WHERE g.id = $1`,
+      [roomId]
+    );
+    const row = room.rows[0];
+    if (!row || row.is_bot !== true || !row.target_word) return;
+
+    const doodle = doodleFor(row.target_word);
+    if (!doodle || doodle.length === 0) return;
+
+    const key = `${roomId}:${turnNumber}`;
+    const store = drawStrokes.get(key) ?? [];
+    // Re-announcing a turn (resume, rejoin) must not sketch the same word twice.
+    if (store.length > 0) return;
+    drawStrokes.set(key, store);
+
+    cancelDoodleTimers(roomId, turnNumber);
+    const passes = 4;
+    const perPass = Math.max(1, Math.ceil(doodle.length / passes));
+    const timers: NodeJS.Timeout[] = [];
+    for (let i = 0; i < doodle.length; i += perPass) {
+      const chunk = doodle.slice(i, i + perPass);
+      const timer = setTimeout(() => {
+        void (async () => {
+          try {
+            const live = await pool.query<{ turn_number: string }>(
+              `SELECT turn_number FROM public.game_rooms WHERE id=$1`,
+              [roomId]
+            );
+            // The turn moved on: its strokes were already discarded.
+            if (!live.rows[0] || Number(live.rows[0].turn_number) !== turnNumber) return;
+            store.push(...chunk);
+            broadcast(roomId, { type: "draw_op", roomId, turnNumber, strokes: chunk, bot: true });
+          } catch (error) {
+            telemetryError("bot_doodle_failed", error, { roomId, turnNumber });
+          }
+        })();
+      }, 200 + (i / perPass) * 240);
+      timer.unref?.();
+      timers.push(timer);
+    }
+    doodleTimers.set(`${roomId}:${turnNumber}:doodle`, timers);
   };
 
   /**
@@ -301,6 +371,16 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     for (const playerId of new Set(socketsFor(roomId).values())) {
       await sendHandTo(roomId, playerId);
     }
+
+    // §8: a client joining or resuming mid-turn must see what has been drawn so
+    // far. Sent before the bot starts sketching, so a late `draw_sync` can never
+    // wipe strokes that arrived first.
+    const strokesSoFar = drawStrokes.get(`${roomId}:${turnNumber}`) ?? [];
+    for (const [socket] of socketsFor(roomId)) {
+      send(socket, { type: "draw_sync", roomId, turnNumber, strokes: strokesSoFar });
+    }
+
+    await scheduleBotDoodle(roomId, turnNumber);
   };
 
   /** Push one transition outcome to everyone who should see it. */
@@ -316,6 +396,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     if (outcome.turnEnded) {
       const ended = outcome.turnEnded as TurnEnded;
       cancelBotTimers(roomId, ended.turnNumber);
+      cancelDoodleTimers(roomId, ended.turnNumber);
       broadcast(roomId, ended);
       if (ended.terminalState === "no_valid_move") {
         telemetry("no_valid_move", { roomId, turnNumber: ended.turnNumber });
@@ -505,6 +586,13 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           attachToRoom(socket, result.snapshot.roomId, identity.playerId, result.connectionVersion);
           send(socket, result.snapshot);
           await sendHandToSocket(socket, result.snapshot.roomId, identity.playerId);
+          // §8: resume replays the drawing, not just the hand.
+          send(socket, {
+            type: "draw_sync",
+            roomId: result.snapshot.roomId,
+            turnNumber: result.snapshot.turnNumber,
+            strokes: drawStrokes.get(`${result.snapshot.roomId}:${result.snapshot.turnNumber}`) ?? []
+          });
           send(socket, {
             type: "resume_complete",
             requestId: message.requestId,
