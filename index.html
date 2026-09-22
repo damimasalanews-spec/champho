@@ -1596,7 +1596,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     if(!overlay||!frame)return;
     document.body.classList.remove('auth-open','app-open','profile-open');
     overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');
-    if(frame.dataset.loaded!=='1'){frame.src='https://champword-classic.onrender.com/';frame.dataset.loaded='1';frame.addEventListener('load',sendProfile,{once:true});[600,1800,3200].forEach(function(ms){setTimeout(sendProfile,ms);});}
+    if(frame.dataset.loaded!=='1'){frame.src='https://champwordho.onrender.com/';frame.dataset.loaded='1';frame.addEventListener('load',sendProfile,{once:true});[600,1800,3200].forEach(function(ms){setTimeout(sendProfile,ms);});}
     else sendProfile();
   }
   function closeChampProGame(){if(!overlay)return;overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');document.body.classList.add('app-open')}
