@@ -287,8 +287,12 @@ function seatArt(p) {
   }
   h += '><img src="../assets/avatars/' + p.portrait + '.webp" alt=""></span>';
   if (p.frame) h += '<img class="aframe" src="../assets/frames/' + p.frame + '.webp" alt="">';
-  if (p.title) h += '<img class="atitle" src="../assets/titles/' + p.title + '.webp" alt="">';
   return h;
+}
+/* the title is its own plaque under the seat, not an overlay on the portrait */
+function seatTitle(p) {
+  if (!p.title) return '';
+  return '<img class="atitle" src="../assets/titles/' + p.title + '.webp" alt="">';
 }
 /* every coin the player earns is reported so it survives the session */
 function creditYou(n) {
@@ -404,6 +408,7 @@ function renderCards() {
       '<div class="atile' + (p.portrait ? ' has-art' : '') + '" style="--ring:' + p.ring + '">' +
       '<div class="bubble"></div><span class="rank-badge">4</span>' + seatArt(p) +
       (p.portrait ? '' : '<span class="aemoji">' + p.emoji + '</span>') + '</div>' +
+      seatTitle(p) +
       '<div class="nbanner" style="--bnr:' + p.bnr + '"><span class="nbadge">' + p.name[0].toUpperCase() + '</span>' +
       '<span class="nname">' + p.name + '</span></div>' +
       '<div class="racebar"><i></i></div>' +
