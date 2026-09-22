@@ -30,6 +30,9 @@ type Json = Record<string, any>;
 const failures: string[] = [];
 const inbox: Json[] = [];
 let sessionToken: string | null = null;
+/** serverNow - clientNow, so deadline checks ignore clock skew between the two. */
+let clockOffset = 0;
+const serverNow = (): number => Date.now() + clockOffset;
 
 const check = (ok: boolean, message: string): void => {
   if (ok) return;
@@ -156,7 +159,8 @@ async function main(): Promise<void> {
   send({ type: "hello", requestId: randomUUID(), clientVersion: "house-probe" });
   const welcome = await waitFor((m) => m.type === "welcome", 20000);
   sessionToken = welcome.sessionToken;
-  console.log(`welcome: playerId=${welcome.playerId}`);
+  if (welcome.serverTime) clockOffset = new Date(welcome.serverTime).getTime() - Date.now();
+  console.log(`welcome: playerId=${welcome.playerId} clockOffset=${clockOffset}ms`);
   send({ type: "find_match", requestId: randomUUID(), sessionToken, displayName: "HouseProbe" });
 
   for (let round = 0; round < rounds; round += 1) {
@@ -164,12 +168,18 @@ async function main(): Promise<void> {
     const handSync = await waitFor((m) => m.type === "hand_sync", 20000);
     const hand = (handSync.hand ?? []) as Array<{ cardId: string; value: string }>;
 
+    const windowMs = started.turnDeadlineAt ? new Date(started.turnDeadlineAt).getTime() - serverNow() : null;
     console.log(
       `\nturn ${started.turnNumber}: artistry=${started.activePlayerId === null ? "THE HOUSE" : started.activePlayerId}` +
-        ` word=${started.targetWordLength} letters hand=${hand.length} cards`
+        ` word=${started.targetWordLength} letters hand=${hand.length} cards` +
+        ` window=${windowMs === null ? "?" : Math.round(windowMs / 1000) + "s"}`
     );
     check(started.activePlayerId === null, `turn ${started.turnNumber} was owned by a player, not the house`);
     check(hand.length === 14, `turn ${started.turnNumber} dealt ${hand.length} cards, expected 14`);
+    check(
+      windowMs !== null && windowMs > 55_000 && windowMs <= 61_000,
+      `turn ${started.turnNumber} gave ${windowMs}ms to think, expected about 60000ms`
+    );
 
     const sketch = await collectSketch(Number(started.turnNumber));
     console.log(`  the house drew ${sketch.strokes} strokes (${sketch.points} points)`);
