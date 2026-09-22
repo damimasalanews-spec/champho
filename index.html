@@ -381,7 +381,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwRight{flex:1;display:grid;grid-template-rows:20% 1fr;padding:2.2% 2.5%}
 
 /* --- avatar preview: frame + filter + effect + title, preview only --- */
-.cwPrev{position:relative;width:70%;aspect-ratio:1/1;margin-bottom:9%}
+.cwPrev{position:relative;width:46%;aspect-ratio:1/1;margin-bottom:19%}
 .cwPrevFrame{position:absolute;inset:0;border-radius:14%;overflow:hidden;background:#0e4f8c;
   box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),0 8px 20px rgba(0,20,50,.35)}
 .cwPrevFrame img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .25s ease}
@@ -420,7 +420,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   box-shadow:inset 0 -3px 0 rgba(40,0,80,.4),0 4px 10px rgba(40,0,80,.45)}
 
 .cwChip{display:inline-flex;align-items:center;gap:.35em;margin:0 0 4%;padding:.22em .7em;
-  border-radius:999px;font-size:clamp(8px,1.35vh,15px);font-weight:900;letter-spacing:.5px;
+  border-radius:999px;font-size:clamp(7px,1.2vh,13px);font-weight:900;letter-spacing:.4px;
+  white-space:nowrap;
   color:#0b3c66;background:linear-gradient(180deg,#e2f3ff,#aed9f8);
   box-shadow:inset 0 2px 0 #fff,0 2px 6px rgba(0,25,60,.3)}
 .cwName{margin:0 0 4%;font-size:clamp(13px,2.4vh,30px);font-weight:900;color:#ffd23f;
@@ -491,124 +492,78 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   font-size:clamp(11px,2vh,22px);text-align:center;opacity:.92;text-shadow:0 2px 4px rgba(0,30,70,.5)}
 
 /* ============ FRAMES ============
-   Each frame is a masked ring (transparent centre, so it works both in the grid
-   and wrapped around the avatar) and each one is a different shape, material and
-   ornament - circle / squircle / square-ish, glass / gold / emerald / steel /
-   silk / pearl / electric / cosmic / prism. */
+   Real rendered artwork (transparent WebP) plus animated light layers. Each light
+   layer is masked by the artwork's own alpha via --m, so the sweep and glow only
+   ever land on the ring itself and never on the empty centre. */
 
-.cwFr{position:absolute;inset:13%}
-.cwRing{position:absolute;inset:0;display:block;padding:9%;border-radius:17%;
-  -webkit-mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
-  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
-  filter:drop-shadow(0 5px 9px rgba(0,22,52,.5))}
-.cwOrn{position:absolute;display:block;pointer-events:none;z-index:3}
+.cwFr{position:absolute;inset:3%}
+.cwRingImg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.cwGlow,.cwSheen{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+  -webkit-mask-image:var(--m);mask-image:var(--m);
+  -webkit-mask-size:100% 100%;mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.cwGlow{background:radial-gradient(circle at 50% 50%,var(--gl,rgba(255,255,255,.5)),transparent 64%);
+  animation:cwPulse 2.4s ease-in-out infinite}
+.cwSheen{background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.95) 50%,transparent 60%);
+  background-size:260% 260%;animation:cwSweep 2.8s linear infinite}
+@keyframes cwSweep{from{background-position:230% 0}to{background-position:-130% 0}}
+@keyframes cwPulse{0%,100%{opacity:.4}50%{opacity:1}}
+@keyframes cwBob{0%,100%{transform:translateY(-1.5%) scale(1)}50%{transform:translateY(1.5%) scale(1.015)}}
+@keyframes cwSway{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.4deg)}}
+@keyframes cwFlap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.95)}}
+@keyframes cwJitter{0%,100%{transform:translate(0,0);filter:brightness(1)}
+  20%{transform:translate(.6px,-.6px);filter:brightness(1.5)}
+  40%{transform:translate(-.5px,.5px)}
+  60%{transform:translate(.4px,.4px);filter:brightness(1.15)}
+  80%{transform:translate(-.6px,-.4px)}}
+@keyframes cwHue{to{filter:hue-rotate(360deg)}}
 
-/* 1 - crystal : free. glass squircle with a cut-gem crown */
-.cw-fr-crystal .cwRing{background:
-  linear-gradient(150deg,rgba(255,255,255,.95),#7fe8ff 16%,#22b6d8 46%,#0b6a8c 78%,#063f57)}
-.o-gem{left:50%;top:-11%;width:24%;height:24%;transform:translateX(-50%) rotate(45deg);
-  border-radius:26%;background:linear-gradient(160deg,#ffffff,#a8f0ff 40%,#28a8d0);
-  box-shadow:0 0 0 2px rgba(255,255,255,.95),0 0 14px rgba(150,235,255,.95),0 3px 7px rgba(0,20,50,.5)}
+/* signature motion per frame - the light layers are shared, these are not */
+.cw-a-crystal{--gl:rgba(150,240,255,.55)}
+.cw-a-crystal .cwRingImg{animation:cwBob 3.4s ease-in-out infinite}
 
-/* 2 - royal : metallic gold, triple-peak crown with jewels */
-.cw-fr-royal .cwRing{padding:11%;border-radius:15%;background:
-  linear-gradient(150deg,#fff6cc,#ffd24a 18%,#e09a12 52%,#8a5200 84%,#5a3400)}
-.o-crown{left:50%;top:-15%;width:52%;height:24%;transform:translateX(-50%);
-  background:
-    radial-gradient(circle at 50% 84%,#8fe8ff 0 13%,transparent 14%),
-    radial-gradient(circle at 20% 86%,#ff7ab8 0 10%,transparent 11%),
-    radial-gradient(circle at 80% 86%,#ff7ab8 0 10%,transparent 11%),
-    linear-gradient(180deg,#fff8d8,#ffcf3c 45%,#b8720a);
-  clip-path:polygon(0 100%,7% 20%,26% 54%,50% 0,74% 54%,93% 20%,100% 100%);
-  filter:drop-shadow(0 2px 4px rgba(0,20,50,.55))}
+.cw-a-royal{--gl:rgba(255,236,150,.68)}
+.cw-a-royal .cwSheen{background-size:300% 300%;animation-duration:2.2s}
+.cw-a-royal .cwGlow{background:radial-gradient(circle at 50% 12%,rgba(255,240,170,.9),transparent 42%);
+  animation:cwRoyal 3.2s linear infinite}
+@keyframes cwRoyal{0%,86%,100%{opacity:0}90%,96%{opacity:1}}
 
-/* 3 - emerald : vine-wrapped, leafy band */
-.cw-fr-emerald .cwRing{padding:12%;border-radius:22%;background:
-  radial-gradient(circle at 12% 8%,rgba(180,255,190,.95) 0 9%,transparent 10%),
-  radial-gradient(circle at 88% 14%,rgba(150,240,170,.9) 0 8%,transparent 9%),
-  radial-gradient(circle at 20% 92%,rgba(150,240,170,.9) 0 8%,transparent 9%),
-  radial-gradient(circle at 82% 88%,rgba(180,255,190,.95) 0 9%,transparent 10%),
-  radial-gradient(circle at 50% 2%,rgba(220,255,220,.85) 0 6%,transparent 7%),
-  linear-gradient(150deg,#e8ffdc,#6fdc63 20%,#1f9c3c 55%,#0c5a22 88%)}
+.cw-a-emerald{--gl:rgba(150,255,150,.5)}
+.cw-a-emerald .cwRingImg{animation:cwSway 3.6s ease-in-out infinite}
 
-/* 4 - thorn : steel squircle over a spiked star collar */
-.cw-fr-thorn .cwRing{padding:9%;border-radius:13%;background:
-  linear-gradient(150deg,#f0f4f8,#9fb2c4 20%,#5a6c80 55%,#2b3743 88%)}
-.o-spikes{inset:-11%;z-index:0;
-  background:linear-gradient(160deg,#ffd0d0,#c8321f 45%,#7a1408);
-  clip-path:polygon(50% 0,61% 11%,76% 5%,79% 21%,95% 23%,88% 37%,100% 50%,88% 63%,95% 77%,
-    79% 79%,76% 95%,61% 89%,50% 100%,39% 89%,24% 95%,21% 79%,5% 77%,12% 63%,0 50%,12% 37%,
-    5% 23%,21% 21%,24% 5%,39% 11%);
-  /* a radial mask hollows the star into a spiked collar; a content-box mask
-     cannot be combined with clip-path (they conflict), a radial one can */
-  -webkit-mask:radial-gradient(circle at 50% 50%,transparent 0 47%,#000 48%);
-  mask:radial-gradient(circle at 50% 50%,transparent 0 47%,#000 48%);
-  filter:drop-shadow(0 4px 8px rgba(60,0,0,.45))}
+.cw-a-thorn{--gl:rgba(220,40,20,.6)}
+.cw-a-thorn .cwGlow{background:radial-gradient(circle at 50% 50%,transparent 38%,rgba(225,45,20,.75) 80%);
+  animation:cwPulse 2s ease-in-out infinite}
+.cw-a-thorn .cwSheen{background-size:320% 320%;animation-duration:3.4s}
 
-/* 5 - silk : a true circle of woven pink with a bow */
-.cw-fr-silk .cwRing{padding:10%;border-radius:50%;background:
-  repeating-linear-gradient(52deg,rgba(255,255,255,.28) 0 6%,transparent 6% 12%),
-  linear-gradient(150deg,#ffe6f2,#ff9ac8 22%,#e2569a 56%,#a01f5e 88%)}
-.o-bow{left:50%;top:-13%;width:42%;height:20%;transform:translateX(-50%);
-  background:
-    radial-gradient(circle at 50% 62%,#fff0f7 0 16%,transparent 17%),
-    linear-gradient(180deg,#ffd6ea,#ff7ab8 55%,#c02e77);
-  clip-path:polygon(50% 42%,100% 0,88% 100%,50% 62%,12% 100%,0 0);
-  filter:drop-shadow(0 2px 4px rgba(70,0,35,.5))}
+.cw-a-silk{--gl:rgba(255,170,215,.5)}
+.cw-a-silk .cwRingImg{animation:cwBob 2.8s ease-in-out infinite}
 
-/* 6 - pearl : pale pearl circle flanked by cel-shaded wings */
-.cw-fr-pearl .cwRing{padding:9%;border-radius:50%;background:
-  radial-gradient(circle at 32% 22%,#ffffff 0 18%,transparent 40%),
-  linear-gradient(150deg,#ffffff,#e8f4ff 26%,#a9c9e8 60%,#5f86ad 90%)}
-.o-wing{top:26%;width:30%;height:44%;background:linear-gradient(180deg,#ffffff,#d8e8ff 55%,#8fb0d8);
-  filter:drop-shadow(0 2px 4px rgba(0,25,60,.45))}
-.o-wingL{left:-24%;clip-path:polygon(100% 8%,58% 0,16% 26%,0 50%,20% 72%,62% 100%,100% 90%,
-  80% 66%,92% 50%,78% 32%)}
-.o-wingR{right:-24%;transform:scaleX(-1);
-  clip-path:polygon(100% 8%,58% 0,16% 26%,0 50%,20% 72%,62% 100%,100% 90%,
-  80% 66%,92% 50%,78% 32%)}
+.cw-a-pearl{--gl:rgba(215,240,255,.6)}
+.cw-a-pearl .cwRingImg{animation:cwFlap 2.2s ease-in-out infinite}
 
-/* 7 - volt : electric square with crackling bolts (animated) */
-.cw-fr-volt .cwRing{padding:9%;border-radius:11%;background:
-  linear-gradient(150deg,#eaffff,#6fe4ff 18%,#2f8ce8 52%,#123a8a 86%);
-  animation:cwVolt 1.5s steps(3,end) infinite}
-.o-bolt{top:2%;width:18%;height:34%;background:linear-gradient(180deg,#ffffff,#fff06a 45%,#ffb020);
-  filter:drop-shadow(0 0 8px rgba(255,235,120,.95))}
-.o-boltL{left:6%;clip-path:polygon(58% 0,18% 44%,44% 44%,20% 100%,86% 46%,54% 46%,80% 0)}
-.o-boltR{right:6%;transform:scaleX(-1);
-  clip-path:polygon(58% 0,18% 44%,44% 44%,20% 100%,86% 46%,54% 46%,80% 0)}
-@keyframes cwVolt{0%,100%{filter:brightness(1) drop-shadow(0 5px 9px rgba(0,22,52,.5))}
-  50%{filter:brightness(1.6) drop-shadow(0 0 12px rgba(150,230,255,.95))}}
+.cw-a-volt{--gl:rgba(130,220,255,.75)}
+.cw-a-volt .cwRingImg{animation:cwJitter .5s steps(5,end) infinite}
+.cw-a-volt .cwGlow{animation:cwPulse .38s steps(2,end) infinite}
+.cw-a-volt .cwSheen{background-size:320% 320%;animation-duration:1.4s}
 
-/* 8 - cosmos : deep violet circle with two orbiting sparks (animated) */
-.cw-fr-cosmos .cwRing{padding:8%;border-radius:50%;background:
-  radial-gradient(circle at 70% 26%,rgba(255,255,255,.9) 0 3%,transparent 4%),
-  radial-gradient(circle at 26% 74%,rgba(255,255,255,.8) 0 2.4%,transparent 3.2%),
-  radial-gradient(circle at 40% 40%,rgba(255,255,255,.55) 0 1.6%,transparent 2.4%),
-  linear-gradient(150deg,#e6d4ff,#a06cff 22%,#5a2fb0 58%,#2a0e5a 90%)}
-.o-orbit{inset:-9%;z-index:0;animation:cwOrbit 5.5s linear infinite}
-.o-orbit::before,.o-orbit::after{content:"";position:absolute;border-radius:50%;
-  background:radial-gradient(circle at 34% 30%,#ffffff,#7fe0ff 55%,#2f8ce8);
-  box-shadow:0 0 10px rgba(140,225,255,.95)}
-.o-orbit::before{left:calc(50% - 6%);top:-3%;width:12%;height:12%}
-.o-orbit::after{right:calc(50% - 6%);bottom:-3%;width:9%;height:9%}
-@keyframes cwOrbit{to{transform:rotate(360deg)}}
+.cw-a-cosmos{--gl:rgba(190,150,255,.55)}
+.cw-a-cosmos .cwRingImg{animation:cwSpin 9s linear infinite}
 
-/* 9 - prism : rainbow ring with a refracting prism cut (animated) */
-.cw-fr-prism .cwRing{padding:10%;border-radius:19%;background:
-  conic-gradient(from 30deg,#ff5f7e,#ffd24a,#6fe86f,#4dd4ff,#b06cf0,#ff5f7e);
-  animation:cwPrism 7s linear infinite}
-.o-prism{left:50%;top:-12%;width:26%;height:22%;transform:translateX(-50%);
-  background:linear-gradient(160deg,#ffffff,#dff6ff 42%,#8fd8ff);
-  clip-path:polygon(50% 0,100% 100%,0 100%);
-  box-shadow:0 0 0 2px rgba(255,255,255,.9);filter:drop-shadow(0 2px 5px rgba(0,20,50,.5))}
-@keyframes cwPrism{to{filter:hue-rotate(360deg) drop-shadow(0 5px 9px rgba(0,22,52,.5))}}
+.cw-a-prism{--gl:rgba(255,200,255,.6)}
+.cw-a-prism .cwRingImg{animation:cwHue 6s linear infinite}
 
-/* preview: the same ring, scaled up around the avatar */
-.cwPrev .cwPrevFr{position:absolute!important;inset:-11%!important}
-.cwPrev .cwPrevFr .cwRing{padding:7%}
-.cwPrev .cwPrevFr .o-orbit{inset:-7%}
-@media (prefers-reduced-motion:reduce){.cwRing,.o-orbit{animation:none}}
+@keyframes cwSpin{to{transform:rotate(360deg)}}
+
+/* the avatar preview: artwork scaled so the ring's hollow centre matches the
+   portrait (holes average 44% of the artwork, so it needs to be ~229%) */
+.cwPrev .cwPrevFr{position:absolute!important;inset:-37.5%!important}
+.cwPrev .cwPrevFr .cwGlow{animation-duration:2.2s}
+.cwPrev .cwPrevFr .cwSheen{background-size:280% 280%;animation-duration:3.2s}
+
+@media (prefers-reduced-motion:reduce){
+  .cwRingImg,.cwGlow,.cwSheen{animation:none}
+}
 
 /* ============ TITLES ============
    Nine genuinely different plates: ribbon, shield, crowned, winged, neon tube,
@@ -915,12 +870,6 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwFilTag,.cwFxName{position:absolute;left:0;right:0;bottom:0;padding:.16em .3em;text-align:center;
   font-size:clamp(7px,1.25vh,14px);font-weight:900;color:#fff;z-index:3;
   background:linear-gradient(180deg,transparent,rgba(0,20,50,.82));text-shadow:0 1px 2px rgba(0,0,0,.7)}
-
-/* .cwFr declares position:relative, which would otherwise beat the positioning
-   of the tile/preview variants declared earlier - keep them absolute. */
-.cwTile .cwTileFr{position:absolute!important;inset:15%!important}
-.cwTile.use .cwTileFr{position:absolute!important;inset:11%!important}
-.cwPrev .cwPrevFr{position:absolute!important;inset:-10%!important}
 </style>
 
 <div id="cwPers" aria-hidden="true">
@@ -1026,6 +975,12 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var AVATAR='';
 
   function byId(id){ return document.getElementById(id); }
+  // rendered frame artwork + its masked sheen/glow layers
+  function art(id, cls){
+    var u='assets/frames/'+id+'.webp';
+    return '<div class="cwFr cw-a-'+id+' '+(cls||'')+'" style="--m:url('+u+')">'
+      +'<img class="cwRingImg" src="'+u+'" alt=""><i class="cwGlow"></i><i class="cwSheen"></i></div>';
+  }
   function find(cat,id){ return (D[cat]||[]).filter(function(x){return x.id===id})[0]; }
 
   function grabAvatar(){
@@ -1097,7 +1052,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       var t=document.createElement('div');
       t.className='cwTile';
       if(cat==='frames'){
-        t.innerHTML='<div class="cwFr cw-fr-'+it.cls+'"><i class="cwRing"></i>'+(it.orn||'')+'</div>';
+        t.innerHTML=art(it.id);
         if(it.id===EQUIPPED) t.classList.add('use');
       } else if(cat==='titles'){
         t.innerHTML='<div class="cwTl"><i class="cwPlate"></i><b class="cwTxt">'+it.txt+'</b></div>'+(it.orn||'');
@@ -1126,8 +1081,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     sel[k]=it;
     if(k==='frames'){
       var pf=byId('cwPrevFr');
-      pf.className='cwPrevFr cw-fr-'+it.cls;
-      pf.innerHTML='<i class="cwRing"></i>'+(it.orn||'');
+      var au='assets/frames/'+it.id+'.webp';
+      pf.className='cwPrevFr cw-a-'+it.id;
+      pf.style.setProperty('--m','url('+au+')');
+      pf.innerHTML='<img class="cwRingImg" src="'+au+'" alt=""><i class="cwGlow"></i><i class="cwSheen"></i>';
     } else if(k==='filters'){
       var p=byId('cwPrev');
       p.className=p.className.replace(/\bcwFil-\S+/g,'').trim()+' cwFil-'+it.id;
@@ -1140,7 +1097,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       el.innerHTML='<i class="cwPlate"></i><b class="cwTxt">'+it.txt+'</b>'+(it.orn||'');
       el.className='cwPrevTitle on cw-tl-'+it.cls;
     }
-    byId('cwChip').innerHTML='PREVIEW ONLY &middot; <b>'+CATS.filter(function(c){return c.k===k})[0].l.replace(/s$/,'')+' not equipped</b>';
+    byId('cwChip').innerHTML='PREVIEW ONLY &middot; <b>'+CATS.filter(function(c){return c.k===k})[0].l+' not equipped</b>';
     byId('cwPName').textContent=it.name;
     byId('cwPDesc').textContent=it.desc;
     byId('cwPFrom').textContent=it.from;
@@ -1151,8 +1108,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     sel={frames:null,titles:null,effects:null,filters:null};
     var e0=find('frames',EQUIPPED);
     var pf0=byId('cwPrevFr');
-    pf0.className='cwPrevFr cw-fr-'+e0.cls;
-    pf0.innerHTML='<i class="cwRing"></i>'+(e0.orn||'');
+    var au0='assets/frames/'+e0.id+'.webp';
+    pf0.className='cwPrevFr cw-a-'+e0.id;
+    pf0.style.setProperty('--m','url('+au0+')');
+    pf0.innerHTML='<img class="cwRingImg" src="'+au0+'" alt=""><i class="cwGlow"></i><i class="cwSheen"></i>';
     byId('cwPrevFx').className='cwPrevFx';
     byId('cwPrevFxI').className='';
     byId('cwPrevTint').className='cwPrevTint';
