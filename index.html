@@ -333,6 +333,324 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       </section>
     </main>
   </div>
+<style id="cwPersStyle">
+/* ===== Personalize view — built to match the supplied reference ===== */
+#cwPers{position:absolute;inset:0;z-index:80;display:none;pointer-events:none;
+  font-family:inherit;overflow:hidden}
+#cwPers.on{display:block}
+#cwPers *{box-sizing:border-box}
+
+/* --- left navigation: absolute geometry, aligned to the artwork's own sidebar --- */
+.cwSideBtn{
+  position:absolute;left:5.9%;width:13.6%;height:9.2%;margin:0;padding:0;
+  text-align:center;font-weight:900;letter-spacing:.4px;font-size:clamp(10px,1.85vh,22px);
+  color:#fff;border:0;border-radius:12px;cursor:pointer;pointer-events:auto;
+  background:linear-gradient(180deg,#1681d4,#0872c3);
+  box-shadow:inset 0 2px rgba(255,255,255,.14),0 1.25vh 0 rgba(10,50,105,.42),
+             0 1.5vh 7px rgba(0,20,50,.22);
+  text-shadow:0 2px 3px rgba(0,40,90,.35);
+}
+.cwSideBtn.active{background:linear-gradient(180deg,#ffd52c,#ffbd19);
+  box-shadow:inset 0 2px rgba(255,255,255,.55),0 1.25vh 0 rgba(120,70,10,.45),
+             0 1.5vh 7px rgba(0,20,50,.22);
+  border:1px solid rgba(255,255,255,.45)}
+.cwSideBtn:active{transform:translateY(1px)}
+
+/* --- top tabs --- */
+.cwTabs{position:absolute;left:22.5%;top:14.0%;width:49.5%;height:8.2%;display:flex;gap:.9%;align-items:flex-end}
+.cwTabs button{
+  flex:1;height:100%;border:1px solid rgba(255,255,255,.30);border-bottom:0;
+  border-radius:14px 14px 0 0;cursor:pointer;pointer-events:auto;
+  font-weight:900;font-size:clamp(11px,2.0vh,25px);color:#fff;
+  background:linear-gradient(180deg,#2f6ea8,#275a91);
+  text-shadow:0 2px 4px rgba(0,30,70,.45);
+}
+.cwTabs button.active{background:linear-gradient(180deg,#e6f4ff,#cfe8fa);color:#fff;
+  text-shadow:0 2px 5px rgba(30,90,150,.55);box-shadow:inset 0 3px rgba(255,255,255,.7)}
+
+/* --- content area --- */
+.cwMain{position:absolute;left:21.5%;top:22.3%;width:71%;height:70.6%;
+  display:flex;gap:1.2%;padding:1.5%;border-radius:22px;
+  background:linear-gradient(180deg,#1d6ec0,#1a63ad);
+  box-shadow:inset 0 0 0 3px rgba(255,255,255,.13),0 10px 30px rgba(0,25,60,.20)}
+.cwLeft,.cwRight{border-radius:16px;background:linear-gradient(180deg,#1c6cb6,#1a63a8);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.10)}
+.cwLeft{flex:0 0 34%;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;padding:8% 6% 5%;text-align:center}
+.cwRight{flex:1;display:grid;grid-template-rows:19% 1fr;padding:2.2% 2.5%}
+
+/* portrait + equipped frame */
+.cwPrev{position:relative;width:72%;aspect-ratio:1/1;margin-bottom:9%}
+.cwPrevFrame{position:absolute;inset:0;border-radius:12%;overflow:hidden;background:#0e4f8c}
+.cwPrevFrame img{width:100%;height:100%;object-fit:cover;display:block}
+.cwPrevFr{position:absolute;inset:-9%;border-radius:14%;pointer-events:none;
+  background:transparent!important;
+  box-shadow:inset 0 0 0 7px currentColor,inset 0 0 0 11px rgba(255,255,255,.55),
+             0 0 0 3px rgba(255,255,255,.35)!important}
+/* hollow mode: keep only the parts of each design that belong on the rim */
+.cwPrevFr::before,.cwPrevFr::after{display:none}
+.cwPrevFr.cw-fr-sports::before{display:block;height:16%;border-radius:14% 14% 0 0}
+.cwPrevFr.cw-fr-sports::after{display:block;left:5%;bottom:5%;width:15%;height:15%}
+.cwPrevFr.cw-fr-jewel::before{display:block;height:17%;border-radius:14% 14% 0 0}
+.cwPrevFr.cw-fr-gold::after{display:block}
+.cwPrevFr.cw-fr-flame::before{display:block}
+.cwSwap{position:absolute;right:-17%;top:-5%;width:24%;aspect-ratio:1/1;border-radius:50%;
+  border:3px solid #eafff2;cursor:pointer;pointer-events:auto;
+  background:radial-gradient(circle at 35% 30%,#7fe06a,#35a51f);
+  box-shadow:0 4px 12px rgba(0,40,10,.35)}
+.cwSwap::after{content:"";position:absolute;left:27%;top:27%;width:42%;height:42%;
+  border:3px solid #fff;border-right-color:transparent;border-radius:50%}
+.cwSwap::before{content:"";position:absolute;left:50%;top:16%;width:0;height:0;
+  border-left:9px solid #fff;border-top:6px solid transparent;border-bottom:6px solid transparent;
+  transform:rotate(-25deg)}
+.cwBadge{position:absolute;right:6%;top:7%;width:14%;aspect-ratio:1/1;border-radius:50%;
+  background:linear-gradient(180deg,#b06cf0,#8a3fd8);border:2px solid #e9d6ff;
+  box-shadow:0 3px 8px rgba(40,0,80,.4)}
+
+.cwName{margin:0 0 4%;font-size:clamp(13px,2.4vh,30px);font-weight:900;color:#ffcb2e;
+  text-shadow:0 2px 3px rgba(20,60,110,.5)}
+.cwDesc{margin:0 0 5%;font-size:clamp(10px,1.8vh,22px);line-height:1.35;color:#fff;font-weight:700}
+.cwFrom{margin:0 0 5%;font-size:clamp(10px,1.75vh,22px);color:#fff;font-weight:800}
+.cwRemove{margin-top:auto;padding:3.2% 11%;border-radius:14px;border:2px solid rgba(255,255,255,.5);
+  cursor:pointer;pointer-events:auto;font-weight:900;font-size:clamp(11px,1.95vh,24px);color:#fff;
+  background:linear-gradient(180deg,#f05a4a,#cf2f22);box-shadow:0 4px 12px rgba(90,10,0,.35)}
+
+/* --- right: frames header + grid --- */
+.cwFramesHead{display:flex;gap:2.5%;align-items:flex-start;height:100%;padding:1.5% 2.5%;
+  border-radius:12px;background:linear-gradient(180deg,#1f77c4,#1b6bb4);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.08);overflow:visible}
+.cwSwatch{position:relative;height:64%;aspect-ratio:1/1}
+.cwSwatch i{position:absolute;inset:0;border-radius:16%}
+.cwSwatch b{position:absolute;left:50%;bottom:-42%;transform:translateX(-50%);
+  font-size:clamp(8px,1.45vh,17px);color:#fff;font-weight:900;white-space:nowrap}
+.cwGrid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  gap:4%;padding-top:4%}
+.cwTile{position:relative;border-radius:12px;background:linear-gradient(180deg,#1b5f9c,#195a92);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.08);pointer-events:auto;cursor:pointer}
+.cwTileFr{position:absolute;inset:15%}
+.cwTile.use{box-shadow:inset 0 0 0 3px #ffe14d,0 0 0 3px #ffe14d;
+  background:linear-gradient(180deg,#1e67aa,#1a5f9e)}
+.cwTile.use .cwTileFr{inset:11%}
+.cwLock{position:absolute;left:6%;top:5%;display:flex;align-items:center;gap:2px;pointer-events:none}
+.cwLock svg{display:block;width:clamp(10px,1.9vh,21px);height:auto;
+  filter:drop-shadow(0 1px 2px rgba(0,20,40,.5))}
+.cwLock s{text-decoration:none;font-size:clamp(8px,1.45vh,16px);font-weight:900;color:#fff;
+  background:#3aa7d8;border-radius:50%;min-width:1.4em;text-align:center;line-height:1.4em;
+  box-shadow:0 1px 3px rgba(0,20,40,.4)}
+.cwRibbon{position:absolute;left:-5%;bottom:12%;padding:.3em .85em;border-radius:8px;
+  transform:rotate(-7deg);background:linear-gradient(180deg,#63c94a,#3d9c26);
+  border:2px solid #a8e88f;color:#fff;font-weight:900;font-size:clamp(9px,1.65vh,20px);
+  white-space:nowrap;box-shadow:0 3px 9px rgba(0,40,0,.35);pointer-events:none}
+
+/* --- frame artwork: original CSS designs in the reference's visual language --- */
+.cwFr{box-shadow:inset 0 0 0 4px currentColor,0 0 0 3px rgba(255,255,255,.35);border-radius:12%}
+.cw-fr-sports{color:#e8452f;background:linear-gradient(180deg,#f7f2e4,#e9dcbe)}
+.cw-fr-sports::before{content:"";position:absolute;left:0;right:0;top:0;height:36%;
+  border-radius:12% 12% 0 0;background:repeating-linear-gradient(90deg,#e8452f 0 18%,#f6f2e6 18% 36%)}
+.cw-fr-sports::after{content:"";position:absolute;left:8%;bottom:8%;width:20%;height:20%;
+  background:#2f6fd0;border-radius:3px;box-shadow:320% 0 0 #e8452f}
+.cw-fr-gold{color:#f7c948;background:linear-gradient(135deg,#5a3f12,#3a2907);
+  box-shadow:inset 0 0 0 4px #f7c948,inset 0 0 0 9px #8a5f18,0 0 0 3px #6b4712}
+.cw-fr-gold::before{content:"";position:absolute;inset:18%;border-radius:8%;
+  border:3px solid #ffe89a;box-shadow:inset 0 0 12px rgba(255,214,102,.5)}
+.cw-fr-gold::after{content:"";position:absolute;inset:-4%;border-radius:16%;
+  background:conic-gradient(from 20deg,#f7c948,#8a5f18,#ffe89a,#8a5f18,#f7c948);z-index:-1}
+.cw-fr-jewel{color:#8a4fd0;background:linear-gradient(180deg,#f09a3e,#d2701c)}
+.cw-fr-jewel::before{content:"";position:absolute;left:0;right:0;top:0;height:32%;
+  background:linear-gradient(180deg,#9a5ce0,#7a3fc0);border-radius:12% 12% 0 0}
+.cw-fr-jewel::after{content:"";position:absolute;left:12%;bottom:12%;width:26%;height:26%;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#8fe6ff,#2a9fd6);
+  box-shadow:0 0 0 4px #f6d36a,0 0 10px rgba(0,0,0,.3)}
+.cw-fr-doodle{background:rgba(255,255,255,.10);box-shadow:none}
+.cw-fr-doodle1{box-shadow:none;border:5px dashed #ff5ea8;
+  background:linear-gradient(180deg,rgba(255,94,168,.20),rgba(255,94,168,.06))}
+.cw-fr-doodle2{box-shadow:none;border:5px dashed #7bd93f;
+  background:linear-gradient(180deg,rgba(123,217,63,.20),rgba(123,217,63,.06))}
+.cw-fr-doodle3{box-shadow:none;border:5px dashed #3fc6ff;
+  background:linear-gradient(180deg,rgba(63,198,255,.20),rgba(63,198,255,.06))}
+/* the animated frames — glowing rings that keep moving */
+.cw-fr-flame{background:linear-gradient(180deg,#3a2408,#1d1203);color:#ffb020;
+  box-shadow:inset 0 0 0 4px #ffb020,0 0 0 3px rgba(255,255,255,.35);
+  animation:cwGlow 2.4s ease-in-out infinite}
+.cw-fr-flame::before{content:"";position:absolute;inset:-4%;border-radius:16%;z-index:-1;
+  background:conic-gradient(from 0deg,#ffdd55,#ff7a18,#ff2f00,#ff7a18,#ffdd55);
+  filter:blur(4px);opacity:.75;animation:cwSpin 4s linear infinite}
+.cw-fr-flame2{color:#ffd23f;animation-delay:.5s}
+.cw-fr-flame2::before{background:conic-gradient(from 90deg,#fff2a8,#ffa41b,#ff3d00,#ffa41b,#fff2a8)}
+.cw-fr-flame3{color:#ff8a1f;animation-delay:1s}
+.cw-fr-flame3::before{background:conic-gradient(from 200deg,#ffe066,#ff5e00,#c81f00,#ff5e00,#ffe066)}
+@keyframes cwGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+@keyframes cwSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.cw-fr-flame,.cw-fr-flame::before{animation:none}}
+
+.cwSoon{grid-column:1/-1;align-self:center;color:#dff0ff;font-weight:800;
+  font-size:clamp(11px,2vh,22px);text-align:center;opacity:.9}
+</style>
+
+<div id="cwPers" aria-hidden="true">
+  <div class="cwTabs" id="cwTabs"></div>
+  <div class="cwMain">
+    <section class="cwLeft">
+      <div class="cwPrev">
+        <div class="cwPrevFrame"><img id="cwPrevImg" alt="Equipped portrait"></div>
+        <div class="cwPrevFr cw-fr-sports" id="cwPrevFr"></div>
+        <span class="cwBadge"></span>
+        <button class="cwSwap" id="cwSwap" type="button" aria-label="Change frame"></button>
+      </div>
+      <h3 class="cwName" id="cwPName">Sports Lover</h3>
+      <p class="cwDesc" id="cwPDesc">Always on the sports journey, win or lose!</p>
+      <p class="cwFrom">From: <b id="cwPFrom">Victory Quest</b></p>
+      <button class="cwRemove" id="cwRemove" type="button">Remove</button>
+    </section>
+    <section class="cwRight">
+      <div class="cwFramesHead" id="cwFramesHead"></div>
+      <div class="cwGrid" id="cwGrid"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SIDE=[["info","INFO",24.80],["personalize","PERSONALIZE",36.20],["chatter","CHATTER",47.60],
+            ["achievements","ACHV.",59.00],["bag","BAG",70.40],["mail","MAIL",81.80]];
+  var TABS=["Portraits","Card Themes","Effects","Scenes"];
+  var FRAMES=[
+    {cls:"sports",       name:"Sports Lover",  desc:"Always on the sports journey, win or lose!", from:"Victory Quest",    use:true},
+    {cls:"gold",         name:"Golden Champ",  desc:"A gleaming border for true champions.",     from:"Ranked Season 3",  locked:1},
+    {cls:"jewel",        name:"Royal Jewels",  desc:"Crowned with sapphires and gold.",          from:"Collection Set",   locked:1},
+    {cls:"doodle1",      name:"Pink Doodle",   desc:"Hand drawn fun, straight from the notebook.", from:"Sketch Event",   locked:1},
+    {cls:"doodle2",      name:"Lime Doodle",   desc:"A scribbled outline with a twist.",         from:"Sketch Event",     locked:1},
+    {cls:"doodle3",      name:"Blue Doodle",   desc:"Cool tones, drawn by hand.",                from:"Sketch Event",     locked:1},
+    {cls:"flame",        name:"Blazing Frame", desc:"A living ring of fire. Constantly moving.", from:"Victory Quest",    locked:1},
+    {cls:"flame flame2", name:"Solar Frame",   desc:"Radiates heat and light as you play.",      from:"Victory Quest",    locked:1},
+    {cls:"flame flame3", name:"Ember Frame",   desc:"Smouldering embers that never cool.",       from:"Victory Quest",    locked:1}
+  ];
+  var padlock='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#7fd7f5" d="M12 2a5 5 0 0 0-5 5v2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5Zm-3 7V7a3 3 0 1 1 6 0v2H9Z"/></svg>';
+  var hourglass='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#ffe066" d="M7 2h10v3l-3.2 4.2L17 13v7H7v-7l3.2-3.8L7 5V2Zm2 2v1l3 3.8L15 5V4H9Zm3 7.4L9 15v3h6v-3l-3-3.6Z"/></svg>';
+
+  function build(){
+    var root=document.getElementById('cwPers');
+    if(!root||root.dataset.built) return;
+    root.dataset.built='1';
+    var tabs=document.getElementById('cwTabs'), head=document.getElementById('cwFramesHead');
+    var grid=document.getElementById('cwGrid');
+
+    SIDE.forEach(function(p){
+      var b=document.createElement('button');
+      b.type='button'; b.className='cwSideBtn'+(p[1]==='PERSONALIZE'?' active':'');
+      b.textContent=p[1]; b.dataset.cwSide=p[0]; b.style.top=p[2]+'%';
+      b.addEventListener('click',function(){
+        if(p[0]==='personalize') return;
+        if(p[0]==='info'){ window.__closeChampPersonalize(); return; }
+        b.animate?b.animate([{opacity:1},{opacity:.45},{opacity:1}],{duration:320}):0;
+      });
+      root.appendChild(b);
+    });
+
+    TABS.forEach(function(t,i){
+      var b=document.createElement('button');
+      b.type='button'; b.textContent=t; b.className=(i===0?'active':'');
+      b.addEventListener('click',function(){
+        tabs.querySelectorAll('button').forEach(function(x){x.classList.remove('active');});
+        b.classList.add('active');
+        var soon=grid.querySelector('.cwSoon');
+        if(i===0){
+          grid.querySelectorAll('.cwTile').forEach(function(x){x.style.display='';});
+          if(soon) soon.remove();
+        }else{
+          grid.querySelectorAll('.cwTile').forEach(function(x){x.style.display='none';});
+          if(!soon){ soon=document.createElement('p'); soon.className='cwSoon'; grid.appendChild(soon); }
+          soon.textContent=t+' — not built yet';
+        }
+      });
+      tabs.appendChild(b);
+    });
+
+    ["gold","jewel","flame"].forEach(function(k,i){
+      var d=document.createElement('div'); d.className='cwSwatch';
+      d.innerHTML='<i class="cwFr cw-fr-'+k+'"></i>'+(i===0?'<b>Frames</b>':'');
+      head.appendChild(d);
+    });
+
+    FRAMES.forEach(function(f){
+      var t=document.createElement('div');
+      t.className='cwTile'+(f.use?' use':'');
+      t.innerHTML='<div class="cwFr cwTileFr cw-fr-'+f.cls+'"></div>'+
+        (f.locked?'<span class="cwLock">'+padlock+'<s>1</s>'+hourglass+'</span>':'')+
+        (f.use?'<span class="cwRibbon">In Use</span>':'');
+      t.addEventListener('click',function(){
+        if(f.locked){ t.animate?t.animate([{transform:'translateX(0)'},{transform:'translateX(-4px)'},
+          {transform:'translateX(4px)'},{transform:'translateX(0)'}],{duration:220}):0; return; }
+        grid.querySelectorAll('.cwTile').forEach(function(x){x.classList.remove('use');});
+        t.classList.add('use');
+        document.getElementById('cwPName').textContent=f.name;
+        document.getElementById('cwPDesc').textContent=f.desc;
+        document.getElementById('cwPFrom').textContent=f.from;
+        document.getElementById('cwPrevFr').className='cwPrevFr cw-fr-'+f.cls;
+      });
+      grid.appendChild(t);
+    });
+  }
+
+  window.__openChampPersonalize=function(){
+    build();
+    var root=document.getElementById('cwPers'); if(!root) return;
+    var basic=document.getElementById('profileBasicView');
+    if(basic) basic.classList.add('hidden');   // also hides the artwork's tap layer
+    root.classList.add('on'); root.setAttribute('aria-hidden','false');
+    root.querySelectorAll('.cwSideBtn').forEach(function(b){
+      b.classList.toggle('active', b.dataset.cwSide==='personalize');
+    });
+    document.querySelectorAll('.profile-side-link').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-profile-view')==='personalize');
+    });
+  };
+  window.__closeChampPersonalize=function(){
+    var root=document.getElementById('cwPers');
+    if(root){ root.classList.remove('on'); root.setAttribute('aria-hidden','true'); }
+    var basic=document.getElementById('profileBasicView');
+    if(basic) basic.classList.remove('hidden');
+    document.querySelectorAll('.profile-side-link').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-profile-view')==='basic');
+    });
+  };
+
+  function ready(fn){ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',fn); else fn(); }
+  ready(function(){
+    var rm=document.getElementById('cwRemove');
+    if(rm) rm.addEventListener('click',function(){
+      var b=this; b.textContent='Removed'; setTimeout(function(){ b.textContent='Remove'; },900);
+    });
+    var sw=document.getElementById('cwSwap');
+    if(sw) sw.addEventListener('click',function(){
+      var first=document.querySelector('#cwGrid .cwTile');
+      if(first) first.click();
+    });
+    // reuse the game's own portrait so the preview matches the profile screen
+    function feed(){
+      var src=document.querySelector('#profileAvatarLarge img');
+      var img=document.getElementById('cwPrevImg');
+      if(src&&img&&src.src){ img.src=src.src; return true; }
+      return false;
+    }
+    if(!feed()) setTimeout(feed,600);
+  });
+
+  // route the artwork's PERSONALIZE / INFO tap targets into this view
+  function intercept(e){
+    var t=e.target; if(!t||!t.closest) return;
+    if(t.closest('#cwPers')) return;
+    if(t.closest('[data-profile-hit="personalize"],[data-profile-view="personalize"]')){
+      e.preventDefault(); e.stopPropagation(); window.__openChampPersonalize();
+    } else if(t.closest('[data-profile-hit="info"]')){
+      e.preventDefault(); e.stopPropagation(); window.__closeChampPersonalize();
+    }
+  }
+  document.addEventListener('pointerdown',intercept,true);
+  document.addEventListener('click',intercept,true);
+})();
+</script>
+
 </section>
 
 <section id="events" class="screen hidden">
