@@ -369,3 +369,56 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   pointer-events:none;margin-top:calc(var(--seat)*-.02);
   filter:drop-shadow(0 calc(var(--seat)*.025) calc(var(--seat)*.04) rgba(0,0,0,.55))}
 
+
+/* ---------------- gift throwing ----------------
+   Tap a rival's avatar -> the tray opens for that seat. Picking a gift spends
+   coins and flies the item from your seat to theirs. The tray reuses the emoji
+   picker's geometry so both popovers feel like the same control. */
+#giftPicker{position:absolute;z-index:40;padding:10px 10px 11px;border-radius:16px;
+  background:linear-gradient(#12497f,#0a3160);border:2px solid var(--blue-edge);
+  box-shadow:0 10px 26px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.14);
+  animation:pop .2s ease}
+.gp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 8px;
+  font-size:13px;letter-spacing:.3px}
+.gp-head .gp-who{color:#dceeff}
+.gp-head .gp-who b{color:var(--gold);font-weight:900}
+.gp-purse{color:var(--gold);background:rgba(6,33,63,.6);border:1px solid rgba(251,191,36,.5);
+  border-radius:999px;padding:2px 9px;font-size:12px;white-space:nowrap}
+.gp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gift-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:9px 4px 7px;border-radius:13px;position:relative;
+  background:linear-gradient(#5bb8f5,#2c86d6);border:2px solid #bfe3ff;
+  box-shadow:0 3px 0 #1a5f9e, inset 0 2px 0 rgba(255,255,255,.35);transition:transform .1s}
+.gift-tile:active{transform:translateY(2px);box-shadow:0 1px 0 #1a5f9e}
+.gift-tile .gt-art{font-size:26px;line-height:1;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.32))}
+/* the tray's egg is painted gold, so tint the plain emoji to match */
+.gt-art.gt-gold{filter:sepia(1) saturate(4) hue-rotate(357deg) brightness(1.2)
+  drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.gt-cost{font-size:11.5px;font-weight:900;color:#fff;background:rgba(6,33,63,.55);
+  border-radius:999px;padding:1px 8px;letter-spacing:.2px}
+/* unaffordable gifts stay visible but read as out of reach */
+.gift-tile.poor{filter:grayscale(.65) brightness(.7);cursor:default}
+.gift-tile.poor .gt-cost{background:rgba(120,20,20,.6)}
+
+.gift-fly{position:absolute;z-index:60;pointer-events:none;font-size:40px;line-height:1;
+  margin:-20px 0 0 -20px;will-change:transform;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.gift-fly.gt-gold{filter:sepia(1) saturate(4) hue-rotate(357deg) brightness(1.2)
+  drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.gift-spark{position:absolute;z-index:59;pointer-events:none;width:9px;height:9px;border-radius:50%;
+  margin:-4.5px 0 0 -4.5px;background:radial-gradient(circle,#fff6c8,#fbbf24);
+  box-shadow:0 0 8px rgba(251,191,36,.9);
+  transition:transform .55s cubic-bezier(.2,.8,.3,1),opacity .55s ease}
+
+/* the avatar carries a small present so the tap target is obvious */
+.atile.tap-gift{cursor:pointer}
+.gift-hint{position:absolute;left:50%;bottom:calc(var(--seat)*-.09);transform:translateX(-50%);
+  z-index:5;font-size:calc(var(--seat)*.21);line-height:1;pointer-events:none;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));animation:giftHint 2.6s ease-in-out infinite}
+@keyframes giftHint{0%,100%{transform:translateX(-50%) scale(1)}
+  50%{transform:translateX(-50%) scale(1.16)}}
+/* the bump when a gift lands: it replaces the idle bob for the duration */
+.atile.gift-hit{animation:giftHit .62s cubic-bezier(.3,1.5,.4,1)}
+@keyframes giftHit{0%{transform:none}20%{transform:rotate(-9deg) scale(1.12)}
+  45%{transform:rotate(7deg) scale(1.05)}70%{transform:rotate(-4deg) scale(1.01)}100%{transform:none}}

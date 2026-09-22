@@ -198,6 +198,17 @@ let ROUNDS = pickRounds();
 
 const ROUND_TIME = 45;
 const EMOJIS = ['😄', '😂', '😮', '😭', '😡', '🤔', '😎', '🥳', '👏', '👍', '❤️', '🎉'];
+/* Gifts you can throw at another seat. Prices follow the official UNO tray
+   (2/8/2/16/4/6), but all in coins so the game keeps a single currency: the
+   coins on your own seat pill. Kept small so a won round funds several throws. */
+const GIFTS = [
+  { id: 'cupcake', art: '🧁', name: 'Cupcake',    cost: 2 },
+  { id: 'egg',     art: '🥚', name: 'Golden egg', cost: 2, gold: true },
+  { id: 'tomato',  art: '🍅', name: 'Tomato',     cost: 4 },
+  { id: 'rose',    art: '🌹', name: 'Rose',       cost: 6 },
+  { id: 'bear',    art: '🧸', name: 'Teddy bear', cost: 8 },
+  { id: 'cake',    art: '🍰', name: 'Cake slice', cost: 16 },
+];
 const AMBIENT_LINES = [
   'Nice one!', 'Good luck everyone!', 'Almost there!', "Let's go!",
   'Hmm this one is tricky...', 'This theme is easy 😄',
@@ -296,6 +307,19 @@ function creditYou(n) {
   y.coins += n;
   try { parent.postMessage({ champEarn: { coins: n, result: 'round' } }, '*'); } catch (e) {}
 }
+/* spending is the mirror of creditYou: the same amount comes off the seat's purse
+   and is reported back, so a throw never silently costs a guest their coins */
+function debitYou(n) {
+  const y = you();
+  if (!y || !n) return;
+  y.coins = Math.max(0, y.coins - n);
+  /* the shell owns the saved balance, so the spend is only reported when that
+     balance can cover it - a fresh account can never be pushed below zero */
+  if (typeof KIT.coins === 'number' && KIT.coins >= n) {
+    KIT.coins -= n;
+    try { parent.postMessage({ champEarn: { coins: -n, result: 'gift' } }, '*'); } catch (e) {}
+  }
+}
 window.addEventListener('message', function (e) {
   const d = e && e.data;
   if (!d || typeof d !== 'object') return;
@@ -361,6 +385,7 @@ const sfx = {
   round:  () => { whoosh(0.35, 0.05, 0, 800); note(880, 0.15, 'sine', 0.06, 0.25); },
   tick:   () => note(1000, 0.04, 'square', 0.035),
   emote:  () => note(950, 0.08, 'sine', 0.05, 0, 1400),
+  toss:   () => { whoosh(0.32, 0.055, 0, 850); note(520, 0.14, 'triangle', 0.05, 0, 250); },
   gift:   () => [784, 988, 1175, 1568].forEach((f, i) => note(f, 0.1, 'sine', 0.05, i * 0.06)),
 };
 
@@ -415,6 +440,19 @@ function renderCards() {
     e.stopPropagation();
     openPicker(+b.dataset.i, b);
   }));
+  /* a rival's avatar is the gift target: tap it and the tray opens for that seat */
+  wrap.querySelectorAll('.pcard').forEach((card, i) => {
+    if (S.players[i].you) return;
+    const av = card.querySelector('.atile');
+    if (!av) return;
+    av.classList.add('tap-gift');
+    const hint = document.createElement('span');
+    hint.className = 'gift-hint';
+    hint.textContent = '🎁';
+    av.appendChild(hint);
+    av.addEventListener('click', (e) => { e.stopPropagation(); openGiftPicker(i, av); });
+  });
+  closeGiftPicker();
   updateCrown();
 }
 
@@ -560,7 +598,7 @@ function setMode(mode) {
 
 
 /* ---------------- fx ---------------- */
-function showBubble(cardIdx, emoji) {
+function showBubble(cardIdx, emoji, quiet) {
   const card = $('card-' + cardIdx);
   if (!card) return;
   const b = card.querySelector('.bubble');
@@ -570,7 +608,7 @@ function showBubble(cardIdx, emoji) {
   b.classList.add('show');
   clearTimeout(b._t);
   b._t = setTimeout(() => b.classList.remove('show'), 1900);
-  sfx.emote();
+  if (!quiet) sfx.emote();
 }
 function coinFly(fromEl) {
   const a = fromEl.getBoundingClientRect(), b = $('hudCoins').getBoundingClientRect();
@@ -606,6 +644,151 @@ function toast(msg, ms = 1600) {
   t.classList.remove('hidden');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
+}
+
+/* ---------------- throwing gifts ----------------
+   Tap a rival's avatar, pick a gift, and it flies from your seat to theirs and
+   lands with a bump. Every gift costs coins off your own purse (the number on
+   your seat pill), so the throw is always visibly paid for. */
+let giftFor = -1;
+let giftBusy = false;
+
+function closeGiftPicker() {
+  giftFor = -1;
+  $('giftPicker').classList.add('hidden');
+}
+
+function openGiftPicker(targetIdx, anchorEl) {
+  if (S.phase === 'menu') return;
+  if (targetIdx === youIdx()) { toast('You cannot gift your own seat'); return; }
+  const pk = $('giftPicker');
+  const t = S.players[targetIdx];
+  const purse = you().coins;
+  giftFor = targetIdx;
+  pk.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'gp-head';
+  head.innerHTML = '<span class="gp-who">Gift <b>' + t.name.split('.')[0] + '</b></span>' +
+    '<span class="gp-purse">🪙 ' + purse + '</span>';
+  pk.appendChild(head);
+  const grid = document.createElement('div');
+  grid.className = 'gp-grid';
+  GIFTS.forEach((g) => {
+    const b = document.createElement('button');
+    b.className = 'gift-tile' + (g.cost > purse ? ' poor' : '');
+    b.dataset.id = g.id;
+    b.innerHTML = '<span class="gt-art' + (g.gold ? ' gt-gold' : '') + '">' + g.art + '</span>' +
+      '<span class="gt-cost">🪙 ' + g.cost + '</span>';
+    b.title = g.name + ' — ' + g.cost + ' coins';
+    b.addEventListener('click', (ev) => { ev.stopPropagation(); sendGift(g.id); });
+    grid.appendChild(b);
+  });
+  pk.appendChild(grid);
+  pk.classList.remove('hidden');
+  const w = Math.min(258, window.innerWidth * 0.9);
+  pk.style.width = w + 'px';
+  const r = anchorEl.getBoundingClientRect();
+  const h = pk.offsetHeight;
+  pk.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)) + 'px';
+  let top = r.bottom + 10;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 10);
+  pk.style.top = top + 'px';
+  sfx.tap();
+}
+
+function sendGift(id) {
+  const g = GIFTS.find((x) => x.id === id);
+  const to = giftFor;
+  if (!g || to < 0) return;
+  if (g.cost > you().coins) {
+    sfx.error();
+    toast('Not enough coins — win a round to earn more 🪙');
+    return;
+  }
+  debitYou(g.cost);
+  closeGiftPicker();
+  throwGift(youIdx(), to, g);
+  addMsg(you().name, 'sent a ' + g.name.toLowerCase() + ' to ' + S.players[to].name + ' ' + g.art, you().chat);
+  toast(g.art + ' ' + g.name + ' → ' + S.players[to].name + '   −' + g.cost + ' 🪙', 1900);
+  updateHUD(); updateCrown();
+}
+
+/* one gift, one arc: a quadratic path from the sender's avatar to the target's,
+   so it rises off the table and drops onto the seat it is aimed at */
+function throwGift(fromIdx, toIdx, g, quiet) {
+  const src = document.querySelector('#card-' + fromIdx + ' .atile');
+  const dst = document.querySelector('#card-' + toIdx + ' .atile');
+  if (!src || !dst) return;
+  const a = src.getBoundingClientRect(), b = dst.getBoundingClientRect();
+  const x0 = a.left + a.width / 2, y0 = a.top + a.height / 2;
+  const x1 = b.left + b.width / 2, y1 = b.top + b.height / 2;
+  const el = document.createElement('span');
+  el.className = 'gift-fly';
+  el.textContent = g.art;
+  if (g.gold) el.classList.add('gt-gold');
+  el.style.left = x0 + 'px';
+  el.style.top = y0 + 'px';
+  $('fx').appendChild(el);
+  if (!quiet) sfx.toss();
+  const dur = 620, t0 = performance.now();
+  const lift = Math.min(200, Math.max(70, Math.abs(y1 - y0) * 0.4 + 90));
+  const cx = (x0 + x1) / 2, cy = Math.min(y0, y1) - lift;
+  function step(now) {
+    const t = Math.min(1, (now - t0) / dur), u = 1 - t;
+    const x = u * u * x0 + 2 * u * t * cx + t * t * x1;
+    const y = u * u * y0 + 2 * u * t * cy + t * t * y1;
+    const sc = 1 + Math.sin(Math.PI * t) * 0.6;
+    el.style.transform = 'translate(' + (x - x0).toFixed(1) + 'px,' + (y - y0).toFixed(1) + 'px)' +
+      ' rotate(' + Math.round(t * 400) + 'deg) scale(' + sc.toFixed(3) + ')';
+    if (t < 1) requestAnimationFrame(step);
+    else { el.remove(); giftImpact(fromIdx, toIdx, g); }
+  }
+  requestAnimationFrame(step);
+}
+
+function sparks(el) {
+  const r = el.getBoundingClientRect();
+  for (let i = 0; i < 7; i++) {
+    const s = document.createElement('span');
+    s.className = 'gift-spark';
+    s.style.left = (r.left + r.width / 2) + 'px';
+    s.style.top = (r.top + r.height / 2) + 'px';
+    $('fx').appendChild(s);
+    const ang = (i / 7) * Math.PI * 2, d = 44 + Math.random() * 32;
+    requestAnimationFrame(() => {
+      s.style.transform = 'translate(' + (Math.cos(ang) * d).toFixed(1) + 'px,' + (Math.sin(ang) * d).toFixed(1) + 'px) scale(.3)';
+      s.style.opacity = '0';
+    });
+    setTimeout(() => s.remove(), 700);
+  }
+}
+
+function giftImpact(fromIdx, toIdx, g) {
+  const card = $('card-' + toIdx);
+  const av = card && card.querySelector('.atile');
+  if (av) {
+    av.classList.remove('gift-hit');
+    void av.offsetWidth;
+    av.classList.add('gift-hit');
+    setTimeout(() => av.classList.remove('gift-hit'), 640);
+    sparks(av);
+  }
+  showBubble(toIdx, g.art, true);
+  sfx.gift();
+  const t = S.players[toIdx];
+  if (t.you) { toast('🎁 ' + S.players[fromIdx].name + ' threw a ' + g.name.toLowerCase() + ' at you!', 1900); return; }
+  if (Math.random() < 0.8) {
+    setTimeout(() => addMsg(t.name, THANK_LINES[Math.floor(Math.random() * THANK_LINES.length)], t.chat), 800 + Math.random() * 900);
+  }
+  /* a rival often lobs something straight back, so the arc is seen in both
+     directions without needing two devices */
+  if (fromIdx === youIdx() && Math.random() < 0.42) {
+    const back = GIFTS[Math.floor(Math.random() * 4)];
+    setTimeout(() => {
+      if (S.phase === 'menu') return;
+      throwGift(toIdx, youIdx(), back, true);
+    }, 1500 + Math.random() * 900);
+  }
 }
 
 /* ---------------- chat ---------------- */
@@ -1033,6 +1216,7 @@ document.addEventListener('click', (e) => {
   if (!e.target.closest('#emojiPicker') && !e.target.closest('.emote-btn') && !e.target.closest('#reactBtn')) {
     $('emojiPicker').classList.add('hidden');
   }
+  if (!e.target.closest('#giftPicker') && !e.target.closest('.atile')) closeGiftPicker();
 });
 
 setInterval(tick, 1000);
@@ -1068,4 +1252,5 @@ window.__champ = {
   },
   submit, startRound, newGame, startGame, setMode, renderSketch, flyLettersToBoard, announceSketch,
   onSolved, timeUp, advanceRound, gameOver, pickRounds,
+  GIFTS, KIT, openGiftPicker, sendGift, throwGift, closeGiftPicker,
 };
