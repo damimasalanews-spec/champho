@@ -454,6 +454,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cwRemove.equip{background:linear-gradient(180deg,#6ade4c,#2f9c1e);border-color:rgba(255,255,255,.75)}
 /* locked: earned from missions, events or the shop - not available to wear yet */
 .cwRemove.lock{background:linear-gradient(180deg,#8a97a6,#5a6675);border-color:rgba(255,255,255,.55)}
+/* a shop item you can afford right now */
+.cwRemove.buy{background:linear-gradient(180deg,#ffd45e,#e09612);border-color:rgba(255,255,255,.8)}
 .cwRemove{margin-top:auto;padding:3.2% 11%;border-radius:15px;border:2px solid rgba(255,255,255,.6);
   cursor:pointer;pointer-events:auto;font-weight:900;font-size:clamp(11px,1.95vh,24px);color:#fff;
   background:linear-gradient(180deg,#f8664f,#c92a1c);
@@ -810,13 +812,13 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       {id:'classic', name:'Classic Champ', desc:'The everyday grin. Plain, and free.',  from:'Starter Gift',    free:1},
       {id:'knight',  name:'Sir Gourd',     desc:'Polished helm and a brave plume.',     from:'Ranked Season 3', src:'mission', locked:1},
       {id:'ninja',   name:'Shadow Squash', desc:'Hooded, silent, arms folded.',         from:'Ranked Season 4', src:'mission', locked:1},
-      {id:'wizard',  name:'Wizard Zucc',   desc:'Starry hat and a long white beard.',   from:'Shop - 1,200 coins', src:'shop', locked:1},
+      {id:'wizard',  name:'Wizard Zucc',   desc:'Starry hat and a long white beard.',   from:'Shop - 1,200 coins', src:'shop', price:1200, locked:1},
       {id:'pirate',  name:'Captain Gourd', desc:'Tricorn, eyepatch and a gold tooth.',  from:'Tournament Win',  src:'event',   locked:1},
       {id:'vampire', name:'Baron Vine',    desc:'High collar and two small fangs.',     from:'Night Event',     src:'event',   locked:1},
       {id:'scholar', name:'Professor Pip', desc:'Round spectacles and a bow tie.',      from:'Collection Set',  src:'mission', locked:1},
       {id:'robot',   name:'Unit Blip',     desc:'Visor glow and a single antenna.',     from:'Hall of Fame',    src:'mission', locked:1},
       {id:'ghost',   name:'Cheeky Boo',    desc:'A sheet with a mischievous grin.',     from:'Night Event',     src:'event',   locked:1},
-      {id:'alien',   name:'Zog',           desc:'One big eye, two thin antennae.',      from:'Shop - 900 coins',src:'shop',    locked:1},
+      {id:'alien',   name:'Zog',           desc:'One big eye, two thin antennae.',      from:'Shop - 900 coins',src:'shop', price:900, locked:1},
       {id:'genie',   name:'Djinn',         desc:'Turban, hoop earring, folded arms.',   from:'Ranked Season 3', src:'mission', locked:1}
     ],
     frames:[
@@ -891,14 +893,29 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var AVATAR='';
   var DEFAULT_AVATAR='assets/avatars/classic.webp';   // the free portrait is the profile's face
   var EQUIPPED_AV='classic';                          // which portrait shows in game
+  // the worn portrait lives in the saved profile, so it survives a reload instead
+  // of silently reverting to the free one
+  function equippedAvId(){
+    if(typeof window.champGetEquipped==='function'){
+      var v=window.champGetEquipped('portraits');
+      if(v) return v;
+    }
+    return EQUIPPED_AV;
+  }
+  function equipAv(id){
+    EQUIPPED_AV=id;
+    if(typeof window.champSetEquipped==='function') window.champSetEquipped('portraits',id);
+  }
 
   // Locked cosmetics are ONLY ever earned: missions, events or shop purchase.
   // Ownership is what gates equipping - a locked tile can never be worn straight
   // off the shelf, so isOwned() is checked before any equip happens.
-  var OWNED={portraits:['classic'], frames:['crystal'], titles:[], effects:[], filters:[]};
   var LOOT={mission:'Mission reward', event:'Event reward', shop:'Shop purchase'};
-  function isOwned(k,id){ return (OWNED[k]||[]).indexOf(id)>-1; }
+  // ownership lives in the saved guest profile (see champGrant), not in this file,
+  // so a locked item can never be worn without a recorded source behind it
+  function isOwned(k,id){ return (typeof window.champOwns==='function') && window.champOwns(k,id); }
   function lootLabel(it){ return LOOT[it.src] || 'Earn it'; }
+  function fmt(n){ return Number(n).toLocaleString('en-US'); }
 
   function byId(id){ return document.getElementById(id); }
   // rendered frame artwork + its masked sheen/glow layers
@@ -991,7 +1008,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       } else if(cat==='portraits'){
         t.innerHTML='<div class="cwAvTile"><img src="assets/avatars/'+it.id+'.webp" alt=""></div>'
           +'<span class="cwAvName">'+it.name+'</span>';
-        if(it.id===EQUIPPED_AV) t.classList.add('use');
+        if(it.id===equippedAvId()) t.classList.add('use');
       } else if(cat==='effects'){
         t.innerHTML='<div class="cwFxSwatch cw-a-'+it.anim+'">'
           +(AVATAR?'<img class="cwFxAvatar" src="'+AVATAR+'" alt="">':'')
@@ -1001,7 +1018,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         t.innerHTML='<div class="cwFilTile '+it.cls+'">'+(AVATAR?'<img src="'+AVATAR+'" alt="">':'')+
                     '<i class="cwFilFx"></i></div><span class="cwFilTag">'+it.name+'</span>';
       }
-      if(it.id===EQUIPPED && cat==='frames' || (cat==='portraits' && it.id===EQUIPPED_AV)){
+      if(it.id===EQUIPPED && cat==='frames' || (cat==='portraits' && it.id===equippedAvId())){
         t.insertAdjacentHTML('beforeend','<span class="cwRibbon">In Use</span>');
       } else if(it.free){
         t.insertAdjacentHTML('beforeend','<span class="cwFree">FREE</span>');
@@ -1018,13 +1035,16 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   // the action button wears two hats: Portraits equips a face, the rest clear
   function syncAction(){
     var b=byId('cwRemove'); if(!b) return;
-    if(cat!=='portraits'){ b.textContent='Remove'; b.classList.remove('equip'); return; }
+    b.classList.remove('equip','buy','lock');
+    if(cat!=='portraits'){ b.textContent='Remove'; return; }
     var s=sel.portraits;
-    if(s && !isOwned('portraits',s.id)){        // earned or bought only - never worn off the lock
-      b.textContent='Locked'; b.classList.remove('equip'); b.classList.add('lock'); return;
+    if(s && !isOwned('portraits',s.id)){
+      // a priced item is a shop purchase; anything else must be earned in play
+      if(s.price){ b.textContent='Buy \u00b7 '+fmt(s.price); b.classList.add('buy'); }
+      else { b.textContent='Locked'; b.classList.add('lock'); }
+      return;
     }
-    b.classList.remove('lock');
-    if(!s || s.id===EQUIPPED_AV){ b.textContent='Equipped'; b.classList.remove('equip'); }
+    if(!s || s.id===equippedAvId()){ b.textContent='Equipped'; }
     else { b.textContent='Equip'; b.classList.add('equip'); }
   }
 
@@ -1076,7 +1096,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     var t=byId('cwPrevTitle'); t.innerHTML=''; t.className='cwPrevTitle';
     var p=byId('cwPrev'); p.className='cwPrev';
     // the panel describes whichever section is open, so Portraits names the face
-    var e = cat==='portraits' ? find('portraits',EQUIPPED_AV) : find('frames',EQUIPPED);
+    var e = cat==='portraits' ? find('portraits',equippedAvId()) : find('frames',EQUIPPED);
     byId('cwChip').innerHTML=(cat==='portraits'
       ? 'EQUIPPED &middot; <b>shows in game</b>'
       : 'PREVIEW ONLY &middot; <b>not equipped</b>');
@@ -1098,13 +1118,29 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         var s=sel.portraits;
         // gate on ownership first: a locked item is a goal, not a freebie
         if(!isOwned('portraits',s.id)){
+          // the shop route pays coins and unlocks. Missions and events unlock
+          // through champGrant() when they are completed, and cannot be bought.
+          if(s.price){
+            var paid=(typeof window.champSpend==='function') && window.champSpend(s.price);
+            if(!paid||!paid.ok){
+              byId('cwChip').innerHTML='LOCKED &middot; <b>'+((paid&&paid.reason)||'not enough coins')+'</b>';
+              byId('cwPFrom').textContent=s.from;
+              return;
+            }
+            window.champGrant('portraits',s.id,'shop');
+            equipAv(s.id);
+            b.textContent='Equipped'; b.classList.remove('buy','equip');
+            byId('cwChip').innerHTML='BOUGHT &middot; <b>worn and saved</b>';
+            renderGrid();
+            return;
+          }
           byId('cwChip').innerHTML='LOCKED &middot; <b>'+lootLabel(s)+'</b>';
           byId('cwPFrom').textContent=s.from;
           b.textContent='Locked';
           return;
         }
-        if(s.id!==EQUIPPED_AV){
-          EQUIPPED_AV=s.id;
+        if(s.id!==equippedAvId()){
+          equipAv(s.id);
           b.textContent='Equipped'; b.classList.remove('equip');
           byId('cwChip').innerHTML='EQUIPPED &middot; <b>shows in game</b>';
           renderGrid();
@@ -1302,7 +1338,14 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
      wiped whatever the guest had already earned.                          */
   var CHAMP_KEY='champwordLocalProfile_guest_local';
   var CHAMP_LOG_MAX=60;
-  function champDefaults(){ return {displayName:'Guest',coins:0,gems:0,level:1,xp:0,wins:0,games:0,activity:[]}; }
+  function champDefaults(){
+    return {displayName:'Guest',coins:0,gems:0,level:1,xp:0,wins:0,games:0,activity:[],
+      // what the guest actually owns. champGrant() is the only thing that adds to
+      // this, so an item can never be worn without a recorded source behind it.
+      owned:{portraits:['classic'],frames:['crystal'],titles:[],effects:[],filters:[]},
+      // what is actually worn - without this the player's choice was lost on reload
+      equipped:{portraits:'classic',frames:'crystal'}};
+  }
   function champLoad(){
     var s=null;
     try{ s=JSON.parse(localStorage.getItem(CHAMP_KEY)||'null'); }catch(e){ s=null; }
@@ -1310,6 +1353,12 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     var d=champDefaults();
     for(var k in d){ if(!(k in s)) s[k]=d[k]; }
     if(!Array.isArray(s.activity)) s.activity=[];
+    // fills in any category an older save predates, without ever dropping what
+    // the player has already earned
+    if(!s.owned||typeof s.owned!=='object') s.owned=d.owned;
+    else for(var c in d.owned){ if(!Array.isArray(s.owned[c])) s.owned[c]=d.owned[c].slice(); }
+    if(!s.equipped||typeof s.equipped!=='object') s.equipped=d.equipped;
+    else for(var e in d.equipped){ if(!s.equipped[e]) s.equipped[e]=d.equipped[e]; }
     return s;
   }
   var champState=champLoad();
@@ -1347,6 +1396,46 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
             games:champNum(champState.games),logged:champState.activity.length,
             coinsEarned:ec,gemsEarned:eg};
   }
+  /* ---- ownership: the only route to wearing a locked cosmetic ----------------
+     Missions and events call champGrant() when they are completed; the shop calls
+     champSpend() then champGrant(). Nothing else may add to the owned list, so a
+     player cannot equip something they have not earned or bought.             */
+  function champOwns(cat,id){ return !!champState.owned && (champState.owned[cat]||[]).indexOf(id)>-1; }
+  function champGrant(cat,id,source){
+    if(!cat||!id) return false;
+    if(!champState.owned) champState.owned={};
+    if(!Array.isArray(champState.owned[cat])) champState.owned[cat]=[];
+    if(champState.owned[cat].indexOf(id)<0){
+      champState.owned[cat].push(id);
+      champState.activity.push({at:new Date().toISOString(),type:'unlock',coins:0,gems:0,
+        detail:cat+':'+id+' from '+(source||'unknown')});
+      champSave();
+    }
+    return true;
+  }
+  function champSpend(n){
+    n=champNum(n);
+    if(n<=0) return {ok:false,reason:'nothing to pay'};
+    if(champNum(champState.coins)<n) return {ok:false,reason:'not enough coins'};
+    champState.coins=champNum(champState.coins)-n;
+    champState.activity.push({at:new Date().toISOString(),type:'spend',coins:-n,gems:0,detail:'shop'});
+    champSave(); champRender();
+    return {ok:true,coins:champState.coins};
+  }
+  function champGetEquipped(cat){ return (champState.equipped||{})[cat]||''; }
+  function champSetEquipped(cat,id){
+    if(!cat||!id) return false;
+    if(!champState.equipped) champState.equipped={};
+    champState.equipped[cat]=id; champSave();
+    return true;
+  }
+  window.champOwns=champOwns; window.champGrant=champGrant; window.champSpend=champSpend;
+  window.champGetEquipped=champGetEquipped; window.champSetEquipped=champSetEquipped;
+  // live handle instead of a snapshot: enterGuestFallback() replaces champState, so
+  // an object handed out earlier would go stale and read the wrong numbers
+  window.champGetState=function(){ return champState; };
+  window.champSetState=function(s){ champState=s; champSave(); champRender(); };
+
   // push the new totals back into the running game, if it is open
   function champSend(){ try{ if(typeof sendProfile==='function') sendProfile(); }catch(e){} }
 
@@ -1378,6 +1467,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
         localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(seed));
       }
       champState=champLoad();
+      window.champState=champState;      // keep the live handle pointing at the new object
     }catch(e){}
     champRender();
     document.body.classList.remove('auth-open');
