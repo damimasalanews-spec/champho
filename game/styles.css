@@ -1,0 +1,615 @@
+:root{
+  --navy:#0a3563;
+  --navy2:#0d3f77;
+  --blue:#1e88f0;
+  --blue-lt:#4db1ff;
+  --blue-edge:#2b7cc4;
+  --green:#22c55e;
+  --green-dk:#16a34a;
+  --gold:#fbbf24;
+  --ink:#0a2f5c;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'Nunito','Segoe UI',system-ui,sans-serif;
+  font-weight:800;
+  color:#fff;
+  background:#06213f;
+  user-select:none;
+}
+button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff}
+.hidden{display:none !important}
+
+#game{position:fixed;inset:0;overflow:hidden}
+#bg{position:absolute;inset:-4%;z-index:0;
+  background:url('assets/background.png') center 62%/cover no-repeat;
+  animation:kenburns 70s ease-in-out infinite alternate}
+@keyframes kenburns{from{transform:scale(1) translateY(0)}to{transform:scale(1.08) translateY(-1.5%)}}
+
+/* ---------- HUD ---------- */
+#hud{position:absolute;top:10px;left:0;right:0;display:flex;align-items:center;gap:12px;padding:0 16px;z-index:20}
+#logo{position:relative;line-height:.85;text-align:left;transform:rotate(-4deg);
+  text-shadow:0 3px 0 #08305c,0 6px 14px rgba(0,0,0,.45)}
+#logo .crown{position:absolute;top:-16px;left:6px;font-size:20px;transform:rotate(10deg)}
+#logo .l1{display:block;font-size:30px;font-weight:900;letter-spacing:1px;color:#fff}
+#logo .l2{display:block;font-size:30px;font-weight:900;letter-spacing:1px;color:var(--gold)}
+.pill{background:linear-gradient(#1b5a9e,#0d3f77);border:2px solid #2f7dc0;border-radius:999px;
+  padding:8px 18px;font-size:16px;font-weight:900;letter-spacing:.5px;
+  box-shadow:0 4px 10px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.18);white-space:nowrap}
+.mode-pill{margin-left:6px}
+.hud-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.icon-btn{width:44px;height:44px;border-radius:50%;font-size:20px;
+  background:linear-gradient(#1b5a9e,#0d3f77);border:2px solid #2f7dc0;
+  box-shadow:0 4px 10px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.18);
+  display:grid;place-items:center;transition:transform .1s}
+.icon-btn:active{transform:scale(.92)}
+.coin-pill{display:flex;align-items:center;gap:8px;color:var(--gold)}
+.coin-pill .coin{font-size:18px}
+#timerPill.low{border-color:#f87171;color:#fecaca;animation:lowPulse 1s ease-in-out infinite}
+@keyframes lowPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+
+/* ---------- player plates (coin-race lobby) ---------- */
+#cards{position:absolute;inset:0;z-index:15;pointer-events:none}
+.pcard{position:absolute;display:flex;pointer-events:auto;
+  animation:enter .55s cubic-bezier(.2,1.4,.4,1) backwards}
+@keyframes enter{from{opacity:0;transform:translateY(-22px) scale(.75)}to{opacity:1;transform:none}}
+.plate{display:flex;flex-direction:column;align-items:center;gap:6px}
+/* One variable drives the entire seat. Anything decorative is derived from it as
+   a fraction, so the portrait, ring, title and badge all grow together instead of
+   the avatar staying pinned at a fixed 80px while the page scales around it. */
+:root{--seat:clamp(104px,15vmin,190px)}
+/* the rivals sit across the table: tilted in toward the board and lit cooler, so
+   they read as one group facing the player rather than four identical cards */
+
+/* every seat sits on the table with one grounded shadow, so the arrangement reads
+   as a whole rather than as separate cards */
+.plate{filter:drop-shadow(0 calc(var(--seat)*.05) calc(var(--seat)*.1) rgba(0,0,0,.38))}
+.atile{position:relative;width:var(--seat);height:var(--seat);border-radius:calc(var(--seat)*.25);
+  background:radial-gradient(circle at 35% 28%,#ffe9d6,#f3c39c);
+  border:calc(var(--seat)*.05) solid var(--ring,#22d3ee);
+  box-shadow:0 6px 16px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.55);
+  display:grid;place-items:center;font-size:calc(var(--seat)*.52);
+  animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.atile .aemoji{filter:drop-shadow(0 2px 2px rgba(0,0,0,.25))}
+.rank-badge{position:absolute;top:calc(var(--seat)*-.16);right:calc(var(--seat)*-.16);z-index:3;
+  min-width:calc(var(--seat)*.38);height:calc(var(--seat)*.38);
+  border-radius:50%;display:grid;place-items:center;padding:0 4px;
+  font-size:calc(var(--seat)*.19);font-weight:900;color:#fff;
+  background:linear-gradient(#3d9df3,#1668b8);border:2px solid #bfe3ff;
+  box-shadow:0 3px 8px rgba(0,0,0,.45)}
+.rank-badge.r1{background:linear-gradient(#ffd75e,#f59e0b);border-color:#fff3c4;font-size:16px;
+  animation:badgeGlow 1.6s ease-in-out infinite}
+@keyframes badgeGlow{0%,100%{box-shadow:0 3px 8px rgba(0,0,0,.45)}
+  50%{box-shadow:0 0 16px rgba(255,215,94,.9)}}
+.rank-badge.r2{background:linear-gradient(#e5e7eb,#9ca3af);border-color:#f9fafb}
+.rank-badge.r3{background:linear-gradient(#e8a06a,#b45309);border-color:#fcd9b8}
+.nbanner{display:flex;align-items:center;gap:6px;max-width:158px;
+  background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(0,0,0,.18)),var(--bnr,#e11d48);
+  border:2px solid rgba(255,255,255,.75);border-radius:999px;padding:3px 12px 3px 4px;
+  box-shadow:0 3px 9px rgba(0,0,0,.45)}
+.nbanner .nbadge{width:22px;height:22px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+  font-size:11px;font-weight:900;color:#fff;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.55)}
+.nbanner .nname{font-size:14px;font-weight:900;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.racebar{width:124px;height:8px;border-radius:999px;background:rgba(0,0,0,.4);overflow:hidden;
+  border:1px solid rgba(255,255,255,.4)}
+.racebar i{display:block;height:100%;width:0%;border-radius:999px;
+  background:linear-gradient(90deg,#ffe9a3,#f59e0b);transition:width .5s ease}
+.pcoins{display:flex;align-items:center;gap:5px;font-size:14px;font-weight:900;color:var(--gold);
+  background:rgba(6,33,63,.65);border:1px solid rgba(251,191,36,.55);border-radius:999px;padding:2px 11px}
+/* the emote picker sits beside the avatar, centred on it, rather than at the
+   bottom of the seat */
+.pcard .emote-btn{position:absolute;left:calc(var(--seat)*-.62);top:calc(var(--seat)*.5);
+  transform:translateY(-50%);width:36px;height:26px;border-radius:9px;font-size:14px;
+  background:linear-gradient(#1b5a9e,#0d3f77);border:2px solid #2f7dc0;display:inline-flex;
+  align-items:center;justify-content:center;z-index:6}
+.pcard .emote-btn:active{transform:translateY(-50%) scale(.92)}
+.pcard.you{z-index:8}
+/* a warm spotlight and a grounded shadow, so the front seat reads as the player's
+   own place at the table rather than another rival */
+.pcard .plate::before{content:"";position:absolute;left:50%;top:44%;
+  width:215%;height:215%;transform:translate(-50%,-50%);border-radius:50%;
+  pointer-events:none;z-index:-1;
+  background:radial-gradient(circle,rgba(255,238,180,.26),rgba(255,214,120,.10) 46%,transparent 70%)}
+.pcard .plate{position:relative}
+.pcard.pos-tl{left:14.5%;top:15%}
+.pcard.pos-tr{right:14.5%;top:15%}
+.pcard.pos-ml{left:1.5%;top:30%}
+/* the player's own seat: front of the table, and the largest on the board, since
+   it is the one the player actually looks at */
+.pcard.pos-front{left:19.5%;bottom:5%;top:auto}
+.pcard.pos-mr{right:24.3%;bottom:5%;top:auto}
+.bubble{position:absolute;top:-40px;left:50%;transform:translateX(-50%) scale(0);opacity:0;
+  background:#fff;border-radius:14px;padding:4px 9px;font-size:22px;line-height:1;z-index:6;
+  box-shadow:0 4px 12px rgba(0,0,0,.35);pointer-events:none}
+.bubble::after{content:'';position:absolute;bottom:-6px;left:50%;margin-left:-6px;
+  border:6px solid transparent;border-top-color:#fff;border-bottom:0}
+.bubble.show{animation:bubblePop 1.9s ease forwards}
+@keyframes bubblePop{
+  0%{transform:translateX(-50%) scale(0);opacity:0}
+  12%{transform:translateX(-50%) scale(1.18);opacity:1}
+  22%{transform:translateX(-50%) scale(1)}
+  80%{transform:translateX(-50%) scale(1);opacity:1}
+  100%{transform:translateX(-50%) scale(.6) translateY(-12px);opacity:0}}
+
+/* ---------- parchment ---------- */
+#parchment{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);
+  width:min(56vw,760px);text-align:center;z-index:5;pointer-events:none}
+#parchment .p-crown{font-size:30px;opacity:.5;filter:sepia(1) saturate(2)}
+#parchment .p-title{font-size:clamp(30px,5.2vw,64px);font-weight:900;line-height:.95;letter-spacing:2px;
+  color:#e7cf9d;text-shadow:0 2px 0 #c9a86a,0 5px 8px rgba(120,84,30,.45)}
+#parchment .p-theme{margin-top:10px;font-size:18px;color:#8a6428;letter-spacing:1px}
+#parchment .p-found{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+#parchment .p-found span{background:rgba(138,100,40,.18);border:2px solid rgba(138,100,40,.45);
+  color:#7a5518;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:900;
+  animation:pop .25s ease}
+
+/* ---------- side buttons ---------- */
+#sideBtns{position:absolute;left:16px;bottom:130px;display:flex;flex-direction:column;gap:12px;z-index:20}
+.side-btn{width:54px;height:54px;border-radius:50%;font-size:24px;
+  background:linear-gradient(#2f8fe8,#1668b8);border:3px solid #6cc0ff;
+  box-shadow:0 5px 12px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.3);
+  display:grid;place-items:center;transition:transform .1s}
+.side-btn:active{transform:scale(.9)}
+.side-btn:disabled{filter:grayscale(1);opacity:.55;cursor:default}
+
+/* ---------- bottom panel ---------- */
+#bottomPanel{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+  background:linear-gradient(#0e4a86,#0a3563);border:3px solid var(--blue-edge);border-radius:24px;
+  padding:14px 22px 16px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 2px 0 rgba(255,255,255,.15);z-index:20}
+#slots,#tiles{display:flex;gap:8px;justify-content:center;min-height:54px}
+.slot{width:46px;height:54px;border-radius:10px;background:rgba(255,255,255,.12);
+  border:2px dashed rgba(255,255,255,.45);display:grid;place-items:center;
+  font-size:26px;font-weight:900;color:#fff;cursor:pointer}
+.slot.filled{background:#fff;border:2px solid #d7e6f5;color:var(--ink);
+  box-shadow:0 3px 0 #b9cfe4}
+.slot.filled:active{transform:scale(.94)}
+.slot.pop{animation:slotPop .3s cubic-bezier(.2,1.8,.4,1)}
+@keyframes slotPop{0%{transform:scale(.7)}60%{transform:scale(1.14)}100%{transform:scale(1)}}
+.slot.flash{animation:flashRed .45s ease}
+@keyframes flashRed{0%,100%{background:#fff}40%{background:#f87171;border-color:#b91c1c}}
+.tile{width:46px;height:54px;border-radius:10px;background:linear-gradient(#5ab6ff,#1e88f0);
+  border:2px solid #8fd0ff;color:#fff;font-size:26px;font-weight:900;
+  box-shadow:0 4px 0 #0b62c4,0 6px 10px rgba(0,0,0,.35);
+  display:grid;place-items:center;transition:transform .08s}
+.tile:active{transform:translateY(3px);box-shadow:0 1px 0 #0b62c4}
+.tile.used{visibility:hidden;pointer-events:none}
+.tile.deal{animation:dealIn .45s cubic-bezier(.2,1.5,.4,1) backwards}
+@keyframes dealIn{from{transform:translateY(46px) scale(.4) rotate(10deg);opacity:0}
+  to{transform:none;opacity:1}}
+#panelBtns{display:flex;gap:14px;margin-top:2px}
+.btn{border-radius:999px;padding:10px 26px;font-size:17px;letter-spacing:.5px;
+  box-shadow:0 4px 0 rgba(0,0,0,.3), inset 0 2px 0 rgba(255,255,255,.25);transition:transform .08s}
+.btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.3)}
+.btn-blue{background:linear-gradient(#3d9df3,#1976d2)}
+.btn-green{background:linear-gradient(#34d977,#16a34a)}
+.btn.big{font-size:20px;padding:14px 34px;margin-top:6px}
+#submitBtn.ready{animation:readyPulse 1s ease-in-out infinite}
+@keyframes readyPulse{0%,100%{transform:scale(1)}
+  50%{transform:scale(1.07);box-shadow:0 0 20px rgba(52,211,119,.85),0 4px 0 rgba(0,0,0,.3)}}
+
+/* ---------- chat ---------- */
+#chatPanel{position:absolute;right:14px;bottom:14px;width:330px;z-index:25;
+  background:linear-gradient(rgba(13,63,119,.96),rgba(9,42,82,.96));
+  border:2px solid var(--blue-edge);border-radius:18px;overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.chat-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+  font-size:16px;letter-spacing:1px;color:#7dd3fc}
+.chat-count{background:#12497f;border-radius:999px;padding:2px 10px;font-size:13px;color:#fff}
+#chatMsgs{height:150px;overflow-y:auto;padding:0 14px 8px;display:flex;flex-direction:column;gap:6px;
+  font-size:14px;font-weight:700;scrollbar-width:thin}
+#chatMsgs .msg{animation:msgIn .25s ease backwards}
+@keyframes msgIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+#chatMsgs .msg .who{font-weight:900}
+#chatMsgs .msg.sys{color:#9fdcff;font-style:italic}
+.chat-input{display:flex;gap:8px;padding:10px 12px;border-top:1px solid rgba(255,255,255,.15)}
+.chat-input input{flex:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+  border-radius:999px;padding:8px 14px;color:#fff;font-family:inherit;font-weight:700;font-size:14px;outline:none}
+.chat-input input::placeholder{color:rgba(255,255,255,.5)}
+.chat-input button{width:38px;height:38px;border-radius:50%;background:linear-gradient(#3d9df3,#1976d2);
+  font-size:16px;display:grid;place-items:center}
+
+/* ---------- emoji picker / toast / fx ---------- */
+#emojiPicker{position:absolute;z-index:40;background:#0d3f77;border:2px solid var(--blue-edge);
+  border-radius:14px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;width:236px;
+  box-shadow:0 8px 20px rgba(0,0,0,.5);animation:pop .2s ease}
+#emojiPicker button{font-size:24px;background:transparent;width:40px;height:40px;border-radius:10px}
+#emojiPicker button:hover{background:rgba(255,255,255,.15)}
+#toast{position:absolute;left:50%;top:22%;transform:translateX(-50%);z-index:45;
+  background:linear-gradient(#12497f,#0a3160);border:2px solid var(--gold);border-radius:999px;
+  padding:10px 26px;font-size:20px;font-weight:900;color:var(--gold);
+  box-shadow:0 8px 24px rgba(0,0,0,.5);animation:pop .25s ease}
+@keyframes pop{from{transform:translateX(-50%) scale(.6);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+#fx{position:absolute;inset:0;pointer-events:none;z-index:35;overflow:hidden;perspective:800px}
+.coin-fly{position:absolute;font-size:26px;z-index:60;pointer-events:none;
+  transition:transform .7s cubic-bezier(.5,-0.3,.6,1),opacity .7s ease-in}
+.confetti{position:absolute;width:10px;height:14px;top:-20px;border-radius:2px;
+  animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.shake{animation:shake .35s ease}
+@keyframes shake{0%,100%{transform:translateX(-50%)}20%{transform:translateX(calc(-50% - 10px))}
+  40%{transform:translateX(calc(-50% + 10px))}60%{transform:translateX(calc(-50% - 7px))}
+  80%{transform:translateX(calc(-50% + 7px))}}
+
+/* ---------- overlays ---------- */
+.overlay{position:absolute;inset:0;z-index:50;background:rgba(4,20,40,.72);
+  display:grid;place-items:center;align-content:safe center;padding:14px 10px;overflow:auto;
+  backdrop-filter:blur(3px)}
+.menu-card{background:linear-gradient(#12497f,#0a3160);border:3px solid var(--blue-edge);
+  border-radius:26px;padding:34px 44px;text-align:center;max-width:520px;
+  box-shadow:0 20px 60px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.15);
+  display:flex;flex-direction:column;align-items:center;gap:8px;animation:pop2 .3s ease}
+@keyframes pop2{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.menu-logo{font-size:52px;font-weight:900;line-height:1;letter-spacing:2px;color:var(--gold);
+  text-shadow:0 4px 0 #08305c,0 8px 18px rgba(0,0,0,.5)}
+.menu-logo .crown{font-size:34px}
+.menu-tag{font-size:17px;color:#bfe3ff}
+.menu-howto{list-style:none;text-align:left;font-size:15px;font-weight:700;color:#dceeff;
+  display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
+.menu-howto li::before{content:'⭐ ';}
+.result-title{font-size:28px;font-weight:900;color:var(--gold)}
+
+/* ---------- final leaderboard ---------- */
+.leaderboard{padding:22px 30px}
+.lb-crown{font-size:34px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));
+  animation:crownGlow 2.4s ease-in-out infinite}
+@keyframes crownGlow{0%,100%{transform:rotate(-6deg) scale(1)}50%{transform:rotate(6deg) scale(1.12)}}
+#endTitle{letter-spacing:1px;text-shadow:0 3px 0 #08305c,0 6px 14px rgba(0,0,0,.45)}
+.lb-sub{font-size:15px;font-weight:800;color:#bfe3ff;letter-spacing:.4px}
+.lb-body{display:flex;flex-direction:column;gap:7px;width:min(440px,86vw);margin:6px 0 10px}
+.lb-row{display:flex;align-items:center;gap:9px;padding:7px 12px;border-radius:14px;font-size:16px;
+  background:linear-gradient(#12497f,#0a3160);border:2px solid rgba(47,125,192,.8);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12);
+  animation:lbIn .5s cubic-bezier(.2,1.3,.4,1) backwards}
+@keyframes lbIn{from{opacity:0;transform:translateY(16px) scale(.96)}to{opacity:1;transform:none}}
+.lb-row.top{border-color:var(--gold);background:linear-gradient(#1b5a9e,#0d3f77);
+  box-shadow:0 0 20px rgba(251,191,36,.3), inset 0 2px 0 rgba(255,255,255,.18)}
+.lb-medal{width:26px;text-align:center;font-size:19px}
+.lb-ava{width:34px;height:34px;flex:0 0 auto;border-radius:11px;display:grid;place-items:center;font-size:19px;
+  background:radial-gradient(circle at 35% 28%,#ffe9d6,#f3c39c);border:3px solid var(--ring,#22d3ee)}
+.lb-name{flex:0 0 84px;text-align:left;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-row.you .lb-name{color:var(--gold)}
+.lb-bar{flex:1;height:10px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden}
+.lb-bar i{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--blue-lt),var(--blue));
+  animation:lbFill 1.1s cubic-bezier(.2,.9,.3,1) backwards;animation-delay:inherit}
+.lb-row.top .lb-bar i{background:linear-gradient(90deg,#ffe89a,var(--gold))}
+@keyframes lbFill{from{width:0}}
+.lb-coins{min-width:72px;text-align:right;font-weight:900;color:var(--gold);font-size:15px}
+
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin:2px 0 10px}
+.pod{display:flex;flex-direction:column;align-items:center;gap:4px;width:96px}
+.pod-ava{position:relative;width:54px;height:54px;border-radius:15px;display:grid;place-items:center;font-size:28px;
+  background:radial-gradient(circle at 35% 28%,#ffe9d6,#f3c39c);border:4px solid var(--ring,#22d3ee);
+  box-shadow:0 5px 12px rgba(0,0,0,.4)}
+.pod-crown{position:absolute;top:-23px;left:50%;font-size:20px;animation:sparkle 2s ease-in-out infinite}
+@keyframes sparkle{0%,100%{transform:translateX(-50%) rotate(-8deg) scale(1)}
+  50%{transform:translateX(-50%) rotate(5deg) scale(1.14)}}
+.pod-name{font-size:14px;font-weight:900;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pod-coins{font-size:13px;font-weight:900;color:var(--gold)}
+.pod-step{width:100%;border-radius:10px 10px 0 0;display:grid;place-items:center;
+  font-size:18px;font-weight:900;color:#fff;border:2px solid #6cc0ff;border-bottom:none;
+  background:linear-gradient(#3d9df3,#1668b8)}
+.pod.p1 .pod-step{height:58px;background:linear-gradient(#ffd75e,#f59e0b);border-color:#fff3c4}
+.pod.p2 .pod-step{height:40px}
+.pod.p3 .pod-step{height:28px;background:linear-gradient(#e8a06a,#b45309);border-color:#fcd9b8}
+.splash-card{text-align:center;animation:splashZoom .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes splashZoom{from{transform:scale(.3) rotate(-6deg);opacity:0}to{transform:scale(1) rotate(0);opacity:1}}
+#splashRound{font-size:64px;font-weight:900;letter-spacing:3px;
+  text-shadow:0 5px 0 #08305c,0 10px 24px rgba(0,0,0,.6)}
+#splashTheme{font-size:26px;color:var(--gold);margin-top:8px;letter-spacing:1px}
+
+/* ---------- sketch board (3D easel) ---------- */
+#sketchBoard{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);
+  width:min(52vw,470px);text-align:center;z-index:6;pointer-events:none}
+.board-3d{perspective:1100px}
+.board-frame{transform-style:preserve-3d;transform:rotateX(9deg) rotateY(-9deg);
+  background:linear-gradient(145deg,#fdf6e3,#eeddbb);
+  border-radius:16px;padding:14px;border:9px solid #b98b4a;
+  box-shadow:0 26px 54px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.6), 0 0 0 3px #8a6428;
+  animation:boardFloat 6.5s ease-in-out infinite}
+@keyframes boardFloat{0%,100%{transform:rotateX(9deg) rotateY(-9deg) translateZ(0)}
+  50%{transform:rotateX(6deg) rotateY(7deg) translateZ(16px)}}
+.board-frame.celebrate{animation:boardFlip .95s cubic-bezier(.3,.75,.4,1)}
+@keyframes boardFlip{0%{transform:rotateX(9deg) rotateY(-9deg)}
+  55%{transform:rotateX(6deg) rotateY(178deg) scale(1.06)}
+  100%{transform:rotateX(9deg) rotateY(351deg)}}
+.board-face{position:relative;border-radius:8px;overflow:hidden;
+  background:radial-gradient(circle at 38% 28%,#fffdf7,#f4e9d2);
+  box-shadow:inset 0 0 34px rgba(160,120,60,.2)}
+#sketchSvg{display:block;width:100%;height:auto}
+#sketchSvg *{fill:none;stroke:#1a3f66;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(1.5px 2px 0 rgba(90,60,20,.16))}
+#sketchWord{position:absolute;left:0;right:0;bottom:6px;text-align:center;
+  font-size:clamp(20px,3.4vw,36px);font-weight:900;letter-spacing:3px;color:#16a34a;
+  text-shadow:0 2px 0 rgba(255,255,255,.75);opacity:0;transform:scale(.5)}
+#sketchWord.show{animation:wordPop .5s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes wordPop{to{opacity:1;transform:scale(1)}}
+.board-hint{margin-top:12px;font-size:16px;color:#ffe9b0;letter-spacing:.5px;
+  text-shadow:0 2px 6px rgba(0,0,0,.55)}
+#sketchAnnounce{margin-top:12px;min-height:28px;font-size:23px;font-weight:900;color:#fff;
+  opacity:0;text-shadow:0 3px 12px rgba(0,0,0,.65)}
+#sketchAnnounce.show{animation:announceIn 2.8s ease forwards}
+@keyframes announceIn{0%{opacity:0;transform:translateY(12px) scale(.8)}
+  12%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+.fly-letter{position:absolute;z-index:60;pointer-events:none;margin:-19px 0 0 -13px;
+  font-size:32px;font-weight:900;color:#fff;transform-style:preserve-3d;
+  text-shadow:0 3px 8px rgba(0,0,0,.55)}
+
+
+@media (max-width:1100px){
+  #chatPanel{width:270px}
+  .pcard.pos-tl{left:16%}.pcard.pos-tr{right:16%}
+  .pcard.pos-front{left:1%;bottom:14%}
+  :root{--seat:clamp(92px,13.5vmin,168px)}
+  #parchment{width:64vw}
+  #sketchBoard{width:60vw}
+}
+
+
+/* ---------------- seat cosmetics (portrait / frame / title) ----------------
+   The portrait fills the ring's opening and is masked to the ring's real hole, so
+   it meets the band exactly instead of leaving a gap on squarish openings. */
+.atile.has-art{border-color:transparent;background:none;box-shadow:none;overflow:visible}
+.atile .aface{position:absolute;inset:0;
+  -webkit-mask-image:var(--hm);mask-image:var(--hm);
+  -webkit-mask-size:100% 100%;mask-size:100% 100%;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+.atile .aface img{position:absolute;left:var(--hx,25%);top:var(--hy,25%);
+  width:var(--hw,50%);height:var(--hw,50%);border-radius:22%;object-fit:cover}
+.atile .aframe{position:absolute;inset:-9%;width:118%;height:118%;object-fit:contain;
+  pointer-events:none;z-index:2;
+  filter:drop-shadow(0 calc(var(--seat)*.04) calc(var(--seat)*.08) rgba(0,0,0,.5))}
+/* the title art is a square whose banner sits in the middle band, so this is a
+   wide, short window onto that band rather than the whole square - it reads as a
+   plaque and never covers the portrait */
+.atitle{position:relative;width:calc(var(--seat)*1.04);height:auto;aspect-ratio:1.45;object-fit:contain;
+  pointer-events:none;margin-top:calc(var(--seat)*-.02);
+  filter:drop-shadow(0 calc(var(--seat)*.025) calc(var(--seat)*.04) rgba(0,0,0,.55))}
+
+
+/* ---------------- gift throwing ----------------
+   Tap a rival's avatar -> the tray opens for that seat. Picking a gift spends
+   coins and flies the item from your seat to theirs. The tray reuses the emoji
+   picker's geometry so both popovers feel like the same control. */
+#giftPicker{position:absolute;z-index:40;padding:10px 10px 11px;border-radius:16px;
+  background:linear-gradient(#12497f,#0a3160);border:2px solid var(--blue-edge);
+  box-shadow:0 10px 26px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.14);
+  animation:pop .2s ease}
+.gp-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 8px;
+  font-size:13px;letter-spacing:.3px}
+.gp-head .gp-who{color:#dceeff}
+.gp-head .gp-who b{color:var(--gold);font-weight:900}
+.gp-purse{color:var(--gold);background:rgba(6,33,63,.6);border:1px solid rgba(251,191,36,.5);
+  border-radius:999px;padding:2px 9px;font-size:12px;white-space:nowrap}
+.gp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gift-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  padding:9px 4px 7px;border-radius:13px;position:relative;
+  background:linear-gradient(#5bb8f5,#2c86d6);border:2px solid #bfe3ff;
+  box-shadow:0 3px 0 #1a5f9e, inset 0 2px 0 rgba(255,255,255,.35);transition:transform .1s}
+.gift-tile:active{transform:translateY(2px);box-shadow:0 1px 0 #1a5f9e}
+.gift-tile .gt-art{font-size:26px;line-height:1;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.32))}
+/* the tray's egg is painted gold, so tint the plain emoji to match */
+.gt-art.gt-gold{filter:sepia(1) saturate(4) hue-rotate(357deg) brightness(1.2)
+  drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.gt-cost{font-size:11.5px;font-weight:900;color:#fff;background:rgba(6,33,63,.55);
+  border-radius:999px;padding:1px 8px;letter-spacing:.2px}
+/* unaffordable gifts stay visible but read as out of reach */
+.gift-tile.poor{filter:grayscale(.65) brightness(.7);cursor:default}
+.gift-tile.poor .gt-cost{background:rgba(120,20,20,.6)}
+
+/* the thrown gift is deliberately oversized: it is the one thing the thrower is
+   watching, and it has to stay readable while it is spinning across the table */
+.gift-fly{position:absolute;z-index:60;pointer-events:none;font-size:76px;line-height:1;
+  margin:-38px 0 0 -38px;will-change:transform;
+  filter:drop-shadow(0 8px 14px rgba(0,0,0,.5))}
+.gift-fly.gt-gold{filter:sepia(1) saturate(4) hue-rotate(357deg) brightness(1.2)
+  drop-shadow(0 8px 14px rgba(0,0,0,.5))}
+.gift-spark{position:absolute;z-index:59;pointer-events:none;width:9px;height:9px;border-radius:50%;
+  margin:-4.5px 0 0 -4.5px;background:radial-gradient(circle,#fff6c8,#fbbf24);
+  box-shadow:0 0 8px rgba(251,191,36,.9);
+  transition:transform .55s cubic-bezier(.2,.8,.3,1),opacity .55s ease}
+
+/* the avatar carries a small present so the tap target is obvious */
+.atile.tap-gift{cursor:pointer}
+.gift-hint{position:absolute;left:50%;bottom:calc(var(--seat)*-.09);transform:translateX(-50%);
+  z-index:5;font-size:calc(var(--seat)*.21);line-height:1;pointer-events:none;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));animation:giftHint 2.6s ease-in-out infinite}
+@keyframes giftHint{0%,100%{transform:translateX(-50%) scale(1)}
+  50%{transform:translateX(-50%) scale(1.16)}}
+/* the bump when a gift lands: it replaces the idle bob for the duration */
+.atile.gift-hit{animation:giftHit .62s cubic-bezier(.3,1.5,.4,1)}
+@keyframes giftHit{0%{transform:none}20%{transform:rotate(-9deg) scale(1.12)}
+  45%{transform:rotate(7deg) scale(1.05)}70%{transform:rotate(-4deg) scale(1.01)}100%{transform:none}}
+
+/* ---------------- rabbit emotes (own art, 2s performance) ----------------
+   A sent emote arrives in a white message box beside the avatar, the way the
+   chat and emote bubbles sit in the game this is modelled on: rounded box, thin
+   blue edge, drop shadow, and a tail that points back at the player it came
+   from. The performance plays inside the box for exactly 2s, then it clears.
+
+   --rb-art is the size of the artwork. Every motion below is written as a
+   fraction of it, so the performance stays identical when the box is scaled up
+   for a big screen (or for the preview page) instead of being tuned in raw px. */
+/* The box is positioned in the shared #fx layer rather than inside the seat:
+   .plate carries a drop-shadow filter, and a filter clips anything painted
+   outside its filter region - so a bubble beside the seat was never drawn.
+   left/right/bottom come from the avatar's measured rect (see emojis.js). */
+.rb-msg{--rb-art:54px;position:absolute;z-index:12;pointer-events:none;
+  animation:rbPop 2s cubic-bezier(.2,.9,.3,1) forwards}
+/* the tail is drawn by the outer element so the inner box can clip the art */
+.rb-msg::before{content:'';position:absolute;left:10px;bottom:-7px;width:14px;height:14px;
+  background:#ffffff;border-right:2px solid #cfe6f7;border-bottom:2px solid #cfe6f7;
+  border-radius:0 0 3px 0;transform:rotate(45deg)}
+/* seats on the right have no room on their right, so the box mirrors and the
+   tail moves to the other bottom corner */
+.rb-msg.flip::before{left:auto;right:10px;border-right:0;border-left:2px solid #cfe6f7;
+  border-radius:0 0 0 3px;transform:rotate(-45deg)}
+.rb-msg .box{background:#ffffff;border:2px solid #cfe6f7;border-radius:15px;
+  padding:13px 10px 9px;box-shadow:0 7px 16px rgba(6,26,48,.45);
+  display:grid;place-items:center;overflow:hidden}
+.rb-msg svg.rb{display:block;width:var(--rb-art);height:auto;overflow:visible}
+
+@keyframes rbPop{0%{opacity:0;transform:scale(.45) translateY(10px)}
+  11%{opacity:1;transform:scale(1.09) translateY(0)}
+  18%{transform:scale(.97)}
+  24%,84%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(.9) translateY(-8px)}}
+
+/* A CSS transform on an SVG child resolves about the canvas origin (0,0) unless
+   told otherwise - which swung the hat and the mouth toward the corner instead
+   of turning them in place. fill-box makes every part move about itself. */
+.rb-msg svg.rb g,.rb-msg svg.rb path,.rb-msg svg.rb circle,
+.rb-msg svg.rb ellipse,.rb-msg svg.rb rect{transform-box:fill-box;transform-origin:center}
+.rb-msg svg.rb .rb-hat{transform-origin:50% 100%}
+.rb-msg svg.rb .rb-ears{transform-origin:50% 100%}
+.rb-msg svg.rb .rb-wing{transform-origin:8% 50%}
+.rb-msg svg.rb .rb-tongue{transform-origin:50% 0%}
+
+/* confident: thumps its chest three times while the hat tips and arms shake */
+.rb-confident svg.rb{animation:rbThump 2s ease-in-out}
+@keyframes rbThump{0%,100%{transform:none}
+  12%{transform:translateY(-7%) scale(1.07,.93)}22%{transform:translateY(0) scale(.95,1.05)}
+  35%{transform:translateY(-6%) scale(1.06,.94)}45%{transform:scale(.96,1.04)}
+  58%{transform:translateY(-5%) scale(1.05,.95)}68%{transform:none}}
+.rb-confident .rb-hat{animation:rbHatTip 2s ease-in-out}
+@keyframes rbHatTip{0%,100%{transform:rotate(0deg)}14%{transform:rotate(-16deg) translateY(-4px)}
+  30%{transform:rotate(0deg)}46%{transform:rotate(-13deg) translateY(-3px)}62%{transform:rotate(0deg)}}
+.rb-confident .rb-arms{animation:rbArmShake .28s ease-in-out 5}
+@keyframes rbArmShake{0%,100%{transform:translateX(0)}50%{transform:translateX(-1.4px)}}
+.rb-confident .rb-mouth{animation:rbMouthShout 2s ease-in-out}
+@keyframes rbMouthShout{0%,100%{transform:scale(1)}20%{transform:scale(1.25)}50%{transform:scale(1.1)}
+  72%{transform:scale(1.22)}}
+
+/* suspicious: leans side to side and slides its eyes the other way */
+.rb-suspicious svg.rb{animation:rbLean 2s ease-in-out}
+@keyframes rbLean{0%,100%{transform:rotate(0deg)}22%{transform:rotate(-5deg) translateX(-2%)}
+  52%{transform:rotate(5deg) translateX(2%)}78%{transform:rotate(-2deg)}}
+.rb-suspicious .rb-pupil{animation:rbPeek 2s ease-in-out}
+@keyframes rbPeek{0%,100%{transform:translateX(0)}18%{transform:translateX(9%)}
+  48%{transform:translateX(-9%)}72%{transform:translateX(5%)}}
+
+/* laughing: bounces, mouth widens, the hat leaves the building */
+.rb-laughing svg.rb{animation:rbBounce 2s cubic-bezier(.3,1.5,.4,1)}
+@keyframes rbBounce{0%,100%{transform:none}
+  8%{transform:translateY(-11%) scale(1.05,.95)}16%{transform:translateY(0) scale(.96,1.04)}
+  28%{transform:translateY(-9%) scale(1.04,.96)}36%{transform:translateY(0) scale(.97,1.03)}
+  48%{transform:translateY(-7%)}58%{transform:translateY(0)}
+  70%{transform:translateY(-4%)}80%{transform:none}}
+.rb-laughing .rb-mouth{animation:rbMouthWide 2s ease-in-out}
+@keyframes rbMouthWide{0%,100%{transform:scale(1)}12%{transform:scale(1.18,1.3)}
+  30%{transform:scale(.98,1.02)}46%{transform:scale(1.12,1.24)}66%{transform:scale(1)}}
+.rb-laughing .rb-hat{animation:rbHatFly 2s cubic-bezier(.3,.6,.5,1) forwards}
+@keyframes rbHatFly{0%{transform:translate(0,0) rotate(0deg);opacity:1}
+  26%{transform:translate(calc(var(--rb-art) * -.14),calc(var(--rb-art) * -.34)) rotate(-24deg);opacity:1}
+  62%{transform:translate(calc(var(--rb-art) * .08),calc(var(--rb-art) * -.62)) rotate(38deg);opacity:.85}
+  100%{transform:translate(calc(var(--rb-art) * .24),calc(var(--rb-art) * -.9)) rotate(74deg);opacity:0}}
+.rb-laughing .rb-spark{animation:rbSparkPop 2s ease-out}
+@keyframes rbSparkPop{0%,10%{transform:scale(0) rotate(0deg);opacity:0}
+  30%{transform:scale(1) rotate(60deg);opacity:1}46%{transform:scale(.4) rotate(120deg);opacity:.35}
+  64%{transform:scale(1.15) rotate(180deg);opacity:1}84%,100%{transform:scale(0) rotate(240deg);opacity:0}}
+
+/* devil: juddering, wing flapping, eyes burning */
+.rb-devil svg.rb{animation:rbJudder 2s steps(1,end) infinite}
+@keyframes rbJudder{0%,100%{transform:translate(0,0)}14%{transform:translate(-2%,1%) rotate(-2deg)}
+  28%{transform:translate(2%,-1%) rotate(2deg)}42%{transform:translate(-1.5%,0) rotate(-1.5deg)}
+  56%{transform:translate(1.5%,1%) rotate(1.5deg)}70%{transform:translate(-1%,-1%) rotate(-1deg)}
+  84%{transform:translate(1%,0) rotate(1deg)}}
+.rb-devil .rb-wing{animation:rbFlap .34s ease-in-out 6}
+@keyframes rbFlap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-26deg)}}
+.rb-devil .rb-pupil-c{animation:rbBurn 2s ease-in-out}
+@keyframes rbBurn{0%,100%{fill:#2b1410}22%,78%{fill:#ffd11a}}
+.rb-devil .rb-mouth{animation:rbChomp .5s ease-in-out 4}
+@keyframes rbChomp{0%,100%{transform:scale(1)}50%{transform:scale(1.15,.86)}}
+
+/* party: cakes slide up, confetti rains around it */
+.rb-party svg.rb{animation:rbPartyHop 2s ease-in-out}
+@keyframes rbPartyHop{0%,100%{transform:none}
+  12%{transform:translateY(-8%) rotate(-3deg)}26%{transform:translateY(0) rotate(0)}
+  44%{transform:translateY(-6%) rotate(3deg)}58%{transform:translateY(0)}
+  74%{transform:translateY(-4%)}86%{transform:none}}
+.rb-party .rb-cake-1{animation:rbCakeUp .5s cubic-bezier(.2,1.6,.4,1) .1s both}
+.rb-party .rb-cake-2{animation:rbCakeUp .5s cubic-bezier(.2,1.6,.4,1) .22s both}
+@keyframes rbCakeUp{from{transform:translateY(calc(var(--rb-art) * .34));opacity:0}
+  to{transform:translateY(0);opacity:1}}
+.rb-party .rb-conf{animation:rbConfFall 2s cubic-bezier(.3,.6,.6,1) both}
+@keyframes rbConfFall{0%{transform:translateY(calc(var(--rb-art) * -.2)) rotate(0deg);opacity:0}
+  14%{opacity:1}60%{transform:translateY(calc(var(--rb-art) * .44)) rotate(200deg);opacity:1}
+  100%{transform:translateY(calc(var(--rb-art) * .8)) rotate(400deg);opacity:0}}
+.rb-party .rb-conf.c1,.rb-party .rb-conf.c4,.rb-party .rb-conf.c7{animation-delay:.12s}
+.rb-party .rb-conf.c2,.rb-party .rb-conf.c5,.rb-party .rb-conf.c8{animation-delay:.28s}
+.rb-party .rb-conf.c3,.rb-party .rb-conf.c6,.rb-party .rb-conf.c9{animation-delay:.44s}
+
+/* wide-eyed: stretches up like a startled cat, then settles */
+.rb-wide svg.rb{animation:rbStretch 2s cubic-bezier(.2,1.5,.4,1)}
+@keyframes rbStretch{0%,100%{transform:none}
+  16%{transform:translateY(-13%) scale(.86,1.18)}
+  30%{transform:translateY(2%) scale(1.12,.9)}
+  46%{transform:translateY(0) scale(.98,1.02)}
+  66%{transform:translateY(-4%) scale(1.02,.98)}82%{transform:none}}
+.rb-wide .rb-pupil{animation:rbPin 2s ease-out}
+@keyframes rbPin{0%,100%{transform:scale(1)}18%{transform:scale(.42)}40%{transform:scale(.34)}
+  70%{transform:scale(.5)}}
+.rb-wide .rb-ears{animation:rbEarUp 2s cubic-bezier(.2,1.5,.4,1)}
+@keyframes rbEarUp{0%,100%{transform:scaleY(1)}18%{transform:scaleY(1.16)}40%{transform:scaleY(.94)}
+  70%{transform:scaleY(1.04)}}
+
+/* tongue-out: tongue shoots out and waggles */
+.rb-tongue svg.rb{animation:rbJolt 2s ease-in-out}
+@keyframes rbJolt{0%,100%{transform:none}10%{transform:translateY(4%) scale(1.05,.95)}
+  20%{transform:none}34%{transform:translateX(-2%)}50%{transform:translateX(2%)}66%{transform:none}}
+.rb-tongue .rb-tongue{animation:rbWag 2s ease-in-out}
+@keyframes rbWag{0%,6%,100%{transform:scaleY(.55)}
+  18%{transform:scaleY(1.15) rotate(0deg)}
+  32%{transform:scaleY(1) rotate(9deg)}
+  46%{transform:scaleY(1) rotate(-9deg)}
+  60%{transform:scaleY(1) rotate(7deg)}
+  76%{transform:scaleY(.9) rotate(0deg)}}
+
+/* sad: sags, a tear detaches and falls */
+.rb-sad svg.rb{animation:rbSag 2s ease-in-out}
+@keyframes rbSag{0%,100%{transform:none}16%{transform:translateY(5%) scale(1.03,.95)}
+  40%{transform:translateY(7%) scale(1.04,.93)}60%{transform:translateY(6%) scale(1.03,.94)}
+  84%{transform:translateY(3%)}}
+.rb-sad .rb-tear{animation:rbTear 2s ease-in forwards}
+@keyframes rbTear{0%,16%{transform:translateY(0) scale(.7);opacity:0}
+  26%{transform:translateY(0) scale(1);opacity:1}
+  62%{transform:translateY(calc(var(--rb-art) * .3)) scale(.9);opacity:.85}
+  86%,100%{transform:translateY(calc(var(--rb-art) * .56)) scale(.7);opacity:0}}
+
+/* the ears act too - they are most of this character's silhouette */
+.rb-confident .rb-ears{animation:rbEarSnap .5s ease-in-out 4}
+@keyframes rbEarSnap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-3deg)}}
+.rb-suspicious .rb-ears{animation:rbEarLean 2s ease-in-out}
+@keyframes rbEarLean{0%,100%{transform:rotate(0)}22%{transform:rotate(-4deg)}
+  52%{transform:rotate(4deg)}78%{transform:rotate(-2deg)}}
+.rb-laughing .rb-ears{animation:rbEarFlap 2s ease-in-out}
+@keyframes rbEarFlap{0%,100%{transform:rotate(0)}14%{transform:rotate(-8deg)}28%{transform:rotate(4deg)}
+  42%{transform:rotate(-7deg)}56%{transform:rotate(3deg)}70%{transform:rotate(-4deg)}}
+.rb-devil .rb-ears{animation:rbEarBack .5s cubic-bezier(.2,1.6,.4,1) 4}
+@keyframes rbEarBack{0%,100%{transform:rotate(0)}40%{transform:rotate(9deg)}}
+.rb-party .rb-ears{animation:rbEarWag 2s ease-in-out}
+@keyframes rbEarWag{0%,100%{transform:rotate(0)}20%{transform:rotate(-6deg)}40%{transform:rotate(5deg)}
+  60%{transform:rotate(-5deg)}80%{transform:rotate(3deg)}}
+.rb-tongue .rb-ears{animation:rbEarTilt 2s ease-in-out}
+@keyframes rbEarTilt{0%,100%{transform:rotate(0)}30%{transform:rotate(7deg)}60%{transform:rotate(5deg)}}
+.rb-sad .rb-ears{animation:rbEarDroop 2s ease-in-out forwards}
+@keyframes rbEarDroop{0%{transform:rotate(0)}22%{transform:rotate(-7deg)}55%{transform:rotate(-11deg)}
+  80%{transform:rotate(-9deg)}100%{transform:rotate(-4deg)}}
+
+/* the drawn set sits above the plain glyph reactions in the emote tray */
+#emojiPicker{width:264px}
+#emojiPicker .rb-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%;
+  padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.18)}
+#emojiPicker .rb-btn{padding:3px;border-radius:10px;background:rgba(255,255,255,.08);
+  display:grid;place-items:center;transition:transform .1s}
+#emojiPicker .rb-btn:active{transform:scale(.9)}
+#emojiPicker .rb-btn svg{width:34px;height:34px;display:block}
+#emojiPicker .rb-cap{grid-column:1/-1;font-size:10.5px;letter-spacing:.6px;color:#9fdcff;text-align:left}
+
+@media (prefers-reduced-motion:reduce){
+  .rb-msg,.rb-msg svg.rb,.rb-msg svg.rb *{animation-duration:2s !important}
+}

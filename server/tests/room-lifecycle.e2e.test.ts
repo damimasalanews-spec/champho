@@ -466,6 +466,91 @@ test("two WebSocket clients create and join a room with authoritative snapshots 
 });
 
 
+test("start_round activates exactly one player and deals a private 14-card hand to both", async () => {
+  const port = 9600 + Math.floor(Math.random() * 300);
+  const ownerId = randomUUID();
+  const guestId = randomUUID();
+  let server: ChildProcess | undefined;
+  let owner: WebSocket | undefined;
+  let guest: WebSocket | undefined;
+  let roomId: string | undefined;
+
+  try {
+    server = await startServer(port);
+    owner = await connect(port);
+
+    owner.send(JSON.stringify({ type: "create_room", playerId: ownerId }));
+    const createdSnapshot = await waitForMessage(owner, (message) => message.type === "room_snapshot");
+    roomId = createdSnapshot.roomId;
+    await waitForMessage(
+      owner,
+      (message) => message.type === "event" && message.eventType === "room_created"
+    );
+
+    guest = await connect(port);
+    guest.send(JSON.stringify({ type: "join_room", roomId, playerId: guestId }));
+    await waitForMessage(guest, (message) => message.type === "room_snapshot");
+    await waitForMessage(
+      owner,
+      (message) =>
+        message.type === "event" &&
+        message.eventType === "player_joined" &&
+        message.payload?.playerId === guestId
+    );
+
+    const ownerHandPromise = waitForMessage(owner, (message) => message.type === "hand_sync");
+    const guestHandPromise = waitForMessage(guest, (message) => message.type === "hand_sync");
+
+    owner.send(JSON.stringify({ type: "start_round", requestId: randomUUID() }));
+
+    const playingSnapshot = await waitForMessage(
+      owner,
+      (message) => message.type === "room_snapshot" && message.phase === "playing"
+    );
+    assertRoomSnapshotMessage(playingSnapshot);
+    assert.equal(playingSnapshot.state, "active");
+    assert.equal(playingSnapshot.roundNumber, 1);
+    assert.equal(playingSnapshot.activePlayerId, ownerId);
+
+    for (const handSync of [await ownerHandPromise, await guestHandPromise]) {
+      assert.equal(handSync.roomId, roomId);
+      assert.equal(handSync.roundNumber, 1);
+      assert.equal(handSync.handVersion, 1);
+      assert.ok(Array.isArray(handSync.hand));
+      assert.equal(handSync.hand.length, 14);
+      assert.equal(new Set(handSync.hand.map((card: Message) => card.cardId)).size, 14);
+    }
+
+    // room_players_one_active_idx allows exactly one 'active' row per room. The
+    // regression this guards against activated every player in the loop, which
+    // the index rejected on the second UPDATE and made every round start fail.
+    const seats = await pool.query(
+      `SELECT player_id, turn_state, hand_version, jsonb_array_length(private_hand) AS hand_size
+       FROM public.room_players
+       WHERE room_id = $1
+       ORDER BY seat_number`,
+      [roomId]
+    );
+    assert.deepEqual(
+      seats.rows.map((row) => ({
+        playerId: row.player_id,
+        turnState: row.turn_state,
+        handVersion: Number(row.hand_version),
+        handSize: Number(row.hand_size)
+      })),
+      [
+        { playerId: ownerId, turnState: "active", handVersion: 1, handSize: 14 },
+        { playerId: guestId, turnState: "waiting", handVersion: 1, handSize: 14 }
+      ]
+    );
+  } finally {
+    if (roomId) await pool.query("DELETE FROM public.game_rooms WHERE id = $1", [roomId]);
+    owner?.close();
+    guest?.close();
+    if (server) await stopServer(server);
+  }
+});
+
 test("invalid create_room messages return protocol errors and persist nothing", async () => {
   const port = 4100 + Math.floor(Math.random() * 1000);
   const server = await startServer(port);

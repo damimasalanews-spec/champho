@@ -45,18 +45,20 @@ function safeResolve(urlPath: string): string | null {
 export type StaticResult = "served" | "not_found" | "forbidden";
 
 /**
- * The root must serve the authoritative client.
+ * The root serves the home page.
  *
- * `index.html` is the legacy Firebase-era page. It is 533 KB and contains no
- * WebSocket code at all — it never contacts this server, so serving it at `/`
- * hands every visitor a client that cannot play a game. That is precisely the
- * frontend/backend split this module exists to prevent, so the root is mapped
- * to the authoritative `classic.html` instead.
- *
- * The legacy page is kept, not deleted: it stays reachable at `/legacy.html`.
+ * `index.html` is the legacy Firebase-era page: 533 KB with no WebSocket code in
+ * it. Serving it at `/` once handed every visitor a client that could not reach
+ * this server at all, and the root was mapped to `classic.html` instead. The home
+ * page can reach a game now — its mode cards launch Classic or Go Wild in an
+ * overlay, and the overlay is what holds the WebSocket client — so the root is the
+ * home page again. It stays mapped together with `/index.html`, because those are
+ * the two addresses a visitor actually types.
  */
 function routeFor(urlPath: string): string {
-  if (urlPath === "/" || urlPath === "/index.html") return "/classic.html";
+  if (urlPath === "/" || urlPath === "/index.html") return "/index.html";
+  // Kept: the legacy address still resolves to the home page, so any link handed
+  // out before this change keeps working.
   if (urlPath === "/legacy.html") return "/index.html";
   return urlPath;
 }
