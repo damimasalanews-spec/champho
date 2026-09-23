@@ -101,6 +101,17 @@
         </div>
     </div>
 
+    <!-- The "UNO!" callout. Always present, never clickable (the overlay is
+         pointer-events:none), and empty of geometry until it is given a class.
+         Outside .game-table for the same reason as the wheel: the table's
+         perspective would become this fixed element's containing block. -->
+    <div id="uno-callout-overlay" class="uno-announcement-overlay">
+        <div id="uno-banner-card" class="uno-announcement-banner">
+            <h1 class="uno-announcement-text">UNO!</h1>
+            <div id="uno-banner-subtext" class="uno-announcement-subtext">Champ called UNO!</div>
+        </div>
+    </div>
+
     <!-- Script Execution Pipelines -->
     <script src="game/sound.js"></script>
     <script>
@@ -488,10 +499,69 @@
             });
         }
 
+        // ---- calling UNO ------------------------------------------------------
+        // The UNO button has been in this page's controls panel since it was written
+        // and nothing has ever listened to it. Now it does: the banner bursts in, the
+        // fanfare plays, confetti leaves the middle of the screen, and the banner
+        // leaves after 1.8s. There is no socket in this page, so nothing is announced
+        // to anyone — the networked client is the one that would send the call.
+        function spawnUnoConfettiExplosion() {
+            const overlay = document.getElementById('uno-callout-overlay');
+            if (!overlay) return;
+
+            const particleCount = 45;
+            const particleColors = ['#ff1744', '#0066ff', '#ffcc00', '#00cc44', '#ffffff'];
+
+            for (let i = 0; i < particleCount; i += 1) {
+                const particle = document.createElement('div');
+                particle.classList.add('uno-particle');
+
+                // out from the middle in every direction, at every distance
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 80 + (Math.random() * 240);
+
+                particle.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+                particle.style.setProperty('--dy', `${Math.sin(angle) * distance}px`);
+                particle.style.setProperty('--color', particleColors[Math.floor(Math.random() * particleColors.length)]);
+                particle.style.setProperty('--size', `${8 + (Math.random() * 14)}px`);
+                particle.style.setProperty('--radius', Math.random() > .5 ? '50%' : '4px');
+                particle.style.setProperty('--duration', `${0.6 + (Math.random() * 0.5)}s`);
+                particle.style.setProperty('--rot', `${(Math.random() * 720) - 360}deg`);
+
+                overlay.appendChild(particle);
+                setTimeout(() => particle.remove(), 1200);
+            }
+        }
+
+        function triggerUnoDeclarationBanner(declaringPlayerName) {
+            const banner = document.getElementById('uno-banner-card');
+            const subtext = document.getElementById('uno-banner-subtext');
+            if (!banner || !subtext) return;
+
+            subtext.innerText = `${declaringPlayerName} CALLED UNO!`;
+
+            // Clear both classes, force a reflow, then animate in. The reflow is what
+            // lets the same animation run twice: without it the browser coalesces the
+            // class change and a second call does nothing.
+            banner.classList.remove('animate-in', 'animate-out');
+            void banner.offsetWidth;
+
+            banner.classList.add('animate-in');
+            if (typeof playUnoDeclarationSound === 'function') playUnoDeclarationSound();
+            spawnUnoConfettiExplosion();
+
+            setTimeout(() => {
+                banner.classList.remove('animate-in');
+                banner.classList.add('animate-out');
+            }, 1800);
+        }
+
         // Automatically auto-boot sequence triggers on window load
         window.addEventListener('DOMContentLoaded', () => {
             wireChat();
             wireColorWheel();
+            const unoButton = document.getElementById('btn-uno-call');
+            if (unoButton) unoButton.addEventListener('click', () => triggerUnoDeclarationBanner('Champ'));
             initializeArcadeMatchTimer(149);   // 02:29
             // Initiates full simulated arcade dealing engine sequence matching layout blueprints
             setTimeout(() => {

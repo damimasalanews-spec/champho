@@ -642,3 +642,103 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   z-index: 20;
   pointer-events: none;
 }
+
+/* ==========================================================================
+   THE "UNO!" ANNOUNCEMENT AND ITS BURST
+
+   The banner is always in the DOM and never takes a click (pointer-events:none on
+   the overlay), so it cannot come between the player and the table. It sits at
+   scale(0) until something gives it a class.
+   ========================================================================== */
+
+.uno-announcement-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.uno-announcement-banner {
+  padding: 15px 60px;
+  border: 5px solid #fff;
+  border-radius: 50px;
+  background: linear-gradient(180deg, #ff3300 0%, #cc0000 100%);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, .6), 0 0 30px rgba(255, 50, 0, .4);
+  transform: scale(0);
+  opacity: 0;
+  transform-style: preserve-3d;
+}
+
+@keyframes banner-burst-in {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  50%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  75%  { transform: scale(.95) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes banner-burst-out {
+  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(0) rotate(20deg); opacity: 0; }
+}
+
+.uno-announcement-banner.animate-in {
+  animation: banner-burst-in .4s cubic-bezier(.175, .885, .32, 1.275) forwards;
+}
+
+.uno-announcement-banner.animate-out {
+  animation: banner-burst-out .3s ease-in forwards;
+}
+
+.uno-announcement-text {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow:
+    -4px -4px 0 #000, 4px -4px 0 #000,
+    -4px 4px 0 #000, 4px 4px 0 #000,
+    0 10px 15px rgba(0, 0, 0, .6);
+}
+
+.uno-announcement-subtext {
+  margin: 5px 0 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+  color: #ffcc00;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+/* The particles are children of the overlay, so they fly out of the middle of the
+   screen, not out of the banner — the banner is scaled and rotated by its own
+   animation and anything parented to it would inherit that. */
+.uno-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size, 16px);
+  height: var(--size, 16px);
+  border-radius: var(--radius, 4px);
+  background: var(--color, #ffcc00);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, .3);
+  pointer-events: none;
+  animation: particle-explosion var(--duration, .8s) cubic-bezier(.25, 1, .5, 1) forwards;
+}
+
+@keyframes particle-explosion {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0) rotate(var(--rot));
+    opacity: 0;
+  }
+}

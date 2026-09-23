@@ -121,3 +121,19 @@ function playColorWheelOpenSound() {
   note(550, 0.10, 'sine', 0.05, 0.12, 700);
   note(700, 0.18, 'sine', 0.07, 0.18, 1100);
 }
+
+/**
+ * Calling "UNO!".
+ *
+ * A C-major fanfare climbing to the octave, with a burst of white noise under it
+ * for the weight of the thing. Louder than anything else in this file on purpose:
+ * it happens once a round at most, and it is meant to be heard across the room.
+ */
+function playUnoDeclarationSound() {
+  if (soundMuted) return;
+  note(523.25, 0.15, 'triangle', 0.12, 0.00, 523);
+  note(659.25, 0.15, 'triangle', 0.12, 0.05, 659);
+  note(783.99, 0.15, 'triangle', 0.12, 0.10, 783);
+  note(1046.50, 0.35, 'sine', 0.15, 0.15, 1200);
+  whoosh(0.40, 0.06, 0.00, 1100);
+}
