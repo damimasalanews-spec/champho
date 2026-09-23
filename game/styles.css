@@ -424,3 +424,149 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 .atile.gift-hit{animation:giftHit .62s cubic-bezier(.3,1.5,.4,1)}
 @keyframes giftHit{0%{transform:none}20%{transform:rotate(-9deg) scale(1.12)}
   45%{transform:rotate(7deg) scale(1.05)}70%{transform:rotate(-4deg) scale(1.01)}100%{transform:none}}
+
+/* ---------------- rabbit emotes (own art, 2s performance) ----------------
+   The artwork is SVG (emojis.js) so it looks the same on every device and does
+   not depend on a colour-emoji font. Sending one puts it on stage over the
+   recipient's avatar for exactly 2s: the wrapper handles the pop in and out,
+   the inner svg handles the expression's own motif. */
+/* the centring lives in the base rule, not only in the keyframes, so the stage
+   still sits correctly over the avatar when animations are disabled */
+.rb-stage{position:absolute;left:50%;top:50%;width:calc(var(--seat)*1.3);
+  transform:translate(-50%,-50%);pointer-events:none;z-index:12;
+  animation:rbStage 2s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes rbStage{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-10deg)}
+  9%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(3deg)}
+  15%{transform:translate(-50%,-50%) scale(.97) rotate(-1deg)}
+  21%,82%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-62%) scale(.86)}}
+.rb-stage svg.rb{display:block;width:100%;height:auto;overflow:visible;
+  filter:drop-shadow(0 6px 12px rgba(0,0,0,.5))}
+.rb-stage .rb-name{display:block;margin-top:1px;text-align:center;font-size:11px;font-weight:900;
+  letter-spacing:.5px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.8);
+  animation:rbName 2s ease forwards}
+@keyframes rbName{0%,14%{opacity:0;transform:translateY(4px)}30%,80%{opacity:1;transform:none}
+  100%{opacity:0;transform:translateY(-4px)}}
+
+/* confident: thumps its chest three times while the hat tips and arms shake */
+.rb-confident svg.rb{animation:rbThump 2s ease-in-out}
+@keyframes rbThump{0%,100%{transform:none}
+  12%{transform:translateY(-7%) scale(1.07,.93)}22%{transform:translateY(0) scale(.95,1.05)}
+  35%{transform:translateY(-6%) scale(1.06,.94)}45%{transform:scale(.96,1.04)}
+  58%{transform:translateY(-5%) scale(1.05,.95)}68%{transform:none}}
+.rb-confident .rb-hat{animation:rbHatTip 2s ease-in-out}
+@keyframes rbHatTip{0%,100%{transform:rotate(0deg)}14%{transform:rotate(-16deg) translateY(-4px)}
+  30%{transform:rotate(0deg)}46%{transform:rotate(-13deg) translateY(-3px)}62%{transform:rotate(0deg)}}
+.rb-confident .rb-arms{animation:rbArmShake .28s ease-in-out 5}
+@keyframes rbArmShake{0%,100%{transform:translateX(0)}50%{transform:translateX(-1.4px)}}
+.rb-confident .rb-mouth{animation:rbMouthShout 2s ease-in-out}
+@keyframes rbMouthShout{0%,100%{transform:scale(1)}20%{transform:scale(1.25)}50%{transform:scale(1.1)}
+  72%{transform:scale(1.22)}}
+
+/* suspicious: leans side to side and slides its eyes the other way */
+.rb-suspicious svg.rb{animation:rbLean 2s ease-in-out}
+@keyframes rbLean{0%,100%{transform:rotate(0deg)}22%{transform:rotate(-5deg) translateX(-2%)}
+  52%{transform:rotate(5deg) translateX(2%)}78%{transform:rotate(-2deg)}}
+.rb-suspicious .rb-pupil{animation:rbPeek 2s ease-in-out}
+@keyframes rbPeek{0%,100%{transform:translateX(0)}18%{transform:translateX(4.5px)}
+  48%{transform:translateX(-4.5px)}72%{transform:translateX(2.5px)}}
+
+/* laughing: bounces, mouth widens, the hat leaves the building */
+.rb-laughing svg.rb{animation:rbBounce 2s cubic-bezier(.3,1.5,.4,1)}
+@keyframes rbBounce{0%,100%{transform:none}
+  8%{transform:translateY(-14%) scale(1.05,.95)}16%{transform:translateY(0) scale(.96,1.04)}
+  28%{transform:translateY(-12%) scale(1.04,.96)}36%{transform:translateY(0) scale(.97,1.03)}
+  48%{transform:translateY(-10%)}58%{transform:translateY(0)}
+  70%{transform:translateY(-6%)}80%{transform:none}}
+.rb-laughing .rb-mouth{animation:rbMouthWide 2s ease-in-out}
+@keyframes rbMouthWide{0%,100%{transform:scale(1)}12%{transform:scale(1.18,1.3)}
+  30%{transform:scale(.98,1.02)}46%{transform:scale(1.12,1.24)}66%{transform:scale(1)}}
+.rb-laughing .rb-hat{animation:rbHatFly 2s cubic-bezier(.3,.6,.5,1) forwards}
+@keyframes rbHatFly{0%{transform:translate(0,0) rotate(0deg);opacity:1}
+  26%{transform:translate(-6px,-16px) rotate(-24deg);opacity:1}
+  62%{transform:translate(4px,-30px) rotate(38deg);opacity:.85}
+  100%{transform:translate(12px,-42px) rotate(74deg);opacity:0}}
+.rb-laughing .rb-spark{animation:rbSparkPop 2s ease-out}
+@keyframes rbSparkPop{0%,10%{transform:scale(0) rotate(0deg);opacity:0}
+  30%{transform:scale(1) rotate(60deg);opacity:1}46%{transform:scale(.4) rotate(120deg);opacity:.35}
+  64%{transform:scale(1.15) rotate(180deg);opacity:1}84%,100%{transform:scale(0) rotate(240deg);opacity:0}}
+
+/* devil: juddering, wing flapping, eyes burning */
+.rb-devil svg.rb{animation:rbJudder 2s steps(1,end) infinite}
+@keyframes rbJudder{0%,100%{transform:translate(0,0)}14%{transform:translate(-2%,1%) rotate(-2deg)}
+  28%{transform:translate(2%,-1%) rotate(2deg)}42%{transform:translate(-1.5%,0) rotate(-1.5deg)}
+  56%{transform:translate(1.5%,1%) rotate(1.5deg)}70%{transform:translate(-1%,-1%) rotate(-1deg)}
+  84%{transform:translate(1%,0) rotate(1deg)}}
+.rb-devil .rb-wing{animation:rbFlap .34s ease-in-out 6}
+@keyframes rbFlap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-26deg)}}
+.rb-devil .rb-pupil{animation:rbBurn 2s ease-in-out}
+@keyframes rbBurn{0%,100%{fill:#2b1410}22%,78%{fill:#ffd11a}}
+.rb-devil .rb-mouth{animation:rbChomp .5s ease-in-out 4}
+@keyframes rbChomp{0%,100%{transform:scale(1)}50%{transform:scale(1.15,.86)}}
+
+/* party: cakes slide up, confetti rains around it */
+.rb-party svg.rb{animation:rbPartyHop 2s ease-in-out}
+@keyframes rbPartyHop{0%,100%{transform:none}
+  12%{transform:translateY(-10%) rotate(-3deg)}26%{transform:translateY(0) rotate(0)}
+  44%{transform:translateY(-8%) rotate(3deg)}58%{transform:translateY(0)}
+  74%{transform:translateY(-5%)}86%{transform:none}}
+.rb-party .rb-cake-1{animation:rbCakeUp .5s cubic-bezier(.2,1.6,.4,1) .1s both}
+.rb-party .rb-cake-2{animation:rbCakeUp .5s cubic-bezier(.2,1.6,.4,1) .22s both}
+@keyframes rbCakeUp{from{transform:translateY(26px);opacity:0}to{transform:translateY(0);opacity:1}}
+.rb-party .rb-conf{animation:rbConfFall 2s cubic-bezier(.3,.6,.6,1) both}
+@keyframes rbConfFall{0%{transform:translateY(-14px) rotate(0deg);opacity:0}
+  14%{opacity:1}60%{transform:translateY(30px) rotate(200deg);opacity:1}
+  100%{transform:translateY(56px) rotate(400deg);opacity:0}}
+.rb-party .rb-conf.c1,.rb-party .rb-conf.c4,.rb-party .rb-conf.c7{animation-delay:.12s}
+.rb-party .rb-conf.c2,.rb-party .rb-conf.c5,.rb-party .rb-conf.c8{animation-delay:.28s}
+.rb-party .rb-conf.c3,.rb-party .rb-conf.c6,.rb-party .rb-conf.c9{animation-delay:.44s}
+
+/* wide-eyed: stretches up like a startled cat, then settles */
+.rb-wide svg.rb{animation:rbStretch 2s cubic-bezier(.2,1.5,.4,1)}
+@keyframes rbStretch{0%,100%{transform:none}
+  16%{transform:translateY(-16%) scale(.86,1.18)}
+  30%{transform:translateY(2%) scale(1.12,.9)}
+  46%{transform:translateY(0) scale(.98,1.02)}
+  66%{transform:translateY(-4%) scale(1.02,.98)}82%{transform:none}}
+.rb-wide .rb-pupil{animation:rbPin 2s ease-out}
+@keyframes rbPin{0%,100%{transform:scale(1)}18%{transform:scale(.42)}40%{transform:scale(.34)}
+  70%{transform:scale(.5)}}
+
+/* tongue-out: tongue shoots out and waggles */
+.rb-tongue svg.rb{animation:rbJolt 2s ease-in-out}
+@keyframes rbJolt{0%,100%{transform:none}10%{transform:translateY(4%) scale(1.05,.95)}
+  20%{transform:none}34%{transform:translateX(-2%)}50%{transform:translateX(2%)}66%{transform:none}}
+.rb-tongue .rb-tongue{animation:rbWag 2s ease-in-out}
+@keyframes rbWag{0%,6%,100%{transform:scaleY(.55);transform-origin:50% 72%}
+  18%{transform:scaleY(1.15) rotate(0deg);transform-origin:50% 72%}
+  32%{transform:scaleY(1) rotate(9deg);transform-origin:50% 72%}
+  46%{transform:scaleY(1) rotate(-9deg);transform-origin:50% 72%}
+  60%{transform:scaleY(1) rotate(7deg);transform-origin:50% 72%}
+  76%{transform:scaleY(.9) rotate(0deg);transform-origin:50% 72%}}
+
+/* sad: sags, a tear detaches and falls */
+.rb-sad svg.rb{animation:rbSag 2s ease-in-out}
+@keyframes rbSag{0%,100%{transform:none}16%{transform:translateY(5%) scale(1.03,.95)}
+  40%{transform:translateY(7%) scale(1.04,.93)}60%{transform:translateY(6%) scale(1.03,.94)}
+  84%{transform:translateY(3%)}}
+.rb-sad .rb-tear{animation:rbTear 2s ease-in forwards}
+@keyframes rbTear{0%,16%{transform:translateY(0) scale(.7);opacity:0}
+  26%{transform:translateY(0) scale(1);opacity:1}
+  62%{transform:translateY(16px) scale(.9);opacity:.85}
+  86%,100%{transform:translateY(30px) scale(.7);opacity:0}}
+
+/* the tray in the emote picker */
+#emojiPicker .rb-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%;
+  padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.18)}
+#emojiPicker .rb-btn{padding:3px;border-radius:10px;background:rgba(255,255,255,.08);
+  display:grid;place-items:center;transition:transform .1s}
+#emojiPicker .rb-btn:active{transform:scale(.9)}
+#emojiPicker .rb-btn svg{width:34px;height:34px;display:block}
+#emojiPicker .rb-cap{grid-column:1/-1;font-size:10.5px;letter-spacing:.6px;color:#9fdcff;text-align:left}
+#emojiPicker{width:264px}
+
+@media (prefers-reduced-motion:reduce){
+  .rb-stage,.rb-stage svg.rb,.rb-stage .rb-name{animation-duration:2s !important}
+  .rb-stage svg.rb *{animation:none !important}
+}

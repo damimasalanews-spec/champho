@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Champ Words — emote set</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  :root{--seat:132px}
+  html,body{overflow:auto}
+  body{background:linear-gradient(#0d3f77,#06213f);padding:16px 14px 40px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:26px;letter-spacing:1px;color:#fbbf24;text-shadow:0 3px 0 #08305c}
+  .sub{font-size:14px;font-weight:700;color:#bfe3ff;margin:4px 0 14px;line-height:1.45}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .strip{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-bottom:18px}
+  .strip svg{width:100%;height:auto;display:block;background:rgba(255,255,255,.07);
+    border-radius:12px;padding:3px}
+  .seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:12px}
+  .cell{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:18px;
+    padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;
+    transition:transform .1s}
+  .cell:active{transform:scale(.97)}
+  /* the preview drives playRabbitEmote() against its own seat box rather than
+     reusing .atile/.plate, whose game rules are absolutely positioned */
+  .cell .pcard{position:relative;display:block;width:var(--seat);height:var(--seat);animation:none}
+  .pvseat{width:var(--seat);height:var(--seat);border-radius:calc(var(--seat)*.26);
+    background:radial-gradient(circle at 34% 28%,#ffe9d6,#efbb93);
+    border:calc(var(--seat)*.06) solid #22d3ee;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+  .nm{font-size:14px;font-weight:900;color:#fff}
+  .ln{font-size:11.5px;font-weight:700;color:#9fdcff;text-align:center;min-height:28px}
+  .tag{font-size:10px;font-weight:900;letter-spacing:.6px;color:#fbbf24}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Champword emote set</h1>
+  <div class="sub">Eight expressions drawn in SVG — the same spirit as the rabbit set the official
+    UNO! Mobile ships, our own artwork. Each one performs for <b>exactly 2 seconds</b> with its own
+    sound, then clears itself. Tap any card to play it again.</div>
+  <div class="bar">
+    <button class="btn btn-green" id="allBtn">▶ PLAY ALL</button>
+    <button class="btn btn-blue" id="soundBtn">🔊 SOUND ON</button>
+  </div>
+  <div class="strip" id="strip"></div>
+  <div class="seats" id="seats"></div>
+</div>
+<script src="sound.js"></script>
+<script src="emojis.js"></script>
+<script>
+  const seatsEl = document.getElementById('seats');
+  const stripEl = document.getElementById('strip');
+
+  /* the static strip: every expression side by side, no motion */
+  RABBIT_EMOTES.forEach((e) => {
+    const d = document.createElement('div');
+    d.title = e.name;
+    d.innerHTML = rabbitSVG(e.look);
+    stripEl.appendChild(d);
+  });
+
+  /* one real seat per emote, so the preview runs the production code path:
+     playRabbitEmote() -> .rb-stage -> 2s of keyframes -> removed */
+  RABBIT_EMOTES.forEach((e, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.innerHTML =
+      '<div class="tag">#' + (i + 1) + ' · 2.0s</div>' +
+      '<div class="pcard" id="card-' + i + '"><div class="pvseat"></div></div>' +
+      '<div class="nm">' + e.name + '</div>' +
+      '<div class="ln">' + e.line + '</div>';
+    cell.addEventListener('click', () => playRabbitEmote(i, e.id));
+    seatsEl.appendChild(cell);
+  });
+
+  document.getElementById('allBtn').addEventListener('click', () => {
+    RABBIT_EMOTES.forEach((e, i) => setTimeout(() => playRabbitEmote(i, e.id), i * 320));
+  });
+
+  const sb = document.getElementById('soundBtn');
+  let muted = false;
+  sb.addEventListener('click', () => {
+    muted = !muted;
+    setSoundMuted(muted);
+    sb.textContent = muted ? '🔇 SOUND OFF' : '🔊 SOUND ON';
+  });
+
+  /* ?play=<id> fires one emote straight away, which is how it gets screenshotted.
+     ?at=<seconds> freezes every animation in that emote at that point on its
+     timeline (negative delay + paused), so the 2s performance can be sampled
+     frame by frame without a video encoder.
+     ?solo=1 strips the page back to the one emote, centred and large. */
+  const qs = new URLSearchParams(location.search);
+  const want = qs.get('play');
+  const at = qs.get('at');
+  const idx = want ? RABBIT_EMOTES.findIndex((e) => e.id === want) : -1;
+
+  if (qs.get('solo') && idx >= 0) {
+    document.documentElement.style.setProperty('--seat', '300px');
+    ['h1', '.sub', '.bar', '.strip'].forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) el.remove();
+    });
+    [...seatsEl.children].forEach((c, i) => { if (i !== idx) c.remove(); });
+    seatsEl.style.gridTemplateColumns = '1fr';
+    seatsEl.style.justifyItems = 'center';
+    const only = seatsEl.firstElementChild;
+    if (only) { only.style.background = 'none'; only.style.border = '0'; }
+  }
+  if (idx >= 0) setTimeout(() => playRabbitEmote(idx, want), 120);
+  if (at !== null) {
+    const st = document.createElement('style');
+    st.textContent = '.rb-stage,.rb-stage svg.rb,.rb-stage .rb-name,.rb-stage svg.rb *' +
+      '{animation-play-state:paused !important;animation-delay:-' + at + 's !important}';
+    document.head.appendChild(st);
+  }
+  window.__emotes = { RABBIT_EMOTES, playRabbitEmote, rabbitSVG };
+</script>
+</body>
+</html>

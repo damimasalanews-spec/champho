@@ -336,39 +336,7 @@ window.addEventListener('message', function (e) {
 });
 try { parent.postMessage({ champReady: true }, '*'); } catch (e) {}
 
-/* ---------------- sound (all original, synthesized) ---------------- */
-let AC = null;
-function ac() {
-  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
-  if (AC.state === 'suspended') AC.resume();
-  return AC;
-}
-function note(freq, dur = 0.12, type = 'sine', gain = 0.05, when = 0, slideTo = null, force = false) {
-  if (S.muted && !force) return;
-  try {
-    const c = ac(), o = c.createOscillator(), g = c.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(freq, c.currentTime + when);
-    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + when + dur);
-    g.gain.setValueAtTime(gain, c.currentTime + when);
-    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + when + dur);
-    o.connect(g).connect(c.destination);
-    o.start(c.currentTime + when); o.stop(c.currentTime + when + dur + 0.02);
-  } catch (e) { /* audio unavailable */ }
-}
-function whoosh(dur = 0.25, gain = 0.05, when = 0, freq = 1200) {
-  if (S.muted) return;
-  try {
-    const c = ac(), len = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, len, c.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
-    const src = c.createBufferSource(); src.buffer = buf;
-    const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq;
-    const g = c.createGain(); g.gain.value = gain;
-    src.connect(f).connect(g).connect(c.destination);
-    src.start(c.currentTime + when);
-  } catch (e) { /* audio unavailable */ }
-}
+/* the synth itself lives in sound.js (see note() and whoosh()) */
 const sfx = {
   tap:    () => note(700, 0.05, 'triangle', 0.05),
   place:  (i) => note(500 + i * 60, 0.07, 'square', 0.045),
@@ -1135,6 +1103,22 @@ function openPicker(targetIdx, anchorEl) {
   const pk = $('emojiPicker');
   pickerFor = targetIdx;
   pk.innerHTML = '';
+  /* our own drawn emote set sits above the plain glyph reactions */
+  const row = document.createElement('div');
+  row.className = 'rb-row';
+  const cap = document.createElement('span');
+  cap.className = 'rb-cap';
+  cap.textContent = 'CHAMPWORD EMOTES · 2s';
+  row.appendChild(cap);
+  RABBIT_EMOTES.forEach((e) => {
+    const b = document.createElement('button');
+    b.className = 'rb-btn';
+    b.title = e.name + ' - ' + e.line;
+    b.innerHTML = rabbitSVG(e.look);
+    b.addEventListener('click', (ev) => { ev.stopPropagation(); pickRabbit(e.id); });
+    row.appendChild(b);
+  });
+  pk.appendChild(row);
   EMOJIS.forEach((e) => {
     const b = document.createElement('button');
     b.textContent = e;
@@ -1147,6 +1131,22 @@ function openPicker(targetIdx, anchorEl) {
   pk.style.left = left + 'px';
   pk.style.top = Math.max(8, r.bottom + 8) + 'px';
 }
+/* a drawn emote performs over the target seat for 2s */
+function pickRabbit(id) {
+  $('emojiPicker').classList.add('hidden');
+  const emo = RABBIT_EMOTES.find((x) => x.id === id);
+  const to = pickerFor;
+  sfx.tap();
+  if (!emo || to < 0) return;
+  playRabbitEmote(to, id);
+  if (to === youIdx()) return;
+  const t = S.players[to];
+  addMsg(you().name, 'sent a ' + emo.name + ' emote at ' + t.name, you().chat);
+  if (Math.random() < 0.5) {
+    setTimeout(() => addMsg(t.name, THANK_LINES[Math.floor(Math.random() * THANK_LINES.length)], t.chat), 900 + Math.random() * 1100);
+  }
+}
+
 function pickEmoji(e) {
   $('emojiPicker').classList.add('hidden');
   sfx.tap();
@@ -1177,6 +1177,7 @@ function openMenu() {
 $('musicBtn').addEventListener('click', () => { setMusic(!musicOn); sfx.tap(); });
 $('soundBtn').addEventListener('click', () => {
   S.muted = !S.muted;
+  setSoundMuted(S.muted);
   $('soundBtn').textContent = S.muted ? '🔇' : '🔊';
   if (!S.muted) sfx.tap();
 });
@@ -1224,9 +1225,14 @@ setInterval(() => {
   if (S.phase === 'playing' && Math.random() < 0.45) botChat(AMBIENT_LINES[Math.floor(Math.random() * AMBIENT_LINES.length)]);
 }, 11000);
 setInterval(() => {
-  if (S.phase === 'playing' && Math.random() < 0.25) {
-    const bots = S.players.map((p, i) => i).filter((i) => !S.players[i].you);
-    showBubble(bots[Math.floor(Math.random() * bots.length)], EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
+  if (S.phase !== 'playing' || Math.random() > 0.3) return;
+  const bots = S.players.map((p, i) => i).filter((i) => !S.players[i].you);
+  const who = bots[Math.floor(Math.random() * bots.length)];
+  if (Math.random() < 0.55) {
+    /* a rival shows off one of the drawn emotes */
+    playRabbitEmote(who, RABBIT_EMOTES[Math.floor(Math.random() * RABBIT_EMOTES.length)].id);
+  } else {
+    showBubble(who, EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
   }
 }, 14000);
 
@@ -1253,4 +1259,5 @@ window.__champ = {
   submit, startRound, newGame, startGame, setMode, renderSketch, flyLettersToBoard, announceSketch,
   onSolved, timeUp, advanceRound, gameOver, pickRounds,
   GIFTS, KIT, openGiftPicker, sendGift, throwGift, closeGiftPicker,
+  RABBIT_EMOTES, rabbitSVG, playRabbitEmote, openPicker, pickRabbit,
 };
