@@ -705,6 +705,31 @@
   z-index: 3;
   text-shadow: 0 2px 3px rgba(0, 0, 0, .75);
 }
+
+/* ===========================================================================
+   The name pill.
+
+   The seat banners are already the red pill of the reference: a rounded gradient
+   plate with a white rim, a number badge and the player's name. What they were
+   missing is a shell that reads as crisp at this size and lettering that holds up
+   against its own gradient, so this sharpens the rim and lights the top edge.
+
+   The pill's COLOUR is deliberately not touched. It comes from --bnr, a per-seat
+   variable, and that is the one thing on the plate that tells four seats apart at
+   a glance: a single hardcoded red — which is what the brief asked for — would
+   throw it away and make every player look like the same player.
+   =========================================================================== */
+.pcard .nbanner {
+  border-color: #fff;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, .45), inset 0 2px 4px rgba(255, 255, 255, .35);
+}
+.pcard .nbanner .nbadge {
+  border-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+}
+.pcard .nbanner .nname {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, .6);
+}
 </style>
 </head>
 <body>
