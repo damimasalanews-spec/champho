@@ -580,7 +580,10 @@
       el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch();},true);
     }
   });
-  document.querySelectorAll('[data-home-hit="classic"]').forEach(function(el){
+  // Classic Mode and Go Wild both open the card table, and both hotspots over the
+  // home artwork are wired here. The Go Wild hotspot had no handler at all, so the
+  // wild card drawn on the artwork was dead while the mode card below it worked.
+  document.querySelectorAll('[data-home-hit="classic"],[data-home-hit="wild"]').forEach(function(el){
     el.addEventListener('pointerup',function(e){e.preventDefault();e.stopPropagation();launch();},true);
     el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch();},true);
   });
