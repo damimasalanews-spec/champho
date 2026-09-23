@@ -548,7 +548,13 @@ export async function applyRoundAction(input: RoundActionInput): Promise<RoundOu
     const finished = outcome.state.finished;
     const result = settle(played, played.seats.length);
     const terminal = finished ? "round_won" : null;
-    const nextTurnNumber = input.turnNumber + 1;
+
+    // Saying UNO and catching a missed call are remarks on the turn, not turns of
+    // their own. Advancing on a call would hand whoever pressed the button a fresh
+    // minute and a phantom turn number — which is both wrong and, since the clock
+    // is a limit, worth exploiting.
+    const movesOn = input.kind === "play" || input.kind === "draw" || input.kind === "pass";
+    const nextTurnNumber = movesOn ? input.turnNumber + 1 : input.turnNumber;
     // A won round leaves no clock running: its deadline becomes the moment the
     // reveal is over and the next deal is due. The sweeper reads exactly that to
     // carry the table from one round to the next, so a settled round must not be
@@ -583,14 +589,18 @@ export async function applyRoundAction(input: RoundActionInput): Promise<RoundOu
       );
     }
 
-    await setActiveSeat(client, input.roomId, finished ? null : write.active_player_id);
-    await writeTurnClock(client, input.roomId, {
-      turnNumber: nextTurnNumber,
-      activePlayerId: finished ? null : write.active_player_id,
-      now,
-      phase: finished ? "round_end" : "playing",
-      deadlineAt: deadline
-    });
+    // A call leaves the seat and the clock exactly as they were, so there is
+    // nothing to write back for one: the turn it remarks on is still running.
+    if (movesOn) {
+      await setActiveSeat(client, input.roomId, finished ? null : write.active_player_id);
+      await writeTurnClock(client, input.roomId, {
+        turnNumber: nextTurnNumber,
+        activePlayerId: finished ? null : write.active_player_id,
+        now,
+        phase: finished ? "round_end" : "playing",
+        deadlineAt: deadline
+      });
+    }
 
     await recordAction(client, {
       roomId: input.roomId,
@@ -630,7 +640,10 @@ export async function applyRoundAction(input: RoundActionInput): Promise<RoundOu
         roundNumber,
         turnNumber: nextTurnNumber,
         phase: finished ? "round_end" : "playing",
-        deadlineAt: finished ? null : deadline,
+        // On a won round this is the end of the reveal, which is when the next
+        // round is due — the client counts down to the deal, not to a turn. A
+        // call keeps the deadline the turn already had.
+        deadlineAt: movesOn ? deadline : (room.turn_deadline_at ? new Date(room.turn_deadline_at) : null),
         seats: seatMetaOf(seats),
         coins
       }),
@@ -840,10 +853,9 @@ export async function readRoundView(roomId: string, playerId: string): Promise<R
     roundNumber: Number(row.round_number),
     turnNumber: Number(row.turn_number),
     phase: row.phase,
-    // A settled round has no clock: its deadline belongs to the reveal pause,
-    // which the client is not counting down.
-    deadlineAt:
-      row.phase === "round_end" || !row.turn_deadline_at ? null : new Date(row.turn_deadline_at),
+    // While the table plays this is the turn's deadline; on a settled round it is
+    // the end of the reveal. `phase` is what tells the client which it is.
+    deadlineAt: row.turn_deadline_at ? new Date(row.turn_deadline_at) : null,
     seats: seatMetaOf(seats.rows),
     coins: await walletBalances(pool, seats.rows)
   });
@@ -922,7 +934,7 @@ export async function playBotTurn(roomId: string, turnNumber: number): Promise<R
 
   const plan = planCardTurn(round, seat);
 
-  return await applyRoundAction({
+  const played = await applyRoundAction({
     roomId,
     turnNumber,
     actionId: `bot:${turnNumber}:${bot.playerId}`,
@@ -931,4 +943,36 @@ export async function playBotTurn(roomId: string, turnNumber: number): Promise<R
     cardId: plan.cardId,
     color: plan.color
   });
+  if (!played.ok || plan.kind !== "play") return played;
+
+  // Down to one card, a seat must say UNO — a bot included, or every bot would be
+  // free to catch for the two-card penalty. What the hand looks like *after* the
+  // throw is read back rather than predicted: a Discard All takes several cards at
+  // once and how many is the rules module's to know.
+  const after = await pool.query<{ left: number; said: unknown }>(
+    `SELECT jsonb_array_length(p.private_hand) AS left, r.uno_said AS said
+       FROM public.room_players p
+       JOIN public.game_rooms r ON r.id = p.room_id
+      WHERE p.room_id=$1 AND p.player_id=$2`,
+    [roomId, bot.playerId]
+  );
+  const row = after.rows[0];
+  const said = Array.isArray(row?.said) && row.said[seat] === true;
+  if (!row || Number(row.left) !== 1 || said) return played;
+
+  const declared = await applyRoundAction({
+    roomId,
+    // A call remarks on the turn it belongs to, so it is recorded against the
+    // turn the throw has already moved the table to.
+    turnNumber: played.turnNumber,
+    actionId: `botuno:${turnNumber}:${bot.playerId}`,
+    kind: "uno",
+    playerId: bot.playerId
+  });
+
+  return {
+    ...played,
+    views: declared.views.length > 0 ? declared.views : played.views,
+    events: played.events.concat(declared.events)
+  };
 }

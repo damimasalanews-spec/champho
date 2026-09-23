@@ -516,7 +516,17 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     // The deal happens here rather than at join, and each seat is sent its own
     // view: a view holds that seat's hand, so it cannot be broadcast.
     const started = await startCardRound(roomId);
-    if (!started.ok) return;
+    if (!started.ok) {
+      // The table is seated but cannot play — a seat that cannot cover the stake,
+      // or a missing one. Say so, or four clients sit on "starting…" forever.
+      broadcast(roomId, {
+        type: "round_refused",
+        roomId,
+        reason: started.code,
+        serverTime: new Date().toISOString()
+      });
+      return;
+    }
     await publishRoundOutcome(roomId, started);
   };
 
