@@ -60,3 +60,34 @@ function playCardSlamSound() {
   // A secondary micro-thud 30ms later for real physical texture
   note(220, 0.06, 'sine', 0.08, 0.03, 80);
 }
+
+/* --- Action Card Special Effects --- */
+
+// A futuristic, ascending 3-note arpeggio that alerts everyone a color choice is happening
+function playWildCardSound() {
+  if (soundMuted) return;
+  // Three quick, snappy sine notes climbing up in pitch
+  note(400, 0.08, 'sine', 0.06, 0.00, 600);
+  note(600, 0.08, 'sine', 0.06, 0.06, 800);
+  note(800, 0.15, 'sine', 0.06, 0.12, 1200);
+}
+
+// A sharp, technical "de-acceleration" tone indicating a turn was blocked
+function playSkipCardSound() {
+  if (soundMuted) return;
+  // A triangle wave sliding downwards rapidly, followed by a blunt stop
+  note(600, 0.14, 'triangle', 0.08, 0, 150);
+  // Add a small metallic friction noise overlaid right on top
+  whoosh(0.10, 0.02, 0, 900);
+}
+
+// A chaotic, multi-layered rhythmic whoosh-cascade for forced draws (e.g., Draw 2 / Draw 4)
+function playDrawCardSound() {
+  if (soundMuted) return;
+  // Staggered ruffles mimicking multiple cards dealing off the top of the deck rapidly
+  whoosh(0.08, 0.04, 0.00, 1600);
+  whoosh(0.08, 0.04, 0.05, 1400);
+  whoosh(0.08, 0.04, 0.10, 1200);
+  // A foundational low-end reminder that you just took damage
+  note(180, 0.20, 'sine', 0.05, 0.00, 100);
+}

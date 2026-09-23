@@ -1548,6 +1548,25 @@
     setTimeout(() => label.remove(), 1000);
   }
 
+  /**
+   * The sound a thrown card makes when it lands.
+   *
+   * A wild announces that a colour is coming; a skip announces a block; everything
+   * else — numbers, reverse, the +2s — is the plain tabletop impact. The two special
+   * ones are looked up on window because they live in game/sound.js, which this page
+   * is built to survive without.
+   */
+  function soundForThrow(card) {
+    const kind = card ? card.kind : null;
+    const name =
+      kind === "wild" || kind === "wild4" ? "playWildCardSound" :
+      kind === "skip" ? "playSkipCardSound" :
+      "playCardSlamSound";
+    try {
+      if (typeof window[name] === "function") window[name]();
+    } catch { /* no sound */ }
+  }
+
   function onView(view) {
     const before = state.view;
     // the hand and deck as they were drawn, so a flight knows where to start
@@ -1600,8 +1619,6 @@
             playedCard.kind === "wild" || playedCard.kind === "wild4" ? 12 : -4
           );
         }
-        sfx.note(392, 0.09, "triangle", 0.05);
-
         // and the pile takes the weight of it: held for exactly as long as the
         // keyframe runs (0.12s in game/styles.css), so the next throw can retrigger
         // it cleanly rather than being swallowed by a class that is still on
@@ -1610,10 +1627,10 @@
           box.classList.add("impact");
           setTimeout(() => box.classList.remove("impact"), 120);
         }
-        // the tabletop impact, at the moment the card is on it
-        try {
-          if (typeof playCardSlamSound === "function") playCardSlamSound();
-        } catch { /* no sound */ }
+        // the landing sound for whichever card it was — this also replaces the plain
+        // 392Hz note that used to play here, so a landing is one sound, not a tone
+        // buried under the slam
+        soundForThrow(playedCard);
       }
 
       const oldHandIds = new Set(before.you.hand.map((card) => card.cardId));
@@ -1644,6 +1661,14 @@
       }
       case "card_drawn":
         if (payload.seat !== mine) addChat(nameOfSeat(payload.seat), "drew a card");
+        // A draw of more than one card is a penalty: the +2, the +4, and being caught
+        // holding one card without saying UNO all arrive here with count 2 or 4. A
+        // voluntary single draw keeps the light whoosh it already had.
+        if ((payload.count || 1) > 1) {
+          try {
+            if (typeof playDrawCardSound === "function") playDrawCardSound();
+          } catch { /* no sound */ }
+        }
         break;
       case "uno_called": addChat(nameOfSeat(payload.seat), "called UNO"); break;
       case "uno_caught": addChat(nameOfSeat(payload.seat), "was caught — two cards"); break;
