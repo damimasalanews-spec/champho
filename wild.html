@@ -6,20 +6,16 @@
 <title>Champ Word Go Wild</title>
 <style>
 /* ===========================================================================
-   CHAMP WORD — GO WILD client
+   CHAMP WORD — Go Wild client
+
+   This is the Classic page. Same stage, same header, same seats, same chat and
+   reactions in the same corners, same hand along the same baseline — a player
+   who knows Classic already knows this screen. The only thing that differs is
+   the game in the middle: letters thrown onto the board instead of a drawing,
+   action cards instead of a word to spell.
 
    Go Wild is the letter-card table: seven letters a seat, one real word in
-   every hand, and the UNO action cards on top. Classic mode is a different
-   game on a different page and is deliberately left alone.
-   One logical stage of exactly 1600x900, scaled uniformly by a single
-   transform. Nothing inside sizes itself from the viewport, so the artwork can
-   never stretch and the layout can never drift out of proportion.
-
-   The table is laid out the way UNO lays out a table, because that is what a
-   player already knows: the deck to the left of the board, the pile in the
-   middle with the direction of play drawn around it, everyone's hand fanned in
-   front of them, the clock at the top-left, and one cluster in the bottom-right
-   holding the colour picker and CALL UNO.
+   every hand, and the UNO action cards on top.
    =========================================================================== */
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
@@ -42,67 +38,44 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   background:linear-gradient(180deg,rgba(4,17,28,.20),transparent 34%,rgba(2,10,18,.30))}
 #tableScene{z-index:2;pointer-events:none}
 
-/* --- the clock, top-left, the way UNO puts it there ----------------------- */
-.clock{position:absolute;z-index:30;left:26px;top:16px;width:98px;height:98px;
-  border-radius:50%;display:grid;place-items:center;align-content:center;
-  background:radial-gradient(circle at 50% 32%,#0e5a80,#062b41 72%);
-  border:3px solid rgba(139,233,255,.75);box-shadow:0 8px 22px rgba(0,0,0,.5)}
-.clock .face{font-size:26px;line-height:1}
-.clock .left{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums}
-.clock.urgent{border-color:#ff6b6b;background:radial-gradient(circle at 50% 32%,#7d1c1c,#3d0c0c 72%)}
-.clock.urgent .left{color:#ffd9d9}
-.clock.done .face{font-size:20px}
-
 /* --- header --------------------------------------------------------------- */
-.header{position:absolute;z-index:30;left:146px;right:32px;top:24px;height:56px;
+.header{position:absolute;z-index:30;left:32px;right:32px;top:16px;height:60px;
   display:flex;align-items:center;justify-content:space-between}
-.brand{font-size:34px;font-weight:900;font-style:italic;text-shadow:0 3px 0 #000}
-.mode{margin-left:12px;padding:6px 16px;border-radius:18px;font-weight:900;
+.brand{font-size:36px;font-weight:900;font-style:italic;text-shadow:0 3px 0 #000}
+.mode{margin-left:12px;padding:7px 18px;border-radius:18px;font-weight:900;
   background:rgba(3,34,53,.82);border:1px solid rgba(99,220,255,.6)}
 .headRight{display:flex;gap:10px;align-items:center}
 .pill{padding:9px 18px;border-radius:22px;font-weight:900;white-space:nowrap;
   background:rgba(3,34,53,.82);border:1px solid rgba(99,220,255,.6)}
 .pill.coins{border-color:#ffd85b;color:#ffe89b}
 
-/* --- status line ---------------------------------------------------------- */
-/* It lives inside the header rather than in a band of its own: the row of the
-   table just below is where the far seat sits, and a full-width line there
-   crosses that seat. */
-.status{flex:1;min-width:0;padding:0 18px;text-align:center;overflow:hidden;
-  white-space:nowrap;text-overflow:ellipsis;
-  font-size:14px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
-.status.bad{color:#ff9c9c}
-
-/* --- seats: identity, a face-down fan, and a catch button ----------------- */
+/* --- opponents: compact identity, no big bordered panels ------------------ */
 .players{position:absolute;inset:0;z-index:15;pointer-events:none}
 .seat{position:absolute;display:flex;align-items:center;gap:12px;text-shadow:0 2px 6px #000}
-.seat[data-where="left"]{left:34px;top:300px}
-/* Anchored to the right edge, not to a left offset: the seat is a fan plus a
-   panel, and only the edge tells it where to stop. */
-.seat[data-where="right"]{right:34px;top:300px;flex-direction:row-reverse;text-align:right}
-.seat[data-where="top"]{left:600px;top:74px}
-/* Clear of the reaction row and the chat below it: the bottom-left column is
-   avatar, then reactions, then chat, each with room to breathe. */
-.seat[data-where="bottom"]{left:44px;top:458px;flex-direction:column;text-align:center;gap:8px}
-.avatar{width:84px;height:84px;flex:0 0 84px;border-radius:50%;padding:4px;
+.seat[data-where="left"]{left:36px;top:250px}
+/* Anchored to the right edge: a seat is a fan plus a panel, and only the edge
+   tells it where to stop. */
+.seat[data-where="right"]{right:36px;top:250px;flex-direction:row-reverse;text-align:right}
+.seat[data-where="top"]{left:600px;top:88px}
+/* Seated at the near-left edge of the table, clear of the board. */
+.seat[data-where="bottom"]{left:150px;top:572px;flex-direction:column;text-align:center;gap:8px}
+.seat[data-where="bottom"] .meta{min-width:190px}
+.avatar>img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.avatar{width:88px;height:88px;flex:0 0 88px;border-radius:50%;padding:4px;
   background:conic-gradient(#ffe44d,#25d9ff,#ffdc3d,#25d9ff,#ffe44d);
   box-shadow:0 0 0 4px rgba(3,31,47,.9),0 0 20px rgba(53,220,255,.5)}
-.avatar>img{width:100%;height:100%;border-radius:50%;object-fit:cover}
 .avatar>span{display:grid;place-items:center;width:100%;height:100%;border-radius:50%;
-  background:#0b78ad;font-size:32px}
+  background:#0b78ad;font-size:34px}
 .seat.is-active .avatar{box-shadow:0 0 0 5px #ffe44d,0 0 26px 6px rgba(255,228,77,.75)}
 .seat.is-out{opacity:.45;filter:grayscale(.6)}
-.meta{min-width:142px;padding:7px 13px;border-radius:13px;position:relative;
+.meta{min-width:150px;padding:7px 13px;border-radius:13px;position:relative;
   background:rgba(3,39,60,.86);border:1px solid rgba(74,213,255,.7)}
-.name{font-size:18px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.score{margin-top:2px;color:#ffd85b;font-size:14px;font-weight:900}
-.thinking{color:#8be9ff;font-size:12px;font-weight:800;min-height:14px}
-/* the seat's own turn: a ring on the meta panel reads better than a colour */
 .seat.is-active .meta{border-color:#ffe44d;box-shadow:0 0 16px rgba(255,228,77,.45)}
-.unoBadge{position:absolute;right:-10px;top:-12px;padding:3px 9px;border-radius:10px;
-  font-size:11px;font-weight:900;background:#e0473c;border:2px solid #fff;
-  box-shadow:0 3px 8px rgba(0,0,0,.5)}
-/* a face-down fan: how many cards the seat is holding, never which */
+.name{font-size:19px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.score{margin-top:3px;color:#ffd85b;font-size:15px;font-weight:900}
+.thinking{color:#8be9ff;font-size:13px;font-weight:800;min-height:15px}
+/* How many cards a seat is holding, never which: a face-down fan, as in the
+   hand that seat is hiding. */
 .fan{display:flex;align-items:center;min-width:96px;padding-left:12px}
 .miniCard{width:32px;height:46px;flex:0 0 32px;margin-left:-20px;border-radius:5px;
   border:1.5px solid rgba(255,255,255,.85);position:relative;overflow:hidden;
@@ -119,25 +92,36 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .catch.on{display:grid;place-items:center;animation:pulse 1s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(1.14)}}
 
-/* --- the board is the play surface --------------------------------------- */
+/* --- the board is the play surface ---------------------------------------- */
 /* The stage geometry is measured from classic-bg/classic-table-scene.webp:
    the surface painted on the table is a trapezoid (perspective) whose corners
    land at stage (532.6,466.4) (1080.8,466.4) (1144.2,705.7) (454.8,705.7).
    Cards thrown onto the board live inside it, so they read as lying on the
    table's board with the wooden border of the artwork still visible around
-   them. The board takes no pointer input: a card can only arrive from a hand. */
+   them. The board takes no pointer input: a card only ever arrives from a hand. */
 .boardWrap{position:absolute;z-index:20;left:455px;top:466px;width:689px;height:239px}
-/* The direction of play, drawn around the pile exactly as UNO draws it. */
-.dirArrow{position:absolute;inset:-46px -32px;z-index:0;opacity:.9}
+/* The direction of play, drawn around the pile as UNO draws it. */
+.dirArrow{position:absolute;inset:-46px -32px;z-index:0}
 .dirArrow.flip{transform:scaleX(-1)}
 .boardPile{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   clip-path:polygon(11.3% 0%,90.8% 0%,100% 100%,0% 100%)}
-.boardEmpty{font-size:15px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
-.boardTools{position:absolute;z-index:22;left:455px;top:430px;width:689px;
+.boardHint{position:absolute;left:0;right:0;top:100%;margin-top:8px;text-align:center;
+  font-size:14px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
+.boardTools{position:absolute;z-index:21;left:455px;top:424px;width:689px;
   display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tool{border-radius:10px;border:1px solid rgba(99,220,255,.6);cursor:pointer;color:#fff;
+  background:rgba(3,34,53,.85);font-family:inherit;font-weight:900;font-size:13px;
+  padding:7px 14px;pointer-events:auto}
+.tool:disabled{opacity:.42;cursor:not-allowed}
+.tool.mine{outline:2px solid #ffe44d}
 .tag{font-weight:900;font-size:13px;padding:5px 12px;border-radius:10px;display:flex;
-  gap:7px;align-items:center;background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
+  gap:7px;align-items:center;pointer-events:none;
+  background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
 .swatchDot{width:14px;height:14px;border-radius:4px;border:1.5px solid rgba(255,255,255,.85)}
+.timer{font-variant-numeric:tabular-nums;font-weight:900;font-size:16px;padding:5px 12px;
+  margin-left:auto;border-radius:10px;background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
+.timer.urgent{background:rgba(120,20,20,.9);border-color:#ff6b6b;color:#ffd9d9}
+.timer.done{background:rgba(3,34,53,.85);border-color:#ffe44d;color:#ffe44d}
 /* a card resting on the board */
 .boardCard{position:absolute;width:104px;height:146px;border-radius:12px;
   display:grid;place-items:center;font-weight:900;color:#fff;font-size:50px;
@@ -155,9 +139,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .wordCard .idx{font-size:11px;letter-spacing:2px;color:#7a5a10}
 @keyframes deal{from{transform:translateY(-190px) rotate(-14deg) scale(1.35);opacity:0}
   to{transform:none;opacity:1}}
-
-/* --- the deck, exactly where UNO keeps it: left of the board -------------- */
-.deck{position:absolute;z-index:22;left:288px;top:486px;width:104px;height:146px;
+/* the deck, left of the board, as a deck is */
+.deck{position:absolute;z-index:22;left:296px;top:408px;width:104px;height:146px;
   cursor:pointer;background:none;border:0;padding:0;font-family:inherit}
 .deck .back{position:absolute;inset:0;border-radius:12px;
   border:3px solid rgba(255,255,255,.9);background:linear-gradient(160deg,#12405e,#08202f);
@@ -166,51 +149,72 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   border-radius:50%;border:3px solid rgba(139,233,255,.5);transform:rotate(-20deg)}
 .deck .back2{transform:translate(-9px,-9px);opacity:.75}
 .deck .back3{transform:translate(-18px,-18px);opacity:.5}
-.deck .count{position:absolute;left:0;right:0;bottom:-34px;text-align:center;
-  font-size:13px;font-weight:900;color:#cdefff;text-shadow:0 2px 6px #000}
 .deck:disabled{cursor:default;filter:grayscale(.5) brightness(.75)}
 .deck.mine .back{box-shadow:0 0 0 4px #ffe44d,0 10px 22px rgba(0,0,0,.5)}
 
-/* --- the local hand, fanned the way a hand is held ------------------------ */
-.bottom{position:absolute;z-index:25;left:0;right:0;bottom:0;height:200px}
-.hand{position:absolute;left:566px;bottom:52px;display:flex;align-items:flex-end}
-.handEmpty{position:absolute;left:360px;bottom:96px;width:860px;text-align:center;
-  font-size:15px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
+/* --- reveal banner -------------------------------------------------------- */
+.banner{position:absolute;z-index:23;left:455px;top:414px;width:689px;height:0}
+.reveal{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);
+  padding:9px 22px;border-radius:14px;font-weight:900;font-size:19px;white-space:nowrap;
+  background:rgba(3,34,53,.92);border:2px solid #ffe44d;box-shadow:0 8px 22px rgba(0,0,0,.45)}
+.reveal .blanks{letter-spacing:7px;color:#8be9ff}
+.reveal.won{border-color:#8bf0b0}
+
+/* --- the local hand: fanned, as a hand is held ---------------------------- */
+.bottom{position:absolute;z-index:25;left:0;right:0;bottom:0;height:180px}
+/* Right of the local seat and above the word line: a fan leans wider than the
+   box it sits in, so the box is placed where the lean lands clear. */
+.hand{position:absolute;left:350px;bottom:88px;display:flex;align-items:flex-end}
 /* The fan is composed in CSS from two variables the deal sets, so a hover can
    still lift a card: an inline transform would beat the :hover rule outright. */
-.card{width:84px;height:118px;flex:0 0 84px;border-radius:11px;cursor:pointer;
-  user-select:none;font-family:inherit;font-weight:900;color:#fff;position:relative;
-  border:3px solid rgba(255,255,255,.92);box-shadow:0 6px 0 rgba(0,0,0,.35);
+.letter{width:74px;height:104px;flex:0 0 74px;border-radius:10px;cursor:pointer;user-select:none;
+  font-family:inherit;font-size:38px;font-weight:900;color:#fff;position:relative;
+  border:2px solid rgba(255,255,255,.92);box-shadow:0 5px 0 rgba(0,0,0,.35);
   display:grid;place-items:center;text-shadow:0 2px 5px rgba(0,0,0,.45);
-  transition:transform .1s,box-shadow .1s;transform-origin:50% 140%;
+  transition:transform .09s,box-shadow .09s;transform-origin:50% 140%;
   transform:rotate(var(--rot,0deg)) translateY(var(--dy,0px))}
-.card:not(:first-child){margin-left:-22px}
-.card .glyph{font-size:44px;line-height:1}
-.card .label{position:absolute;left:0;right:0;bottom:7px;font-size:11px;letter-spacing:1px}
-.card .corner{position:absolute;left:8px;top:6px;font-size:15px}
-.card:hover:not(:disabled),.card.picked{transform:rotate(0deg) translateY(-18px) scale(1.06)}
-.card.playable{box-shadow:0 0 0 3px #ffe44d,0 6px 0 rgba(0,0,0,.35)}
-.card.drawn{box-shadow:0 0 0 3px #8be9ff,0 6px 0 rgba(0,0,0,.35)}
-.card.picked{box-shadow:0 0 0 4px #ffe44d,0 6px 0 rgba(0,0,0,.35)}
+.letter:not(:first-child){margin-left:-20px}
+.letter .glyph{font-size:38px;line-height:1}
+.letter .label{position:absolute;left:0;right:0;bottom:7px;font-size:11px;letter-spacing:1px}
+.letter .corner{position:absolute;left:7px;top:5px;font-size:14px}
+.letter:hover:not(:disabled),.letter.picked{transform:rotate(0deg) translateY(-16px) scale(1.06)}
+.letter.playable{box-shadow:0 0 0 3px #ffe44d,0 5px 0 rgba(0,0,0,.35)}
+.letter.drawn{box-shadow:0 0 0 3px #8be9ff,0 5px 0 rgba(0,0,0,.35)}
+.letter.picked{box-shadow:0 0 0 4px #ffe44d,0 5px 0 rgba(0,0,0,.35)}
 /* Still legible: a seat reads its own hand to plan the next turn, so a card it
    cannot throw right now is dimmed, not hidden. */
-.card:disabled{cursor:default;opacity:.62}
+.letter:disabled{cursor:default;opacity:.62}
 .card-red{background:linear-gradient(180deg,#e0473c,#a8231a)}
 .card-blue{background:linear-gradient(180deg,#2f6fe0,#1a4699)}
 .card-green{background:linear-gradient(180deg,#31a35a,#1c6b39)}
 .card-yellow{background:linear-gradient(180deg,#e8b52c,#a97f10)}
 .card-wild{background:linear-gradient(135deg,#e0473c,#e8b52c 34%,#31a35a 66%,#2f6fe0)}
+.handEmpty{position:absolute;left:313px;bottom:96px;width:974px;text-align:center;
+  font-size:15px;font-weight:800;color:#cdefff}
+.wordPreview{position:absolute;left:0;right:0;bottom:26px;text-align:center;
+  font-size:24px;font-weight:900;letter-spacing:5px;min-height:30px;color:#ffe44d;
+  text-shadow:0 3px 8px #000}
 
-/* --- the controls cluster: colour picker and CALL UNO in one place -------- */
-.controls{position:absolute;z-index:28;right:30px;bottom:24px;width:344px;
-  display:flex;flex-direction:column;align-items:center;gap:14px}
-.picker{width:100%;padding:11px;border-radius:16px;display:grid;gap:9px;
-  grid-template-columns:repeat(4,1fr);
-  background:rgba(3,31,47,.86);border:1px solid rgba(74,213,255,.55)}
+/* --- the action column: colour picker and CALL UNO in one place ----------- */
+/* They belong together: a wild opens the picker, and going down to one card is
+   when the call is owed. */
+/* Lower than Classic's action column: the picker makes this stack taller, and
+   it has to clear the chat panel that ends above it. */
+.actions{position:absolute;right:32px;bottom:24px;width:246px;display:flex;flex-direction:column;gap:10px}
+.action{font-family:inherit;font-size:17px;font-weight:900;padding:14px 0;border-radius:14px;
+  cursor:pointer;color:#fff;background:rgba(3,34,53,.9);border:2px solid rgba(99,220,255,.65);
+  box-shadow:0 5px 0 rgba(0,0,0,.35)}
+.action:disabled{opacity:.45;cursor:not-allowed}
+.action.uno{background:radial-gradient(circle at 50% 34%,#ff6f6f,#c11c1c 68%,#8b0f0f);
+  border-color:#fff;font-style:italic;letter-spacing:1px}
+.action.uno.ready{animation:pulse 1.1s ease-in-out infinite}
+.picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+  padding:10px;border-radius:14px;background:rgba(3,31,47,.86);
+  border:1px solid rgba(74,213,255,.55)}
 .picker.hidden{display:none}
-.picker .cap{grid-column:1/-1;text-align:center;font-size:12px;font-weight:900;
-  letter-spacing:1px;color:#8be9ff;min-height:14px}
-.swatch{height:66px;border-radius:12px;cursor:pointer;border:3px solid rgba(255,255,255,.85);
+.picker .cap{grid-column:1/-1;text-align:center;font-size:11px;font-weight:900;
+  letter-spacing:1px;color:#8be9ff;min-height:13px}
+.swatch{height:54px;border-radius:10px;cursor:pointer;border:2px solid rgba(255,255,255,.85);
   box-shadow:0 4px 0 rgba(0,0,0,.35);font-size:10px;font-weight:900;color:#fff;
   text-shadow:0 2px 4px rgba(0,0,0,.6);font-family:inherit}
 .swatch:disabled{opacity:.62;cursor:not-allowed}
@@ -218,63 +222,57 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .swatch-blue{background:linear-gradient(180deg,#2f6fe0,#1a4699)}
 .swatch-green{background:linear-gradient(180deg,#31a35a,#1c6b39)}
 .swatch-yellow{background:linear-gradient(180deg,#e8b52c,#a97f10)}
-.unoBtn{width:168px;height:168px;border-radius:50%;cursor:pointer;font-family:inherit;
-  font-size:25px;font-weight:900;font-style:italic;line-height:1.05;color:#fff;
-  letter-spacing:1px;text-shadow:0 3px 0 rgba(0,0,0,.5);
-  background:radial-gradient(circle at 50% 34%,#ff6f6f,#c11c1c 68%,#8b0f0f);
-  border:7px solid #fff;box-shadow:0 12px 28px rgba(0,0,0,.55),0 0 0 4px rgba(255,255,255,.25)}
-.unoBtn:disabled{filter:grayscale(.4) brightness(.82);cursor:not-allowed;box-shadow:0 8px 18px rgba(0,0,0,.5)}
-.unoBtn.ready{animation:pulse 1.1s ease-in-out infinite}
-/* Alongside the deck, which is the move it belongs to: a seat passes after it has
-   drawn. Under the deck is the chat, and z-index 23 is what keeps it in front of
-   the table art (#tableScene sits at 2 and would otherwise paint over it). */
-.pass{position:absolute;z-index:23;left:196px;top:502px;width:88px;padding:13px 0;border-radius:12px;
-  font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;color:#fff;
-  background:rgba(3,34,53,.92);border:2px solid rgba(99,220,255,.7);box-shadow:0 5px 0 rgba(0,0,0,.35)}
-.pass:disabled{opacity:.4;cursor:not-allowed}
-.pass.hidden{display:none}
 
 /* --- the result: the word, the table, and what it paid -------------------- */
-.result{position:absolute;z-index:29;left:492px;top:168px;width:616px;padding:14px 18px 14px;
+/* Sized to fit between the far seat above it and the board's tool row below:
+   the reveal is a panel, and a panel that covers the cards is not a reveal. */
+.result{position:absolute;z-index:29;left:492px;top:178px;width:616px;padding:10px 16px;
   border-radius:18px;display:none;background:rgba(3,26,42,.94);
   border:2px solid #ffe44d;box-shadow:0 18px 44px rgba(0,0,0,.6)}
 .result.on{display:block;animation:rise .3s ease-out}
 @keyframes rise{from{transform:translateY(22px);opacity:0}to{transform:none;opacity:1}}
-.result h2{margin:0 0 2px;font-size:22px;font-style:italic;letter-spacing:1px;color:#ffe44d}
-.result .sub{margin:0 0 12px;font-size:13px;font-weight:800;color:#9fc4d8}
+.result h2{margin:0 0 2px;font-size:20px;font-style:italic;letter-spacing:1px;color:#ffe44d}
+.result .sub{margin:0 0 7px;font-size:13px;font-weight:800;color:#9fc4d8}
 .result .sub b{color:#fff}
-.board-out{display:grid;grid-template-columns:2.2fr 1fr 1fr;gap:6px;margin-bottom:11px}
+.board-out{display:grid;grid-template-columns:2.2fr 1fr 1fr;gap:5px;margin-bottom:8px}
 .board-out .cell{display:flex;justify-content:flex-end;gap:6px;font-size:12px;
-  font-weight:800;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.06)}
+  font-weight:800;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.06)}
 .board-out .cell.win{background:rgba(255,228,77,.18);color:#ffe89b}
 .board-out .head{font-size:11px;letter-spacing:1px;color:#8be9ff;font-weight:900}
 .result .foot{display:flex;justify-content:space-between;align-items:center;font-size:13px;
   font-weight:900;color:#9fc4d8}
 .result .foot .next{color:#ffe44d}
 
-/* --- chat and reactions, bottom-left ------------------------------------- */
-.reactRow{position:absolute;z-index:26;left:24px;bottom:226px;display:flex;gap:8px}
-.react{width:56px;height:44px;font-size:21px;border-radius:11px;cursor:pointer;
-  background:rgba(3,31,47,.86);border:1px solid rgba(74,213,255,.55)}
-.react:hover{background:rgba(11,120,173,.9)}
-.chat{position:absolute;z-index:26;left:24px;bottom:20px;width:336px;height:196px;
+/* --- chat (right) and reactions (left): small, out of the way ------------- */
+.chat{position:absolute;z-index:26;left:1292px;top:396px;width:276px;height:304px;
   display:flex;flex-direction:column;border-radius:14px;
   background:rgba(3,25,39,.92);border:1px solid rgba(74,213,255,.55);overflow:hidden;
   backdrop-filter:blur(4px)}
-.chat h3{margin:0;padding:8px 12px;font-size:12px;letter-spacing:1px;
+.chat h3{margin:0;padding:9px 13px;font-size:13px;letter-spacing:1px;
   background:rgba(0,0,0,.28);display:flex;justify-content:space-between}
-.msgs{flex:1;overflow:hidden;padding:7px 11px;font-size:12px;line-height:1.45}
+.msgs{flex:1;overflow:hidden;padding:8px 12px;font-size:13px;line-height:1.5}
 .msg{word-break:break-word}
 .msg b{color:#8be9ff}
 .chatInput{display:flex;border-top:1px solid rgba(74,213,255,.35)}
 .chatInput input{flex:1;min-width:0;border:0;background:transparent;color:#fff;
-  padding:9px 11px;font-family:inherit;font-size:12px;outline:none}
+  padding:10px 12px;font-family:inherit;font-size:13px;outline:none}
 .chatInput button{border:0;background:#0b78ad;color:#fff;font-weight:900;
-  padding:0 14px;cursor:pointer}
+  padding:0 15px;cursor:pointer}
+
+.reactions{position:absolute;z-index:26;left:30px;top:400px;width:70px;
+  display:flex;flex-direction:column;gap:10px}
+.react{width:66px;height:52px;font-size:24px;border-radius:12px;cursor:pointer;
+  background:rgba(3,31,47,.86);border:1px solid rgba(74,213,255,.55)}
+.react:hover{background:rgba(11,120,173,.9)}
 /* floating reaction bubbles */
 .bubbleLayer{position:absolute;inset:0;z-index:27;pointer-events:none;overflow:hidden}
 .bubble{position:absolute;font-size:40px;animation:float 2.4s ease-out forwards}
 @keyframes float{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-90px)}}
+
+/* --- status line ---------------------------------------------------------- */
+.status{position:absolute;z-index:30;left:0;right:0;top:82px;text-align:center;
+  font-size:15px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
+.status.bad{color:#ff9c9c}
 
 /* --- portrait / too-narrow guard ----------------------------------------- */
 #rotate{position:fixed;inset:0;z-index:200;display:none;place-items:center;
@@ -292,28 +290,33 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   <img id="sceneBg" src="classic-bg/classic-scene-hd.webp" alt="">
   <img id="tableScene" src="classic-bg/classic-table-scene.webp" alt="">
 
-  <div class="clock" id="clock"><span class="face" id="clockFace">⏱</span><span class="left" id="clockLeft">--:--</span></div>
-
   <header class="header">
     <div><span class="brand">CHAMP WORD</span><span class="mode">GO WILD</span></div>
-    <div class="status" id="status">Connecting…</div>
     <div class="headRight">
       <span class="pill" id="turnPill">WAITING</span>
       <span class="pill" id="seatPill">SEAT —</span>
-      <span class="pill coins">🪙 <b id="myCoins">—</b></span>
+      <span class="pill coins">🪙 <b id="myScore">0</b></span>
     </div>
   </header>
 
+  <div class="status" id="status">Connecting…</div>
+
   <div class="players">
-    <div class="seat" data-where="left"  id="seat-left"><div class="avatar"><span>🙂</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 —</div><div class="thinking"></div></div><div class="fan"></div><button class="catch" type="button" title="Catch this seat before they call UNO">!</button></div>
-    <div class="seat" data-where="right" id="seat-right"><div class="avatar"><span>😎</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 —</div><div class="thinking"></div></div><div class="fan"></div><button class="catch" type="button" title="Catch this seat before they call UNO">!</button></div>
-    <div class="seat" data-where="top"   id="seat-top"><div class="avatar"><span>🧐</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 —</div><div class="thinking"></div></div><div class="fan"></div><button class="catch" type="button" title="Catch this seat before they call UNO">!</button></div>
-    <div class="seat" data-where="bottom" id="seat-me"><div class="avatar"><img id="meAvatar" alt="" hidden><span id="meAvatarFallback">🧑</span></div><div class="meta"><div class="name">You</div><div class="score">🪙 —</div><div class="thinking"></div></div></div>
+    <div class="seat" data-where="left"  id="seat-left">  <div class="avatar"><span>🙂</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div><div class="fan"></div><button class="catch" type="button" title="Catch this seat before it calls UNO">!</button></div>
+    <div class="seat" data-where="right" id="seat-right"> <div class="avatar"><span>😎</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div><div class="fan"></div><button class="catch" type="button" title="Catch this seat before it calls UNO">!</button></div>
+    <div class="seat" data-where="top"   id="seat-top">   <div class="avatar"><span>🧐</span></div><div class="meta"><div class="name">Waiting…</div><div class="score">🪙 0</div><div class="thinking"></div></div><div class="fan"></div><button class="catch" type="button" title="Catch this seat before it calls UNO">!</button></div>
+    <div class="seat" data-where="bottom" id="seat-me"><div class="avatar"><img id="meAvatar" alt="" hidden><span id="meAvatarFallback">🧑</span></div><div class="meta"><div class="name">You</div><div class="score">🪙 0</div><div class="thinking"></div></div></div>
   </div>
 
+  <div class="banner"><div class="reveal" id="reveal">Waiting for the first hand…</div></div>
+
   <div class="boardTools">
-    <div class="tag" id="boardCount">BOARD · 0 cards</div>
-    <div class="tag" id="namedTag" style="display:none"><span class="swatchDot" id="namedDot"></span><span id="namedText">—</span></div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <span class="tag" id="boardCount">BOARD · 0</span>
+      <span class="tag" id="namedTag" style="display:none"><span class="swatchDot" id="namedDot"></span><span id="namedText">—</span></span>
+    </div>
+    <button class="tool" id="passBtn" type="button" disabled>PASS</button>
+    <div class="timer" id="timer">--</div>
   </div>
 
   <div class="boardWrap" id="boardWrap">
@@ -321,10 +324,42 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       <path d="M30 132 C56 34, 344 34, 370 132" stroke="#8be9ff" stroke-opacity=".5" stroke-width="18" stroke-linecap="round"/>
       <path d="M370 132 l-36 -28 l40 -8 z" fill="#8be9ff" fill-opacity=".7"/>
     </svg>
-    <div class="boardPile" id="boardPile"><span class="boardEmpty">Throw a card onto the board</span></div>
+    <div class="boardPile" id="boardPile"></div>
+    <div class="boardHint" id="boardHint">Throw a card onto the board</div>
   </div>
 
-  <button class="pass hidden" id="passBtn" type="button" disabled>PASS</button>
+  <button class="deck" id="deck" type="button" title="Draw a card">
+    <span class="back back3"></span><span class="back back2"></span><span class="back"></span>
+  </button>
+
+  <div class="reactions">
+    <button class="react" data-emoji="😀">😀</button>
+    <button class="react" data-emoji="😂">😂</button>
+    <button class="react" data-emoji="😮">😮</button>
+    <button class="react" data-emoji="❤️">❤️</button>
+  </div>
+
+  <aside class="chat">
+    <h3><span>LIVE CHAT</span><span id="chatCount">· 0</span></h3>
+    <div class="msgs" id="msgs"></div>
+    <div class="chatInput"><input id="chatInput" placeholder="Type a message…" maxlength="200"><button id="send">➤</button></div>
+  </aside>
+
+  <div class="bottom">
+    <div class="hand" id="hand"></div>
+    <div class="handEmpty" id="handEmpty" style="display:none">Waiting for your cards…</div>
+    <div class="wordPreview" id="wordPreview"></div>
+    <div class="actions">
+      <div class="picker hidden" id="picker">
+        <div class="cap" id="pickerCap">COLOUR</div>
+        <button class="swatch swatch-red" type="button" data-color="red" disabled>RED</button>
+        <button class="swatch swatch-yellow" type="button" data-color="yellow" disabled>YELLOW</button>
+        <button class="swatch swatch-green" type="button" data-color="green" disabled>GREEN</button>
+        <button class="swatch swatch-blue" type="button" data-color="blue" disabled>BLUE</button>
+      </div>
+      <button class="action uno" id="unoBtn" type="button" disabled>CALL UNO</button>
+    </div>
+  </div>
 
   <div class="result" id="result">
     <h2 id="resultTitle">ROUND WON</h2>
@@ -334,46 +369,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   </div>
 
   <div class="bubbleLayer" id="bubbles"></div>
-
-  <div class="bottom">
-    <div class="hand" id="hand"></div>
-    <div class="handEmpty" id="handEmpty" style="display:none">Waiting for your cards…</div>
-  </div>
-
-  <button class="deck" id="deck" type="button" title="Draw a card">
-    <span class="back back3"></span><span class="back back2"></span><span class="back"></span>
-    <span class="count" id="deckCount">DRAW · —</span>
-  </button>
-
-  <div class="controls">
-    <div class="picker hidden" id="picker">
-      <div class="cap" id="pickerCap">COLOUR</div>
-      <button class="swatch swatch-red" type="button" data-color="red" disabled>RED</button>
-      <button class="swatch swatch-yellow" type="button" data-color="yellow" disabled>YELLOW</button>
-      <button class="swatch swatch-green" type="button" data-color="green" disabled>GREEN</button>
-      <button class="swatch swatch-blue" type="button" data-color="blue" disabled>BLUE</button>
-    </div>
-    <button class="unoBtn" id="unoBtn" type="button" disabled>CALL<br>UNO</button>
-  </div>
-
-  <div class="reactRow">
-    <button class="react" data-emoji="😀">😀</button>
-    <button class="react" data-emoji="😂">😂</button>
-    <button class="react" data-emoji="😮">😮</button>
-    <button class="react" data-emoji="❤️">❤️</button>
-  </div>
-
-  <aside class="chat">
-    <h3><span>TABLE CHAT</span><span id="chatCount">· 0</span></h3>
-    <div class="msgs" id="msgs"></div>
-    <div class="chatInput"><input id="chatInput" placeholder="Type a message…" maxlength="200"><button id="send">➤</button></div>
-  </aside>
 </div>
 
 <div id="rotate"><div class="box">
   <div class="ico">📱↻</div>
   <h2>Rotate your device</h2>
-  <p>CHAMP WORD Classic is played in landscape. Turn your device sideways to continue.</p>
+  <p>CHAMP WORD Go Wild is played in landscape. Turn your device sideways to continue.</p>
 </div></div>
 
 <script>
@@ -399,7 +400,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 
   const params = new URLSearchParams(location.search);
   const DEMO = params.get("demo");
-  // ?demo=1 a full hand · ?demo=uno a hand that owes a call · ?demo=win the reveal
+  // ?demo=1 a full hand · ?demo=uno a hand owing a call · ?demo=win the reveal
   const OFFLINE = DEMO === "1" || DEMO === "uno" || DEMO === "win";
 
   const state = {
@@ -411,7 +412,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     /** The room's public shape, for a table still filling up. */
     snapshot: null,
     deadline: null,
-    clockOffset: 0,   // serverNow - clientNow, so countdowns ignore skew
+    clockOffset: 0,
     seq: 0,
     /** The wild the player has picked but not yet thrown: it needs a colour. */
     pendingWild: null,
@@ -424,32 +425,27 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 
   /* --- small helpers ------------------------------------------------------ */
   const rid = () => "r" + Date.now() + "-" + (++state.seq);
-  function setStatus(text, bad) {
+  const setStatus = (text, bad) => {
     const el = $("status");
     el.textContent = text;
     el.classList.toggle("bad", !!bad);
-  }
+  };
   const serverNow = () => Date.now() + state.clockOffset;
   const send = (msg) => {
     if (ws && ws.readyState === 1) { ws.send(JSON.stringify(msg)); return true; }
     return false;
   };
   const withToken = (msg) => (state.sessionToken ? Object.assign({ sessionToken: state.sessionToken }, msg) : msg);
-  const me = () => (state.view ? state.view.you : null);
   const myTurn = () => !!state.view && state.view.phase === "playing" && state.view.activePlayerId === state.view.you.playerId;
   const nameOfSeat = (seat) => {
     const view = state.view;
-    if (!view) return "—";
+    if (!view) return PLACEHOLDER;
     const found = view.seats[seat];
-    if (!found) return "—";
+    if (!found) return PLACEHOLDER;
     if (found.playerId === view.you.playerId) return state.profile.name || "You";
     return found.displayName || found.playerId.slice(0, 8);
   };
-  const seatOfPlayer = (playerId) => {
-    const view = state.view;
-    if (!view) return -1;
-    return view.seats.findIndex((seat) => seat.playerId === playerId);
-  };
+  const seatOfPlayer = (playerId) => (state.view ? state.view.seats.findIndex((s) => s.playerId === playerId) : -1);
 
   /* ======================================================================
      Cards
@@ -471,11 +467,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       default: return { glyph: String(card.value || "?").toUpperCase(), label: "" };
     }
   }
-
   const colorClass = (card) => "card-" + (card.color || "wild");
 
   /* ======================================================================
-     Rendering — the client draws what the server tells it and decides nothing
+     Rendering — the client draws what the server tells it, decides nothing
      ====================================================================== */
 
   function render() {
@@ -501,7 +496,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     // The wallet is the server's number; the parent frame's copy is only a
     // placeholder for before the first deal.
     const coins = view ? view.you.coins : state.profile.coins;
-    $("myCoins").textContent = coins === null || coins === undefined ? PLACEHOLDER : coins;
+    $("myScore").textContent = coins === null || coins === undefined ? "0" : coins;
     if (view) {
       const mine = $("seat-me");
       mine.querySelector(".name").textContent = state.profile.name || "You";
@@ -522,12 +517,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
    */
   function renderSeats() {
     const view = state.view;
-    for (const spot of ["left", "top", "right"]) {
+    for (const spot of SEAT_SLOTS) {
       const el = $("seat-" + spot);
       el.style.visibility = "hidden";
-      const fan = el.querySelector(".fan");
+      el.querySelector(".fan").textContent = "";
       const catchBtn = el.querySelector(".catch");
-      fan.textContent = "";
       catchBtn.classList.remove("on");
       catchBtn.onclick = null;
     }
@@ -542,8 +536,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       el.style.visibility = "visible";
       el.classList.toggle("is-active", view.phase === "playing" && seat.isActive);
       el.classList.toggle("is-out", seat.handCount === 0);
-      el.querySelector(".name").textContent = seat.displayName || seat.playerId.slice(0, 8) + (seat.isBot ? " ·BOT" : "");
-      el.querySelector(".score").textContent = "🪙 " + seat.coins;
+      el.querySelector(".name").textContent = seat.displayName || seat.playerId.slice(0, 8);
+      el.querySelector(".score").textContent = "🪙 " + seat.coins + (seat.isBot ? "  ·BOT" : "");
       el.querySelector(".avatar > span").textContent = seat.isBot ? (spot === "left" ? "🙂" : spot === "top" ? "🧐" : "😎") : "🧑";
 
       const fan = el.querySelector(".fan");
@@ -559,8 +553,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       fan.appendChild(count);
 
       // Down to one card without a call: anyone may catch it, and the penalty is
-      // two cards. Bots are included — they do call, so the window to catch one is
-      // the moment between its throw and its call.
+      // two cards. Bots are included — they do call, so the window to catch one
+      // is the moment between its throw and its call.
       const catchBtn = el.querySelector(".catch");
       if (seat.handCount === 1 && !seat.saidUno) {
         catchBtn.classList.add("on");
@@ -578,7 +572,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       $("handEmpty").textContent = "Waiting for your cards…";
       return;
     }
-
     const hand = view.you.hand;
     if (hand.length === 0) {
       $("handEmpty").style.display = "block";
@@ -595,7 +588,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       const btn = document.createElement("button");
       const face = faceOf(card);
       btn.type = "button";
-      btn.className = "card " + colorClass(card);
+      btn.className = "letter " + colorClass(card);
       if (canThrow && legal.has(card.cardId)) btn.classList.add("playable");
       if (view.you.drawnCardId === card.cardId) btn.classList.add("drawn");
       if (state.pendingWild && state.pendingWild.cardId === card.cardId) btn.classList.add("picked");
@@ -625,8 +618,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 
       // A seat may throw its own cards, and only when it is on the clock.
       btn.disabled = !canThrow || !legal.has(card.cardId);
-      btn.setAttribute("aria-label",
-        "throw " + (card.kind === "letter" ? face.glyph : face.glyph + " " + face.label));
+      btn.setAttribute("aria-label", "throw " + face.glyph + (face.label ? " " + face.label : ""));
       btn.addEventListener("click", () => throwCard(card));
       root.appendChild(btn);
     });
@@ -636,22 +628,30 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     const pile = $("boardPile");
     const view = state.view;
     pile.textContent = "";
+    $("boardCount").style.display = "flex";
 
     if (!view) {
-      pile.appendChild(emptyBoard("Throw a card onto the board"));
-      $("boardCount").style.display = "";
-      $("boardCount").textContent = "BOARD · 0 cards";
+      $("boardCount").textContent = "BOARD · 0";
+      $("boardHint").textContent = "Throw a card onto the board";
+      $("wordPreview").textContent = "";
+      $("reveal").style.display = "";
+      $("reveal").textContent = "Waiting for the first hand…";
+      $("reveal").classList.remove("won");
       return;
     }
-    $("boardCount").style.display = "";
 
     // A settled round turns the board into the reveal: the winning hand's word,
-    // spelled out where the pile was. The tags above the board stand down for it,
-    // because the result panel occupies that space and says the same thing.
+    // spelled out where the pile was. The tools above the board stand down for
+    // it, because the word takes their place.
     if (view.result) {
-      const word = view.result.word || "";
+      const word = String(view.result.word || "");
       $("boardCount").style.display = "none";
       $("namedTag").style.display = "none";
+      $("boardHint").textContent = "";
+      $("wordPreview").textContent = word.toUpperCase();
+      // The result panel stands where the banner does and says more than it can,
+      // so the banner steps aside rather than being read through the panel.
+      $("reveal").style.display = "none";
       word.split("").forEach((letter, i) => {
         const tile = document.createElement("div");
         tile.className = "wordCard";
@@ -670,18 +670,30 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       return;
     }
 
-    $("boardCount").textContent = "BOARD · " + view.board.length + " card" + (view.board.length === 1 ? "" : "s");
+    $("wordPreview").textContent = "";
+    $("reveal").style.display = "";
+    $("reveal").classList.remove("won");
+    $("reveal").textContent = "Waiting for the first hand…";
+    $("boardCount").textContent = "BOARD · " + view.board.length;
     $("namedTag").style.display = view.namedColor ? "flex" : "none";
     if (view.namedColor) {
       $("namedDot").style.background = COLOR_HEX[view.namedColor] || "#fff";
-      $("namedText").textContent = "COLOUR · " + view.namedColor.toUpperCase();
+      $("namedText").textContent = view.namedColor.toUpperCase();
     }
     $("dirArrow").classList.toggle("flip", view.direction === -1);
 
     if (view.board.length === 0) {
-      pile.appendChild(emptyBoard("Throw a card onto the board"));
-      return;
+      $("boardHint").textContent = myTurn() ? "Your turn — throw a card" : "Throw a card onto the board";
+    } else {
+      $("boardHint").textContent = myTurn()
+        ? "Your turn"
+        : "Waiting for " + nameOfSeat(view.activePlayerId ? seatOfPlayer(view.activePlayerId) : 0);
     }
+    if (myTurn() && view.you.legal.length === 0) {
+      $("boardHint").textContent = view.you.drawnCardId ? "Nothing playable — pass" : "Draw a card";
+    }
+
+    if (view.board.length === 0) return;
     // The newest card lies square on top; the three beneath it fan out so the
     // stack reads as a pile rather than as a single card.
     const shown = view.board.slice(-4);
@@ -689,8 +701,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       const back = shown.length - 1 - i;
       const el = document.createElement("div");
       el.className = "boardCard " + colorClass(card);
-      const face = faceOf(card);
-      el.textContent = face.glyph;
+      el.textContent = faceOf(card).glyph;
       el.style.transform = "rotate(" + (back * 5 - 5) + "deg) translate(" + (back * 12) + "px," + (back * -5) + "px)";
       el.style.zIndex = String(10 + i);
       if (back === 0) el.classList.add("landing");
@@ -698,39 +709,40 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     });
   }
 
-  function emptyBoard(text) {
-    const empty = document.createElement("span");
-    empty.className = "boardEmpty";
-    empty.textContent = text;
-    return empty;
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   }
 
   /**
-   * The bottom-right cluster, which is one place on purpose: the colour picker
-   * and CALL UNO are the two things a player reaches for in the same breath —
+   * The action column, which is one place on purpose: the colour picker and
+   * CALL UNO are the two things a player reaches for in the same breath —
    * throwing a wild is what makes the deck of colours appear, and going down to
    * one card is when the call is owed.
    */
   function renderControls() {
     const view = state.view;
-    const mine = myTurn();
+    const pass = $("passBtn");
+    const deck = $("deck");
+    const unoBtn = $("unoBtn");
 
     // Before a round is dealt there are no controls at all, and nothing here may
     // read a view that does not exist yet.
     if (!view) {
       $("picker").classList.add("hidden");
-      $("unoBtn").disabled = true;
-      $("unoBtn").classList.remove("ready");
-      $("unoBtn").onclick = null;
-      $("deck").disabled = true;
-      $("deck").classList.remove("mine");
-      $("deck").onclick = null;
-      $("deckCount").textContent = "DRAW · —";
-      $("passBtn").classList.add("hidden");
-      $("passBtn").disabled = true;
+      $("namedTag").style.display = "none";
+      unoBtn.disabled = true;
+      unoBtn.classList.remove("ready");
+      unoBtn.onclick = null;
+      deck.disabled = true;
+      deck.classList.remove("mine");
+      deck.onclick = null;
+      pass.disabled = true;
+      pass.onclick = null;
       return;
     }
 
+    const mine = myTurn();
     const hand = view.you.hand;
     const wilds = hand.filter((card) => card.kind === "wild" || card.kind === "wild4");
     const legalWild = wilds.some((card) => view.you.legal.includes(card.cardId));
@@ -751,23 +763,18 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 
     // CALL UNO is owed when the seat is about to be, or already is, on one card.
     const owed = view.phase === "playing" && hand.length <= 2 && hand.length > 0;
-    const unoBtn = $("unoBtn");
     unoBtn.disabled = !owed || view.you.saidUno;
     unoBtn.classList.toggle("ready", !unoBtn.disabled && hand.length === 1);
     unoBtn.onclick = owed ? callUno : null;
 
     // The deck is the only way to draw, and it is only open on your own turn.
-    const deck = $("deck");
     const canDraw = mine && !view.you.drawnCardId;
     deck.disabled = !canDraw;
     deck.classList.toggle("mine", canDraw);
-    $("deckCount").textContent = "DRAW · " + view.drawCount;
     deck.onclick = canDraw ? drawCard : null;
 
     // Pass only once the draw has been taken — before that, drawing IS the move.
-    const pass = $("passBtn");
     const canPass = mine && (!!view.you.drawnCardId || view.you.legal.length === 0);
-    pass.classList.toggle("hidden", !canPass);
     pass.disabled = !canPass;
     pass.onclick = canPass ? passTurn : null;
   }
@@ -786,7 +793,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     const won = winner === view.you.seat;
     panel.classList.add("on");
     $("resultTitle").textContent = won ? "YOU WON THE ROUND" : "ROUND WON BY " + nameOfSeat(winner).toUpperCase();
-    $("resultSub").innerHTML = "The board spells <b>" + String(result.word).toUpperCase() +
+    $("resultSub").innerHTML = "The board spells <b>" + escapeHtml(String(result.word).toUpperCase()) +
       "</b> — the word the winning hand held. Pot <b>🪙 " + result.pot + "</b>.";
 
     const table = $("standings");
@@ -798,7 +805,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       cell.textContent = head;
       table.appendChild(cell);
     }
-    // Seat order, so the leaderboard reads the same way the table is laid out.
+    // Seat order, so the leaderboard reads the way the table is laid out.
     const ordered = result.standings.slice().sort((a, b) => a.seat - b.seat);
     for (const row of ordered) {
       const values = [
@@ -821,26 +828,23 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   }
 
   /* ======================================================================
-     The clock
+     The clock — the same pill Classic Mode uses, in the same place
      ====================================================================== */
 
   function tickClock() {
-    const el = $("clock");
-    const left = $("clockLeft");
-    const face = $("clockFace");
+    const el = $("timer");
     const view = state.view;
     const reveal = !!view && view.phase === "round_end";
-    face.textContent = reveal ? "🏆" : "⏱";
     el.classList.toggle("done", reveal);
+    el.classList.remove("urgent");
 
     if (!state.deadline) {
-      left.textContent = view ? "—" : "--:--";
-      el.classList.remove("urgent");
+      el.textContent = "--";
       return;
     }
     const ms = Math.max(0, state.deadline - serverNow());
     const secs = Math.ceil(ms / 1000);
-    left.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+    el.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
     el.classList.toggle("urgent", !reveal && ms <= 10_000);
 
     // During the reveal the countdown is to the next deal, which is worth
@@ -924,29 +928,15 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     setStatus("Thrown " + color.toUpperCase() + "…");
   }
 
-  function drawCard() {
-    action("draw_card");
-    setStatus("Drawing…");
-  }
-  function passTurn() {
-    action("pass_turn");
-    setStatus("Passed");
-  }
-  function callUno() {
-    action("call_uno");
-    setStatus("UNO called");
-  }
-  function catchUno(targetPlayerId) {
-    action("catch_uno", { targetPlayerId });
-    setStatus("Caught!");
-  }
+  function drawCard() { action("draw_card"); setStatus("Drawing…"); }
+  function passTurn() { action("pass_turn"); setStatus("Passed"); }
+  function callUno() { action("call_uno"); setStatus("UNO called"); }
+  function catchUno(targetPlayerId) { action("catch_uno", { targetPlayerId }); setStatus("Caught!"); }
 
   function sendChat() {
     const input = $("chatInput");
     const text = input.value.trim();
     if (!text) return;
-    const name = localStorage.getItem("champword.name") || "You";
-    localStorage.setItem("champword.name", name);
     send(withToken({ type: "chat_send", requestId: rid(), text }));
     input.value = "";
   }
@@ -978,25 +968,27 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     switch (msg.eventType) {
       case "card_thrown": {
         const card = payload.card;
-        const who = payload.seat === state.view?.you.seat ? "You" : nameOfSeat(payload.seat);
-        if (card) addChat(who, "threw " + faceOf(card).glyph + (payload.namedColor ? " and called " + String(payload.namedColor).toUpperCase() : ""));
+        const who = payload.seat === (state.view ? state.view.you.seat : -1) ? "You" : nameOfSeat(payload.seat);
+        if (card) {
+          addChat(who, "threw " + faceOf(card).glyph +
+            (payload.namedColor ? " and called " + String(payload.namedColor).toUpperCase() : ""));
+        }
         break;
       }
       case "card_drawn":
-        if (payload.seat !== state.view?.you.seat) addChat(nameOfSeat(payload.seat), "drew " + payload.count);
+        if (payload.seat !== (state.view ? state.view.you.seat : -1)) {
+          addChat(nameOfSeat(payload.seat), "drew " + payload.count);
+        }
         break;
-      case "uno_called":
-        addChat(nameOfSeat(payload.seat), "called UNO");
-        break;
-      case "uno_caught":
-        addChat(nameOfSeat(payload.seat), "was caught — two cards");
-        break;
+      case "uno_called": addChat(nameOfSeat(payload.seat), "called UNO"); break;
+      case "uno_caught": addChat(nameOfSeat(payload.seat), "was caught — two cards"); break;
       case "turn_ended":
         document.querySelectorAll(".thinking").forEach((t) => (t.textContent = ""));
         setStatus("Turn " + (payload.turnNumber ?? "") + (payload.terminalState === "timed_out" ? " — time up" : " ended"));
         break;
       case "round_completed":
-        addChat("Board", "round won by " + nameOfSeat(payload.winnerSeat) + " · " + String(payload.word || "").toUpperCase());
+        addChat("Board", "round won by " + nameOfSeat(payload.winnerSeat) + " · " +
+          String(payload.word || "").toUpperCase());
         break;
       default:
         break;
@@ -1006,7 +998,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   function onMessage(msg) {
     switch (msg.type) {
       case "server_ready":
-        // Declares which game this is. The classic client says nothing and is
+        // Declares which game this is. The Classic client says nothing and is
         // served the drawing game, so the two can share one socket server without
         // either of them knowing about the other.
         send({ type: "hello", requestId: rid(), clientVersion: "3.0", mode: "cards" });
@@ -1021,13 +1013,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         send(withToken({
           type: "find_match",
           requestId: rid(),
-          displayName: localStorage.getItem("champword.name") || "You"
+          displayName: state.profile.name || localStorage.getItem("champword.name") || "You"
         }));
         break;
 
-      case "match_queued":
-        setStatus("Waiting for players…");
-        break;
+      case "match_queued": setStatus("Waiting for players…"); break;
 
       case "match_found":
         state.roomId = msg.roomId;
@@ -1044,13 +1034,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         if (!state.view) renderHeader();
         break;
 
-      case "round_view":
-        onView(msg);
-        break;
-
-      case "event":
-        onEvent(msg);
-        break;
+      case "round_view": onView(msg); break;
+      case "event": onEvent(msg); break;
 
       case "action_result":
         if (msg.status === "accepted") {
@@ -1068,7 +1053,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         setStatus("Cannot start — " + state.tableClosed, true);
         $("result").classList.add("on");
         $("resultTitle").textContent = "TABLE CANNOT START";
-        $("resultSub").innerHTML = "Every seat needs <b>🪙 " + 500 + "</b> to buy in. " + state.tableClosed + ".";
+        $("resultSub").innerHTML = "Every seat needs <b>🪙 500</b> to buy in. " + escapeHtml(state.tableClosed) + ".";
         break;
 
       case "table_closed":
@@ -1081,17 +1066,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         addChat(msg.playerId === state.playerId ? "You" : nameOfSeat(seatOfPlayer(msg.playerId)), msg.text);
         break;
 
-      case "reaction":
-        addBubble(msg.emoji);
-        break;
-
-      case "resume_started":
-        setStatus("Rejoining the table…");
-        break;
-
-      case "resume_complete":
-        setStatus("Back at the table");
-        break;
+      case "reaction": addBubble(msg.emoji); break;
+      case "resume_started": setStatus("Rejoining the table…"); break;
+      case "resume_complete": setStatus("Back at the table"); break;
 
       case "error":
         if (msg.code === "stale_turn") setStatus("Too late — the table moved on", true);
@@ -1151,7 +1128,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   });
 
   /* ======================================================================
-     Offline fixtures — VISUAL QA ONLY (?demo=1, ?demo=win). Never run otherwise.
+     Offline fixtures — VISUAL QA ONLY (?demo=1, ?demo=uno, ?demo=win).
      ====================================================================== */
 
   function demoView(mode) {
@@ -1179,7 +1156,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         ? cards("na", "blue", "u")
         : cards("lantern", "yellow").concat([{ cardId: "x1", value: "wild", color: null, kind: "wild" }]);
     // The `uno` fixture is the state after a draw: only the drawn card may be
-    // thrown, and passing is the other way out — so both buttons are on screen.
+    // thrown, and passing is the other way out — so both are on screen.
     const legal = finished ? [] : mode === "uno" ? ["u0"] : ["w0", "x1"];
     return {
       type: "round_view", roomId: "demo-room", roundNumber: 2, turnNumber: 11,
@@ -1212,6 +1189,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       type: "room_snapshot", roomId: "demo-room", eventSequence: 1, state: "active",
       phase: "playing", roundNumber: 2, turnNumber: 11, players: []
     };
+    state.profile = { name: "Champ BJ", avatar: null, coins: "12,480" };
     render();
     onView(demoView(DEMO === "win" ? "win" : DEMO === "uno" ? "uno" : "play"));
     setStatus("DEMO MODE — no server connection");
