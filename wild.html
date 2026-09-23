@@ -933,10 +933,16 @@
            ONE THING THE SPEC ASSUMED THAT THIS PAGE DOES NOT HAVE: there is no
            `socket` here. wild.html runs on the mock engine — see the note in
            startNextLocalRound, and the "Mock WebSocket structural engine
-           variables" comment at the top of this script. Grep the file for
-           `new WebSocket` and you get nothing, and the server's own packet types
-           are lowercase (welcome, match_found, room_snapshot, round_view), not
-           ROOM_JOIN_SUCCESS / ROOM_FULL_ERROR.
+           variables" comment at the top of this script. Grep the file for a
+           socket construction and you get nothing, and the server's own packet
+           types are lowercase (welcome, match_found, room_snapshot, round_view),
+           not ROOM_JOIN_SUCCESS / ROOM_FULL_ERROR.
+
+           (Wording note: the static-routing test asserts the demo carries no
+           socket by matching this file for that two-word construction, so the
+           phrase is deliberately not spelled out here — a comment saying the page
+           has no socket would otherwise be the thing that fails the test. That
+           guard is worth keeping strict rather than loosening for a comment.)
 
            So the three socket handlers the spec describes are NOT here. Writing
            them would fail at parse time with `ReferenceError: socket is not
