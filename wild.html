@@ -218,7 +218,11 @@
 /* the panel reached left across the hand, so the calls painted over the last
    card. Wrapping the colour picker makes the panel narrow enough to sit clear of
    the fan, which is where the reference keeps its CALL UNO. */
-#bottomPanel{right:30px;bottom:30px;max-width:300px}
+/* The shared rule centres the panel with translateX(-50%). Moving it right
+   without clearing that transform left it drawn half its width to the left —
+   straight on top of the hand, where it swallowed every click aimed at a card.
+   This is the fix for the unresponsive table. */
+#bottomPanel{right:30px;bottom:30px;max-width:300px;transform:none}
 #picker{flex-wrap:wrap;justify-content:flex-end;max-width:264px}
 .picker-cap{width:100%;text-align:right}
 .swatch{width:46px;height:34px}
@@ -374,11 +378,17 @@
   const PLACEHOLDER = "—";
 
   /* --- stage scaling: the only place the viewport is ever read ------------- */
+  /**
+   * The table is a fixed 16:9 stage scaled as one piece, so a window of any shape
+   * works and it merely letterboxes. The turn-your-device note is therefore kept
+   * for genuinely portrait screens, and it is dismissible: a full-screen overlay
+   * that cannot be closed is indistinguishable from a frozen page, which is what
+   * a narrower window used to get.
+   */
   function fit() {
     const w = window.innerWidth, h = window.innerHeight;
-    const scale = Math.min(w / 1600, h / 900);
-    document.getElementById("stage").style.setProperty("--s", scale);
-    $("rotate").classList.toggle("hidden", w / h >= 1.15);
+    document.getElementById("stage").style.setProperty("--s", Math.min(w / 1600, h / 900));
+    $("rotate").classList.toggle("hidden", !(w / h < 0.9 && !state.rotateDismissed));
   }
   window.addEventListener("resize", fit, { passive: true });
   window.addEventListener("orientationchange", fit, { passive: true });
@@ -400,7 +410,9 @@
     pendingWild: null,
     tableClosed: null,
     profile: { name: null, avatar: null, coins: null, portrait: null, frame: null },
-    soundOn: true
+    soundOn: true,
+    /** Once the player has closed the portrait note, it stays closed. */
+    rotateDismissed: false
   };
 
   let ws = null;
@@ -1071,6 +1083,11 @@
   }
 
   /* --- controls ------------------------------------------------------------ */
+  // tapping the portrait note closes it, so it can never trap the page
+  $("rotate").addEventListener("click", () => {
+    state.rotateDismissed = true;
+    $("rotate").classList.add("hidden");
+  });
   $("send").addEventListener("click", sendChat);
   $("chatInput").addEventListener("keydown", (ev) => { if (ev.key === "Enter") sendChat(); });
   $("chatBtn").addEventListener("click", () => $("chatPanel").classList.toggle("hidden"));
