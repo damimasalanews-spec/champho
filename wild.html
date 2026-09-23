@@ -463,7 +463,18 @@
     const coins = view ? view.you.coins : state.profile.coins;
     $("myScore").textContent = coins === null || coins === undefined ? "0" : coins;
     $("modePill").textContent = state.tableClosed ? "TABLE OVER" : "GO WILD";
-    if (seat) { /* seat panel carries its own numbers */ }
+    // The player's own plate needs the same dressing as the rivals. It is the one
+    // they look at most, and it is the one the seat loop never touches, because
+    // that loop only walks the other seats.
+    if (seat) {
+      const own = $("seat-me");
+      const ring = ["#22d3ee", "#fbbf24", "#a78bfa", "#34d977"][seat.seat % 4];
+      own.querySelector(".atile").style.setProperty("--ring", ring);
+      const banner = own.querySelector(".nbanner");
+      banner.style.setProperty("--bnr", ["#0e7490", "#be185d", "#1d4ed8", "#b45309"][seat.seat % 4]);
+      banner.querySelector(".nname").textContent = state.profile.name || "You";
+      own.querySelector("[data-coins]").textContent = seat.coins;
+    }
   }
 
   /** Seat order is relative to the viewer, so every player sees the table the
