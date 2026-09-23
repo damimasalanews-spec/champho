@@ -134,6 +134,11 @@
         </div>
     </div>
 
+    <!-- The penalty shockwave rim. Full screen, and outside .game-table for the same
+         reason as the wheel and the banner: the strike animates the table's transform,
+         and a fixed layer inside it would be shoved around with the table. -->
+    <div id="screen-shockwave-layer" class="shockwave-vignette"></div>
+
     <!-- Script Execution Pipelines -->
     <script src="game/sound.js"></script>
     <script>
@@ -560,16 +565,24 @@
         // takes the seat and the count so a packet can call it as it is.
         const DEMO_PENALTY_ON_WILD = { seat: 'left_enemy', cards: 4 };
 
-        function handleDraw4PenaltyImpact(targetPlayerSlotKey, totalCardsToDraw = 4) {
+        function triggerProfessionalPenaltyStrike(targetPlayerSlotKey, totalCardsToDraw = 4) {
             const tableCanvasNode = document.querySelector('.game-table');
             const deckSourceNode = document.getElementById('central-deck');
             if (!tableCanvasNode || !deckSourceNode) return;
 
-            // Restart from the top if a shake is already running: the forced reflow is what
+            // The rim blooms on the same frame as the strike, so the hit is not confined to
+            // the table's own edges.
+            const vignette = document.getElementById('screen-shockwave-layer');
+            if (vignette) {
+                vignette.classList.add('active-flash');
+                setTimeout(() => vignette.classList.remove('active-flash'), 250);
+            }
+
+            // Restart from the top if a strike is already running: the forced reflow is what
             // lets the same animation fire twice in a row.
-            tableCanvasNode.classList.remove('penalty-shake-active');
+            tableCanvasNode.classList.remove('penalty-strike-active');
             void tableCanvasNode.offsetWidth;
-            tableCanvasNode.classList.add('penalty-shake-active');
+            tableCanvasNode.classList.add('penalty-strike-active');
 
             if (typeof playDraw4ImpactDamageSound === 'function') playDraw4ImpactDamageSound();
 
@@ -591,8 +604,12 @@
             const targetX = destBounds.left + destBounds.width / 2;
             const targetY = destBounds.top + destBounds.height / 2;
 
-            // 110ms apart, so they read as cards being dealt at you rather than one clump
+            // The stagger tightens as it goes — 0ms, 106ms, 168ms, 219ms rather than a flat
+            // 110ms apart — so the cards arrive the way a hand is cut into, not like a
+            // metronome.
             for (let cardIdx = 0; cardIdx < totalCardsToDraw; cardIdx += 1) {
+                const staggeredDelayTime = Math.pow(cardIdx, 0.85) * 110;
+
                 setTimeout(() => {
                     const flightCardNode = document.createElement('div');
                     flightCardNode.classList.add('card-in-flight');
@@ -601,26 +618,36 @@
                     flightCardNode.style.setProperty('--deck-y', `${deckY}px`);
                     flightCardNode.style.setProperty('--target-x', `${targetX}px`);
                     flightCardNode.style.setProperty('--target-y', `${targetY}px`);
-                    flightCardNode.style.setProperty('--target-rot', `${(Math.random() * 40) - 20}deg`);
+                    flightCardNode.style.setProperty('--target-rot', `${(Math.random() * 34) - 17}deg`);
+                    // .card-in-flight.thrown reads this, so the card comes at the camera
+                    // rather than sliding flat across the table
+                    flightCardNode.style.setProperty('--target-z', '180px');
 
                     tableCanvasNode.appendChild(flightCardNode);
                     requestAnimationFrame(() => flightCardNode.classList.add('thrown'));
 
                     if (typeof playCardRuffleSound === 'function') playCardRuffleSound();
-                    setTimeout(() => flightCardNode.remove(), 580);
-                }, cardIdx * 110);
+
+                    setTimeout(() => {
+                        flightCardNode.remove();
+                        // the seat takes its own small hit as each card lands
+                        destinationNode.classList.add('impact');
+                        setTimeout(() => destinationNode.classList.remove('impact'), 100);
+                    }, 580);
+                }, staggeredDelayTime);
             }
 
-            // The seat holds them now. Timed to the last card landing, not to the click.
+            // The seat holds them now. Timed to the LAST card landing rather than to the
+            // click, which the exponential stagger puts at 219 + 580ms.
             const counterKey = PENALTY_SLOT_TO_COUNTER[targetPlayerSlotKey];
             if (counterKey) {
                 setTimeout(() => {
                     opponentHandSize[counterKey] += totalCardsToDraw;
                     updateOpponentCounters(counterKey, opponentHandSize[counterKey]);
-                }, (totalCardsToDraw - 1) * 110 + 600);
+                }, Math.pow(totalCardsToDraw - 1, 0.85) * 110 + 620);
             }
 
-            setTimeout(() => tableCanvasNode.classList.remove('penalty-shake-active'), 460);
+            setTimeout(() => tableCanvasNode.classList.remove('penalty-strike-active'), 700);
         }
 
         // ---- the wild colour wheel --------------------------------------------
@@ -660,7 +687,7 @@
             concealColorPickerWheel();
 
             // The colour is declared, so the penalty that follows a wild is applied.
-            handleDraw4PenaltyImpact(DEMO_PENALTY_ON_WILD.seat, DEMO_PENALTY_ON_WILD.cards);
+            triggerProfessionalPenaltyStrike(DEMO_PENALTY_ON_WILD.seat, DEMO_PENALTY_ON_WILD.cards);
         }
 
         function wireColorWheel() {
