@@ -226,6 +226,36 @@
 #picker{flex-wrap:wrap;justify-content:flex-end;max-width:264px}
 .picker-cap{width:100%;text-align:right}
 .swatch{width:46px;height:34px}
+
+/* ===========================================================================
+   The burning border, copied from the clip.
+
+   A bold gold band round the avatar of whichever seat is on the clock, with
+   white four-point sparkles glinting along it, eroding to nothing as the throw
+   window closes. Only the seat on the clock gets it.
+   =========================================================================== */
+.atile{position:relative}
+.burn{position:absolute;inset:-8px;display:none;pointer-events:none;overflow:visible}
+.pcard.is-active .burn{display:block}
+.burn .band{fill:none;stroke-linecap:round;
+  animation-name:burnaway;animation-timing-function:linear;animation-fill-mode:forwards}
+.burn .band-a{stroke:#F5A623;stroke-width:17}
+.burn .band-b{stroke:#FFD84D;stroke-width:12}
+.burn .band-c{stroke:#FFF6C9;stroke-width:6}
+/* whole, then broken, then gone — it burns away rather than looping */
+@keyframes burnaway{
+  0%{stroke-dasharray:100 0}
+  38%{stroke-dasharray:88 4}
+  68%{stroke-dasharray:58 9}
+  100%{stroke-dasharray:0 100}
+}
+.burn .spark{fill:#fff;opacity:0;transform-origin:center;
+  animation-name:sparkle;animation-iteration-count:infinite;animation-timing-function:ease-out}
+@keyframes sparkle{
+  0%{opacity:0;transform:scale(.2)}
+  35%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(.4)}
+}
 </style>
 </head>
 <body>
@@ -534,6 +564,7 @@
     renderHand();
     renderBoard();
     renderControls();
+    renderBurns();
   }
 
   function renderHud() {
@@ -554,6 +585,9 @@
     // that loop only walks the other seats.
     if (seat) {
       const own = $("seat-me");
+      // own plate is on the clock as often as anyone else's, and it is the one
+      // the seat loop never reaches
+      own.classList.toggle("is-active", view.phase === "playing" && seat.isActive);
       const ring = ["#22d3ee", "#fbbf24", "#a78bfa", "#34d977"][seat.seat % 4];
       own.querySelector(".atile").style.setProperty("--ring", ring);
       const banner = own.querySelector(".nbanner");
@@ -1082,6 +1116,59 @@
     });
   }
 
+  /* ======================================================================
+     The burning border
+     ====================================================================== */
+
+  /**
+   * The band the clip shows: a rounded square that follows the avatar's own
+   * border radius, so it hugs the tile exactly rather than circling it.
+   *
+   * Built here and injected into the four plates rather than written out four
+   * times in the markup, so the seats cannot drift apart.
+   */
+  const BURN_PATH = "M41,8 H107 A33,33 0 0 1 140,41 V107 A33,33 0 0 1 107,140 H41 A33,33 0 0 1 8,107 V41 A33,33 0 0 1 41,8 Z";
+  const SPARK = "M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z";
+
+  function burnMarkup() {
+    const bands = ["band-a", "band-b", "band-c"]
+      .map((cls) => '<path class="band ' + cls + '" d="' + BURN_PATH + '" pathLength="100"/>')
+      .join("");
+    const sparks = [[8, 8], [140, 8], [140, 140], [8, 140]]
+      .map(([x, y], i) =>
+        '<path class="spark" d="' + SPARK + '" transform="translate(' + x + ',' + y + ')"' +
+        ' style="animation-duration:' + (1.1 + i * 0.25).toFixed(2) + 's;animation-delay:' + (i * 0.28).toFixed(2) + 's"/>')
+      .join("");
+    return '<svg class="burn" viewBox="0 0 148 148" aria-hidden="true">' + bands + sparks + "</svg>";
+  }
+
+  /**
+   * The band IS the clock. A view can arrive mid-turn, so the burn is started
+   * part-way through rather than at the beginning: elapsed time is the window
+   * minus what is left on the deadline, and the animation is given that as a
+   * negative delay so it picks up exactly where the turn already is.
+   */
+  function renderBurns() {
+    const view = state.view;
+    const TOTAL = 10_000; // the server's throw window, in ms
+    const left = view && view.deadlineAt
+      ? Math.max(0, new Date(view.deadlineAt).getTime() - serverNow())
+      : TOTAL;
+    const elapsed = Math.max(0, TOTAL - left);
+
+    document.querySelectorAll(".pcard").forEach((card) => {
+      if (!view || view.phase !== "playing" || !card.classList.contains("is-active")) return;
+      card.querySelectorAll(".burn .band").forEach((band) => {
+        // restart from scratch, or a second turn inherits the first one's finish
+        band.style.animation = "none";
+        void band.offsetWidth;
+        band.style.animation = "";
+        band.style.animationDuration = TOTAL + "ms";
+        band.style.animationDelay = (-elapsed) + "ms";
+      });
+    });
+  }
+
   /* --- controls ------------------------------------------------------------ */
   // tapping the portrait note closes it, so it can never trap the page
   $("rotate").addEventListener("click", () => {
@@ -1227,6 +1314,11 @@
       }
     }
     $("seat-me").querySelector("[data-name]").textContent = state.profile.name || "You";
+  });
+
+  // every plate gets the burning band; only the one on the clock shows it
+  document.querySelectorAll(".atile").forEach((tile) => {
+    tile.insertAdjacentHTML("beforeend", burnMarkup());
   });
 
   fit();
