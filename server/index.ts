@@ -66,6 +66,12 @@ type SocketContext = {
   connectionVersion: number | null;
   chatWindowStartedAt: number;
   chatCount: number;
+  /**
+   * Which game this socket is playing. Classic is the default on purpose: the
+   * classic client was here first and is not ours to change, so it says nothing
+   * and gets classic. The card table declares itself.
+   */
+  mode: "classic" | "cards";
 };
 
 const CHAT_MAX_LENGTH = 200;
@@ -162,6 +168,22 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         hand: hand.hand
       });
     }
+  };
+
+  /**
+   * The classic game's hand, addressed to one socket. A card round needs no
+   * equivalent: there, a hand arrives as part of the seat's own view.
+   */
+  const sendHandToSocket = async (socket: WebSocket, roomId: string, playerId: string) => {
+    const hand = await getPrivateHand(roomId, playerId).catch(() => null);
+    if (!hand) return;
+    send(socket, {
+      type: "hand_sync",
+      roomId,
+      roundNumber: hand.roundNumber,
+      handVersion: hand.handVersion,
+      hand: hand.hand
+    });
   };
 
   const protocolError = (socket: WebSocket, code: string, requestId?: unknown, extra: Record<string, unknown> = {}) =>
@@ -567,7 +589,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     : null;
 
   webSocketServer.on("connection", (socket) => {
-    contexts.set(socket, { playerId: null, roomId: null, connectionVersion: null, chatWindowStartedAt: 0, chatCount: 0 });
+    contexts.set(socket, { playerId: null, roomId: null, connectionVersion: null, chatWindowStartedAt: 0, chatCount: 0, mode: "classic" });
     send(socket, { type: "server_ready", serverTime: new Date().toISOString(), protocol: 2 });
 
     // attachToRoom lives in the outer scope so matchmaking can seat a player
@@ -583,6 +605,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         const context = contexts.get(socket) as SocketContext;
 
         if (type === "hello") {
+          context.mode = message.mode === "cards" ? "cards" : "classic";
           const existing = verifySession(message.sessionToken);
           const session = issueSession(existing?.playerId);
           send(socket, {
@@ -617,9 +640,12 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           send(socket, result.snapshot);
           broadcast(result.snapshot.roomId, result.snapshot);
           for (const event of result.events) broadcast(result.snapshot.roomId, event);
-          // No hand is sent here: a hand is dealt with the round, and this room is
-          // still filling up (§10). The deal at the start of play sends each seat
-          // its own view, which is where its cards live.
+          // A classic seat is handed its letters as it sits down. A card seat is
+          // not: there a hand is dealt with the round rather than with the seat
+          // (§10), and it arrives inside that seat's own view.
+          if (context.mode !== "cards") {
+            await sendHandToSocket(socket, result.snapshot.roomId, message.playerId);
+          }
           return;
         }
 
@@ -696,13 +722,26 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           // thrown cards now live. A table still filling up has no round in play
           // and gets the snapshot alone.
           send(socket, result.snapshot);
-          const view = await readRoundView(result.snapshot.roomId, identity.playerId).catch(() => null);
-          if (view) {
-            send(socket, view);
-            // A reconnect can land on a bot's turn whose timer died with whatever
-            // held it (a restart, an eviction). Re-arm it rather than leave the
-            // table to be timed out. No-op when the seat on the clock is human.
-            await scheduleCardBots(result.snapshot.roomId, view.turnNumber);
+          if (context.mode === "cards") {
+            const view = await readRoundView(result.snapshot.roomId, identity.playerId).catch(() => null);
+            if (view) {
+              send(socket, view);
+              // A reconnect can land on a bot's turn whose timer died with whatever
+              // held it (a restart, an eviction). Re-arm it rather than leave the
+              // table to be timed out. No-op when the seat on the clock is human.
+              await scheduleCardBots(result.snapshot.roomId, view.turnNumber);
+            }
+          } else {
+            // §8: a classic resume replays the hand and the drawing, not just the
+            // room. A seat coming back mid-turn has to see the sketch so far, or
+            // the turn is unsolvable for it.
+            await sendHandToSocket(socket, result.snapshot.roomId, identity.playerId);
+            send(socket, {
+              type: "draw_sync",
+              roomId: result.snapshot.roomId,
+              turnNumber: result.snapshot.turnNumber,
+              strokes: drawStrokes.get(`${result.snapshot.roomId}:${result.snapshot.turnNumber}`) ?? []
+            });
           }
           send(socket, {
             type: "resume_complete",
@@ -719,12 +758,81 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
 
         if (type === "start_round") {
           if (typeof context.roomId !== "string") throw new Error("invalid_request_id");
+
+          // Classic deals a drawing turn for the house; the card table deals a
+          // round of letters. Same request, two games.
+          if (context.mode !== "cards") {
+            const started = await beginFirstTurn(context.roomId);
+            if (started) {
+              for (const event of started.events) broadcast(context.roomId, event);
+              broadcast(context.roomId, started.snapshot);
+              await announceTurn(context.roomId, started.snapshot.turnNumber);
+              await scheduleBots(context.roomId, started.snapshot.turnNumber);
+            }
+            return;
+          }
+
           const started = await startCardRound(context.roomId);
           if (!started.ok) {
             protocolError(socket, started.code ?? "cannot_start", requestId);
             return;
           }
           await publishRoundOutcome(context.roomId, started);
+          return;
+        }
+
+        if (type === "submit_word") {
+          if (typeof context.roomId !== "string") throw new Error("invalid_request_id");
+          if (typeof message.roomId !== "string" || message.roomId !== context.roomId) throw new Error("invalid_request_id");
+          if (typeof message.turnNumber !== "number" || !Number.isInteger(message.turnNumber)) throw new Error("invalid_cards");
+          if (!Array.isArray(message.cards) || message.cards.length < 1 || message.cards.length > 14) {
+            throw new Error("invalid_cards");
+          }
+          if (message.cards.some((card) => typeof card !== "string" || !card)) throw new Error("invalid_cards");
+          if (typeof message.word !== "string" || !message.word.trim() || message.word.length > 64) {
+            throw new Error("invalid_cards");
+          }
+          if (typeof message.requestId !== "string" || !message.requestId) throw new Error("invalid_request_id");
+
+          const outcome = await submitWord({
+            requestId: message.requestId,
+            roomId: context.roomId,
+            playerId: identity.playerId,
+            roundNumber: typeof message.roundNumber === "number" ? message.roundNumber : 0,
+            turnNumber: message.turnNumber,
+            cards: message.cards as string[],
+            word: message.word
+          });
+
+          if (outcome.result) {
+            send(socket, outcome.result as WordSubmissionResult);
+            if (outcome.handChanged) await sendHandToSocket(socket, context.roomId, identity.playerId);
+          } else if (outcome.code) {
+            // §5: a submit ALWAYS answers with a word_submission_result, even when
+            // it is refused. A bare `error` for stale_turn (and friends) left the
+            // client waiting for a result that never arrived, which is
+            // indistinguishable from a lost network response.
+            send(socket, {
+              type: "word_submission_result",
+              requestId: typeof requestId === "string" ? requestId : "",
+              roomId: context.roomId,
+              roundNumber: outcome.snapshot ? outcome.snapshot.roundNumber : 0,
+              status: "rejected",
+              reason: outcome.code,
+              serverTime: new Date().toISOString(),
+              phase: outcome.snapshot ? outcome.snapshot.phase : "playing",
+              cardsConsumed: 0,
+              cardsDrawn: 0,
+              handChanged: false,
+              scoreDelta: 0,
+              coinDelta: 0
+            } satisfies WordSubmissionResult);
+          }
+
+          // Tell the room a word landed, then schedule the next turn's bots.
+          for (const event of outcome.events) broadcast(context.roomId, event);
+          if (outcome.snapshot) broadcast(context.roomId, outcome.snapshot);
+          if (outcome.turnEnded) await publishOutcome(context.roomId, outcome);
           return;
         }
 

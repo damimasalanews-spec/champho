@@ -1006,7 +1006,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   function onMessage(msg) {
     switch (msg.type) {
       case "server_ready":
-        send({ type: "hello", requestId: rid(), clientVersion: "3.0" });
+        // Declares which game this is. The classic client says nothing and is
+        // served the drawing game, so the two can share one socket server without
+        // either of them knowing about the other.
+        send({ type: "hello", requestId: rid(), clientVersion: "3.0", mode: "cards" });
         break;
 
       case "welcome":
