@@ -308,6 +308,10 @@
   animation: none !important;
   opacity: 1 !important;
   box-sizing: border-box;
+  /* the card is a solid object while it tumbles: keep its own 3D space, and never
+     show its mirrored back face when a rotation carries it past the viewer */
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
   filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .42));
 }
 
@@ -623,7 +627,9 @@
 .boardCard,
 .card-flight {
   border: 4px solid #fff;
-  box-shadow: 0 8px 16px rgba(0,0,0,.35), 0 3px 0 rgba(0,0,0,.4);
+  /* the drop is what lifts the card off the felt; the hard 3px edge under it is the
+     card's own thickness, sitting on the table */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, .45), 0 3px 0 rgba(0, 0, 0, .4);
 }
 
 /* the shell clips its own art, so the pill reads as printed inside the card */
@@ -644,8 +650,8 @@
   border-radius: inherit;
   pointer-events: none;
   box-shadow:
-    inset 0 -6px 10px rgba(0, 0, 0, .15),
-    inset 0 2px 0 rgba(255, 255, 255, .28);
+    inset 0 3px 6px rgba(255, 255, 255, .4),
+    inset 0 -8px 12px rgba(0, 0, 0, .2);
 }
 
 /* the pill: the stylised oval across the face, bled past both edges so only its
@@ -1252,7 +1258,9 @@
           const target = rectOfElement(tile);
           if (!target) continue;
           hold(tile);
-          setTimeout(() => animateFlight(makeCardFlight(card), deck, target, rotate, DEAL_SOUND), at);
+          // the pass number seeds the tumble, so no two of a deal's seven waves
+          // tumble the same way
+          setTimeout(() => animateFlight(makeCardFlight(card), deck, target, rotate, DEAL_SOUND, pass), at);
           setTimeout(() => release(tile), at + FLIGHT_MS);
           continue;
         }
@@ -1262,7 +1270,7 @@
         const target = rectOfElement(mini);
         if (!target) continue;
         hold(mini);
-        setTimeout(() => animateFlight(makeDeckFlight(), deck, target, rotate, DEAL_SOUND), at);
+        setTimeout(() => animateFlight(makeDeckFlight(), deck, target, rotate, DEAL_SOUND, pass), at);
         setTimeout(() => release(mini), at + FLIGHT_MS);
       }
     }
@@ -1729,7 +1737,7 @@
     return ghost;
   }
 
-  function animateFlight(ghost, from, to, rotate = 0, sound = FLIGHT_SOUND) {
+  function animateFlight(ghost, from, to, rotate = 0, sound = FLIGHT_SOUND, tumble = 0) {
     if (!ghost || !from || !to) return;
     document.body.appendChild(ghost);
     ghost.style.left = from.left + "px";
@@ -1744,19 +1752,42 @@
     const dy = toCenterY - fromCenterY;
     // the card changes size on the way: the rack is not the board
     const scale = Math.min(1.35, Math.max(.55, to.width / from.width));
+
+    // The card comes off the felt. How high depends on how far it has to go: a hop
+    // from the deck to the next plate barely clears the table, a throw clean across
+    // it arcs. Clamped so a card never climbs further than the board is wide.
+    //
+    // The lift is carried on the Z axis under the ghost's own perspective(), which
+    // is what makes it read as coming toward the player rather than as growing:
+    // perspective() is written into the transform instead of onto an ancestor
+    // because a card in flight is a fixed-position node on <body>, and putting
+    // perspective on the stage would reproject the whole table — every tile, every
+    // plate — to change one card.
+    const distance = Math.hypot(dx, dy);
+    const lift = Math.max(28, Math.min(130, distance * .16));
+
+    // Derived, not random. A card dealt to this seat on this pass always tumbles
+    // the same way, so a deal is reproducible frame for frame and can be asserted
+    // against rather than eyeballed. Seven passes give seven distinct tumbles.
+    const tiltX = -8 - (tumble % 4) * 3;
+    const tiltY = rotate >= 0 ? 18 + (tumble % 3) * 5 : -18 - (tumble % 3) * 5;
+
     const keyframes = [
       {
-        transform: "translate(0, 0) rotate(0deg) scale(1)"
+        // flat on the deck, already leaning the way the flick will send it
+        transform: `perspective(1100px) translate3d(0px, 0px, 0px) rotateZ(${rotate * .4}deg) scale(1)`
       },
       {
+        // off the felt, up toward the camera, tumbling on all three axes
         transform:
-          `translate(${dx * .42}px, ${dy * .42}px) ` +
-          `rotate(${rotate * -.55}deg) scale(${scale * 1.08})`
+          `perspective(1100px) translate3d(${dx * .42}px, ${dy * .42 - lift * .35}px, ${lift}px) ` +
+          `rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotateZ(${rotate * -1}deg) scale(${scale * 1.12})`
       },
       {
+        // down flat onto the card it belongs to, the tumble spent
         transform:
-          `translate(${dx}px, ${dy}px) ` +
-          `rotate(${rotate}deg) scale(${scale})`
+          `perspective(1100px) translate3d(${dx}px, ${dy}px, 0px) ` +
+          `rotateX(0deg) rotateY(0deg) rotateZ(${rotate}deg) scale(${scale})`
       }
     ];
     const animation = ghost.animate(keyframes, {
