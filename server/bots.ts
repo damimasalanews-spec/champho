@@ -1,6 +1,9 @@
 import { pool } from "./db.js";
 import type { BotPersonality, Card } from "./rooms.js";
 import { canSpell, selectCardsForWord } from "./words.js";
+import { COLORS, type CardColor } from "./cards.js";
+import { legalCards } from "./round.js";
+import type { LoadedRound } from "./room-cards.js";
 
 /**
  * Server-side bot engine (§16–19).
@@ -196,4 +199,57 @@ export function botAnswerDelayMs(
 /** True when the bot genuinely cannot answer — used by tests and by §17. */
 export function botHasValidMove(hand: Card[], targetWord: string): boolean {
   return canSpell(hand, targetWord) && selectCardsForWord(hand, targetWord) !== null;
+}
+
+// ---------------------------------------------------------------------------
+// The card round
+// ---------------------------------------------------------------------------
+
+export type CardPlanKind = "play" | "draw";
+
+export type CardPlan = {
+  kind: CardPlanKind;
+  /** The card to throw, when the plan is to play. */
+  cardId: string | null;
+  /** The colour a Wild or Wild Draw Four names, when one is thrown. */
+  color: CardColor | null;
+};
+
+/**
+ * What a bot does on its turn. Pure: it reads the round and decides, it never
+ * writes, so a decision can be tested without a database or a socket.
+ *
+ * It is deliberately beatable rather than clever — a bot throws the first card
+ * the rules allow and draws when it has nothing, which is what a player who is
+ * not trying to lose would do. A wild names the colour it holds most of: the one
+ * heuristic that makes a wild worth throwing rather than dumping.
+ */
+export function planCardTurn(round: LoadedRound, seat: number): CardPlan {
+  const options = legalCards(round, seat);
+  if (options.length === 0) return { kind: "draw", cardId: null, color: null };
+
+  const card = options[0] as { cardId: string; kind: string };
+  if (card.kind !== "wild" && card.kind !== "wild4") {
+    return { kind: "play", cardId: card.cardId, color: null };
+  }
+
+  const held = new Map<CardColor, number>();
+  for (const color of COLORS) held.set(color, 0);
+  for (const inHand of round.hands[seat] ?? []) {
+    if (inHand.kind === "wild" || inHand.kind === "wild4") continue;
+    const color = inHand.color;
+    if (color) held.set(color, (held.get(color) ?? 0) + 1);
+  }
+
+  let best = COLORS[0] as CardColor;
+  for (const color of COLORS) {
+    if ((held.get(color) ?? 0) > (held.get(best) ?? 0)) best = color;
+  }
+
+  return { kind: "play", cardId: card.cardId, color: best };
+}
+
+/** How long a bot takes over its turn, from the personality's thinking range. */
+export function cardTurnDelayMs(personality: BotPersonality, random: () => number = Math.random): number {
+  return randomDelayInRange(BOT_TIMING[personality].thinking, random);
 }
