@@ -235,15 +235,28 @@
    window closes. Only the seat on the clock gets it.
    =========================================================================== */
 .atile{position:relative}
-/* A circle around the avatar, with one lit arc sweeping it once per turn.
-   Nothing else: no glow, no spikes, no texture. The arc is the clock. */
-.halo{position:absolute;inset:-18px;display:none;pointer-events:none;overflow:visible}
-.pcard.is-active .halo{display:block}
-.halo-track{fill:none;stroke:rgba(255,255,255,.16);stroke-width:6}
-.halo-arc{fill:none;stroke:#8be9ff;stroke-width:6;stroke-linecap:round;
-  transform-origin:50% 50%;animation-name:sweep;animation-timing-function:linear;
-  animation-iteration-count:infinite}
-@keyframes sweep{to{transform:rotate(360deg)}}
+/* A pair of bold red arrows rides the avatar's own rounded-square edge, leading
+   a band that is the clock: the whole edge is lit when the throw window opens,
+   and by the time it shuts there is nothing left. Travel is clockwise, one lap
+   per turn.
+
+   The band is laid out in the page's own pixels by gwBuild(), taken from the
+   plate's measured size and its own border-radius, so it hugs the border rather
+   than circling it -- a circle only ever touches a rounded square at four
+   points. Each piece is bevelled: a dark underside a shade lower, the red face
+   over it, a lit top edge, which is what makes it read as a solid.
+
+   The plain gold .turn-ring would draw a second ring on top of this one, so it
+   stands down on this page. Classic mode is another page and keeps its own. */
+.gw{position:absolute;inset:-18px;display:none;pointer-events:none;overflow:visible}
+.pcard.is-active .gw{display:block}
+.pcard.is-active .turn-ring{display:none}
+.gw-under{fill:none;stroke:#3A0507;stroke-width:12;transform:translate(0,2.5px)}
+.gw-band{fill:none;stroke:#B81812;stroke-width:11}
+.gw-lit{fill:none;stroke:#FF7A5C;stroke-width:4;opacity:.9;transform:translate(0,-3.4px)}
+.gw-head .h-under{fill:#3A0507}
+.gw-head .h-face{fill:#C81E12}
+.gw-head .h-lit{fill:none;stroke:#FF7A5C;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
 </style>
 </head>
 <body>
@@ -407,6 +420,7 @@
     const w = window.innerWidth, h = window.innerHeight;
     document.getElementById("stage").style.setProperty("--s", Math.min(w / 1600, h / 900));
     $("rotate").classList.toggle("hidden", !(w / h < 0.9 && !state.rotateDismissed));
+    gwFit();   // the plates may have changed size under the band
   }
   window.addEventListener("resize", fit, { passive: true });
   window.addEventListener("orientationchange", fit, { passive: true });
@@ -552,7 +566,7 @@
     renderHand();
     renderBoard();
     renderControls();
-    renderHalo();
+    renderGw();
   }
 
   function renderHud() {
@@ -1109,53 +1123,134 @@
      ====================================================================== */
 
   /**
-   * The band the clip shows: a rounded square that follows the avatar's own
-   * border radius, so it hugs the tile exactly rather than circling it.
+   * The band the clip shows: a rounded square laid out on the plate's own
+   * measured size and its own border-radius, so it hugs the border exactly
+   * rather than circling it.
    *
    * Built here and injected into the four plates rather than written out four
-   * times in the markup, so the seats cannot drift apart.
+   * times in the markup, so the seats cannot drift apart, and rebuilt when the
+   * page's --seat changes, so it keeps hugging them.
    */
-  const HALO_R = 80;
-  const HALO_CIRC = 2 * Math.PI * HALO_R;
-  const HALO_ARC = 120; // how much of the circle is lit, in user units
+  const GW_TOTAL = 10_000; // the server's throw window, in ms
+  const GW_PAD = 18;       // the svg sits this far proud of the plate
+  const GW_HEADS = 2;      // a pair of chevrons: the front one leads the band
+  const GW_GAP = 17;       // px between them along the edge
 
-  function haloMarkup() {
-    return '<svg class="halo" viewBox="0 0 168 168" aria-hidden="true">' +
-      '<circle class="halo-track" cx="84" cy="84" r="' + HALO_R + '"/>' +
-      '<circle class="halo-arc" cx="84" cy="84" r="' + HALO_R + '"' +
-      ' stroke-dasharray="' + HALO_ARC + " " + (HALO_CIRC - HALO_ARC).toFixed(1) + '"/>' +
-      "</svg>";
+  let gwRaf = 0;
+  let gwSize = 0;
+  const gwSeats = [];      // one cell per plate: the band it carries, and where
+
+  const gwPathD = (size, radius) => {
+    const p = GW_PAD, s = size, r = Math.min(radius, s / 2);
+    const inner = p + r, far = p + s - r, mid = p + s / 2;
+    // starts at the top of the plate and runs clockwise, which is the way the
+    // clip sweeps: the arrows then travel the way they point
+    return "M" + mid + "," + p +
+      " H" + far + " A" + r + "," + r + " 0 0 1 " + (p + s) + "," + inner +
+      " V" + far + " A" + r + "," + r + " 0 0 1 " + far + "," + (p + s) +
+      " H" + inner + " A" + r + "," + r + " 0 0 1 " + p + "," + far +
+      " V" + inner + " A" + r + "," + r + " 0 0 1 " + inner + "," + p +
+      " H" + mid + " Z";
+  };
+
+  // one chevron, bevelled: a dark underside sitting a shade lower, the red face
+  // over it, a lit top edge. That is what reads as a solid rather than a shape
+  const GW_ARROW =
+    '<path class="h-under" transform="translate(0,2.5)" d="M11,0 L-7,-9.5 L-1.5,0 L-7,9.5 Z"/>' +
+    '<path class="h-face" d="M11,0 L-7,-9.5 L-1.5,0 L-7,9.5 Z"/>' +
+    '<path class="h-lit" d="M11,0 L-7,-9.5 L-1.5,0"/>';
+
+  function gwBuild() {
+    const NS = "http://www.w3.org/2000/svg";
+    gwSeats.length = 0;
+    document.querySelectorAll(".atile").forEach((tile) => {
+      const stale = tile.querySelector(".gw");
+      if (stale) stale.remove();
+      const size = tile.offsetWidth || 132;
+      gwSize = size;
+      const radius = parseFloat(getComputedStyle(tile).borderTopLeftRadius) || size * 0.25;
+      const d = gwPathD(size, radius);
+      const box = size + GW_PAD * 2;
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("class", "gw");
+      svg.setAttribute("viewBox", "0 0 " + box + " " + box);
+      svg.setAttribute("aria-hidden", "true");
+      const stroke = (cls) => {
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("class", cls);
+        p.setAttribute("d", d);
+        // the clock is a fraction of the edge, not a number of pixels, so the
+        // dash maths is the same on a 92px plate as on a 168px one
+        p.setAttribute("pathLength", "100");
+        svg.appendChild(p);
+        return p;
+      };
+      const under = stroke("gw-under");
+      const band = stroke("gw-band");
+      const lit = stroke("gw-lit");
+      const heads = [];
+      for (let i = 0; i < GW_HEADS; i++) {
+        const g = document.createElementNS(NS, "g");
+        g.setAttribute("class", "gw-head");
+        g.innerHTML = GW_ARROW;
+        svg.appendChild(g);
+        heads.push(g);
+      }
+      tile.appendChild(svg);
+      gwSeats.push({ card: tile.closest(".pcard"), svg, band, under, lit, heads,
+        len: band.getTotalLength() });
+    });
+  }
+
+  // the plates are sized from --seat, so a window that changes it needs the
+  // band laid out again
+  function gwFit() {
+    const tile = document.querySelector(".atile");
+    if (tile && tile.offsetWidth && tile.offsetWidth !== gwSize) gwBuild();
   }
 
   /**
-   * The arc IS the clock. A view can arrive mid-turn, so the sweep is started
-   * part-way through rather than at the beginning: elapsed time is the window
-   * minus what is left on the deadline, and it is given as a negative delay so
-   * the arc picks up exactly where the turn already is.
+   * One clock for the whole table, read off the server's deadline rather than
+   * counted from zero, so a view that arrives mid-turn picks the sweep up
+   * exactly where the turn already is.
+   *
+   * The lit band starts as the whole edge and the arrows eat into it: at the
+   * open both edges sit on the head, and by the close the head has caught the
+   * tail up and there is nothing left. The band therefore always trails the
+   * arrows, which is what the clip does.
    */
-  function renderHalo() {
+  function gwTick() {
+    gwRaf = 0;
     const view = state.view;
-    const TOTAL = 10_000; // the server's throw window, in ms
-    const left = view && view.deadlineAt
-      ? Math.max(0, new Date(view.deadlineAt).getTime() - serverNow())
-      : TOTAL;
-    const elapsed = Math.max(0, TOTAL - left);
+    const live = !!view && view.phase === "playing" && !!view.deadlineAt;
+    const left = live ? Math.max(0, new Date(view.deadlineAt).getTime() - serverNow()) : 0;
+    const t = live ? Math.min(1, Math.max(0, 1 - left / GW_TOTAL)) : 0;
 
-    document.querySelectorAll(".pcard").forEach((card) => {
-      if (!view || view.phase !== "playing" || !card.classList.contains("is-active")) return;
-      const arc = card.querySelector(".halo-arc");
-      if (!arc) return;
-      // the circle takes the seat's own colour, so it matches that plate's ring
-      const tile = card.querySelector(".atile");
-      const ring = tile ? getComputedStyle(tile).getPropertyValue("--ring").trim() : "";
-      if (ring) arc.style.stroke = ring;
-      // restart from scratch, or the next turn inherits the last one's finish
-      arc.style.animation = "none";
-      void arc.getBoundingClientRect();
-      arc.style.animation = "";
-      arc.style.animationDuration = TOTAL + "ms";
-      arc.style.animationDelay = (-elapsed) + "ms";
+    gwSeats.forEach((cell) => {
+      if (!live || !cell.card || !cell.card.classList.contains("is-active")) return;
+      const litPct = 100 * (1 - t);
+      const dash = litPct.toFixed(2) + " " + Math.max(0.02, 100 - litPct).toFixed(2);
+      const offset = (100 - 200 * t).toFixed(2);
+      [cell.under, cell.band, cell.lit].forEach((p) => {
+        p.style.strokeDasharray = dash;
+        p.style.strokeDashoffset = offset;
+      });
+      cell.heads.forEach((g, i) => {
+        const at = (t * cell.len - i * GW_GAP + cell.len * 2) % cell.len;
+        const p = cell.band.getPointAtLength(at);
+        // step along the edge to read the heading; wrap at the seam so the last
+        // pixel of the lap does not point back the way it came
+        const q = cell.band.getPointAtLength((at + (at > cell.len - 2 ? -2 : 2) + cell.len) % cell.len);
+        const ang = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
+        g.setAttribute("transform", "translate(" + p.x + "," + p.y + ") rotate(" + ang + ")");
+      });
     });
+
+    if (live && t < 1) gwRaf = requestAnimationFrame(gwTick);
+  }
+
+  function renderGw() {
+    if (!gwRaf) gwRaf = requestAnimationFrame(gwTick);
   }
 
   /* --- controls ------------------------------------------------------------ */
@@ -1248,7 +1343,7 @@
       phase: finished ? "round_end" : "playing",
       activePlayerId: finished ? null : "me",
       direction: 1, namedColor: null, board, drawCount: 63,
-      deadlineAt: new Date(Date.now() + (finished ? 7000 : 54000)).toISOString(),
+      deadlineAt: new Date(Date.now() + (finished ? 7000 : GW_TOTAL)).toISOString(),
       seats,
       you: {
         playerId: "me", seat: 0, hand, legal,
@@ -1305,10 +1400,8 @@
     $("seat-me").querySelector("[data-name]").textContent = state.profile.name || "You";
   });
 
-  // every plate gets the circle; only the one on the clock shows it
-  document.querySelectorAll(".atile").forEach((tile) => {
-    tile.insertAdjacentHTML("beforeend", haloMarkup());
-  });
+  // every plate gets the band; only the one on the clock shows it
+  gwBuild();
 
   fit();
   if (OFFLINE) runDemo();
