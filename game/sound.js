@@ -107,3 +107,17 @@ function playTimerTickSound(isUrgent = false) {
   const durTime = isUrgent ? 0.04 : 0.02;
   note(pitch, durTime, 'triangle', gainVolume, 0, pitch - 180);
 }
+
+/**
+ * The colour wheel opening.
+ *
+ * A four-note climb that rises with the wheel as it twists open, so the choice
+ * arrives with a bit of ceremony rather than as a silent menu.
+ */
+function playColorWheelOpenSound() {
+  if (soundMuted) return;
+  note(350, 0.10, 'sine', 0.05, 0.00, 450);
+  note(450, 0.10, 'sine', 0.05, 0.06, 550);
+  note(550, 0.10, 'sine', 0.05, 0.12, 700);
+  note(700, 0.18, 'sine', 0.07, 0.18, 1100);
+}

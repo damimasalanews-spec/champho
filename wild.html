@@ -88,6 +88,19 @@
         <div class="chat-bubble-trigger" id="chat-trigger" role="button" tabindex="0" aria-label="Chat">💬</div>
     </div>
 
+    <!-- The wild colour wheel. Deliberately OUTSIDE .game-table: the table carries
+         perspective, and a perspective ancestor becomes the containing block for a
+         fixed-position child, which would anchor this overlay to the table rather
+         than to the viewport. -->
+    <div id="wild-color-picker" class="color-picker-overlay">
+        <div class="color-wheel-rig" role="group" aria-label="Choose a colour">
+            <div class="color-quadrant quad-red" data-color="RED" role="button" tabindex="0" aria-label="Red"></div>
+            <div class="color-quadrant quad-blue" data-color="BLUE" role="button" tabindex="0" aria-label="Blue"></div>
+            <div class="color-quadrant quad-yellow" data-color="YELLOW" role="button" tabindex="0" aria-label="Yellow"></div>
+            <div class="color-quadrant quad-green" data-color="GREEN" role="button" tabindex="0" aria-label="Green"></div>
+        </div>
+    </div>
+
     <!-- Script Execution Pipelines -->
     <script src="game/sound.js"></script>
     <script>
@@ -205,6 +218,10 @@
             if (cardData.value === 'W') {
                 playWildCardSound();
                 triggerScreenFlash('effect-wild');
+                // A wild has no colour of its own. Hold the card that has just landed
+                // so the wheel can colour it, then open the wheel.
+                awaitingWildCard = placedCard;
+                presentColorPickerWheel();
             } else if (cardData.value === 'S') {
                 playSkipCardSound();
                 triggerScreenFlash('effect-skip');
@@ -409,9 +426,72 @@
             });
         }
 
+        // ---- the wild colour wheel --------------------------------------------
+        // Four quadrants, one choice, and the choice does not travel anywhere: this
+        // page has no socket, so declaring a colour re-tints the wild card that is
+        // already on the pile, which is what a declared colour looks like on the
+        // table. The networked client is the one that sends the intent.
+        let awaitingWildCard = null;
+
+        const WILD_COLOURS = ['red', 'blue', 'yellow', 'green'];
+
+        function presentColorPickerWheel() {
+            const wheel = document.getElementById('wild-color-picker');
+            if (!wheel) return;
+            wheel.classList.add('visible');
+            if (typeof playColorWheelOpenSound === 'function') playColorWheelOpenSound();
+        }
+
+        function concealColorPickerWheel() {
+            const wheel = document.getElementById('wild-color-picker');
+            if (wheel) wheel.classList.remove('visible');
+        }
+
+        function declareWildColor(chosenColour) {
+            // Only the four known colours may become a class name on the card.
+            const picked = String(chosenColour || '').toLowerCase();
+            if (WILD_COLOURS.indexOf(picked) === -1) return;
+
+            if (typeof playCardSlamSound === 'function') playCardSlamSound();
+
+            if (awaitingWildCard) {
+                WILD_COLOURS.forEach((colour) => awaitingWildCard.classList.remove(colour));
+                awaitingWildCard.classList.add(picked);
+                awaitingWildCard = null;
+            }
+
+            concealColorPickerWheel();
+        }
+
+        function wireColorWheel() {
+            const wheel = document.getElementById('wild-color-picker');
+            if (!wheel) return;
+
+            wheel.querySelectorAll('.color-quadrant').forEach((quadrant) => {
+                const choose = () => declareWildColor(quadrant.getAttribute('data-color'));
+                quadrant.addEventListener('click', choose);
+                quadrant.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        choose();
+                    }
+                });
+            });
+
+            // A modal that cannot be left is a trap: the backdrop and Escape both
+            // dismiss it without declaring anything.
+            wheel.addEventListener('click', (event) => {
+                if (event.target === wheel) concealColorPickerWheel();
+            });
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && wheel.classList.contains('visible')) concealColorPickerWheel();
+            });
+        }
+
         // Automatically auto-boot sequence triggers on window load
         window.addEventListener('DOMContentLoaded', () => {
             wireChat();
+            wireColorWheel();
             initializeArcadeMatchTimer(149);   // 02:29
             // Initiates full simulated arcade dealing engine sequence matching layout blueprints
             setTimeout(() => {
