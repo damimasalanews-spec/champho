@@ -562,8 +562,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
       // Down to one card without a call: anyone may catch it, and the penalty is
       // two cards. Bots are included — they do call, so the window to catch one
       // is the moment between its throw and its call.
+      // Only while the round is live: once it is won there is nothing left to
+      // catch, and the button would sit under the result panel.
       const catchBtn = el.querySelector(".catch");
-      if (seat.handCount === 1 && !seat.saidUno) {
+      if (view.phase === "playing" && seat.handCount === 1 && !seat.saidUno) {
         catchBtn.classList.add("on");
         catchBtn.onclick = () => catchUno(seat.playerId);
       }
