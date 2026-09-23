@@ -711,6 +711,8 @@
   }
 
   window.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
+  // a key is also a gesture: the keyboard path must not stay silent
+  window.addEventListener("keydown", unlockAudio, { once: true });
 
   /* --- effects, drawn with the classic stylesheet's own classes ------------ */
   const fxLayer = () => $("fx");
@@ -912,6 +914,8 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "tile " + colorClass(card);
+      // the card's own id, so a flight can be matched back to the tile it left
+      btn.dataset.cardId = card.cardId;
       if (canThrow && legal.has(card.cardId)) btn.classList.add("playable");
       if (view.you.drawnCardId === card.cardId) btn.classList.add("drawn");
       if (state.pendingWild && state.pendingWild.cardId === card.cardId) btn.classList.add("picked");
@@ -1000,6 +1004,7 @@
         const back = shown.length - 1 - i;
         const el = document.createElement("div");
         el.className = "boardCard " + colorClass(card);
+        el.dataset.cardId = card.cardId;
         el.textContent = faceOf(card).glyph;
         el.style.transform = "rotate(" + (back * 5 - 5) + "deg) translate(" + (back * 12) + "px," + (back * -5) + "px)";
         el.style.zIndex = String(10 + i);
@@ -1177,15 +1182,16 @@
   function throwCard(card) {
     if (!myTurn()) {
       toast("Not your turn");
-      sfx.note(180, 0.12, "sawtooth", 0.04);
+      badActionFeedback();
       return;
     }
 
     if (card.kind === "wild" || card.kind === "wild4") {
-      state.pendingWild = state.pendingWild && state.pendingWild.cardId === card.cardId ? null : card;
+      const selecting = !(state.pendingWild && state.pendingWild.cardId === card.cardId);
+      state.pendingWild = selecting ? card : null;
       // arming and disarming a wild changes nothing on the board until a colour is
       // picked, so the two notes are what tells the player it took
-      sfx.note(state.pendingWild ? 720 : 260, 0.1, "triangle", 0.05);
+      sfx.note(selecting ? 720 : 260, 0.1, "triangle", 0.05);
       renderHand();
       renderControls();
       return;
@@ -1207,7 +1213,11 @@
   function drawCard() { sfx.whoosh(0.18, 0.04); action("draw_card"); }
   function passTurn() { action("pass_turn"); }
   function callUno() {
-    sfx.note(990, 0.12, "triangle", 0.07);
+    showFxLabel("UNO!");
+    // a rising three-note call; note() takes a start offset, so these stack up
+    sfx.note(660, 0.12, "triangle", 0.07);
+    sfx.note(990, 0.18, "triangle", 0.07, 0.1);
+    sfx.note(1320, 0.22, "triangle", 0.06, 0.22);
     action("call_uno");
     toast("UNO!");
   }
@@ -1229,8 +1239,138 @@
      Server messages
      ====================================================================== */
 
+  /* ----------------------------------------------------------------------
+     Card flights — a card leaves the hand (or a rival's plate) and lands on
+     the board, or comes off the deck into the hand. Everything below works in
+     measured page pixels: the board is a scaled stage, so a card in flight is
+     positioned absolutely rather than inside it.
+     ---------------------------------------------------------------------- */
+
+  function rectOfElement(element) {
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  /** Where a player sits on *this* viewer's screen, as a plate to fly a card from. */
+  function seatOriginRect(view, playerId) {
+    if (!view || !playerId) return null;
+    const seatIndex = view.seats.findIndex((seat) => seat.playerId === playerId);
+    if (seatIndex < 0) return null;
+    const relativeSeat = (seatIndex - view.you.seat + view.seats.length) % view.seats.length;
+    const host = relativeSeat === 0 ? $("seat-me") : $("seat-" + SEAT_SLOTS[relativeSeat - 1]);
+    return rectOfElement(host?.querySelector(".atile"));
+  }
+
+  /** A throwaway copy of a card face, for the duration of one flight. */
+  function makeCardFlight(card) {
+    const face = faceOf(card);
+    const ghost = document.createElement("div");
+    ghost.className = "tile card-flight " + colorClass(card);
+    const glyph = document.createElement("span");
+    glyph.textContent = face.glyph;
+    ghost.appendChild(glyph);
+    if (face.label) {
+      const label = document.createElement("span");
+      label.className = "sub";
+      label.textContent = face.label;
+      ghost.appendChild(label);
+    }
+    if (card.kind === "letter") {
+      const corner = document.createElement("span");
+      corner.className = "corner";
+      corner.textContent = face.glyph;
+      ghost.appendChild(corner);
+    }
+    return ghost;
+  }
+
+  function makeDeckFlight() {
+    const ghost = document.createElement("div");
+    ghost.className = "card-flight deck-flight";
+    return ghost;
+  }
+
+  function animateFlight(ghost, from, to, rotate = 0) {
+    if (!ghost || !from || !to) return;
+    document.body.appendChild(ghost);
+    ghost.style.left = from.left + "px";
+    ghost.style.top = from.top + "px";
+    ghost.style.width = from.width + "px";
+    ghost.style.height = from.height + "px";
+    const fromCenterX = from.left + from.width / 2;
+    const fromCenterY = from.top + from.height / 2;
+    const toCenterX = to.left + to.width / 2;
+    const toCenterY = to.top + to.height / 2;
+    const dx = toCenterX - fromCenterX;
+    const dy = toCenterY - fromCenterY;
+    // the card changes size on the way: the rack is not the board
+    const scale = Math.min(1.35, Math.max(.55, to.width / from.width));
+    const keyframes = [
+      {
+        transform: "translate(0, 0) rotate(0deg) scale(1)"
+      },
+      {
+        transform:
+          `translate(${dx * .42}px, ${dy * .42}px) ` +
+          `rotate(${rotate * -.55}deg) scale(${scale * 1.08})`
+      },
+      {
+        transform:
+          `translate(${dx}px, ${dy}px) ` +
+          `rotate(${rotate}deg) scale(${scale})`
+      }
+    ];
+    const animation = ghost.animate(keyframes, {
+      duration: 480,
+      easing: "cubic-bezier(.2, .85, .3, 1)",
+      fill: "forwards"
+    });
+    sfx.whoosh(.24, .045);
+    animation.addEventListener("finish", () => ghost.remove());
+  }
+
+  /** A refused move: the hand shakes and buzzes, so a dead click is not silent. */
+  function badActionFeedback() {
+    const hand = $("tiles");
+    hand.classList.remove("hand-shake");
+    void hand.offsetWidth; // restart the animation on a repeated refusal
+    hand.classList.add("hand-shake");
+    sfx.note(170, 0.13, "sawtooth", 0.045);
+    setTimeout(() => {
+      hand.classList.remove("hand-shake");
+    }, 450);
+  }
+
+  /** The big centred announcement — UNO, and anything else worth shouting. */
+  function showFxLabel(text) {
+    const label = document.createElement("div");
+    label.className = "fx-label";
+    label.textContent = text;
+    document.body.appendChild(label);
+    setTimeout(() => label.remove(), 1000);
+  }
+
   function onView(view) {
     const before = state.view;
+    // the hand and deck as they were drawn, so a flight knows where to start
+    const beforeDom = before
+      ? {
+          hand: new Map(
+            [...document.querySelectorAll("#tiles [data-card-id]")].map((element) => [
+              element.dataset.cardId,
+              rectOfElement(element)
+            ])
+          ),
+          deck: rectOfElement($("deck"))
+        }
+      : null;
     state.view = view;
     state.roomId = view.roomId;
     state.deadline = view.deadlineAt ? new Date(view.deadlineAt).getTime() : null;
@@ -1240,16 +1380,52 @@
       panel.classList.remove("on");
       delete panel.dataset.paid;
     }
-    if (state.pendingWild && !view.you.hand.some((c) => c.cardId === state.pendingWild.cardId)) {
+    if (state.pendingWild && !view.you.hand.some((card) => card.cardId === state.pendingWild.cardId)) {
       state.pendingWild = null;
-    }
-    // a card landing on the board is worth a sound of its own
-    if (before && view.turnNumber !== before.turnNumber && view.board.length > before.board.length) {
-      sfx.note(392, 0.09, "triangle", 0.05);
     }
     render();
     renderResult();
     tickClock();
+    // the flights run after the board has been redrawn, so the landing card is
+    // measured where it actually finished up rather than where it used to be
+    requestAnimationFrame(() => {
+      if (!before || !beforeDom) return;
+
+      const boardGrew = view.board.length > before.board.length;
+      if (boardGrew) {
+        const playedCard = view.board[view.board.length - 1];
+        const boardCards = [...document.querySelectorAll("#boardPile .boardCard")];
+        const target = boardCards[boardCards.length - 1];
+        // my own throw flies from my hand; a rival's comes from their plate
+        const source =
+          beforeDom.hand.get(playedCard.cardId) ||
+          seatOriginRect(before, before.activePlayerId);
+        const targetRect = rectOfElement(target);
+        if (source && targetRect) {
+          animateFlight(
+            makeCardFlight(playedCard),
+            source,
+            targetRect,
+            playedCard.kind === "wild" || playedCard.kind === "wild4" ? 12 : -4
+          );
+        }
+        sfx.note(392, 0.09, "triangle", 0.05);
+      }
+
+      const oldHandIds = new Set(before.you.hand.map((card) => card.cardId));
+      const newCard = view.you.hand.find((card) => !oldHandIds.has(card.cardId));
+      const handGrew = view.you.hand.length > before.you.hand.length;
+      if (newCard && handGrew) {
+        const target = [...document.querySelectorAll("#tiles [data-card-id]")].find(
+          (element) => element.dataset.cardId === newCard.cardId
+        );
+        const sourceRect = beforeDom.deck;
+        const targetRect = rectOfElement(target);
+        if (sourceRect && targetRect) {
+          animateFlight(makeDeckFlight(), sourceRect, targetRect, -8);
+        }
+      }
+    });
   }
 
   function onEvent(msg) {
@@ -1302,8 +1478,15 @@
       case "round_view": onView(msg); break;
       case "event": onEvent(msg); break;
       case "action_result":
-        if (msg.status === "accepted") setStatus("");
-        else if (msg.reason) { toast(refusal(msg.reason)); setStatus(refusal(msg.reason), true); }
+        if (msg.status === "accepted") {
+          setStatus("");
+        } else if (msg.reason) {
+          // the server refused it: say so in words and shake the hand
+          const message = refusal(msg.reason);
+          badActionFeedback();
+          toast(message);
+          setStatus(message, true);
+        }
         break;
       case "round_refused":
         state.tableClosed = refusal(msg.reason);
