@@ -75,13 +75,47 @@ async function validateOrGetApplied(
   return true;
 }
 
-function isCanonicalMigrationSet(selectedMigrations: readonly Migration[]): boolean {
-  return selectedMigrations.length === migrations.length
-    && selectedMigrations.every(
-      (migration, index) =>
-        migration.version === migrations[index].version
-        && migration.name === migrations[index].name
-    );
+/**
+ * The highest migration the legacy-schema baseline covers.
+ *
+ * `baselineLegacyMigrations` records migrations as applied when it meets a
+ * database that was built before this runner existed. Such a database has the
+ * schema of these versions and nothing later, so the baseline must stop here.
+ * Anything above it has to actually run — otherwise a new migration would be
+ * recorded as applied on a database that never received it, and the missing
+ * columns would only show up much later as a runtime failure.
+ *
+ * Raising this constant is only correct together with a check in
+ * `hasLegacyProtocolSchema` that the legacy schema really does carry the
+ * artefacts of the newly covered version.
+ */
+export const LEGACY_BASELINE_VERSION = 6;
+
+function isCanonicalLegacySet(selectedMigrations: readonly Migration[]): boolean {
+  const canonical = migrations.filter((migration) => migration.version <= LEGACY_BASELINE_VERSION);
+
+    return selectedMigrations.length === canonical.length
+    && selectedMigrations.every((migration, index) => {
+      const expected = canonical[index];
+      return (
+        !!expected
+        && migration.version === expected.version
+        && migration.name === expected.name
+      );
+    });
+}
+
+/**
+ * The migrations the legacy baseline may record as applied, or null when the
+ * caller is not running the canonical set. Exported so the bound can be tested
+ * without a database: the failure it guards against is silent, and would only
+ * appear in production as missing columns.
+ */
+export function legacyBaselineSet(selectedMigrations: readonly Migration[]): Migration[] | null {
+  const baseline = selectedMigrations.filter(
+    (migration) => migration.version <= LEGACY_BASELINE_VERSION
+  );
+  return isCanonicalLegacySet(baseline) ? baseline : null;
 }
 
 async function hasLegacyProtocolSchema(client: PoolClient): Promise<boolean> {
@@ -178,7 +212,8 @@ async function baselineLegacyMigrations(
   client: PoolClient,
   selectedMigrations: readonly Migration[]
 ): Promise<void> {
-  if (!isCanonicalMigrationSet(selectedMigrations)) return;
+  const baseline = legacyBaselineSet(selectedMigrations);
+  if (!baseline) return;
 
   const result = await client.query<{ count: string }>(
     "SELECT COUNT(*)::text AS count FROM public.schema_migrations"
@@ -190,7 +225,7 @@ async function baselineLegacyMigrations(
   await client.query("BEGIN");
 
   try {
-    for (const migration of selectedMigrations) {
+    for (const migration of baseline) {
       await client.query(
         "INSERT INTO public.schema_migrations (version, name) VALUES ($1, $2)",
         [migration.version, migration.name]
