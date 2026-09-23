@@ -28,7 +28,7 @@ import { telemetry } from "./telemetry.js";
  * applying it twice, the turn clock, and paying the table when a round is won.
  */
 
-export const TURN_WINDOW_MS = 60_000;
+export const TURN_WINDOW_MS = 10_000;
 
 /** How long the board is left showing the reveal before the next round deals. */
 export const ROUND_END_PAUSE_MS = 8_000;

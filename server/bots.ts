@@ -249,7 +249,14 @@ export function planCardTurn(round: LoadedRound, seat: number): CardPlan {
   return { kind: "play", cardId: card.cardId, color: best };
 }
 
-/** How long a bot takes over its turn, from the personality's thinking range. */
-export function cardTurnDelayMs(personality: BotPersonality, random: () => number = Math.random): number {
-  return randomDelayInRange(BOT_TIMING[personality].thinking, random);
+/**
+ * How long a bot takes over its turn, from the personality's thinking range.
+ *
+ * A seat with no personality recorded is treated as a normal bot rather than
+ * throwing: this is called while arming a timer, so a throw here means no timer
+ * is ever armed and the table silently plays every turn down to the clock.
+ */
+export function cardTurnDelayMs(personality: BotPersonality | null | undefined, random: () => number = Math.random): number {
+  const timing = BOT_TIMING[personality as BotPersonality] ?? BOT_TIMING.normal;
+  return randomDelayInRange(timing.thinking, random);
 }
