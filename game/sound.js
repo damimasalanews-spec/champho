@@ -137,3 +137,15 @@ function playUnoDeclarationSound() {
   note(1046.50, 0.35, 'sine', 0.15, 0.15, 1200);
   whoosh(0.40, 0.06, 0.00, 1100);
 }
+
+/**
+ * A chat message arriving.
+ *
+ * Two tight high pulses: a woodblock knock that reads as "something new on the
+ * table" without pulling attention off the cards the way the UNO fanfare does.
+ */
+function playChatBubblePopSound() {
+  if (soundMuted) return;
+  note(880, 0.03, 'triangle', 0.06, 0.00, 900);
+  note(1200, 0.04, 'triangle', 0.05, 0.02, 1100);
+}

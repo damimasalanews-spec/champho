@@ -493,43 +493,76 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 /* The popover. There is no server behind this page, so the emotes are local: they
    float up from the trigger and play a note. It is a demo of the control, not a
    chat channel — the networked page is the one that actually sends anything. */
-.chat-popover {
+/* The chat tray. It REPLACES the popover that was here: this page already had one
+   chat control, and a second tray behind the same 💬 button would have given the
+   player two menus to open and one of them would have been wrong. The canned
+   messages are the new part; the emoji row underneath is the one already here. */
+.chat-picker-tray {
   position: absolute;
-  bottom: 88px;
-  left: 30px;
+  bottom: 85px;
+  left: 35px;
   z-index: 300;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 170px;
   padding: 10px;
-  background: rgba(0, 0, 0, .55);
-  border: 2px solid #fff;
+  background: rgba(0, 0, 0, .85);
+  backdrop-filter: blur(6px);
+  border: 3px solid #fff;
   border-radius: 18px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, .4);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .5);
   opacity: 0;
-  transform: translateY(8px) scale(.96);
+  transform: translateY(20px) scale(.85);
   pointer-events: none;
-  transition: opacity .18s ease, transform .18s cubic-bezier(.34, 1.56, .64, 1);
+  transition: opacity .25s cubic-bezier(.34, 1.56, .64, 1), transform .25s cubic-bezier(.34, 1.56, .64, 1);
 }
 
-.chat-popover.open {
+.chat-picker-tray.active-tray {
   opacity: 1;
   transform: translateY(0) scale(1);
   pointer-events: auto;
 }
 
-.chat-popover button {
-  width: 38px;
-  height: 38px;
-  font-size: 1.15rem;
+.chat-option-node {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1rem;
+  color: #fff;
+  background: rgba(255, 255, 255, .1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: background .15s ease, transform .1s ease;
+}
+
+.chat-option-node:hover,
+.chat-option-node:focus-visible {
+  background: linear-gradient(180deg, #ffe066 0%, #f39c12 100%);
+  color: #000;
+  transform: scale(1.05);
+  outline: none;
+}
+
+.chat-emoji-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.chat-emoji-row button {
+  height: 32px;
+  font-size: 1rem;
   background: linear-gradient(180deg, #ffe066 0%, #f5b041 100%);
   border: 2px solid #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: transform .15s cubic-bezier(.34, 1.56, .64, 1);
 }
 
-.chat-popover button:hover {
+.chat-emoji-row button:hover {
   transform: translateY(-2px) scale(1.08);
 }
 
@@ -741,4 +774,52 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
     transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0) rotate(var(--rot));
     opacity: 0;
   }
+}
+
+/* ==========================================================================
+   SPEECH BUBBLES
+
+   One bubble per seat, popped in over the avatar and gone again after 2.5s.
+   ========================================================================== */
+.speech-bubble-pop,
+.speech-bubble-local {
+  position: absolute;
+  padding: 8px 16px;
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 16px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: #000;
+  white-space: nowrap;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, .3);
+  z-index: 5000;
+  transform: scale(0);
+  animation: bubble-pop-in .3s cubic-bezier(.175, .885, .32, 1.275) forwards;
+}
+
+@keyframes bubble-pop-in {
+  0% { transform: scale(0) translateY(15px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+/* The top seat's bubble is centred with translateX(-50%) — and the brief gave it
+   that centring AND the pop animation, which cannot both win: the animation owns
+   `transform`, and with fill:forwards it keeps owning it after it ends, so the -50%
+   would never apply and the bubble would sit off-centre over Poker's avatar. The
+   top seat therefore gets its own keyframes that carry the centring through. */
+@keyframes bubble-pop-in-top {
+  0% { transform: translateX(-50%) scale(0) translateY(15px); }
+  100% { transform: translateX(-50%) scale(1) translateY(0); }
+}
+
+.opponent-left .speech-bubble-pop { top: 20px; left: 110px; }
+.opponent-top .speech-bubble-pop { top: 110px; left: 50%; animation-name: bubble-pop-in-top; }
+.opponent-right .speech-bubble-pop { top: 20px; right: 110px; }
+
+/* The local bubble hangs over the player's own shelf rather than over a seat. */
+.speech-bubble-local {
+  bottom: 130px;
+  left: 160px;
 }

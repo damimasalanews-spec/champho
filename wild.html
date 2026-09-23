@@ -75,15 +75,23 @@
         <!-- Chat. Local only: this page has no socket, so these float up and play a
              note instead of reaching anyone. The networked page is the one that
              actually sends a message. -->
-        <div class="chat-popover" id="chat-popover">
-            <button type="button">😀</button>
-            <button type="button">😂</button>
-            <button type="button">😮</button>
-            <button type="button">😎</button>
-            <button type="button">🔥</button>
-            <button type="button">👏</button>
-            <button type="button">😭</button>
-            <button type="button">🎉</button>
+        <!-- One tray, two groups: the canned messages above, the emoji that were
+             already on this page below. -->
+        <div class="chat-picker-tray" id="chat-selection-tray">
+            <div class="chat-option-node" data-msg="Hello! 👋" role="button" tabindex="0">Hello! 👋</div>
+            <div class="chat-option-node" data-msg="Good Game! 🌟" role="button" tabindex="0">Good Game! 🌟</div>
+            <div class="chat-option-node" data-msg="Oops! 🙈" role="button" tabindex="0">Oops! 🙈</div>
+            <div class="chat-option-node" data-msg="Hurry Up! ⏱️" role="button" tabindex="0">Hurry Up! ⏱️</div>
+            <div class="chat-emoji-row">
+                <button type="button">😀</button>
+                <button type="button">😂</button>
+                <button type="button">😮</button>
+                <button type="button">😎</button>
+                <button type="button">🔥</button>
+                <button type="button">👏</button>
+                <button type="button">😭</button>
+                <button type="button">🎉</button>
+            </div>
         </div>
         <div class="chat-bubble-trigger" id="chat-trigger" role="button" tabindex="0" aria-label="Chat">💬</div>
     </div>
@@ -395,16 +403,28 @@
         }
 
         // ---- chat -------------------------------------------------------------
-        // There is no socket in this page, so an emote floats up out of the trigger
-        // and plays a note. Nothing is sent anywhere; it demonstrates the control.
+        // There is no socket in this page, so nothing is sent anywhere. A canned
+        // message pops a speech bubble over the local shelf, and an emoji floats up
+        // out of the trigger. The networked client is the one that would transmit.
         function openChatInterface() {
-            const popover = document.getElementById('chat-popover');
+            const tray = document.getElementById('chat-selection-tray');
             const trigger = document.getElementById('chat-trigger');
-            if (!popover) return;
-            const nowOpen = popover.classList.toggle('open');
+            if (!tray) return;
+            const nowOpen = tray.classList.toggle('active-tray');
             if (trigger) {
                 trigger.classList.toggle('open', nowOpen);
                 trigger.setAttribute('aria-expanded', String(nowOpen));
+            }
+        }
+
+        function closeChatTray() {
+            const tray = document.getElementById('chat-selection-tray');
+            const trigger = document.getElementById('chat-trigger');
+            if (!tray || !tray.classList.contains('active-tray')) return;
+            tray.classList.remove('active-tray');
+            if (trigger) {
+                trigger.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
             }
         }
 
@@ -417,23 +437,82 @@
             setTimeout(() => flyer.remove(), 1500);
         }
 
+        // A bubble over the seat that said it, gone again after 2.5s.
+        //
+        // The local bubble is anchored to the table rather than to document.body:
+        // an absolutely positioned bubble in the body is measured against the
+        // initial containing block, and .game-table is a positioned 100vw/vh box on
+        // top of it — so anchoring there is the same box, stated on purpose.
+        function displayLiveSpeechBubbleHTML(targetSlotKey, chatStringText) {
+            const seatAnchors = {
+                left_enemy: document.getElementById('slot-opponent-left'),
+                top_enemy: document.getElementById('slot-opponent-top'),
+                right_enemy: document.getElementById('slot-opponent-right'),
+                local_player: document.querySelector('.game-table')
+            };
+
+            const anchor = seatAnchors[targetSlotKey];
+            if (!anchor) return;
+
+            const bubble = document.createElement('div');
+            bubble.className = targetSlotKey === 'local_player' ? 'speech-bubble-local' : 'speech-bubble-pop';
+            bubble.innerText = chatStringText;
+            anchor.appendChild(bubble);
+
+            if (typeof playChatBubblePopSound === 'function') playChatBubblePopSound();
+
+            setTimeout(() => {
+                bubble.style.transition = 'opacity .25s ease';
+                bubble.style.opacity = '0';
+                setTimeout(() => bubble.remove(), 250);
+            }, 2500);
+        }
+
         function wireChat() {
             const trigger = document.getElementById('chat-trigger');
-            const popover = document.getElementById('chat-popover');
-            if (!trigger || !popover) return;
+            const tray = document.getElementById('chat-selection-tray');
+            if (!trigger || !tray) return;
 
-            trigger.addEventListener('click', openChatInterface);
+            trigger.addEventListener('click', (event) => {
+                // stopPropagation, or the document-level sweep below closes the tray
+                // in the same click that opened it
+                event.stopPropagation();
+                openChatInterface();
+                if (typeof playCardRuffleSound === 'function') playCardRuffleSound();
+            });
             trigger.addEventListener('keydown', (event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault();
                     openChatInterface();
                 }
             });
-            popover.querySelectorAll('button').forEach((button) => {
-                button.addEventListener('click', () => {
-                    flyEmote(button.textContent.trim());
-                    openChatInterface();
+
+            tray.querySelectorAll('.chat-option-node').forEach((optionNode) => {
+                const send = () => {
+                    displayLiveSpeechBubbleHTML('local_player', optionNode.getAttribute('data-msg'));
+                    closeChatTray();
+                };
+                optionNode.addEventListener('click', (event) => { event.stopPropagation(); send(); });
+                optionNode.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        send();
+                    }
                 });
+            });
+
+            tray.querySelectorAll('.chat-emoji-row button').forEach((button) => {
+                button.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    flyEmote(button.textContent.trim());
+                    closeChatTray();
+                });
+            });
+
+            // clicking out onto the table closes it
+            document.addEventListener('click', closeChatTray);
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape') closeChatTray();
             });
         }
 
