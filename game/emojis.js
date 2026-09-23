@@ -189,13 +189,33 @@ function playRabbitEmote(targetIdx, id, quiet) {
   const emo = RABBIT_EMOTES.find((e) => e.id === id);
   const card = document.getElementById('card-' + targetIdx);
   if (!emo || !card) return;
-  const host = card.querySelector('.plate') || card;
-  const old = card.querySelector('.rb-stage');
+  const av = card.querySelector('.atile') || card;
+  const fx = document.getElementById('fx') || document.body;
+  /* one box per seat: a second emote replaces that seat's box, but other seats
+     keep theirs (the preview page plays several at once) */
+  const old = document.querySelector('#fx .rb-msg[data-seat="' + targetIdx + '"]');
   if (old) old.remove();
   const st = document.createElement('div');
-  st.className = 'rb-stage rb-' + emo.id;
-  st.innerHTML = rabbitSVG(emo.look) + '<span class="rb-name">' + emo.name + '</span>';
-  host.appendChild(st);
+  st.className = 'rb-msg rb-' + emo.id;
+  st.dataset.seat = targetIdx;
+  /* The box sits to the right of the avatar, so a seat on the right half of the
+     board has no room there - mirror it. Everything is placed off the avatar's
+     measured rect because the seat itself clips what hangs off it. */
+  const ar = av.getBoundingClientRect();
+  const fr = fx.getBoundingClientRect();
+  const cx = ar.left + ar.width / 2;
+  const flip = cx > window.innerWidth * 0.55;
+  if (flip) st.classList.add('flip');
+  const box = document.createElement('div');
+  box.className = 'box';
+  box.innerHTML = rabbitSVG(emo.look);
+  st.appendChild(box);
+  if (flip) st.style.right = Math.round(fr.width - (cx + 4)) + 'px';
+  else st.style.left = Math.round(cx - 4) + 'px';
+  /* bottom edge level with the upper third of the avatar, so the tail points at
+     its head and the box clears the HUD on the top seats */
+  st.style.bottom = Math.round(fr.height - (ar.top + ar.height * 0.62)) + 'px';
+  fx.appendChild(st);
   if (!quiet) emoThumb();
   if (EMO_SFX[emo.id]) EMO_SFX[emo.id]();
   clearTimeout(st._t);

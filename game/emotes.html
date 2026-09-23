@@ -30,6 +30,11 @@
     border:calc(var(--seat)*.06) solid #22d3ee;box-shadow:0 6px 16px rgba(0,0,0,.4)}
   .nm{font-size:14px;font-weight:900;color:#fff}
   .ln{font-size:11.5px;font-weight:700;color:#9fdcff;text-align:center;min-height:28px}
+  /* bigger art in the preview; every motion is a fraction of --rb-art, so this
+     is the same performance as in-game, just scaled up */
+  .cell .rb-msg{--rb-art:150px}
+  /* the bubble renders in a shared layer, same as in the game */
+  #fx{position:fixed;inset:0;pointer-events:none;z-index:35;overflow:visible}
   .tag{font-size:10px;font-weight:900;letter-spacing:.6px;color:#fbbf24}
 </style>
 </head>
@@ -46,6 +51,7 @@
   <div class="strip" id="strip"></div>
   <div class="seats" id="seats"></div>
 </div>
+<div id="fx"></div>
 <script src="sound.js"></script>
 <script src="emojis.js"></script>
 <script>
@@ -61,7 +67,7 @@
   });
 
   /* one real seat per emote, so the preview runs the production code path:
-     playRabbitEmote() -> .rb-stage -> 2s of keyframes -> removed */
+     playRabbitEmote() -> .rb-msg -> 2s of keyframes -> removed */
   RABBIT_EMOTES.forEach((e, i) => {
     const cell = document.createElement('div');
     cell.className = 'cell';
@@ -111,7 +117,7 @@
   if (idx >= 0) setTimeout(() => playRabbitEmote(idx, want), 120);
   if (at !== null) {
     const st = document.createElement('style');
-    st.textContent = '.rb-stage,.rb-stage svg.rb,.rb-stage .rb-name,.rb-stage svg.rb *' +
+    st.textContent = '.rb-msg,.rb-msg svg.rb,.rb-msg .rb-name,.rb-msg svg.rb *' +
       '{animation-play-state:paused !important;animation-delay:-' + at + 's !important}';
     document.head.appendChild(st);
   }

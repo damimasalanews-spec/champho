@@ -426,36 +426,48 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   45%{transform:rotate(7deg) scale(1.05)}70%{transform:rotate(-4deg) scale(1.01)}100%{transform:none}}
 
 /* ---------------- rabbit emotes (own art, 2s performance) ----------------
-   The artwork is SVG (emojis.js) so it looks the same on every device and does
-   not depend on a colour-emoji font. Sending one puts it on stage over the
-   recipient's avatar for exactly 2s: the wrapper handles the pop in and out,
-   the inner svg handles the expression's own motif. */
-/* the centring lives in the base rule, not only in the keyframes, so the stage
-   still sits correctly over the avatar when animations are disabled */
-.rb-stage{position:absolute;left:50%;top:50%;width:calc(var(--seat)*1.3);
-  transform:translate(-50%,-50%);pointer-events:none;z-index:12;
-  animation:rbStage 2s cubic-bezier(.2,.9,.3,1) forwards}
-@keyframes rbStage{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-10deg)}
-  9%{opacity:1;transform:translate(-50%,-50%) scale(1.12) rotate(3deg)}
-  15%{transform:translate(-50%,-50%) scale(.97) rotate(-1deg)}
-  21%,82%{opacity:1;transform:translate(-50%,-50%) scale(1)}
-  100%{opacity:0;transform:translate(-50%,-62%) scale(.86)}}
-.rb-stage svg.rb{display:block;width:100%;height:auto;overflow:visible;
-  filter:drop-shadow(0 6px 12px rgba(0,0,0,.5))}
+   A sent emote arrives in a white message box beside the avatar, the way the
+   chat and emote bubbles sit in the game this is modelled on: rounded box, thin
+   blue edge, drop shadow, and a tail that points back at the player it came
+   from. The performance plays inside the box for exactly 2s, then it clears.
+
+   --rb-art is the size of the artwork. Every motion below is written as a
+   fraction of it, so the performance stays identical when the box is scaled up
+   for a big screen (or for the preview page) instead of being tuned in raw px. */
+/* The box is positioned in the shared #fx layer rather than inside the seat:
+   .plate carries a drop-shadow filter, and a filter clips anything painted
+   outside its filter region - so a bubble beside the seat was never drawn.
+   left/right/bottom come from the avatar's measured rect (see emojis.js). */
+.rb-msg{--rb-art:54px;position:absolute;z-index:12;pointer-events:none;
+  animation:rbPop 2s cubic-bezier(.2,.9,.3,1) forwards}
+/* the tail is drawn by the outer element so the inner box can clip the art */
+.rb-msg::before{content:'';position:absolute;left:10px;bottom:-7px;width:14px;height:14px;
+  background:#ffffff;border-right:2px solid #cfe6f7;border-bottom:2px solid #cfe6f7;
+  border-radius:0 0 3px 0;transform:rotate(45deg)}
+/* seats on the right have no room on their right, so the box mirrors and the
+   tail moves to the other bottom corner */
+.rb-msg.flip::before{left:auto;right:10px;border-right:0;border-left:2px solid #cfe6f7;
+  border-radius:0 0 0 3px;transform:rotate(-45deg)}
+.rb-msg .box{background:#ffffff;border:2px solid #cfe6f7;border-radius:15px;
+  padding:13px 10px 9px;box-shadow:0 7px 16px rgba(6,26,48,.45);
+  display:grid;place-items:center;overflow:hidden}
+.rb-msg svg.rb{display:block;width:var(--rb-art);height:auto;overflow:visible}
+
+@keyframes rbPop{0%{opacity:0;transform:scale(.45) translateY(10px)}
+  11%{opacity:1;transform:scale(1.09) translateY(0)}
+  18%{transform:scale(.97)}
+  24%,84%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(.9) translateY(-8px)}}
+
 /* A CSS transform on an SVG child resolves about the canvas origin (0,0) unless
    told otherwise - which swung the hat and the mouth toward the corner instead
    of turning them in place. fill-box makes every part move about itself. */
-.rb-stage svg.rb g,.rb-stage svg.rb path,.rb-stage svg.rb circle,
-.rb-stage svg.rb ellipse,.rb-stage svg.rb rect{transform-box:fill-box;transform-origin:center}
-.rb-stage svg.rb .rb-hat{transform-origin:50% 100%}
-.rb-stage svg.rb .rb-ears{transform-origin:50% 100%}
-.rb-stage svg.rb .rb-wing{transform-origin:8% 50%}
-.rb-stage .rb-name{display:block;margin-top:1px;text-align:center;font-size:11px;font-weight:900;
-  letter-spacing:.5px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.8);
-  animation:rbName 2s ease forwards}
-@keyframes rbName{0%,14%{opacity:0;transform:translateY(4px)}30%,80%{opacity:1;transform:none}
-  100%{opacity:0;transform:translateY(-4px)}}
+.rb-msg svg.rb g,.rb-msg svg.rb path,.rb-msg svg.rb circle,
+.rb-msg svg.rb ellipse,.rb-msg svg.rb rect{transform-box:fill-box;transform-origin:center}
+.rb-msg svg.rb .rb-hat{transform-origin:50% 100%}
+.rb-msg svg.rb .rb-ears{transform-origin:50% 100%}
+.rb-msg svg.rb .rb-wing{transform-origin:8% 50%}
+.rb-msg svg.rb .rb-tongue{transform-origin:50% 0%}
 
 /* confident: thumps its chest three times while the hat tips and arms shake */
 .rb-confident svg.rb{animation:rbThump 2s ease-in-out}
@@ -477,24 +489,24 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 @keyframes rbLean{0%,100%{transform:rotate(0deg)}22%{transform:rotate(-5deg) translateX(-2%)}
   52%{transform:rotate(5deg) translateX(2%)}78%{transform:rotate(-2deg)}}
 .rb-suspicious .rb-pupil{animation:rbPeek 2s ease-in-out}
-@keyframes rbPeek{0%,100%{transform:translateX(0)}18%{transform:translateX(4.5px)}
-  48%{transform:translateX(-4.5px)}72%{transform:translateX(2.5px)}}
+@keyframes rbPeek{0%,100%{transform:translateX(0)}18%{transform:translateX(9%)}
+  48%{transform:translateX(-9%)}72%{transform:translateX(5%)}}
 
 /* laughing: bounces, mouth widens, the hat leaves the building */
 .rb-laughing svg.rb{animation:rbBounce 2s cubic-bezier(.3,1.5,.4,1)}
 @keyframes rbBounce{0%,100%{transform:none}
-  8%{transform:translateY(-14%) scale(1.05,.95)}16%{transform:translateY(0) scale(.96,1.04)}
-  28%{transform:translateY(-12%) scale(1.04,.96)}36%{transform:translateY(0) scale(.97,1.03)}
-  48%{transform:translateY(-10%)}58%{transform:translateY(0)}
-  70%{transform:translateY(-6%)}80%{transform:none}}
+  8%{transform:translateY(-11%) scale(1.05,.95)}16%{transform:translateY(0) scale(.96,1.04)}
+  28%{transform:translateY(-9%) scale(1.04,.96)}36%{transform:translateY(0) scale(.97,1.03)}
+  48%{transform:translateY(-7%)}58%{transform:translateY(0)}
+  70%{transform:translateY(-4%)}80%{transform:none}}
 .rb-laughing .rb-mouth{animation:rbMouthWide 2s ease-in-out}
 @keyframes rbMouthWide{0%,100%{transform:scale(1)}12%{transform:scale(1.18,1.3)}
   30%{transform:scale(.98,1.02)}46%{transform:scale(1.12,1.24)}66%{transform:scale(1)}}
 .rb-laughing .rb-hat{animation:rbHatFly 2s cubic-bezier(.3,.6,.5,1) forwards}
 @keyframes rbHatFly{0%{transform:translate(0,0) rotate(0deg);opacity:1}
-  26%{transform:translate(-6px,-16px) rotate(-24deg);opacity:1}
-  62%{transform:translate(4px,-30px) rotate(38deg);opacity:.85}
-  100%{transform:translate(12px,-42px) rotate(74deg);opacity:0}}
+  26%{transform:translate(calc(var(--rb-art) * -.14),calc(var(--rb-art) * -.34)) rotate(-24deg);opacity:1}
+  62%{transform:translate(calc(var(--rb-art) * .08),calc(var(--rb-art) * -.62)) rotate(38deg);opacity:.85}
+  100%{transform:translate(calc(var(--rb-art) * .24),calc(var(--rb-art) * -.9)) rotate(74deg);opacity:0}}
 .rb-laughing .rb-spark{animation:rbSparkPop 2s ease-out}
 @keyframes rbSparkPop{0%,10%{transform:scale(0) rotate(0deg);opacity:0}
   30%{transform:scale(1) rotate(60deg);opacity:1}46%{transform:scale(.4) rotate(120deg);opacity:.35}
@@ -516,16 +528,17 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 /* party: cakes slide up, confetti rains around it */
 .rb-party svg.rb{animation:rbPartyHop 2s ease-in-out}
 @keyframes rbPartyHop{0%,100%{transform:none}
-  12%{transform:translateY(-10%) rotate(-3deg)}26%{transform:translateY(0) rotate(0)}
-  44%{transform:translateY(-8%) rotate(3deg)}58%{transform:translateY(0)}
-  74%{transform:translateY(-5%)}86%{transform:none}}
+  12%{transform:translateY(-8%) rotate(-3deg)}26%{transform:translateY(0) rotate(0)}
+  44%{transform:translateY(-6%) rotate(3deg)}58%{transform:translateY(0)}
+  74%{transform:translateY(-4%)}86%{transform:none}}
 .rb-party .rb-cake-1{animation:rbCakeUp .5s cubic-bezier(.2,1.6,.4,1) .1s both}
 .rb-party .rb-cake-2{animation:rbCakeUp .5s cubic-bezier(.2,1.6,.4,1) .22s both}
-@keyframes rbCakeUp{from{transform:translateY(26px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes rbCakeUp{from{transform:translateY(calc(var(--rb-art) * .34));opacity:0}
+  to{transform:translateY(0);opacity:1}}
 .rb-party .rb-conf{animation:rbConfFall 2s cubic-bezier(.3,.6,.6,1) both}
-@keyframes rbConfFall{0%{transform:translateY(-14px) rotate(0deg);opacity:0}
-  14%{opacity:1}60%{transform:translateY(30px) rotate(200deg);opacity:1}
-  100%{transform:translateY(56px) rotate(400deg);opacity:0}}
+@keyframes rbConfFall{0%{transform:translateY(calc(var(--rb-art) * -.2)) rotate(0deg);opacity:0}
+  14%{opacity:1}60%{transform:translateY(calc(var(--rb-art) * .44)) rotate(200deg);opacity:1}
+  100%{transform:translateY(calc(var(--rb-art) * .8)) rotate(400deg);opacity:0}}
 .rb-party .rb-conf.c1,.rb-party .rb-conf.c4,.rb-party .rb-conf.c7{animation-delay:.12s}
 .rb-party .rb-conf.c2,.rb-party .rb-conf.c5,.rb-party .rb-conf.c8{animation-delay:.28s}
 .rb-party .rb-conf.c3,.rb-party .rb-conf.c6,.rb-party .rb-conf.c9{animation-delay:.44s}
@@ -533,21 +546,21 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 /* wide-eyed: stretches up like a startled cat, then settles */
 .rb-wide svg.rb{animation:rbStretch 2s cubic-bezier(.2,1.5,.4,1)}
 @keyframes rbStretch{0%,100%{transform:none}
-  16%{transform:translateY(-16%) scale(.86,1.18)}
+  16%{transform:translateY(-13%) scale(.86,1.18)}
   30%{transform:translateY(2%) scale(1.12,.9)}
   46%{transform:translateY(0) scale(.98,1.02)}
   66%{transform:translateY(-4%) scale(1.02,.98)}82%{transform:none}}
 .rb-wide .rb-pupil{animation:rbPin 2s ease-out}
 @keyframes rbPin{0%,100%{transform:scale(1)}18%{transform:scale(.42)}40%{transform:scale(.34)}
   70%{transform:scale(.5)}}
+.rb-wide .rb-ears{animation:rbEarUp 2s cubic-bezier(.2,1.5,.4,1)}
+@keyframes rbEarUp{0%,100%{transform:scaleY(1)}18%{transform:scaleY(1.16)}40%{transform:scaleY(.94)}
+  70%{transform:scaleY(1.04)}}
 
 /* tongue-out: tongue shoots out and waggles */
 .rb-tongue svg.rb{animation:rbJolt 2s ease-in-out}
 @keyframes rbJolt{0%,100%{transform:none}10%{transform:translateY(4%) scale(1.05,.95)}
   20%{transform:none}34%{transform:translateX(-2%)}50%{transform:translateX(2%)}66%{transform:none}}
-/* pivot at the top of the tongue so it extends out of the mouth rather than
-   growing in both directions */
-.rb-stage svg.rb .rb-tongue{transform-origin:50% 0%}
 .rb-tongue .rb-tongue{animation:rbWag 2s ease-in-out}
 @keyframes rbWag{0%,6%,100%{transform:scaleY(.55)}
   18%{transform:scaleY(1.15) rotate(0deg)}
@@ -555,6 +568,17 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   46%{transform:scaleY(1) rotate(-9deg)}
   60%{transform:scaleY(1) rotate(7deg)}
   76%{transform:scaleY(.9) rotate(0deg)}}
+
+/* sad: sags, a tear detaches and falls */
+.rb-sad svg.rb{animation:rbSag 2s ease-in-out}
+@keyframes rbSag{0%,100%{transform:none}16%{transform:translateY(5%) scale(1.03,.95)}
+  40%{transform:translateY(7%) scale(1.04,.93)}60%{transform:translateY(6%) scale(1.03,.94)}
+  84%{transform:translateY(3%)}}
+.rb-sad .rb-tear{animation:rbTear 2s ease-in forwards}
+@keyframes rbTear{0%,16%{transform:translateY(0) scale(.7);opacity:0}
+  26%{transform:translateY(0) scale(1);opacity:1}
+  62%{transform:translateY(calc(var(--rb-art) * .3)) scale(.9);opacity:.85}
+  86%,100%{transform:translateY(calc(var(--rb-art) * .56)) scale(.7);opacity:0}}
 
 /* the ears act too - they are most of this character's silhouette */
 .rb-confident .rb-ears{animation:rbEarSnap .5s ease-in-out 4}
@@ -570,27 +594,14 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 .rb-party .rb-ears{animation:rbEarWag 2s ease-in-out}
 @keyframes rbEarWag{0%,100%{transform:rotate(0)}20%{transform:rotate(-6deg)}40%{transform:rotate(5deg)}
   60%{transform:rotate(-5deg)}80%{transform:rotate(3deg)}}
-.rb-wide .rb-ears{animation:rbEarUp 2s cubic-bezier(.2,1.5,.4,1)}
-@keyframes rbEarUp{0%,100%{transform:scaleY(1)}18%{transform:scaleY(1.16)}40%{transform:scaleY(.94)}
-  70%{transform:scaleY(1.04)}}
 .rb-tongue .rb-ears{animation:rbEarTilt 2s ease-in-out}
 @keyframes rbEarTilt{0%,100%{transform:rotate(0)}30%{transform:rotate(7deg)}60%{transform:rotate(5deg)}}
 .rb-sad .rb-ears{animation:rbEarDroop 2s ease-in-out forwards}
 @keyframes rbEarDroop{0%{transform:rotate(0)}22%{transform:rotate(-7deg)}55%{transform:rotate(-11deg)}
   80%{transform:rotate(-9deg)}100%{transform:rotate(-4deg)}}
 
-/* sad: sags, a tear detaches and falls */
-.rb-sad svg.rb{animation:rbSag 2s ease-in-out}
-@keyframes rbSag{0%,100%{transform:none}16%{transform:translateY(5%) scale(1.03,.95)}
-  40%{transform:translateY(7%) scale(1.04,.93)}60%{transform:translateY(6%) scale(1.03,.94)}
-  84%{transform:translateY(3%)}}
-.rb-sad .rb-tear{animation:rbTear 2s ease-in forwards}
-@keyframes rbTear{0%,16%{transform:translateY(0) scale(.7);opacity:0}
-  26%{transform:translateY(0) scale(1);opacity:1}
-  62%{transform:translateY(16px) scale(.9);opacity:.85}
-  86%,100%{transform:translateY(30px) scale(.7);opacity:0}}
-
-/* the tray in the emote picker */
+/* the drawn set sits above the plain glyph reactions in the emote tray */
+#emojiPicker{width:264px}
 #emojiPicker .rb-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%;
   padding-bottom:8px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.18)}
 #emojiPicker .rb-btn{padding:3px;border-radius:10px;background:rgba(255,255,255,.08);
@@ -598,9 +609,7 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 #emojiPicker .rb-btn:active{transform:scale(.9)}
 #emojiPicker .rb-btn svg{width:34px;height:34px;display:block}
 #emojiPicker .rb-cap{grid-column:1/-1;font-size:10.5px;letter-spacing:.6px;color:#9fdcff;text-align:left}
-#emojiPicker{width:264px}
 
 @media (prefers-reduced-motion:reduce){
-  .rb-stage,.rb-stage svg.rb,.rb-stage .rb-name{animation-duration:2s !important}
-  .rb-stage svg.rb *{animation:none !important}
+  .rb-msg,.rb-msg svg.rb,.rb-msg svg.rb *{animation-duration:2s !important}
 }
