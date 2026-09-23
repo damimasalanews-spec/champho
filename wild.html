@@ -595,6 +595,108 @@
   margin-left: -52px;
   margin-top: -73px;
 }
+
+/* ===========================================================================
+   The card face — the arcade skin.
+
+   A card on this table is a piece of plastic: a thick white shell, a deep drop
+   onto the felt, a lit pill across the middle of the face, and lettering heavy
+   enough to read from across the room. That is what this block is.
+
+   WHY IT LIVES HERE AND NOT IN game/styles.css
+
+   The shared sheet is linked in <head>, so it comes *before* this block in
+   document order; the rules above already set .tile's size, radius, border and
+   shadow. A skin written in game/styles.css would tie on specificity and lose
+   the cascade to every one of them. Here it is last, so it wins without a single
+   !important.
+
+   WHY THE STATE SHADOWS SURVIVE
+
+   .tile carries four states that each own their shadow — playable (the gold
+   ring), drawn, picked, and the hover lift. Rather than restate them, the base
+   skin is scoped with :not() so it only paints an *idle* tile, and the lip and
+   the pill are drawn on the pseudo-elements, which no state ever touches. That
+   is the whole trick: adding a skin without touching a single state rule.
+   =========================================================================== */
+.tile:not(.playable):not(.drawn):not(.picked):not(:hover),
+.boardCard,
+.card-flight {
+  border: 4px solid #fff;
+  box-shadow: 0 8px 16px rgba(0,0,0,.35), 0 3px 0 rgba(0,0,0,.4);
+}
+
+/* the shell clips its own art, so the pill reads as printed inside the card */
+.tile,
+.boardCard,
+.card-flight {
+  overflow: hidden;
+}
+
+/* the lip: the inset lip and highlight that make plastic look like plastic */
+.tile::before,
+.boardCard::before,
+.card-flight:not(.deck-flight)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 -6px 10px rgba(0, 0, 0, .15),
+    inset 0 2px 0 rgba(255, 255, 255, .28);
+}
+
+/* the pill: the stylised oval across the face, bled past both edges so only its
+   middle shows — a shape to sit behind the glyph, not an ellipse on the card */
+.tile::after,
+.boardCard::after,
+.card-flight:not(.deck-flight)::after {
+  content: "";
+  position: absolute;
+  left: -12%;
+  top: 14%;
+  width: 124%;
+  height: 72%;
+  z-index: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .18);
+  transform: rotate(-25deg);
+  pointer-events: none;
+}
+
+/* The face. The outline is 2px, not the 3px of the 100x150 reference: these cards
+   are 96x132 with a 46px letter, and 3px at that size closes the counters on an
+   E or an A. 2px is the same weight the official deck uses at this proportion. */
+.tile > span:first-child,
+.card-flight > span:first-child,
+.boardCard {
+  position: relative;
+  z-index: 2;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000,
+    -2px 2px 0 #000, 2px 2px 0 #000,
+    3px 5px 0 rgba(0, 0, 0, .4);
+}
+
+/* the corner letter: same hand as the face, sat above the pill */
+.tile .corner,
+.card-flight .corner {
+  z-index: 3;
+  color: #fff;
+  opacity: 1;
+  text-shadow:
+    -1px -1px 0 #000, 1px -1px 0 #000,
+    -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+/* the word under an action card's glyph, on the same plane */
+.tile .sub,
+.card-flight .sub {
+  z-index: 3;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .75);
+}
 </style>
 </head>
 <body>
@@ -1057,13 +1159,18 @@
   /**
    * The gap between one card of the deal and the next.
    *
-   * This is the deal's whole tempo, so it is the one number to reach for. At 180ms
-   * a card lands nearly every fifth of a second, a seat is served every 720ms, and
-   * seven passes take 5.04s. Mind the turn window: GW_TOTAL is 10s, and this runs
-   * *inside* the first turn rather than before it, so half the first turn is spent
-   * watching the deal. 110-130ms still reads as a deal and costs half as much.
+   * This is the deal's whole tempo, so it is the one number to reach for. At 280ms
+   * a card lands nearly every third of a second, a seat is served every 1.12s, and
+   * the seven passes take 7.84s — the last card touches down at 8.32s.
+   *
+   * WATCH THE TURN WINDOW. GW_TOTAL is 10s and the deal runs *inside* the first
+   * turn rather than before it, so at 280ms the deal owns 8.3s of a 10s clock and a
+   * player who is first to act gets ~1.7s with a full hand. A card is revealed as
+   * its own flight lands, so the hand is clickable as it arrives rather than after
+   * it — that is what keeps turn one playable. If turn one starts timing out, this
+   * is the number to cut: 140ms still reads as a deliberate deal, in 3.9s.
    */
-  const DEAL_STEP_MS = 180;
+  const DEAL_STEP_MS = 280;
 
   /** How long a card stays in the air. animateFlight uses this too, so a card can
    *  never be revealed while its own ghost is still travelling. */
