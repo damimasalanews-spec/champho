@@ -16,7 +16,11 @@ ALTER TABLE public.game_rooms
   ADD COLUMN IF NOT EXISTS drawn_card_id  TEXT,
   ADD COLUMN IF NOT EXISTS buy_in         INTEGER NOT NULL DEFAULT 500,
   ADD COLUMN IF NOT EXISTS winner_seat    SMALLINT,
-  ADD COLUMN IF NOT EXISTS result         JSONB;
+  ADD COLUMN IF NOT EXISTS result         JSONB,
+  -- Which seats have said UNO on their current one-card hand, in seat order.
+  -- Short-lived by design: it only matters between a throw and the next seat's
+  -- turn, but it has to survive a reconnect to be catchable at all.
+  ADD COLUMN IF NOT EXISTS uno_said       JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 ALTER TABLE public.room_players
   ADD COLUMN IF NOT EXISTS word        TEXT,
@@ -71,6 +75,15 @@ BEGIN
   ) THEN
     ALTER TABLE public.game_rooms
       ADD CONSTRAINT game_rooms_winner_seat_chk CHECK (winner_seat IS NULL OR winner_seat >= 0);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'game_rooms_uno_said_array_chk'
+      AND conrelid = 'public.game_rooms'::regclass
+  ) THEN
+    ALTER TABLE public.game_rooms
+      ADD CONSTRAINT game_rooms_uno_said_array_chk CHECK (jsonb_typeof(uno_said) = 'array');
   END IF;
 
   IF NOT EXISTS (
