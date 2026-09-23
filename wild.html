@@ -205,6 +205,23 @@
 
 /* --- the deck, upper-left, as the reference places it --------------------- */
 .deck{left:362px;top:147px}
+
+/* --- measured on the live page, then corrected here ----------------------- */
+/* a plate that sizes itself to its contents collapsed to 68px on the right-hand
+   seat, letting half of that avatar hang outside its own box */
+.pcard{width:var(--seat)}
+/* the banner kept its own offset and sat off-centre under every tile */
+.pcard .nbanner{left:0;right:0;width:100%;transform:none;justify-content:center;box-sizing:border-box}
+/* the rotated corners of the outermost cards hung 15px past the stage and were
+   clipped by it */
+#tiles{bottom:34px}
+/* the panel reached left across the hand, so the calls painted over the last
+   card. Wrapping the colour picker makes the panel narrow enough to sit clear of
+   the fan, which is where the reference keeps its CALL UNO. */
+#bottomPanel{right:30px;bottom:30px;max-width:300px}
+#picker{flex-wrap:wrap;justify-content:flex-end;max-width:264px}
+.picker-cap{width:100%;text-align:right}
+.swatch{width:46px;height:34px}
 </style>
 </head>
 <body>
