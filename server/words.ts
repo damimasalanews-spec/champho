@@ -104,8 +104,15 @@ export function selectCardsForWord(hand: Card[], word: string): string[] | null 
   return cardIds;
 }
 
-/** Human-readable name for a bot seat. */
-const BOT_NAMES = ["Aiko", "Kai", "Mina", "Rex", "Luna", "Jax", "Panda", "Fox"];
+/**
+ * Human-readable name for a bot seat, in table order.
+ *
+ * The names are handed out by seat number, and the seats are laid out around the
+ * table in that same order, so this list is the order the turn visits the bots:
+ * seat 1 is Aiko, seat 2 the next name, and so on. It reads Aiko, Mina, Kai down
+ * the table.
+ */
+const BOT_NAMES = ["Aiko", "Mina", "Kai", "Rex", "Luna", "Jax", "Panda", "Fox"];
 export function botDisplayName(index: number): string {
   return BOT_NAMES[index % BOT_NAMES.length] as string;
 }

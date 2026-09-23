@@ -95,6 +95,20 @@ test("the card table is served and can reach the server", async () => {
   assert.doesNotMatch(wild.text, new RegExp(LEGACY_MARKER));
 });
 
+test("the card table walks its seats in the order they sit around the table", async () => {
+  const wild = await get("/wild.html");
+
+  // The plates are laid out near-left (the viewer), left, far, right. The seat
+  // ring has to be listed in that same order, because it decides both where each
+  // player is drawn and which plate the turn moves to next. Listed in any other
+  // order the highlight hops across the table instead of walking it.
+  assert.match(
+    wild.text,
+    /const SEAT_SLOTS = \["left", "top", "right"\];/,
+    "the seat ring must run clockwise: left, far, right"
+  );
+});
+
 test("the legacy address still resolves to the home page", async () => {
   const root = await get("/");
   const legacy = await get("/legacy.html");

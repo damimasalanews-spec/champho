@@ -360,7 +360,11 @@ export async function startCardRound(roomId: string): Promise<RoundOutcomeForCli
       }
     }
 
-    const dealt = startRound(seats.length);
+    // Who opens is drawn per round rather than fixed on seat 0, so the same seat
+    // does not lead every deal. From there the turn walks the table in seat order,
+    // which is the order the plates are laid out in around it.
+    const firstSeat = Math.floor(Math.random() * seats.length);
+    const dealt = startRound(seats.length, firstSeat);
     const round: LoadedRound = {
       ...dealt,
       seats: seats.map((seat) => seat.player_id)

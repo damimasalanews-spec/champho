@@ -53,6 +53,53 @@ test("a round opens on a letter, with every seat holding a word", () => {
   assert.equal(new Set(round.words).size, 4, "no word is dealt twice");
 });
 
+test("the round opens on the seat it is dealt, and the ring walks the table from there", () => {
+  const round = startRound(4, 2);
+  assert.equal(round.activeSeat, 2, "the round opens on the seat the deal drew");
+
+  // Passing steps one seat along, so four passes must visit every seat in order
+  // and land back on the opener. This is the sequence the table shows, and a seat
+  // order that is not walked in sequence is what reads as the turn jumping.
+  let walking = round;
+  const visited = [walking.activeSeat];
+  for (let step = 0; step < 4; step += 1) {
+    const out = pass(walking, walking.activeSeat);
+    assert.equal(out.ok, true);
+    walking = out.state;
+    visited.push(walking.activeSeat);
+  }
+  assert.deepEqual(visited, [2, 3, 0, 1, 2], "the turn walks seat order and comes back round");
+
+  // The dealer names a random seat, so an out-of-range index must wrap rather
+  // than throw: the caller is not expected to have taken the modulo itself.
+  assert.equal(startRound(4, 5).activeSeat, 1);
+  assert.equal(startRound(4, -1).activeSeat, 3);
+  assert.equal(startRound(4).activeSeat, 0, "a fixture can still open on a known seat");
+});
+
+test("Reverse sends the turn back the way it came, and Skip steps over one seat", () => {
+  const reverseHand = [card("reverse", "red", "reverse"), ...filler(1)];
+  const backwards = playCard(
+    state({ hands: [[], [], reverseHand, []], activeSeat: 2, board: [card("letter", "red", "a")] }),
+    2,
+    (reverseHand[0] as Card).cardId
+  );
+  assert.equal(backwards.ok, true);
+  assert.equal(backwards.state.direction, -1);
+  assert.equal(backwards.state.activeSeat, 1, "the seat before the thrower plays again");
+
+  const skipHand = [card("skip", "red", "skip"), ...filler(1)];
+  const forwards = playCard(
+    state({ hands: [[], skipHand, [], []], activeSeat: 1, board: [card("letter", "red", "a")] }),
+    1,
+    (skipHand[0] as Card).cardId
+  );
+  assert.equal(forwards.ok, true);
+  assert.equal(forwards.state.direction, 1, "a Skip does not turn the table around");
+  assert.equal(forwards.state.activeSeat, 3, "the seat after the skipped one plays next");
+  assert.ok(forwards.events.some((e) => e.type === "skipped" && e.seat === 2));
+});
+
 test("a throw is refused unless it is your turn, your card, and a legal match", () => {
   const round = state({
     hands: [

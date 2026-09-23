@@ -133,10 +133,16 @@ function draw(state: RoundState, seat: number, count: number): number {
 /**
  * A new round: the words are chosen, the hands are dealt from them, and the
  * board opens on a letter so the first seat has something to match.
+ *
+ * `firstSeat` is who opens the round. The caller passes the seat the deal drew,
+ * which is a different seat each round so that no seat is permanently first; the
+ * turn then walks the table in seat order from there. It defaults to seat 0 so a
+ * fixture can open a round on a known seat and assert on it.
  */
-export function startRound(seatCount: number): RoundState {
+export function startRound(seatCount: number, firstSeat = 0): RoundState {
   const deal = dealRound(seatCount);
   const opened = openBoard(deal.drawPile);
+  const activeSeat = seatCount > 0 ? ((Math.trunc(firstSeat) % seatCount) + seatCount) % seatCount : 0;
 
   return {
     hands: deal.hands,
@@ -145,7 +151,7 @@ export function startRound(seatCount: number): RoundState {
     drawPile: opened.drawPile,
     named: null,
     direction: 1,
-    activeSeat: 0,
+    activeSeat,
     drawnCardId: null,
     unoSaid: deal.hands.map(() => false),
     finished: false,

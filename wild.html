@@ -405,7 +405,17 @@
   "use strict";
   const $ = (id) => document.getElementById(id);
   const COLORS = ["red", "yellow", "green", "blue"];
-  const SEAT_SLOTS = ["left", "right", "top"];
+  /**
+   * The rival plates in the order the turn walks them, which is the order they
+   * sit around the table: the viewer's own plate is at the near-left, then the
+   * left plate, then the far one, then the right one, and back.
+   *
+   * This array is the seat ring as the player sees it, so it has to run clockwise
+   * — `seat-left`, `seat-top`, `seat-right`. Listing them in any other order makes
+   * the turn highlight hop across the table (left, right, far, back) instead of
+   * walking it, which reads as the turn jumping from one player to another.
+   */
+  const SEAT_SLOTS = ["left", "top", "right"];
   const PLACEHOLDER = "—";
 
   /* --- stage scaling: the only place the viewport is ever read ------------- */
@@ -528,9 +538,12 @@
   }
 
   function emoteBubble(emoji, playerId) {
+    const view = state.view;
     const seat = seatOfPlayer(playerId);
-    const slot = seat >= 0 ? SEAT_SLOTS[(seat - (state.view ? state.view.you.seat : 0) + 3) % 3] : null;
-    const host = slot ? $("seat-" + slot) : null;
+    const count = view ? view.seats.length : 0;
+    const rel = view && seat >= 0 && count > 0 ? (seat - view.you.seat + count) % count : 0;
+    // the same relative slot renderSeats uses, or the bubble lands on the wrong plate
+    const host = rel > 0 ? $("seat-" + SEAT_SLOTS[rel - 1]) : null;
     if (!host) { toast(emoji); return; }
     const bubble = document.createElement("div");
     bubble.className = "bubble show";
@@ -629,7 +642,11 @@
       el.querySelector(".atile").style.setProperty("--ring", ring);
       const banner = el.querySelector(".nbanner");
       banner.style.setProperty("--bnr", ["#0e7490", "#be185d", "#1d4ed8", "#b45309"][seat.seat % 4]);
-      banner.querySelector(".nbadge").textContent = String(seat.seat + 1);
+      // The badge is where the seat sits in the turn order *from this viewer*: 1
+      // throws after you, 2 after that, 3 last — so the plates read 1, 2, 3 as the
+      // turn walks them clockwise. The absolute seat number would read 2, 3, 4 and
+      // would not match the order the turn actually visits them in.
+      banner.querySelector(".nbadge").textContent = String(rel);
       el.querySelector(".aemoji").textContent = seat.isBot ? "🤖" : "🧑";
 
       const fan = el.querySelector("[data-fan]");
@@ -1323,8 +1340,8 @@
     const seats = [
       { playerId: "me", seat: 0, displayName: "You", connected: true, isBot: false, handCount: finished ? 0 : 7, saidUno: false, score: 0, coins: finished ? 2000 : 500, isActive: !finished },
       { playerId: "b1", seat: 1, displayName: "Aiko", connected: true, isBot: true, handCount: 4, saidUno: false, score: 0, coins: 500, isActive: false },
-      { playerId: "b2", seat: 2, displayName: "Kai", connected: true, isBot: true, handCount: 1, saidUno: false, score: 0, coins: 500, isActive: false },
-      { playerId: "b3", seat: 3, displayName: "Mina", connected: true, isBot: true, handCount: 6, saidUno: false, score: 0, coins: 500, isActive: false }
+      { playerId: "b2", seat: 2, displayName: "Mina", connected: true, isBot: true, handCount: 1, saidUno: false, score: 0, coins: 500, isActive: false },
+      { playerId: "b3", seat: 3, displayName: "Kai", connected: true, isBot: true, handCount: 6, saidUno: false, score: 0, coins: 500, isActive: false }
     ];
     const board = [
       { cardId: "p1", value: "l", color: "red", kind: "letter" },
