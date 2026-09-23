@@ -150,6 +150,61 @@
 #status{position:absolute;left:0;right:0;top:74px;text-align:center;z-index:22;
   font-size:17px;font-weight:900;color:#bfe3ff;text-shadow:0 2px 8px rgba(0,0,0,.7)}
 #status.bad{color:#fecaca}
+
+/* ===========================================================================
+   The table, arranged as the reference screenshot arranges it.
+
+   Seats sit at the four points round the table — mid-left, far, mid-right and
+   near-left — each with the name banner under the tile, and each rival holds a
+   fanned face-down hand beside their own plate rather than in a list. The deck
+   sits upper-left, the pile on the centre of the board, and the viewer's own
+   hand is a fan along the bottom with the calls to its right.
+   =========================================================================== */
+.pcard.pos-tl{left:142px;top:196px}     /* mid-left seat */
+.pcard.pos-tr{left:1300px;top:170px}    /* mid-right seat */
+.pcard.pos-ml{left:590px;top:44px}      /* far seat */
+.pcard.pos-front{left:179px;top:632px;transform:none}  /* the viewer, near-left */
+/* every plate keeps its banner under the tile, so the four read as one family */
+.pcard .nbanner{left:50%;top:auto;bottom:calc(var(--seat)*-.22);transform:translateX(-50%)}
+
+/* --- a rival hand is a fan of card backs beside the plate ------------------ */
+.fan{position:absolute;left:calc(var(--seat)*.78);top:calc(var(--seat)*.34);
+  display:flex;align-items:flex-start;gap:0;z-index:4;pointer-events:none}
+.pcard.pos-tr .fan{left:auto;right:calc(var(--seat)*.78)}
+.pcard.pos-ml .fan{left:calc(var(--seat)*.96);top:calc(var(--seat)*.52)}
+.miniCard{width:34px;height:48px;flex:0 0 34px;margin-left:-20px;border-radius:5px;
+  border:2px solid rgba(255,255,255,.9);background:linear-gradient(160deg,#1b5a9e,#0a3160);
+  box-shadow:0 4px 8px rgba(0,0,0,.45);transform-origin:50% 130%;
+  transform:rotate(var(--rot,0deg)) translateY(var(--dy,0px))}
+.fanCount{margin-left:10px;font-size:13px;font-weight:900;color:#fff;
+  background:rgba(6,33,63,.8);border:1px solid rgba(125,211,252,.6);border-radius:999px;padding:1px 9px;
+  align-self:flex-start}
+.catch{position:absolute;right:calc(var(--seat)*-.16);top:calc(var(--seat)*.52);
+  width:36px;height:36px;border-radius:50%;border:2px solid #fff;font-size:18px;font-weight:900;
+  background:linear-gradient(#ff6b6b,#b81313);box-shadow:0 4px 10px rgba(0,0,0,.5);display:none}
+
+/* --- the viewer's hand: a fan along the bottom ---------------------------- */
+#tiles{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+  display:flex;align-items:flex-end;gap:0;min-height:0;z-index:30}
+.tile{width:96px;height:132px;font-size:46px;margin-left:-36px;border-radius:13px;
+  transform-origin:50% 165%;transform:rotate(var(--rot,0deg)) translateY(var(--dy,0px));
+  transition:transform .1s}
+.tile:first-child{margin-left:0}
+.tile:hover:not(:disabled),.tile.picked{transform:rotate(var(--rot,0deg)) translateY(calc(var(--dy,0px) - 18px)) scale(1.05)}
+.tile .corner{left:9px;top:7px;font-size:15px}
+.tile .sub{bottom:9px;font-size:11px}
+
+/* --- the calls, to the right of the hand, as the reference has them -------- */
+#bottomPanel{left:auto;right:34px;bottom:26px;width:auto;display:flex;
+  flex-direction:column;align-items:flex-end;gap:10px}
+#panelBtns{display:flex;gap:10px}
+#unoBtn{border-radius:999px;font-size:19px;font-style:italic;padding:16px 34px;
+  background:radial-gradient(circle at 50% 32%,#ff7b7b,#c81e1e 70%);border-color:#fff;
+  box-shadow:0 7px 0 #7c0f0f, 0 12px 26px rgba(0,0,0,.5)}
+#passBtn{padding:16px 30px;font-size:17px}
+
+/* --- the deck, upper-left, as the reference places it --------------------- */
+.deck{left:362px;top:147px}
 </style>
 </head>
 <body>
@@ -239,9 +294,11 @@
     <button class="side-btn" id="chatBtn" title="Toggle chat">💬</button>
   </div>
 
-  <!-- the hand and the actions, in the classic bottom panel -->
+  <!-- the hand fans along the bottom; the panel beside it holds the calls.
+       They are siblings, not parent and child, so the fan positions itself
+       against the table rather than against the panel. -->
+  <div id="tiles"></div>
   <div id="bottomPanel">
-    <div id="tiles"></div>
     <div id="picker" class="hidden">
       <span class="picker-cap" id="pickerCap">COLOUR</span>
       <button class="swatch swatch-red" type="button" data-color="red" disabled>RED</button>
@@ -511,10 +568,13 @@
       el.querySelector(".aemoji").textContent = seat.isBot ? "🤖" : "🧑";
 
       const fan = el.querySelector("[data-fan]");
+      const fanMid = (seat.handCount - 1) / 2;
       for (let i = 0; i < seat.handCount; i += 1) {
         const mini = document.createElement("span");
         mini.className = "miniCard";
         mini.style.zIndex = String(i);
+        mini.style.setProperty("--rot", ((i - fanMid) * 5) + "deg");
+        mini.style.setProperty("--dy", (Math.abs(i - fanMid) * 3) + "px");
         fan.appendChild(mini);
       }
       const count = document.createElement("span");
@@ -540,6 +600,7 @@
     const hand = view.you.hand;
     const legal = new Set(view.you.legal);
     const canThrow = myTurn();
+    const mid = (hand.length - 1) / 2;
 
     hand.forEach((card, i) => {
       const face = faceOf(card);
@@ -551,6 +612,10 @@
       if (state.pendingWild && state.pendingWild.cardId === card.cardId) btn.classList.add("picked");
       btn.style.animationDelay = (i * 55) + "ms";
       btn.classList.add("deal");
+      // a hand is held, not laid out: the cards fan from the middle and drop away
+      // at the ends, which is why these are variables rather than a flat row
+      btn.style.setProperty("--rot", ((i - mid) * 3.5) + "deg");
+      btn.style.setProperty("--dy", (Math.abs(i - mid) * 5) + "px");
 
       const glyph = document.createElement("span");
       glyph.textContent = face.glyph;
