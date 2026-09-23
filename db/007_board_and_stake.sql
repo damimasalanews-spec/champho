@@ -99,6 +99,23 @@ BEGIN
   END IF;
 END $$;
 
+-- The idempotency ledger was written for the drawing game: one action kind that
+-- submitted a word, and three terminal states one of which was "solved". A card
+-- round throws, draws, passes, calls UNO and catches a missed call, and it ends
+-- by winning. Without this the very first throw would be rejected by the CHECK.
+ALTER TABLE public.turn_actions DROP CONSTRAINT IF EXISTS turn_actions_kind_chk;
+ALTER TABLE public.turn_actions
+  ADD CONSTRAINT turn_actions_kind_chk
+  CHECK (kind IN ('submit','timeout','no_valid_move','play','draw','pass','uno','catch'));
+
+ALTER TABLE public.turn_actions DROP CONSTRAINT IF EXISTS turn_actions_terminal_chk;
+ALTER TABLE public.turn_actions
+  ADD CONSTRAINT turn_actions_terminal_chk
+  CHECK (terminal IS NULL OR terminal IN ('solved','timed_out','no_valid_move','round_won'));
+
+-- room_players.turn_state needs no widening: a card round only ever marks a seat
+-- waiting, active or complete.
+
 -- One wallet per player, not per room: a seat buys into every table it joins.
 -- A new player starts with exactly one table's stake so they can sit down.
 -- Leave the coins >= 0 check in place: a seat must never go into debt.

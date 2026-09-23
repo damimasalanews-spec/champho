@@ -61,7 +61,14 @@ export type RoomEvent = {
     | "round_completed"
     | "turn_started"
     | "turn_ended"
-    | "bot_action";
+    | "bot_action"
+    // The card round. The old word events stay in the union while the drawing
+    // game's engine is still in the tree; they go when it does.
+    | "card_thrown"
+    | "card_drawn"
+    | "uno_called"
+    | "uno_caught"
+    | "round_won";
   serverTime: string;
   payload: Record<string, unknown>;
 };
