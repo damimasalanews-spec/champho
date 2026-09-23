@@ -120,6 +120,20 @@
         </div>
     </div>
 
+    <!-- The round victory screen. Opens when the local hand empties, which is the
+         only thing in this page that ends a round. -->
+    <div id="victory-screen-modal" class="victory-screen-backdrop">
+        <div class="victory-card-rig">
+            <h2 class="victory-header-text">ROUND OVER</h2>
+            <div class="victory-winner-callout">
+                <span id="winner-name-string">Champ</span> wins the round!
+                <div class="points-badge-pop">+<span id="round-points-value">0</span> Points</div>
+            </div>
+            <div class="leaderboard-list-box" id="leaderboard-rows-box"></div>
+            <button class="arcade-next-btn" id="next-round-ready-trigger">READY FOR NEXT ROUND</button>
+        </div>
+    </div>
+
     <!-- Script Execution Pipelines -->
     <script src="game/sound.js"></script>
     <script>
@@ -134,11 +148,16 @@
             { id: 104, color: 'green', value: 'W' }
         ];
         
+        // The victory screen needs two numbers per seat that the deal did not: what the
+        // seat has scored so far, and what the cards still in its hand are worth. The
+        // second is the one the server computes with scoreHand() — the winner of a round
+        // is paid the value of everybody else's remaining hand — so the mock carries the
+        // same two facts rather than a formula of its own.
         const playersMock = [
-            { id: 'p_left', name: 'Kalkal', tableSlotPosition: 'opponent-left' },
-            { id: 'p_top', name: 'Poker', tableSlotPosition: 'opponent-top' },
-            { id: 'p_right', name: 'Jess', tableSlotPosition: 'opponent-right' },
-            { id: 'p_local', name: 'Champ', tableSlotPosition: 'local-player' }
+            { id: 'p_left', name: 'Kalkal', tableSlotPosition: 'opponent-left', score: 320, handPoints: 34 },
+            { id: 'p_top', name: 'Poker', tableSlotPosition: 'opponent-top', score: 245, handPoints: 21 },
+            { id: 'p_right', name: 'Jess', tableSlotPosition: 'opponent-right', score: 190, handPoints: 47 },
+            { id: 'p_local', name: 'Champ', tableSlotPosition: 'local-player', score: 417, handPoints: 0 }
         ];
 
         // Trigger visual effect flashes securely
@@ -248,6 +267,12 @@
 
             // Remove item from active collection and repaint
             cardElement.remove();
+
+            // An empty hand ends the round, and the round is what the victory screen is
+            // for. Checked after the removal, not before, so the last card counts.
+            if (!document.querySelectorAll('.hand-container .card').length) {
+                finishRoundLocally();
+            }
         }
 
         // Updates red stack counter widgets for opponent seating boundaries
@@ -635,10 +660,88 @@
             }, 1800);
         }
 
+        // ---- the round victory screen -----------------------------------------
+        // Opens when the local hand empties — the only thing in this page that ends a
+        // round. The leaderboard is built from the mock's own seat data, and the points
+        // follow the server's rule: the winner is paid what everybody else still holds.
+        function presentVictoryScoreboardScreen(winnerName, pointsWonThisRound, leaderboardRows) {
+            const backdrop = document.getElementById('victory-screen-modal');
+            const rowsBox = document.getElementById('leaderboard-rows-box');
+            if (!backdrop || !rowsBox) return;
+
+            document.getElementById('winner-name-string').innerText = winnerName;
+            document.getElementById('round-points-value').innerText = pointsWonThisRound;
+
+            rowsBox.innerHTML = '';
+            leaderboardRows.forEach((entry) => {
+                const row = document.createElement('div');
+                row.classList.add('leaderboard-row-bar');
+                if (entry.isYou) row.classList.add('is-local-leader');
+
+                const who = document.createElement('span');
+                who.textContent = entry.name;           // textContent, never innerHTML: a name is data
+                const pts = document.createElement('span');
+                pts.style.color = '#ffcc00';
+                pts.textContent = `${entry.totalScore} PTS`;
+
+                row.append(who, pts);
+                rowsBox.appendChild(row);
+            });
+
+            backdrop.classList.add('reveal-victory');
+            if (typeof playUnoDeclarationSound === 'function') playUnoDeclarationSound();
+        }
+
+        function concealVictoryScoreboard() {
+            const backdrop = document.getElementById('victory-screen-modal');
+            if (backdrop) backdrop.classList.remove('reveal-victory');
+        }
+
+        function finishRoundLocally() {
+            const winner = playersMock.find((p) => p.id === 'p_local');
+            if (!winner) return;
+
+            const pointsWon = playersMock.reduce((sum, p) => (p.id === winner.id ? sum : sum + (p.handPoints || 0)), 0);
+
+            // Banked, so a second round in this demo starts from these totals instead of
+            // scoring the same round twice.
+            winner.score += pointsWon;
+
+            // A wild as the last card opens the colour wheel AND ends the round. The
+            // round being over makes the colour moot, so the wheel goes first rather
+            // than sitting under the victory screen waiting for an answer.
+            concealColorPickerWheel();
+
+            const leaderboardRows = playersMock.map((p) => ({ name: p.name, totalScore: p.score, isYou: p.id === winner.id }));
+            presentVictoryScoreboardScreen(winner.name, pointsWon, leaderboardRows);
+        }
+
+        function startNextLocalRound() {
+            concealVictoryScoreboard();
+            document.getElementById('local-player-hand').innerHTML = '';
+            // There is no socket in this page, so nobody is told we are ready and no
+            // server deals again. The page deals again itself, because a demo that
+            // cannot start a second round cannot show its own loop.
+            setTimeout(() => initializeCinematic3DDeal(playersMock, localHandMock), 250);
+        }
+
+        function wireVictoryScreen() {
+            const backdrop = document.getElementById('victory-screen-modal');
+            const nextButton = document.getElementById('next-round-ready-trigger');
+            if (nextButton) nextButton.addEventListener('click', startNextLocalRound);
+            if (backdrop) {
+                backdrop.addEventListener('click', (event) => { if (event.target === backdrop) startNextLocalRound(); });
+            }
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && backdrop && backdrop.classList.contains('reveal-victory')) startNextLocalRound();
+            });
+        }
+
         // Automatically auto-boot sequence triggers on window load
         window.addEventListener('DOMContentLoaded', () => {
             wireChat();
             wireColorWheel();
+            wireVictoryScreen();
             const unoButton = document.getElementById('btn-uno-call');
             if (unoButton) unoButton.addEventListener('click', () => triggerUnoDeclarationBanner('Champ'));
             initializeArcadeMatchTimer(149);   // 02:29
