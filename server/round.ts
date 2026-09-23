@@ -153,9 +153,23 @@ export function startRound(seatCount: number): RoundState {
   };
 }
 
-/** Everything the seat holding `hand` could legally throw right now. */
+/**
+ * What this seat may actually throw right now.
+ *
+ * A seat that has drawn this turn may throw that card and nothing else, so the
+ * answer is not simply "every card that matches" — offering the others would
+ * light up cards the server is about to refuse.
+ */
 export function legalCards(state: RoundState, seat: number): Card[] {
+  if (state.finished || seat !== state.activeSeat) return [];
+
   const hand = state.hands[seat] as Card[];
+  if (state.drawnCardId) {
+    const drawn = hand.find((card) => card.cardId === state.drawnCardId);
+    if (!drawn) return [];
+    return canPlay(drawn, state.board, state.named, hand) ? [drawn] : [];
+  }
+
   return playableCards(hand, state.board, state.named);
 }
 
