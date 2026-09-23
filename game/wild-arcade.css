@@ -1104,3 +1104,97 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   0%   { opacity: 0.6; }
   100% { opacity: 1; }
 }
+
+
+/* ==========================================================================
+   AVATAR STUDIO COSMETIC PROFILE BORDER FRAMES
+   ========================================================================== */
+
+/* Base Avatar Portrait Frame Container Layout */
+.avatar-frame {
+  width: 90px;
+  height: 90px;
+  border-radius: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible; /* Allows glowing badges to pop out past the box rim */
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* THE CHROME CYBER STREAMER FRAME SKIN */
+.avatar-frame.skin-cyber {
+  background: radial-gradient(circle at center, #2e1065 0%, #0f172a 100%);
+  border: 4px solid #00f0ff; /* Electric Cyber Blue */
+  box-shadow: 
+    0 0 15px rgba(0, 240, 255, 0.5), 
+    0 8px 20px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+/* Streaming neon dot badge overlay floating on top right corner */
+.avatar-frame.skin-cyber::before {
+  content: 'LIVE';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff0055;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1.5px solid #fff;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  letter-spacing: 1px;
+}
+
+/* THE SHERIFF NEON GOLD PREMIUM SKIN */
+.avatar-frame.skin-sheriff {
+  background: radial-gradient(circle at center, #78350f 0%, #451a03 100%);
+  border: 4px solid #ffcc00; /* Mirror Gold */
+  box-shadow: 
+    0 0 20px #ffaa00, 
+    0 10px 24px rgba(0, 0, 0, 0.5),
+    inset 0 0 12px rgba(255, 200, 0, 0.4);
+  animation: gold-glint-shimmer 2.5s infinite linear;
+}
+
+/* Star Badge floating right on top left corner axis */
+.avatar-frame.skin-sheriff::after {
+  content: '⭐';
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  font-size: 1.4rem;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+}
+
+@keyframes gold-glint-shimmer {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.22); }
+}
+
+/* Player User Label Pill Tag Layout spanning beneath portraits */
+.player-pill-tag {
+  background: linear-gradient(180deg, #0088cc 0%, #005588 100%);
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1rem;
+  padding: 3px 14px;
+  border-radius: 15px;
+  margin-top: -12px;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.25);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  min-width: 75px;
+  text-align: center;
+}
+
+.opponent-top .player-pill-tag {
+  background: linear-gradient(180deg, #d35400 0%, #a04000 100%);
+}
