@@ -447,6 +447,128 @@
     transform: none;
   }
 }
+
+/* ==========================================================================
+   Screenshot-style table arrangement
+   ========================================================================== */
+
+.pcard.pos-tl {
+  left: 120px;
+  top: 270px;
+}
+
+.pcard.pos-tr {
+  left: 1320px;
+  top: 270px;
+}
+
+.pcard.pos-ml {
+  left: 680px;
+  top: 55px;
+}
+
+.pcard.pos-front {
+  left: 180px;
+  top: 650px;
+}
+
+/* Seven opponent cards */
+.miniCard {
+  width: 48px;
+  height: 68px;
+  flex-basis: 48px;
+  margin-left: -25px;
+  border-radius: 7px;
+  border: 3px solid #fff;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, .45);
+}
+
+/* Top player's cards spread horizontally */
+.pcard.pos-ml .fan {
+  left: 50%;
+  top: calc(var(--seat) * .85);
+  transform: translateX(-50%) rotate(0deg);
+}
+
+/* Left player's cards angle toward the table */
+.pcard.pos-tl .fan {
+  left: calc(var(--seat) * .85);
+  top: calc(var(--seat) * .32);
+  transform: rotate(-38deg);
+}
+
+/* Right player's cards angle toward the table */
+.pcard.pos-tr .fan {
+  right: calc(var(--seat) * .85);
+  top: calc(var(--seat) * .32);
+  transform: rotate(38deg);
+}
+
+/* The player's seven cards */
+#tiles {
+  left: 53%;
+  bottom: 18px;
+  gap: 0;
+}
+
+.tile {
+  width: 112px;
+  height: 158px;
+  margin-left: -42px;
+  border-radius: 16px;
+  font-size: 58px;
+  border: 4px solid #fff;
+  box-shadow:
+    0 7px 0 rgba(0, 0, 0, .28),
+    0 14px 22px rgba(0, 0, 0, .42);
+}
+
+.tile:first-child {
+  margin-left: 0;
+}
+
+/* Show exactly seven cards cleanly on a 1600px stage.
+
+   NOTE: these do not take effect as written. The fan angles are already set on
+   each tile by renderHand(), which writes --rot and --dy as *inline* styles, and
+   an inline custom property outranks a stylesheet one. To move the fan, change
+   the maths in renderHand: rot (i - mid) * 8, dy |i - mid| * 7.5 gives about
+   these values for a seven card hand. Left here because it documents the intent
+   and would take over the moment that inline write is removed. */
+#tiles .tile:nth-child(1) {
+  --rot: -12deg;
+  --dy: 22px;
+}
+
+#tiles .tile:nth-child(2) {
+  --rot: -8deg;
+  --dy: 12px;
+}
+
+#tiles .tile:nth-child(3) {
+  --rot: -4deg;
+  --dy: 5px;
+}
+
+#tiles .tile:nth-child(4) {
+  --rot: 0deg;
+  --dy: 0px;
+}
+
+#tiles .tile:nth-child(5) {
+  --rot: 4deg;
+  --dy: 5px;
+}
+
+#tiles .tile:nth-child(6) {
+  --rot: 8deg;
+  --dy: 12px;
+}
+
+#tiles .tile:nth-child(7) {
+  --rot: 12deg;
+  --dy: 22px;
+}
 </style>
 </head>
 <body>
@@ -1754,9 +1876,11 @@
     }));
     const seats = [
       { playerId: "me", seat: 0, displayName: "You", connected: true, isBot: false, handCount: finished ? 0 : 7, saidUno: false, score: 0, coins: finished ? 2000 : 500, isActive: !finished },
-      { playerId: "b1", seat: 1, displayName: "Aiko", connected: true, isBot: true, handCount: 4, saidUno: false, score: 0, coins: 500, isActive: false },
-      { playerId: "b2", seat: 2, displayName: "Mina", connected: true, isBot: true, handCount: 1, saidUno: false, score: 0, coins: 500, isActive: false },
-      { playerId: "b3", seat: 3, displayName: "Kai", connected: true, isBot: true, handCount: 6, saidUno: false, score: 0, coins: 500, isActive: false }
+      // the opening deal: every seat holds HAND_SIZE cards, so the fixture shows
+      // the table as it looks when the round starts
+      { playerId: "b1", seat: 1, displayName: "Aiko", connected: true, isBot: true, handCount: finished ? 7 : 7, saidUno: false, score: 0, coins: 500, isActive: false },
+      { playerId: "b2", seat: 2, displayName: "Mina", connected: true, isBot: true, handCount: finished ? 7 : 7, saidUno: false, score: 0, coins: 500, isActive: false },
+      { playerId: "b3", seat: 3, displayName: "Kai", connected: true, isBot: true, handCount: finished ? 7 : 7, saidUno: false, score: 0, coins: 500, isActive: false }
     ];
     const board = [
       { cardId: "p1", value: "l", color: "red", kind: "letter" },
@@ -1768,7 +1892,7 @@
       ? []
       : mode === "uno"
         ? cards("na", "blue", "u")
-        : cards("lantern", "yellow").concat([{ cardId: "x1", value: "wild", color: null, kind: "wild" }]);
+        : cards("lanter", "yellow").concat([{ cardId: "x1", value: "wild", color: null, kind: "wild" }]);
     const legal = finished ? [] : mode === "uno" ? ["u0"] : ["w0", "x1"];
     return {
       type: "round_view", roomId: "demo-room", roundNumber: 2, turnNumber: 11,
