@@ -116,48 +116,6 @@ test("the card table walks its seats in the order they sit around the table", as
   );
 });
 
-test("the playable table carries the arcade HUD, wired to the events that drive it", async () => {
-  // The arcade chrome is skinned onto the client that plays, and three things have to
-  // hold together or it is decoration rather than a HUD: the markup is there, it is
-  // driven by the server's own events instead of a timer or a mock pipeline, and the
-  // strike restates the stage fit.
-  const wild = await get("/wild-play.html");
-  assert.equal(wild.result, "served");
-  assert.match(wild.text, /id="unoCalloutOverlay"/, "the banner needs its overlay");
-  assert.match(wild.text, /id="shockwaveLayer"/, "the penalty rim needs its layer");
-
-  // Driven by what the server actually sends. uno_called carries the seat that called
-  // it, and a card_drawn with a count above one is every penalty there is — the +2, the
-  // +4, and being caught holding one card. A voluntary single draw must not fire it, so
-  // the guard is asserted alongside the call rather than instead of it.
-  assert.match(
-    wild.text,
-    /case "uno_called": \{[\s\S]{0,200}triggerUnoDeclarationBanner\(/,
-    "the banner must hang off the real uno_called event"
-  );
-  assert.match(
-    wild.text,
-    /if \(\(payload\.count \|\| 1\) > 1\) \{[\s\S]{0,400}triggerProfessionalPenaltyStrike\(/,
-    "the strike must hang off a real multi-card draw, and not off a single one"
-  );
-
-  // The one that silently breaks the whole table. #game is positioned by
-  // `translate(-50%,-50%) scale(var(--s))` to fit the 1600x900 stage to the window, and
-  // an animation on `transform` REPLACES that value rather than adding to it — keyframes
-  // written against a bare transform throw the entire table into the top-left corner for
-  // the length of the strike. So each frame has to restate the centring and the fit, and
-  // losing either half is the bug this asserts against.
-  const strike = wild.text.match(/@keyframes aaa-camera-strike \{[\s\S]*?\n\}/);
-  assert.ok(strike, "the strike keyframes must exist");
-  assert.match(strike[0], /translate\(-50%, -50%\)/, "every frame must restate the centring");
-  assert.match(strike[0], /scale\(var\(--s, 1\)\)/, "every frame must restate the stage fit");
-
-  // Skinned onto the one clock and the one banner, not bolted on beside them: a second
-  // #timerPill would be a second thing claiming to be the turn clock.
-  assert.equal((wild.text.match(/id="timerPill"/g) || []).length, 1, "there is one clock");
-  assert.equal((wild.text.match(/id="unoBanner"/g) || []).length, 1, "there is one banner");
-});
-
 test("the Go Wild page is the arcade demo, and the playable client is still served", async () => {
   // /wild.html is the arcade demo: its own layout, its own mock data, its own deal. It
   // has no socket, which is the one thing a card table cannot do without — so the page

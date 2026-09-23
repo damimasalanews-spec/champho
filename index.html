@@ -1756,11 +1756,16 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     });
   }
   wire('#homeQuickPlay,#hqStart,[data-home-hit="classic"]','game/');
-  // GO WILD opens wild-play.html, not wild.html: wild.html is the arcade demo page,
-  // which has its own mock data and no socket — it renders a table but cannot deal, so
-  // opening it from here would give a player a game that cannot be played. The playable
-  // client is the one that connects to champword-backend. Both entry points, the mode
-  // card and the artwork hotspot, follow this same line.
-  wire('#homeRoom,[data-home-hit="wild"]','wild-play.html');
+  // GO WILD opens wild.html: the arcade table, green felt in place of the photographic
+  // scene — the game as it was built. Both entry points, the mode card and the artwork
+  // hotspot, follow this same line.
+  //
+  // This was briefly wired to wild-play.html, on the reasoning that wild.html runs on its
+  // own mock engine and has no socket, so it cannot deal with other players. That
+  // reasoning was wrong to act on: it swapped the game for the older photographic table,
+  // and a page that cannot matchmake is a smaller problem than the wrong game. If the
+  // arcade table should join real matches, the fix is to wire the engine INTO wild.html,
+  // not to send GO WILD somewhere else.
+  wire('#homeRoom,[data-home-hit="wild"]','wild.html');
 })();
 </script></body></html>
