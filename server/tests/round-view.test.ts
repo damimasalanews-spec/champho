@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { BUY_IN_COINS } from "../cards.js";
 import { startRound, type RoundState } from "../round.js";
 import type { LoadedRound } from "../room-cards.js";
 import { buildRoundView, type SeatMeta } from "../round-view.js";
@@ -167,4 +168,34 @@ test("the table's own state is public: direction, named colour and the pile", ()
   assert.equal(view.roundNumber, 3);
   assert.equal(view.turnNumber, 17);
   assert.equal(view.phase, "playing");
+});
+
+/**
+ * The table is played for coins, so every seat's balance is public — and it comes
+ * from the server's wallets, never from a number the client worked out for itself.
+ */
+test("the wallets are the server's, for every seat and for the viewer", () => {
+  const coins = new Map([
+    ["p0", 1500],
+    ["p1", 500],
+    ["p2", 0],
+    ["p3", 1000]
+  ]);
+
+  const view = buildRoundView(loaded(), 1, { ...options, coins });
+
+  assert.deepEqual(view.seats.map((seat) => seat.coins), [1500, 500, 0, 1000]);
+  assert.equal(view.you.coins, 500, "the viewer's own balance is the one it shows");
+  assert.equal(view.seats[1]?.playerId, "p1");
+});
+
+/**
+ * A fixture with no wallets must not read as "this seat is broke": one stake is
+ * the same default the deal and the payout use.
+ */
+test("a seat with no recorded wallet is shown holding one stake", () => {
+  const view = buildRoundView(loaded(), 0, options);
+
+  assert.equal(view.you.coins, BUY_IN_COINS);
+  assert.ok(view.seats.every((seat) => seat.coins === BUY_IN_COINS));
 });

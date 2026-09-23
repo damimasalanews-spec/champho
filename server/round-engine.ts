@@ -126,7 +126,31 @@ type ViewOptions = {
   phase: string;
   deadlineAt: Date | null;
   seats: SeatMeta[];
+  coins: ReadonlyMap<string, number>;
 };
+
+/**
+ * Every seat's wallet balance, so a view can carry the coins as the server sees
+ * them instead of the client keeping a balance of its own.
+ *
+ * Read inside the caller's transaction, and read *after* the payout when a round
+ * has just been settled. A seat with no wallet row defaults to one stake, which
+ * is the same default the deal and `payStake` use.
+ */
+async function walletBalances(
+  client: Pick<PoolClient, "query">,
+  seats: readonly { player_id: string }[]
+): Promise<Map<string, number>> {
+  const balances = new Map<string, number>();
+  if (seats.length === 0) return balances;
+
+  const result = await client.query<{ player_id: string; coins: number }>(
+    `SELECT player_id, coins FROM public.player_wallets WHERE player_id = ANY($1::uuid[])`,
+    [seats.map((seat) => seat.player_id)]
+  );
+  for (const row of result.rows) balances.set(row.player_id, Number(row.coins));
+  return balances;
+}
 
 function viewsFor(round: LoadedRound, options: ViewOptions): { playerId: string; view: RoundView }[] {
   return round.seats.map((playerId, seat) => ({
@@ -307,6 +331,7 @@ export async function startCardRound(roomId: string): Promise<RoundOutcomeForCli
     // Every seat buys in before the deal, so nobody plays a table they cannot
     // cover. The wallet is the server's; the client's copy of the balance is
     // never consulted.
+    const wallets = new Map<string, number>();
     for (const seat of seats) {
       await client.query(
         `INSERT INTO public.player_wallets(player_id,coins) VALUES($1,$2)
@@ -318,6 +343,7 @@ export async function startCardRound(roomId: string): Promise<RoundOutcomeForCli
         [seat.player_id]
       );
       const coins = Number(wallet.rows[0]?.coins ?? 0);
+      wallets.set(seat.player_id, coins);
       if (coins < BUY_IN_COINS) {
         await client.query("ROLLBACK");
         telemetry("buy_in_refused", { roomId, playerId: seat.player_id, coins });
@@ -402,7 +428,8 @@ export async function startCardRound(roomId: string): Promise<RoundOutcomeForCli
         turnNumber,
         phase: "playing",
         deadlineAt: deadline,
-        seats: seatMetaOf(seats)
+        seats: seatMetaOf(seats),
+        coins: wallets
       }),
       events: [event],
       result: null
@@ -585,6 +612,11 @@ export async function applyRoundAction(input: RoundActionInput): Promise<RoundOu
       }));
     }
 
+    // Read the wallets after the payout but before the commit: a settled round has
+    // already moved the coins, and showing a balance from outside this transaction
+    // would show the wrong number at the one moment the table is looking at it.
+    const coins = await walletBalances(client, seats);
+
     await client.query("COMMIT");
 
     return {
@@ -599,7 +631,8 @@ export async function applyRoundAction(input: RoundActionInput): Promise<RoundOu
         turnNumber: nextTurnNumber,
         phase: finished ? "round_end" : "playing",
         deadlineAt: finished ? null : deadline,
-        seats: seatMetaOf(seats)
+        seats: seatMetaOf(seats),
+        coins
       }),
       events: appended,
       result
@@ -729,6 +762,8 @@ export async function expireCardTurn(input: {
       })
     );
 
+    const coins = await walletBalances(client, seats);
+
     await client.query("COMMIT");
 
     return {
@@ -743,7 +778,8 @@ export async function expireCardTurn(input: {
         turnNumber: nextTurnNumber,
         phase: "playing",
         deadlineAt: nextDeadline,
-        seats: seatMetaOf(seats)
+        seats: seatMetaOf(seats),
+        coins
       }),
       events: appended,
       result: null
@@ -808,7 +844,8 @@ export async function readRoundView(roomId: string, playerId: string): Promise<R
     // which the client is not counting down.
     deadlineAt:
       row.phase === "round_end" || !row.turn_deadline_at ? null : new Date(row.turn_deadline_at),
-    seats: seatMetaOf(seats.rows)
+    seats: seatMetaOf(seats.rows),
+    coins: await walletBalances(pool, seats.rows)
   });
 }
 

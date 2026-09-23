@@ -1,4 +1,4 @@
-import type { Card, CardColor } from "./cards.js";
+import { BUY_IN_COINS, type Card, type CardColor } from "./cards.js";
 import { legalCards, settle, type RoundResult } from "./round.js";
 import type { LoadedRound } from "./room-cards.js";
 
@@ -29,6 +29,8 @@ export type SeatView = {
   handCount: number;
   saidUno: boolean;
   score: number;
+  /** What the seat has in its wallet. The table is played for coins; they are public. */
+  coins: number;
   isActive: boolean;
 };
 
@@ -59,6 +61,12 @@ export type RoundView = {
     drawnCardId: string | null;
     /** The word this seat's hand spells — only once it has been revealed. */
     word: string | null;
+    /**
+     * This seat's own wallet, so the table can show what it is playing for
+     * without the client keeping a balance of its own — the server's number is
+     * the only one that decides who may sit down.
+     */
+    coins: number;
   };
   /** Present only once the round is settled. */
   result: RoundResult | null;
@@ -71,6 +79,11 @@ export type BuildViewOptions = {
   phase: string;
   deadlineAt: Date | null;
   seats: SeatMeta[];
+  /**
+   * Wallet balances by player id. Omitted only by tests and fixtures; a dealt
+   * seat always has a wallet, because it could not have bought in without one.
+   */
+  coins?: ReadonlyMap<string, number>;
 };
 
 export function buildRoundView(round: LoadedRound, seat: number, options: BuildViewOptions): RoundView {
@@ -104,6 +117,7 @@ export function buildRoundView(round: LoadedRound, seat: number, options: BuildV
         handCount: (round.hands[index] as Card[]).length,
         saidUno: round.unoSaid[index] === true,
         score: meta?.score ?? 0,
+        coins: options.coins?.get(seatPlayerId) ?? BUY_IN_COINS,
         isActive: !round.finished && round.activeSeat === index
       };
     }),
@@ -116,7 +130,8 @@ export function buildRoundView(round: LoadedRound, seat: number, options: BuildV
       // The word is the round's secret until it has been won: it is what the
       // board spells out at the end, and knowing it early would let a seat aim
       // for another player's hand.
-      word: round.finished ? (round.words[seat] as string) : null
+      word: round.finished ? (round.words[seat] as string) : null,
+      coins: options.coins?.get(playerId) ?? BUY_IN_COINS
     },
     result
   };
