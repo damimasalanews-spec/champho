@@ -1046,6 +1046,10 @@
     });
   }
 
+  // when the last hand-card ruffle played, so a rebuild under the pointer cannot
+  // stack them (see the mouseenter listener)
+  let lastRuffleAt = 0;
+
   function renderHand() {
     const root = $("tiles");
     root.textContent = "";
@@ -1093,6 +1097,18 @@
       btn.disabled = !canThrow || !legal.has(card.cardId);
       btn.setAttribute("aria-label", "throw " + face.glyph + (face.label ? " " + face.label : ""));
       btn.addEventListener("click", () => throwCard(card));
+      // the paper ruffle as the cursor lifts a card. The hand is rebuilt on every
+      // server update and Chrome fires mouseenter on the fresh element when the
+      // pointer is already over it, so without the throttle one hover would ruffle
+      // again on every render, and sweeping across seven cards would stack seven
+      // whooshes into mud.
+      btn.addEventListener("mouseenter", () => {
+        if (Date.now() - lastRuffleAt < 140) return;
+        lastRuffleAt = Date.now();
+        try {
+          if (typeof playCardRuffleSound === "function") playCardRuffleSound();
+        } catch { /* no sound */ }
+      });
       root.appendChild(btn);
     });
 
@@ -1594,6 +1610,10 @@
           box.classList.add("impact");
           setTimeout(() => box.classList.remove("impact"), 120);
         }
+        // the tabletop impact, at the moment the card is on it
+        try {
+          if (typeof playCardSlamSound === "function") playCardSlamSound();
+        } catch { /* no sound */ }
       }
 
       const oldHandIds = new Set(before.you.hand.map((card) => card.cardId));

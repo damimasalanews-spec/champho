@@ -42,3 +42,21 @@ function whoosh(dur = 0.25, gain = 0.05, when = 0, freq = 1200) {
     src.start(c.currentTime + when);
   } catch (e) { /* audio unavailable */ }
 }
+
+/* --- Juicy Card Game Sound Synthesizers --- */
+
+// 1. A short, high-frequency white noise ruffle for hovering or moving cards
+function playCardRuffleSound() {
+  if (soundMuted) return;
+  // Shorter, lighter bandpass whoosh at 1800Hz to simulate cardboard rubbing air
+  whoosh(0.12, 0.03, 0, 1800);
+}
+
+// 2. A snappy double-pulse analog pop that simulates a solid card hitting a tabletop
+function playCardSlamSound() {
+  if (soundMuted) return;
+  // A rapid downward frequency slide mimicking a physical tap impact
+  note(450, 0.08, 'triangle', 0.12, 0, 120);
+  // A secondary micro-thud 30ms later for real physical texture
+  note(220, 0.06, 'sine', 0.08, 0.03, 80);
+}
