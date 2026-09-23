@@ -541,11 +541,19 @@
     var av=document.getElementById('homeAvatar'),nm=document.getElementById('homeName'),coins=document.getElementById('homeCoins');
     try{frame.contentWindow.postMessage({champEquippedAvatar:av&&av.src?av.src:'',champName:nm&&nm.textContent?nm.textContent:'Champ',champCoins:coins&&coins.textContent?coins.textContent:'1,450'},'*')}catch(e){}
   }
-  function openChampProGame(){
+  // The overlay hosts more than one game, so it is told which page to show. The
+  // frame is only reloaded when the request is for a different game than the one
+  // already loaded, so switching back and forth never restarts what is on screen.
+  function openChampProGame(page){
     if(!overlay||!frame)return;
+    var target=page||'classic.html';
     document.body.classList.remove('auth-open','app-open','profile-open');
     overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');
-    if(frame.dataset.loaded!=='1'){frame.src='classic.html';frame.dataset.loaded='1';frame.addEventListener('load',sendProfile,{once:true});}
+    if(frame.dataset.loaded!==target){
+      frame.dataset.loaded=target;
+      frame.addEventListener('load',sendProfile,{once:true});
+      frame.src=target;
+    }
     else sendProfile();
   }
   function closeChampProGame(){if(!overlay)return;overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');document.body.classList.add('app-open')}
@@ -565,27 +573,26 @@
 </script>
 <script id="HIMALAYAN_CLASSIC_LAUNCH_GUARD_V1">
 (function(){
-  function launch(){
+  function launch(page){
     try{
       if(typeof window.openChampProGame==='function'){
-        window.openChampProGame();
+        window.openChampProGame(page);
         return;
       }
-    }catch(e){ console.error('Classic launch failed',e); }
+    }catch(e){ console.error('Game launch failed',e); }
   }
-  ['homeQuickPlay','hqStart','homeRoom'].forEach(function(id){
-    var el=document.getElementById(id);
-    if(el){
-      el.addEventListener('pointerup',function(e){e.preventDefault();e.stopPropagation();launch();},true);
-      el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch();},true);
-    }
-  });
-  // Classic Mode and Go Wild both open the card table, and both hotspots over the
-  // home artwork are wired here. The Go Wild hotspot had no handler at all, so the
-  // wild card drawn on the artwork was dead while the mode card below it worked.
-  document.querySelectorAll('[data-home-hit="classic"],[data-home-hit="wild"]').forEach(function(el){
-    el.addEventListener('pointerup',function(e){e.preventDefault();e.stopPropagation();launch();},true);
-    el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch();},true);
-  });
+  // Two modes, two games, two pages. CLASSIC MODE opens the guessing game exactly
+  // where it was — it is not ours to change — and GO WILD opens the card table.
+  // Both entry points are wired per mode: the mode card and the hotspot the home
+  // artwork draws for the same game. The wild hotspot had no handler at all, so
+  // the card drawn on the artwork was dead while the mode card below it worked.
+  function wire(selector,page){
+    document.querySelectorAll(selector).forEach(function(el){
+      el.addEventListener('pointerup',function(e){e.preventDefault();e.stopPropagation();launch(page);},true);
+      el.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();launch(page);},true);
+    });
+  }
+  wire('#homeQuickPlay,#hqStart,[data-home-hit="classic"]','classic.html');
+  wire('#homeRoom,[data-home-hit="wild"]','wild.html');
 })();
 </script></body></html>
