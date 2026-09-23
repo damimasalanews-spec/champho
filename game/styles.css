@@ -443,6 +443,14 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   100%{opacity:0;transform:translate(-50%,-62%) scale(.86)}}
 .rb-stage svg.rb{display:block;width:100%;height:auto;overflow:visible;
   filter:drop-shadow(0 6px 12px rgba(0,0,0,.5))}
+/* A CSS transform on an SVG child resolves about the canvas origin (0,0) unless
+   told otherwise - which swung the hat and the mouth toward the corner instead
+   of turning them in place. fill-box makes every part move about itself. */
+.rb-stage svg.rb g,.rb-stage svg.rb path,.rb-stage svg.rb circle,
+.rb-stage svg.rb ellipse,.rb-stage svg.rb rect{transform-box:fill-box;transform-origin:center}
+.rb-stage svg.rb .rb-hat{transform-origin:50% 100%}
+.rb-stage svg.rb .rb-ears{transform-origin:50% 100%}
+.rb-stage svg.rb .rb-wing{transform-origin:8% 50%}
 .rb-stage .rb-name{display:block;margin-top:1px;text-align:center;font-size:11px;font-weight:900;
   letter-spacing:.5px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.8);
   animation:rbName 2s ease forwards}
@@ -500,7 +508,7 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   84%{transform:translate(1%,0) rotate(1deg)}}
 .rb-devil .rb-wing{animation:rbFlap .34s ease-in-out 6}
 @keyframes rbFlap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-26deg)}}
-.rb-devil .rb-pupil{animation:rbBurn 2s ease-in-out}
+.rb-devil .rb-pupil-c{animation:rbBurn 2s ease-in-out}
 @keyframes rbBurn{0%,100%{fill:#2b1410}22%,78%{fill:#ffd11a}}
 .rb-devil .rb-mouth{animation:rbChomp .5s ease-in-out 4}
 @keyframes rbChomp{0%,100%{transform:scale(1)}50%{transform:scale(1.15,.86)}}
@@ -537,13 +545,39 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
 .rb-tongue svg.rb{animation:rbJolt 2s ease-in-out}
 @keyframes rbJolt{0%,100%{transform:none}10%{transform:translateY(4%) scale(1.05,.95)}
   20%{transform:none}34%{transform:translateX(-2%)}50%{transform:translateX(2%)}66%{transform:none}}
+/* pivot at the top of the tongue so it extends out of the mouth rather than
+   growing in both directions */
+.rb-stage svg.rb .rb-tongue{transform-origin:50% 0%}
 .rb-tongue .rb-tongue{animation:rbWag 2s ease-in-out}
-@keyframes rbWag{0%,6%,100%{transform:scaleY(.55);transform-origin:50% 72%}
-  18%{transform:scaleY(1.15) rotate(0deg);transform-origin:50% 72%}
-  32%{transform:scaleY(1) rotate(9deg);transform-origin:50% 72%}
-  46%{transform:scaleY(1) rotate(-9deg);transform-origin:50% 72%}
-  60%{transform:scaleY(1) rotate(7deg);transform-origin:50% 72%}
-  76%{transform:scaleY(.9) rotate(0deg);transform-origin:50% 72%}}
+@keyframes rbWag{0%,6%,100%{transform:scaleY(.55)}
+  18%{transform:scaleY(1.15) rotate(0deg)}
+  32%{transform:scaleY(1) rotate(9deg)}
+  46%{transform:scaleY(1) rotate(-9deg)}
+  60%{transform:scaleY(1) rotate(7deg)}
+  76%{transform:scaleY(.9) rotate(0deg)}}
+
+/* the ears act too - they are most of this character's silhouette */
+.rb-confident .rb-ears{animation:rbEarSnap .5s ease-in-out 4}
+@keyframes rbEarSnap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-3deg)}}
+.rb-suspicious .rb-ears{animation:rbEarLean 2s ease-in-out}
+@keyframes rbEarLean{0%,100%{transform:rotate(0)}22%{transform:rotate(-4deg)}
+  52%{transform:rotate(4deg)}78%{transform:rotate(-2deg)}}
+.rb-laughing .rb-ears{animation:rbEarFlap 2s ease-in-out}
+@keyframes rbEarFlap{0%,100%{transform:rotate(0)}14%{transform:rotate(-8deg)}28%{transform:rotate(4deg)}
+  42%{transform:rotate(-7deg)}56%{transform:rotate(3deg)}70%{transform:rotate(-4deg)}}
+.rb-devil .rb-ears{animation:rbEarBack .5s cubic-bezier(.2,1.6,.4,1) 4}
+@keyframes rbEarBack{0%,100%{transform:rotate(0)}40%{transform:rotate(9deg)}}
+.rb-party .rb-ears{animation:rbEarWag 2s ease-in-out}
+@keyframes rbEarWag{0%,100%{transform:rotate(0)}20%{transform:rotate(-6deg)}40%{transform:rotate(5deg)}
+  60%{transform:rotate(-5deg)}80%{transform:rotate(3deg)}}
+.rb-wide .rb-ears{animation:rbEarUp 2s cubic-bezier(.2,1.5,.4,1)}
+@keyframes rbEarUp{0%,100%{transform:scaleY(1)}18%{transform:scaleY(1.16)}40%{transform:scaleY(.94)}
+  70%{transform:scaleY(1.04)}}
+.rb-tongue .rb-ears{animation:rbEarTilt 2s ease-in-out}
+@keyframes rbEarTilt{0%,100%{transform:rotate(0)}30%{transform:rotate(7deg)}60%{transform:rotate(5deg)}}
+.rb-sad .rb-ears{animation:rbEarDroop 2s ease-in-out forwards}
+@keyframes rbEarDroop{0%{transform:rotate(0)}22%{transform:rotate(-7deg)}55%{transform:rotate(-11deg)}
+  80%{transform:rotate(-9deg)}100%{transform:rotate(-4deg)}}
 
 /* sad: sags, a tear detaches and falls */
 .rb-sad svg.rb{animation:rbSag 2s ease-in-out}

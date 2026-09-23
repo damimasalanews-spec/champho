@@ -22,15 +22,25 @@ function rbEars() {
 }
 
 function rbBody() {
-  return '<path class="rb-body" d="M50 23 C31 23 25 37 25 56 C25 74 30 87 50 87 C70 87 75 74 75 56 C75 37 69 23 50 23 Z" ' +
+  return '<ellipse cx="50" cy="90" rx="24" ry="5.5" fill="#0b1c30" opacity=".35"/>' +
+    '<path class="rb-body" d="M50 23 C31 23 25 37 25 56 C25 74 30 87 50 87 C70 87 75 74 75 56 C75 37 69 23 50 23 Z" ' +
     'fill="' + RB.head + '" stroke="' + RB.line + '" stroke-width="2.4"/>' +
-    '<ellipse cx="42" cy="38" rx="12" ry="7" fill="#ffffff" opacity=".16"/>';
+    /* belly in shadow, inset so it can never bleed past the outline */
+    '<path d="M27.5 62 C29 75 35 85 50 85 C65 85 71 75 72.5 62 C68 71 60 75 50 75 C40 75 32 71 27.5 62 Z" ' +
+    'fill="' + RB.shade + '" opacity=".5"/>' +
+    '<ellipse cx="41" cy="36" rx="12.5" ry="6.5" fill="#ffffff" opacity=".2"/>' +
+    '<path d="M29 40 C26.5 50 27.5 62 31 71" stroke="#ffffff" stroke-width="2.6" opacity=".22" fill="none" stroke-linecap="round"/>';
 }
 
 /* eyes: each variant returns the whites, the pupils and any brows/lids */
 function rbEyes(kind) {
   const white = (cx, cy, rx, ry) => '<ellipse class="rb-eye" cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="' + RB.eye + '"/>';
-  const pupil = (cx, cy, r, col) => '<circle class="rb-pupil" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + (col || '#2b1410') + '"/>';
+  /* pupil and its glint travel together as one group, so the peek/pin/shrink
+     animations move the highlight with the pupil instead of leaving it behind */
+  const pupil = (cx, cy, r) => '<g class="rb-pupil">' +
+    '<circle class="rb-pupil-c" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#2b1410"/>' +
+    '<circle cx="' + (cx - r * 0.34) + '" cy="' + (cy - r * 0.4) + '" r="' + (r * 0.32) + '" fill="#ffffff" opacity=".9"/>' +
+    '</g>';
   const brow = (d) => '<path class="rb-brow" d="' + d + '" stroke="' + RB.line + '" stroke-width="3.4" fill="none" stroke-linecap="round"/>';
   const lid = (d) => '<path d="' + d + '" stroke="' + RB.line + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
   switch (kind) {
@@ -48,6 +58,10 @@ function rbEyes(kind) {
     case 'shock':
       return white(39, 51, 13, 14.5) + white(61, 51, 13, 14.5) + pupil(39, 51, 2.6) + pupil(61, 51, 2.6) +
         brow('M27 34 L46 38') + brow('M73 34 L54 38');
+    case 'flat':
+      /* unimpressed: heavy lids, no brows - keeps it distinct from 'shock' */
+      return white(39, 53, 11.5, 9) + white(61, 53, 11.5, 9) + pupil(39, 55, 5) + pupil(61, 55, 5) +
+        lid('M28 46 L50 46') + lid('M50 46 L72 46');
     case 'sad':
       /* inner ends of the brows lift, outer ends drop - the opposite slope to
          'angry', or the face just reads as grumpy */
@@ -61,16 +75,17 @@ function rbEyes(kind) {
 function rbMouth(kind) {
   const dark = '#380d0a';
   switch (kind) {
-    case 'shout': return '<ellipse class="rb-mouth" cx="50" cy="71" rx="9" ry="10.5" fill="' + dark + '"/>' +
-      '<ellipse class="rb-throat" cx="50" cy="76" rx="5" ry="4" fill="#c1342c"/>';
+    case 'shout': return '<ellipse class="rb-mouth" cx="50" cy="72" rx="9.5" ry="11.5" fill="' + dark + '"/>' +
+      '<rect x="43" y="62.5" width="14" height="4.5" rx="1.8" fill="#fffdf7"/>' +
+      '<ellipse cx="50" cy="79" rx="5.5" ry="4" fill="#c1342c"/>';
     case 'laugh': return '<path class="rb-mouth" d="M35 65 Q50 86 65 65 Z" fill="' + dark + '"/>' +
       '<rect class="rb-teeth" x="38" y="64" width="24" height="5.5" rx="2" fill="#fffdf7"/>';
     case 'fang': return '<ellipse class="rb-mouth" cx="50" cy="70" rx="10.5" ry="9.5" fill="' + dark + '"/>' +
       '<path d="M41 65 L46 65 L43.5 72 Z" fill="#fffdf7"/><path d="M54 65 L59 65 L56.5 72 Z" fill="#fffdf7"/>';
     case 'o': return '<ellipse class="rb-mouth" cx="50" cy="71" rx="5.5" ry="6.5" fill="' + dark + '"/>';
     case 'frown': return '<path class="rb-mouth" d="M41 75 Q50 66 59 75" stroke="' + RB.line + '" stroke-width="3.2" fill="none" stroke-linecap="round"/>';
-    case 'tongue': return '<ellipse class="rb-mouth" cx="50" cy="69" rx="9.5" ry="8.5" fill="' + dark + '"/>' +
-      '<path class="rb-tongue" d="M44 73 q6 14 12 0 z" fill="#f2739b" stroke="#c2405f" stroke-width="1.6"/>';
+    case 'tongue': return '<ellipse class="rb-mouth" cx="50" cy="69" rx="9.5" ry="8" fill="' + dark + '"/>' +
+      '<path class="rb-tongue" d="M43 72 q7 17 14 0 z" fill="#f2739b" stroke="#c2405f" stroke-width="1.6"/>';
     default: return '<path class="rb-mouth" d="M41 70 Q50 77 60 67" stroke="' + RB.line + '" stroke-width="3.2" fill="none" stroke-linecap="round"/>';
   }
 }
@@ -148,7 +163,7 @@ const RABBIT_EMOTES = [
   { id: 'devil',     name: 'Devil',      line: 'brought a friend', look: { eyes: 'angry', mouth: 'fang', wing: true, hat: false } },
   { id: 'party',     name: 'Party',      line: 'cakes and confetti', look: { eyes: 'happy', mouth: 'laugh', cakes: true, confetti: true, hatTilt: 10 } },
   { id: 'wide',      name: 'Wide-eyed',  line: 'did not expect that', look: { eyes: 'shock', mouth: 'o', hat: false } },
-  { id: 'tongue',    name: 'Tongue-out', line: 'is not impressed', look: { eyes: 'shock', mouth: 'tongue', hat: false } },
+  { id: 'tongue',    name: 'Tongue-out', line: 'is not impressed', look: { eyes: 'flat', mouth: 'tongue', hat: false } },
   { id: 'sad',       name: 'Sad',        line: 'lost by one card', look: { eyes: 'sad', mouth: 'frown', tear: true, hat: false } },
 ];
 
