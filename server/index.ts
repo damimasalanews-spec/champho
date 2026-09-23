@@ -14,6 +14,7 @@ import {
   applyRoundAction,
   playBotTurn,
   readBotTurn,
+  readRoundView,
   startCardRound,
   type RoundActionKind,
   type RoundOutcomeForClient
@@ -163,18 +164,6 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     }
   };
 
-  const sendHandToSocket = async (socket: WebSocket, roomId: string, playerId: string) => {
-    const hand = await getPrivateHand(roomId, playerId).catch(() => null);
-    if (!hand) return;
-    send(socket, {
-      type: "hand_sync",
-      roomId,
-      roundNumber: hand.roundNumber,
-      handVersion: hand.handVersion,
-      hand: hand.hand
-    });
-  };
-
   const protocolError = (socket: WebSocket, code: string, requestId?: unknown, extra: Record<string, unknown> = {}) =>
     send(socket, {
       type: "error",
@@ -204,6 +193,21 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
    * range, so a bot never answers faster than a person could, and the turn
    * number guards against a timer outliving the turn it was scheduled for.
    */
+  /**
+   * Push one round outcome to the table: each seat its own view, then the events
+   * everyone shares.
+   *
+   * A view carries the seat's own hand, so it is addressed rather than broadcast
+   * — there is no shared snapshot of a card round to send. The seat that just
+   * moved may also have handed the turn to a bot, which is why the re-arm lives
+   * here rather than at each call site.
+   */
+  const publishRoundOutcome = async (roomId: string, outcome: RoundOutcomeForClient) => {
+    if (outcome.views.length > 0) publishViews(outcome.views);
+    for (const event of outcome.events) broadcast(roomId, event);
+    if (outcome.ok) await scheduleCardBots(roomId, outcome.turnNumber);
+  };
+
   const scheduleCardBots = async (roomId: string, turnNumber: number) => {
     if (!options.enableBots) return;
     const bot = await readBotTurn(roomId).catch(() => null);
@@ -213,9 +217,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
       void (async () => {
         try {
           const outcome = await playBotTurn(roomId, turnNumber);
-          if (outcome.views.length > 0) publishViews(outcome.views);
-          for (const event of outcome.events) broadcast(roomId, event);
-          if (outcome.ok) await scheduleCardBots(roomId, outcome.turnNumber);
+          await publishRoundOutcome(roomId, outcome);
         } catch (error) {
           telemetryError("bot_card_turn_failed", error, { roomId, turnNumber });
         }
@@ -515,9 +517,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     // view: a view holds that seat's hand, so it cannot be broadcast.
     const started = await startCardRound(roomId);
     if (!started.ok) return;
-    publishViews(started.views);
-    for (const event of started.events) broadcast(roomId, event);
-    await scheduleCardBots(roomId, started.turnNumber);
+    await publishRoundOutcome(roomId, started);
   };
 
   const matchmakingTimer = enableMatchmaking
@@ -532,9 +532,27 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
     : null;
   matchmakingTimer?.unref?.();
 
+  // The server owns the clock: a seat that walked away is drawn and passed, and
+  // a round that has been won is dealt again once its reveal has been up long
+  // enough. Both arrive here as ordinary round outcomes, so a table sees the
+  // sweeper's move exactly as it sees another seat's.
   const scheduler: Scheduler | null = enableScheduler
-    ? startScheduler(async (outcome) => {
-        if (outcome.snapshot) await publishOutcome(outcome.snapshot.roomId, outcome);
+    ? startScheduler({
+        onTurnExpired: (roomId, outcome) => publishRoundOutcome(roomId, outcome),
+        onRoundDealt: (roomId, outcome) => publishRoundOutcome(roomId, outcome),
+        onTableClosed: async (roomId, reason) => {
+          // A table that cannot afford another round is over, not stalled. Say so,
+          // or the seats sit looking at a reveal that will never advance.
+          broadcast(roomId, {
+            type: "table_closed",
+            roomId,
+            reason,
+            serverTime: new Date().toISOString()
+          });
+        },
+        onDrawingTurnClosed: async (roomId, outcome) => {
+          if (outcome.snapshot) await publishOutcome(roomId, outcome);
+        }
       })
     : null;
 
@@ -589,7 +607,9 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           send(socket, result.snapshot);
           broadcast(result.snapshot.roomId, result.snapshot);
           for (const event of result.events) broadcast(result.snapshot.roomId, event);
-          await sendHandToSocket(socket, result.snapshot.roomId, message.playerId);
+          // No hand is sent here: a hand is dealt with the round, and this room is
+          // still filling up (§10). The deal at the start of play sends each seat
+          // its own view, which is where its cards live.
           return;
         }
 
@@ -660,15 +680,20 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
           });
           const result = await resumeRoom(message.roomId, identity.playerId);
           attachToRoom(socket, result.snapshot.roomId, identity.playerId, result.connectionVersion);
+          // The room's public shape always goes out — who is seated, what phase
+          // the table is in — and a card round additionally sends this seat its
+          // own view, which is where its hand, its legal cards and the pile of
+          // thrown cards now live. A table still filling up has no round in play
+          // and gets the snapshot alone.
           send(socket, result.snapshot);
-          await sendHandToSocket(socket, result.snapshot.roomId, identity.playerId);
-          // §8: resume replays the drawing, not just the hand.
-          send(socket, {
-            type: "draw_sync",
-            roomId: result.snapshot.roomId,
-            turnNumber: result.snapshot.turnNumber,
-            strokes: drawStrokes.get(`${result.snapshot.roomId}:${result.snapshot.turnNumber}`) ?? []
-          });
+          const view = await readRoundView(result.snapshot.roomId, identity.playerId).catch(() => null);
+          if (view) {
+            send(socket, view);
+            // A reconnect can land on a bot's turn whose timer died with whatever
+            // held it (a restart, an eviction). Re-arm it rather than leave the
+            // table to be timed out. No-op when the seat on the clock is human.
+            await scheduleCardBots(result.snapshot.roomId, view.turnNumber);
+          }
           send(socket, {
             type: "resume_complete",
             requestId: message.requestId,
@@ -689,9 +714,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
             protocolError(socket, started.code ?? "cannot_start", requestId);
             return;
           }
-          publishViews(started.views);
-          for (const event of started.events) broadcast(context.roomId, event);
-          await scheduleCardBots(context.roomId, started.turnNumber);
+          await publishRoundOutcome(context.roomId, started);
           return;
         }
 
@@ -742,9 +765,7 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
             serverTime: new Date().toISOString()
           });
 
-          if (outcome.views.length > 0) publishViews(outcome.views);
-          for (const event of outcome.events) broadcast(context.roomId, event);
-          if (outcome.ok) await scheduleCardBots(context.roomId, outcome.turnNumber);
+          await publishRoundOutcome(context.roomId, outcome);
           return;
         }
 

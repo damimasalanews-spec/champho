@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { BUY_IN_COINS } from "../cards.js";
-import { startRound } from "../round.js";
+import { legalCards, startRound } from "../round.js";
 import {
   canBuyIn,
   parseCards,
@@ -119,6 +119,38 @@ test("a malformed row is rejected instead of loaded", () => {
   assert.throws(
     mutate((_r, seats) => { (seats[2] as PlayerCardColumns).seat_number = 5; }),
     /corrupt_round_row:room_players:seats_not_contiguous/
+  );
+});
+
+/**
+ * A settled round clears the seat on the clock, and it is exactly the state a
+ * player resuming during the reveal reads. Treating it as corrupt would break
+ * that resume — so it has to read back, with the winner still named.
+ */
+test("a settled round reads back with nobody on the clock", () => {
+  const { round, room, players } = fixture();
+  const settled: RoomCardColumns = {
+    ...room,
+    active_player_id: null,
+    winner_seat: 2,
+    board: round.hands[2]
+  };
+  const loaded = toLoadedRound(settled, players);
+
+  assert.equal(loaded.finished, true);
+  assert.equal(loaded.winnerSeat, 2);
+  assert.equal(loaded.seats[loaded.activeSeat], SEATS[0], "an unused seat is named, never nobody");
+  // The rules must refuse before they look at that placeholder seat.
+  assert.deepEqual(legalCards(loaded, 2), [], "a finished round offers no legal card");
+});
+
+/** The placeholder seat must not become a way to skip the check on a live round. */
+test("a live round with no active seat is still corrupt", () => {
+  const { room, players } = fixture();
+
+  assert.throws(
+    () => toLoadedRound({ ...room, active_player_id: null }, players),
+    /corrupt_round_row:active_player_id/
   );
 });
 

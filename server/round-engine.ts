@@ -522,7 +522,11 @@ export async function applyRoundAction(input: RoundActionInput): Promise<RoundOu
     const result = settle(played, played.seats.length);
     const terminal = finished ? "round_won" : null;
     const nextTurnNumber = input.turnNumber + 1;
-    const deadline = new Date(now.getTime() + TURN_WINDOW_MS);
+    // A won round leaves no clock running: its deadline becomes the moment the
+    // reveal is over and the next deal is due. The sweeper reads exactly that to
+    // carry the table from one round to the next, so a settled round must not be
+    // left with a deadline a full turn-window away.
+    const deadline = new Date(now.getTime() + (finished ? ROUND_END_PAUSE_MS : TURN_WINDOW_MS));
 
     const write = toRoundWrite(played);
     await client.query(
@@ -756,6 +760,56 @@ export async function expireCardTurn(input: {
 export function roundEndElapsed(deadlineAt: Date | null, now: Date): boolean {
   if (!deadlineAt) return true;
   return now.getTime() >= deadlineAt.getTime() + ROUND_END_PAUSE_MS;
+}
+
+/**
+ * The view one seat is owed right now, read straight from the rows.
+ *
+ * This is what a resume is for. A client that reconnects mid-round has to be
+ * told the board, its own hand and which of its own cards are legal — the room's
+ * public snapshot is not enough and a bare hand is not either. Read-only, and
+ * deliberately unlocked: it writes nothing, and a view built from a round that
+ * moves on a moment later is superseded by the next broadcast.
+ *
+ * Null means "this room has no card round to show you", which is the case for a
+ * table still filling up, and for a room left over from the drawing game. The
+ * caller then falls back to its own snapshot.
+ */
+export async function readRoundView(roomId: string, playerId: string): Promise<RoundView | null> {
+  const [room, seats] = await Promise.all([
+    pool.query<RoomRow & { target_word: string | null }>(
+      `SELECT ${ROOM_COLUMNS},target_word FROM public.game_rooms WHERE id=$1`,
+      [roomId]
+    ),
+    pool.query<SeatRow>(
+      `SELECT ${SEAT_COLUMNS} FROM public.room_players WHERE room_id=$1 ORDER BY seat_number`,
+      [roomId]
+    )
+  ]);
+
+  if (room.rowCount !== 1 || seats.rowCount === 0) return null;
+  const row = room.rows[0] as RoomRow & { target_word: string | null };
+
+  // A room carrying a target word belongs to the drawing game, which is on its
+  // way out of the tree; a table still filling up has no round in play yet.
+  if (row.target_word !== null && row.target_word !== undefined) return null;
+  if (row.phase !== "playing" && row.phase !== "round_end") return null;
+
+  const round = toLoadedRound(row, seats.rows);
+  const seat = round.seats.indexOf(playerId);
+  if (seat < 0) return null;
+
+  return buildRoundView(round, seat, {
+    roomId,
+    roundNumber: Number(row.round_number),
+    turnNumber: Number(row.turn_number),
+    phase: row.phase,
+    // A settled round has no clock: its deadline belongs to the reveal pause,
+    // which the client is not counting down.
+    deadlineAt:
+      row.phase === "round_end" || !row.turn_deadline_at ? null : new Date(row.turn_deadline_at),
+    seats: seatMetaOf(seats.rows)
+  });
 }
 
 /**

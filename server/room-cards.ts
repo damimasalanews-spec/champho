@@ -107,17 +107,24 @@ export function toLoadedRound(room: RoomCardColumns, players: readonly PlayerCar
     corrupt("room_players", "seats_not_contiguous");
   }
 
-  const activePlayerId = typeof room.active_player_id === "string" ? room.active_player_id : null;
-  if (!activePlayerId) corrupt("active_player_id", "missing");
-  const activeSeat = seats.indexOf(activePlayerId);
-  if (activeSeat < 0) corrupt("active_player_id", "not_seated");
-
   const winnerSeat = room.winner_seat === null || room.winner_seat === undefined
     ? null
     : Number(room.winner_seat);
   if (winnerSeat !== null && (winnerSeat < 0 || winnerSeat >= seats.length)) {
     corrupt("winner_seat", "not_seated");
   }
+
+  // A settled round has nobody on the clock: the winner emptied their hand, so
+  // the seat is cleared while the board shows the reveal. Seat 0 is recorded as
+  // a placeholder — safe because every rule that reads `activeSeat` refuses a
+  // finished round before it looks at it (`playCard`, `drawCard`, `pass`) or
+  // never reads it at all (`settle`). Reading a settled round as corrupt is what
+  // would break a resume during the reveal.
+  const activePlayerId = typeof room.active_player_id === "string" ? room.active_player_id : null;
+  const seatedActive = activePlayerId ? seats.indexOf(activePlayerId) : -1;
+  if (!activePlayerId && winnerSeat === null) corrupt("active_player_id", "missing");
+  if (activePlayerId && seatedActive < 0) corrupt("active_player_id", "not_seated");
+  const activeSeat = seatedActive < 0 ? 0 : seatedActive;
 
   const namedColor = room.named_color === null || room.named_color === undefined
     ? null
