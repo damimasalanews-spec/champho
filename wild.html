@@ -828,8 +828,32 @@
             presentVictoryScoreboardScreen(winner.name, pointsWon, leaderboardRows);
         }
 
-        function startNextLocalRound() {
+        function prepareClientTableForNewRound() {
+            // The pile empties. The brief clears #central-discard, which does not exist on
+            // this page — the pile is #discard-deck-pile, so clearing the brief's id would
+            // have left every card of the last round lying on the table.
+            const discardPileNode = document.getElementById('discard-deck-pile');
+            if (discardPileNode) discardPileNode.innerHTML = '';
+
+            // The counters empty and go back to a fresh deal's seven. The brief's ids are
+            // count-stack-left/top/right; these are count-stack-opponent-*, and without the
+            // reset a seat that took a penalty still shows eleven in the next round.
+            ['opponent-left', 'opponent-top', 'opponent-right'].forEach((slotKey) => {
+                const counterStackNode = document.getElementById(`count-stack-${slotKey}`);
+                if (counterStackNode) counterStackNode.innerHTML = '';
+                opponentHandSize[slotKey] = 7;
+            });
+
             concealVictoryScoreboard();
+
+            document.querySelectorAll('.direction-arrow').forEach((arrowNode) => {
+                arrowNode.classList.remove('active-turn');
+            });
+        }
+
+        function startNextLocalRound() {
+            // Debris off the table BEFORE the deal, so the new cards do not land on the old
+            prepareClientTableForNewRound();
             document.getElementById('local-player-hand').innerHTML = '';
             // There is no socket in this page, so nobody is told we are ready and no
             // server deals again. The page deals again itself, because a demo that

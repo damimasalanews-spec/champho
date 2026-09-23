@@ -86,7 +86,12 @@ test("the classic client is served and can reach the server", async () => {
 });
 
 test("the card table is served and can reach the server", async () => {
-  const wild = await get("/wild.html");
+  // /wild-play.html, not /wild.html. /wild.html became the arcade demo page, which has
+  // no socket by design — asserted in the test below — and every assertion here is about
+  // a page that plays. Pointing this at the demo would mean either dropping the
+  // assertions or pretending the demo can reach a server. The playable client moved, so
+  // this follows it; that it is still served at all is asserted below too.
+  const wild = await get("/wild-play.html");
 
   assert.equal(wild.result, "served");
   assert.match(wild.text, /new WebSocket/);
@@ -96,7 +101,9 @@ test("the card table is served and can reach the server", async () => {
 });
 
 test("the card table walks its seats in the order they sit around the table", async () => {
-  const wild = await get("/wild.html");
+  // The playable client again: the seat ring is what decides which plate the turn moves
+  // to next, and the arcade demo has no seat ring to walk.
+  const wild = await get("/wild-play.html");
 
   // The plates are laid out near-left (the viewer), left, far, right. The seat
   // ring has to be listed in that same order, because it decides both where each
@@ -107,6 +114,22 @@ test("the card table walks its seats in the order they sit around the table", as
     /const SEAT_SLOTS = \["left", "top", "right"\];/,
     "the seat ring must run clockwise: left, far, right"
   );
+});
+
+test("the Go Wild page is the arcade demo, and the playable client is still served", async () => {
+  // /wild.html is the arcade demo: its own layout, its own mock data, its own deal. It
+  // has no socket, which is the one thing a card table cannot do without — so the page
+  // that can actually be played is /wild-play.html. Both facts are asserted here rather
+  // than left implicit, including that the playable client has not quietly gone away.
+  const demo = await get("/wild.html");
+  const playable = await get("/wild-play.html");
+
+  assert.equal(demo.result, "served");
+  assert.match(demo.text, /localHandMock/, "the demo runs on its own mock pipeline");
+  assert.doesNotMatch(demo.text, /new WebSocket/, "the demo has no socket, by design");
+
+  assert.equal(playable.result, "served");
+  assert.match(playable.text, /new WebSocket/, "the playable client must stay served");
 });
 
 test("the legacy address still resolves to the home page", async () => {
