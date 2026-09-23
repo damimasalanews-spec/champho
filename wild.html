@@ -650,7 +650,7 @@
   border-radius: inherit;
   pointer-events: none;
   box-shadow:
-    inset 0 3px 6px rgba(255, 255, 255, .4),
+    inset 0 3px 6px rgba(255, 255, 255, .5),
     inset 0 -8px 12px rgba(0, 0, 0, .2);
 }
 
@@ -661,14 +661,16 @@
 .card-flight:not(.deck-flight)::after {
   content: "";
   position: absolute;
-  left: -12%;
-  top: 14%;
-  width: 124%;
-  height: 72%;
+  left: -14%;
+  top: 10%;
+  width: 130%;
+  height: 80%;
   z-index: 1;
   border-radius: 50%;
-  background: rgba(255, 255, 255, .18);
-  transform: rotate(-25deg);
+  background: rgba(255, 255, 255, .22);
+  /* the offset throws the lit edge off-centre, so the disc reads as a printed
+     highlight under a light rather than as a symmetric wash */
+  transform: rotate(-28deg) translate3d(-5px, -5px, 0);
   pointer-events: none;
 }
 
@@ -1755,7 +1757,8 @@
 
     // The card comes off the felt. How high depends on how far it has to go: a hop
     // from the deck to the next plate barely clears the table, a throw clean across
-    // it arcs. Clamped so a card never climbs further than the board is wide.
+    // it arcs high. Clamped at both ends so a short hop still reads as a throw and
+    // a long one never climbs out of the frame.
     //
     // The lift is carried on the Z axis under the ghost's own perspective(), which
     // is what makes it read as coming toward the player rather than as growing:
@@ -1764,7 +1767,7 @@
     // perspective on the stage would reproject the whole table — every tile, every
     // plate — to change one card.
     const distance = Math.hypot(dx, dy);
-    const lift = Math.max(28, Math.min(130, distance * .16));
+    const lift = Math.max(28, Math.min(160, distance * .19));
 
     // Derived, not random. A card dealt to this seat on this pass always tumbles
     // the same way, so a deal is reproducible frame for frame and can be asserted
