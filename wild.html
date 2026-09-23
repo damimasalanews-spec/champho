@@ -235,27 +235,15 @@
    window closes. Only the seat on the clock gets it.
    =========================================================================== */
 .atile{position:relative}
-.burn{position:absolute;inset:-8px;display:none;pointer-events:none;overflow:visible}
-.pcard.is-active .burn{display:block}
-.burn .band{fill:none;stroke-linecap:round;
-  animation-name:burnaway;animation-timing-function:linear;animation-fill-mode:forwards}
-.burn .band-a{stroke:#F5A623;stroke-width:17}
-.burn .band-b{stroke:#FFD84D;stroke-width:12}
-.burn .band-c{stroke:#FFF6C9;stroke-width:6}
-/* whole, then broken, then gone — it burns away rather than looping */
-@keyframes burnaway{
-  0%{stroke-dasharray:100 0}
-  38%{stroke-dasharray:88 4}
-  68%{stroke-dasharray:58 9}
-  100%{stroke-dasharray:0 100}
-}
-.burn .spark{fill:#fff;opacity:0;transform-origin:center;
-  animation-name:sparkle;animation-iteration-count:infinite;animation-timing-function:ease-out}
-@keyframes sparkle{
-  0%{opacity:0;transform:scale(.2)}
-  35%{opacity:1;transform:scale(1)}
-  100%{opacity:0;transform:scale(.4)}
-}
+/* A circle around the avatar, with one lit arc sweeping it once per turn.
+   Nothing else: no glow, no spikes, no texture. The arc is the clock. */
+.halo{position:absolute;inset:-18px;display:none;pointer-events:none;overflow:visible}
+.pcard.is-active .halo{display:block}
+.halo-track{fill:none;stroke:rgba(255,255,255,.16);stroke-width:6}
+.halo-arc{fill:none;stroke:#8be9ff;stroke-width:6;stroke-linecap:round;
+  transform-origin:50% 50%;animation-name:sweep;animation-timing-function:linear;
+  animation-iteration-count:infinite}
+@keyframes sweep{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -564,7 +552,7 @@
     renderHand();
     renderBoard();
     renderControls();
-    renderBurns();
+    renderHalo();
   }
 
   function renderHud() {
@@ -1127,28 +1115,25 @@
    * Built here and injected into the four plates rather than written out four
    * times in the markup, so the seats cannot drift apart.
    */
-  const BURN_PATH = "M41,8 H107 A33,33 0 0 1 140,41 V107 A33,33 0 0 1 107,140 H41 A33,33 0 0 1 8,107 V41 A33,33 0 0 1 41,8 Z";
-  const SPARK = "M0,-9 L2.4,-2.4 L9,0 L2.4,2.4 L0,9 L-2.4,2.4 L-9,0 L-2.4,-2.4 Z";
+  const HALO_R = 80;
+  const HALO_CIRC = 2 * Math.PI * HALO_R;
+  const HALO_ARC = 120; // how much of the circle is lit, in user units
 
-  function burnMarkup() {
-    const bands = ["band-a", "band-b", "band-c"]
-      .map((cls) => '<path class="band ' + cls + '" d="' + BURN_PATH + '" pathLength="100"/>')
-      .join("");
-    const sparks = [[8, 8], [140, 8], [140, 140], [8, 140]]
-      .map(([x, y], i) =>
-        '<path class="spark" d="' + SPARK + '" transform="translate(' + x + ',' + y + ')"' +
-        ' style="animation-duration:' + (1.1 + i * 0.25).toFixed(2) + 's;animation-delay:' + (i * 0.28).toFixed(2) + 's"/>')
-      .join("");
-    return '<svg class="burn" viewBox="0 0 148 148" aria-hidden="true">' + bands + sparks + "</svg>";
+  function haloMarkup() {
+    return '<svg class="halo" viewBox="0 0 168 168" aria-hidden="true">' +
+      '<circle class="halo-track" cx="84" cy="84" r="' + HALO_R + '"/>' +
+      '<circle class="halo-arc" cx="84" cy="84" r="' + HALO_R + '"' +
+      ' stroke-dasharray="' + HALO_ARC + " " + (HALO_CIRC - HALO_ARC).toFixed(1) + '"/>' +
+      "</svg>";
   }
 
   /**
-   * The band IS the clock. A view can arrive mid-turn, so the burn is started
+   * The arc IS the clock. A view can arrive mid-turn, so the sweep is started
    * part-way through rather than at the beginning: elapsed time is the window
-   * minus what is left on the deadline, and the animation is given that as a
-   * negative delay so it picks up exactly where the turn already is.
+   * minus what is left on the deadline, and it is given as a negative delay so
+   * the arc picks up exactly where the turn already is.
    */
-  function renderBurns() {
+  function renderHalo() {
     const view = state.view;
     const TOTAL = 10_000; // the server's throw window, in ms
     const left = view && view.deadlineAt
@@ -1158,14 +1143,18 @@
 
     document.querySelectorAll(".pcard").forEach((card) => {
       if (!view || view.phase !== "playing" || !card.classList.contains("is-active")) return;
-      card.querySelectorAll(".burn .band").forEach((band) => {
-        // restart from scratch, or a second turn inherits the first one's finish
-        band.style.animation = "none";
-        void band.offsetWidth;
-        band.style.animation = "";
-        band.style.animationDuration = TOTAL + "ms";
-        band.style.animationDelay = (-elapsed) + "ms";
-      });
+      const arc = card.querySelector(".halo-arc");
+      if (!arc) return;
+      // the circle takes the seat's own colour, so it matches that plate's ring
+      const tile = card.querySelector(".atile");
+      const ring = tile ? getComputedStyle(tile).getPropertyValue("--ring").trim() : "";
+      if (ring) arc.style.stroke = ring;
+      // restart from scratch, or the next turn inherits the last one's finish
+      arc.style.animation = "none";
+      void arc.getBoundingClientRect();
+      arc.style.animation = "";
+      arc.style.animationDuration = TOTAL + "ms";
+      arc.style.animationDelay = (-elapsed) + "ms";
     });
   }
 
@@ -1316,9 +1305,9 @@
     $("seat-me").querySelector("[data-name]").textContent = state.profile.name || "You";
   });
 
-  // every plate gets the burning band; only the one on the clock shows it
+  // every plate gets the circle; only the one on the clock shows it
   document.querySelectorAll(".atile").forEach((tile) => {
-    tile.insertAdjacentHTML("beforeend", burnMarkup());
+    tile.insertAdjacentHTML("beforeend", haloMarkup());
   });
 
   fit();
