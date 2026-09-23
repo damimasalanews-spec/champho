@@ -1055,25 +1055,118 @@
   let dealtRound = null;
 
   /**
-   * Deal the opening hand out of the deck, one card at a time.
+   * The gap between one card of the deal and the next.
    *
-   * Each card leaves the deck, crosses to the tile it belongs to and ruffles as it
-   * goes, so the hand arrives as a deal instead of appearing all at once. The cards
-   * are flown face up: it is the viewer's own hand, already face up in the fan, so a
-   * face-down ghost would be hiding something the player can see anyway.
-   *
-   * animateFlight plays the whoosh itself, which is why there is no separate ruffle
-   * call per card here — one card, one sound.
+   * This is the deal's whole tempo, so it is the one number to reach for. At 180ms
+   * a card lands nearly every fifth of a second, a seat is served every 720ms, and
+   * seven passes take 5.04s. Mind the turn window: GW_TOTAL is 10s, and this runs
+   * *inside* the first turn rather than before it, so half the first turn is spent
+   * watching the deal. 110-130ms still reads as a deal and costs half as much.
    */
-  function dealOpeningHand(hand) {
+  const DEAL_STEP_MS = 180;
+
+  /** How long a card stays in the air. animateFlight uses this too, so a card can
+   *  never be revealed while its own ghost is still travelling. */
+  const FLIGHT_MS = 480;
+
+  /**
+   * The two sounds a card in flight makes.
+   *
+   * A card thrown between the hand, deck and board whooshes low and heavy. A dealt
+   * card is the lighter, brighter ruffle — these are the same parameters
+   * `playCardRuffleSound` uses in game/sound.js, so asking for that sound and
+   * letting the flight play it is one sound per card, not two. It matters over a
+   * whole deal: 28 of the heavy whooshes running into each other is mud.
+   */
+  const FLIGHT_SOUND = { dur: .24, gain: .045, when: 0, freq: 1200 };
+  const DEAL_SOUND = { dur: .12, gain: .03, when: 0, freq: 1800 };
+
+  /**
+   * Deal the opening hand out of the deck to every seat at the table.
+   *
+   * The rhythm is the one a dealer actually works at: a card to each seat in turn,
+   * round the table, seven times over. Every card leaves the deck, crosses to the
+   * place it belongs and ruffles as it goes, so all four hands at the table arrive
+   * as a deal instead of the viewer's hand sliding in while the rivals' fans blink
+   * into existence.
+   *
+   * The viewer's own cards fly face up: they are already face up in the fan, so a
+   * face-down ghost would be hiding something the player can see anyway. A rival's
+   * cards fly face down, which is all this client knows about them — the server
+   * sends a seat its own hand and nothing but a *count* for everyone else, so there
+   * is no face to fly.
+   *
+   * A card is held out of the fan until its own ghost lands, so the deal reads as
+   * cards arriving rather than as ghosts landing on cards that were already there.
+   * `finishDeal` clears anything still hidden once the last card is down, so a
+   * flight that never ran cannot leave a card the player cannot see.
+   *
+   * Sound comes from animateFlight, told to play DEAL_SOUND: the ruffle
+   * `playCardRuffleSound` plays, not the heavier whoosh a thrown card makes. There
+   * is deliberately no separate ruffle call per card on top of it — one card, one
+   * sound. 28 cards of doubled audio is mud, and it would also defeat the throttle
+   * that keeps a mouse sweeping across the hand from stacking whooshes.
+   */
+  function dealOpeningHand(view, hand) {
     const deck = rectOfElement($("deck"));
     if (!deck) return;
     const tiles = [...document.querySelectorAll("#tiles .tile")];
-    hand.forEach((card, i) => {
-      const target = rectOfElement(tiles[i]);
-      if (!target) return;
-      // 80ms apart, the rhythm of a dealer working down the deck
-      setTimeout(() => animateFlight(makeCardFlight(card), deck, target, i % 2 === 0 ? -6 : 6), i * 80);
+    // A rival's fan is the cards beside their plate, in the order this viewer's
+    // turn order walks the seats, so it lines up with SEAT_SLOTS.
+    const seatCount = Math.max(1, view.seats.length);
+    const rivals = SEAT_SLOTS.slice(0, seatCount - 1).map(
+      (slot) => [...document.querySelectorAll("#seat-" + slot + " [data-fan] .miniCard")]
+    );
+
+    // Seven either way at the opening deal, but a fan and a hand are counted
+    // separately: the deal runs to whichever of them is longer and a seat that has
+    // run out of cards is simply skipped.
+    const passes = Math.max(1, hand.length, 0, ...rivals.map((fan) => fan.length));
+    const hold = (element) => { if (element) element.style.opacity = "0"; };
+    const release = (element) => { if (element) element.style.opacity = ""; };
+
+    let step = 0;
+    let lastAt = 0;
+
+    for (let pass = 0; pass < passes; pass += 1) {
+      for (let rel = 0; rel < seatCount; rel += 1) {
+        const at = step * DEAL_STEP_MS;
+        step += 1;
+        lastAt = at;
+        // the flick of a card leaving a hand: the tilt alternates as the dealer
+        // works round the table
+        const rotate = rel % 2 === 0 ? -6 : 6;
+
+        // the viewer's own hand: face up, onto the tile it belongs to
+        if (rel === 0) {
+          const card = hand[pass];
+          const tile = tiles[pass];
+          if (!card || !tile) continue;
+          const target = rectOfElement(tile);
+          if (!target) continue;
+          hold(tile);
+          setTimeout(() => animateFlight(makeCardFlight(card), deck, target, rotate, DEAL_SOUND), at);
+          setTimeout(() => release(tile), at + FLIGHT_MS);
+          continue;
+        }
+
+        // a rival: face down, onto the back that already stands for it
+        const mini = (rivals[rel - 1] || [])[pass];
+        const target = rectOfElement(mini);
+        if (!target) continue;
+        hold(mini);
+        setTimeout(() => animateFlight(makeDeckFlight(), deck, target, rotate, DEAL_SOUND), at);
+        setTimeout(() => release(mini), at + FLIGHT_MS);
+      }
+    }
+
+    setTimeout(finishDeal, lastAt + FLIGHT_MS + 120);
+  }
+
+  /** Put back anything the deal is still holding once the last card has landed. */
+  function finishDeal() {
+    document.querySelectorAll("#tiles .tile, .fan .miniCard").forEach((element) => {
+      element.style.opacity = "";
     });
   }
 
@@ -1087,6 +1180,11 @@
     const legal = new Set(view.you.legal);
     const canThrow = myTurn();
     const mid = (hand.length - 1) / 2;
+    // A new round is dealt by the cascade, which flies every card in from the deck
+    // and holds each one out of the fan until it lands. The CSS drop-in is skipped
+    // on that one render, so a card cannot arrive twice; every later render — the
+    // hand being rebuilt under a hover, a throw, a draw — keeps it.
+    const dealing = hand.length > 0 && view.roundNumber !== dealtRound;
 
     hand.forEach((card, i) => {
       const face = faceOf(card);
@@ -1098,8 +1196,10 @@
       if (canThrow && legal.has(card.cardId)) btn.classList.add("playable");
       if (view.you.drawnCardId === card.cardId) btn.classList.add("drawn");
       if (state.pendingWild && state.pendingWild.cardId === card.cardId) btn.classList.add("picked");
-      btn.style.animationDelay = (i * 55) + "ms";
-      btn.classList.add("deal");
+      if (!dealing) {
+        btn.style.animationDelay = (i * 55) + "ms";
+        btn.classList.add("deal");
+      }
       // a hand is held, not laid out: the cards fan from the middle and drop away
       // at the ends, which is why these are variables rather than a flat row
       btn.style.setProperty("--rot", ((i - mid) * 3.5) + "deg");
@@ -1141,9 +1241,9 @@
 
     // A new round deals the hand out of the deck, once. Keyed on the round number,
     // or every server update would fly the whole hand out of the deck again.
-    if (hand.length > 0 && view.roundNumber !== dealtRound) {
+    if (dealing) {
       dealtRound = view.roundNumber;
-      dealOpeningHand(hand);
+      dealOpeningHand(view, hand);
     }
 
     if (hand.length === 0) setStatus(view.phase === "round_end" ? "You went out." : "No cards.");
@@ -1522,7 +1622,7 @@
     return ghost;
   }
 
-  function animateFlight(ghost, from, to, rotate = 0) {
+  function animateFlight(ghost, from, to, rotate = 0, sound = FLIGHT_SOUND) {
     if (!ghost || !from || !to) return;
     document.body.appendChild(ghost);
     ghost.style.left = from.left + "px";
@@ -1553,11 +1653,11 @@
       }
     ];
     const animation = ghost.animate(keyframes, {
-      duration: 480,
+      duration: FLIGHT_MS,
       easing: "cubic-bezier(.2, .85, .3, 1)",
       fill: "forwards"
     });
-    sfx.whoosh(.24, .045);
+    sfx.whoosh(sound.dur, sound.gain, sound.when, sound.freq);
     animation.addEventListener("finish", () => ghost.remove());
   }
 
