@@ -404,3 +404,149 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
     transform: scale(0.95);
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
+/* ==========================================================================
+   MATCH CLOCK AND CHAT
+
+   The two pieces of the HUD that were genuinely missing. Everything else in the
+   brief was already here under a different name — .avatar-container IS the avatar
+   frame, .player-name-tag IS the pill, .opponent-card-count-stack IS the count
+   stack, .direction-arrow IS the arrow and .game-table IS the table — so none of
+   it was duplicated. Adding the brief's parallel names would have produced four
+   more empty seats and a second ring of four arrows with no markup behind them.
+   ========================================================================== */
+
+/* The match clock, top left. Tinted glass over the felt rather than a solid pill,
+   so it reads as an overlay and does not compete with the player pills. */
+.arcade-timer-badge {
+  position: absolute;
+  top: 22px;
+  left: 30px;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(0, 0, 0, .4);
+  /* 3px, not the 2.5px of the brief: Chrome snaps a 2.5px border to 2px at DPR 1,
+     so the spec's value renders thinner than intended. 3px also matches the rim on
+     the chat trigger, which is the other half of this HUD. */
+  border: 3px solid #fff;
+  border-radius: 20px;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 1.4rem;
+  line-height: 1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
+}
+
+.arcade-timer-badge .clock-glyph {
+  font-size: 1.15rem;
+  /* a slow tick, so a static screenshot still reads as a running clock */
+  animation: clock-tick 2s steps(1, end) infinite;
+}
+
+@keyframes clock-tick {
+  0%, 49% { transform: rotate(0deg); }
+  50%, 100% { transform: rotate(-14deg); }
+}
+
+/* Digits must not jitter the pill as they change: every digit the same width. */
+#game-countdown-string {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+  min-width: 4.1ch;
+  text-align: center;
+}
+
+/* The chat trigger, sitting above the local seat's corner. */
+.chat-bubble-trigger {
+  position: absolute;
+  bottom: 25px;
+  left: 35px;
+  z-index: 300;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  background: linear-gradient(180deg, #ffe066 0%, #f39c12 100%);
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, .3);
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.34, 1.56, .64, 1), box-shadow .18s ease;
+}
+
+.chat-bubble-trigger:hover,
+.chat-bubble-trigger:focus-visible {
+  transform: translateY(-3px) scale(1.06);
+  box-shadow: 0 8px 14px rgba(0, 0, 0, .38);
+  outline: none;
+}
+
+.chat-bubble-trigger.open {
+  background: linear-gradient(180deg, #f39c12 0%, #d35400 100%);
+}
+
+/* The popover. There is no server behind this page, so the emotes are local: they
+   float up from the trigger and play a note. It is a demo of the control, not a
+   chat channel — the networked page is the one that actually sends anything. */
+.chat-popover {
+  position: absolute;
+  bottom: 88px;
+  left: 30px;
+  z-index: 300;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 10px;
+  background: rgba(0, 0, 0, .55);
+  border: 2px solid #fff;
+  border-radius: 18px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .4);
+  opacity: 0;
+  transform: translateY(8px) scale(.96);
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.chat-popover.open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.chat-popover button {
+  width: 38px;
+  height: 38px;
+  font-size: 1.15rem;
+  background: linear-gradient(180deg, #ffe066 0%, #f5b041 100%);
+  border: 2px solid #fff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform .15s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.chat-popover button:hover {
+  transform: translateY(-2px) scale(1.08);
+}
+
+/* An emote leaving the trigger: up, then gone. */
+.emote-flyup {
+  position: absolute;
+  bottom: 84px;
+  left: 44px;
+  z-index: 320;
+  font-size: 1.7rem;
+  pointer-events: none;
+  animation: emote-flyup 1.4s ease-out forwards;
+}
+
+@keyframes emote-flyup {
+  0% { opacity: 0; transform: translateY(0) scale(.7); }
+  18% { opacity: 1; transform: translateY(-14px) scale(1.12); }
+  75% { opacity: 1; transform: translateY(-72px) scale(1); }
+  100% { opacity: 0; transform: translateY(-96px) scale(.92); }
+}

@@ -18,7 +18,13 @@
     <div id="screen-effects" class="screen-effect-layer"></div>
 
     <div class="game-table">
-        
+
+        <!-- Match clock: top left, counting down MM:SS -->
+        <div class="arcade-timer-badge">
+            <span class="clock-glyph" aria-hidden="true">⏱️</span>
+            <span id="game-countdown-string">02:29</span>
+        </div>
+
         <!-- Live Neon Turn Indicator Rig -->
         <div class="floating-turn-ring">
             <div class="direction-arrow arrow-top" id="arrow-opponent-top"></div>
@@ -65,6 +71,21 @@
         <div class="controls-panel">
             <button class="btn-arcade" id="btn-uno-call">UNO</button>
         </div>
+
+        <!-- Chat. Local only: this page has no socket, so these float up and play a
+             note instead of reaching anyone. The networked page is the one that
+             actually sends a message. -->
+        <div class="chat-popover" id="chat-popover">
+            <button type="button">😀</button>
+            <button type="button">😂</button>
+            <button type="button">😮</button>
+            <button type="button">😎</button>
+            <button type="button">🔥</button>
+            <button type="button">👏</button>
+            <button type="button">😭</button>
+            <button type="button">🎉</button>
+        </div>
+        <div class="chat-bubble-trigger" id="chat-trigger" role="button" tabindex="0" aria-label="Chat">💬</div>
     </div>
 
     <!-- Script Execution Pipelines -->
@@ -313,8 +334,85 @@
             }, 1000);
         }
 
+        // ---- the match clock --------------------------------------------------
+        // Counts down in MM:SS from the round's total. It stops at 00:00 and stays
+        // there rather than looping, so a demo left open settles on zero.
+        let gameMatchTimerInterval = null;
+
+        function initializeArcadeMatchTimer(startingSecondsTotal) {
+            clearInterval(gameMatchTimerInterval);
+
+            let currentTimerSeconds = startingSecondsTotal;
+            const displayNode = document.getElementById('game-countdown-string');
+
+            const paintClock = () => {
+                if (!displayNode) return;
+                const minutes = Math.floor(currentTimerSeconds / 60).toString().padStart(2, '0');
+                const seconds = (currentTimerSeconds % 60).toString().padStart(2, '0');
+                displayNode.innerText = `${minutes}:${seconds}`;
+            };
+
+            paintClock();
+
+            gameMatchTimerInterval = setInterval(() => {
+                currentTimerSeconds -= 1;
+                if (currentTimerSeconds <= 0) {
+                    currentTimerSeconds = 0;
+                    paintClock();
+                    clearInterval(gameMatchTimerInterval);
+                    return;
+                }
+                paintClock();
+            }, 1000);
+        }
+
+        // ---- chat -------------------------------------------------------------
+        // There is no socket in this page, so an emote floats up out of the trigger
+        // and plays a note. Nothing is sent anywhere; it demonstrates the control.
+        function openChatInterface() {
+            const popover = document.getElementById('chat-popover');
+            const trigger = document.getElementById('chat-trigger');
+            if (!popover) return;
+            const nowOpen = popover.classList.toggle('open');
+            if (trigger) {
+                trigger.classList.toggle('open', nowOpen);
+                trigger.setAttribute('aria-expanded', String(nowOpen));
+            }
+        }
+
+        function flyEmote(glyph) {
+            const flyer = document.createElement('div');
+            flyer.className = 'emote-flyup';
+            flyer.textContent = glyph;
+            document.querySelector('.game-table').appendChild(flyer);
+            note(680, 0.12, 'sine', 0.05, 0, 900);
+            setTimeout(() => flyer.remove(), 1500);
+        }
+
+        function wireChat() {
+            const trigger = document.getElementById('chat-trigger');
+            const popover = document.getElementById('chat-popover');
+            if (!trigger || !popover) return;
+
+            trigger.addEventListener('click', openChatInterface);
+            trigger.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openChatInterface();
+                }
+            });
+            popover.querySelectorAll('button').forEach((button) => {
+                button.addEventListener('click', () => {
+                    flyEmote(button.textContent.trim());
+                    openChatInterface();
+                });
+            });
+        }
+
         // Automatically auto-boot sequence triggers on window load
         window.addEventListener('DOMContentLoaded', () => {
+            wireChat();
+            initializeArcadeMatchTimer(149);   // 02:29
             // Initiates full simulated arcade dealing engine sequence matching layout blueprints
             setTimeout(() => {
                 initializeCinematic3DDeal(playersMock, localHandMock);
