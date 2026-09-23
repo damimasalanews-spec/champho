@@ -257,6 +257,196 @@
 .gw-head .h-under{fill:#3A0507}
 .gw-head .h-face{fill:#C81E12}
 .gw-head .h-lit{fill:none;stroke:#FF7A5C;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+
+/* ==========================================================================
+   Go Wild polish: card flights, stronger feedback and deck interaction
+   ========================================================================== */
+
+#fx {
+  pointer-events: none;
+}
+
+.tile.deal {
+  animation: cardDeal .55s cubic-bezier(.2, 1.35, .35, 1) both;
+}
+
+@keyframes cardDeal {
+  from {
+    opacity: 0;
+    transform:
+      rotate(var(--rot, 0deg))
+      translateY(calc(var(--dy, 0px) + 28px))
+      scale(.72);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      rotate(var(--rot, 0deg))
+      translateY(var(--dy, 0px))
+      scale(1);
+  }
+}
+
+/* A card travelling between the hand, deck and board */
+.card-flight {
+  position: fixed !important;
+  z-index: 1000;
+  pointer-events: none !important;
+  margin: 0 !important;
+  transform-origin: center center;
+  transition: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  box-sizing: border-box;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .42));
+}
+
+.card-flight .corner {
+  left: 9px;
+  top: 7px;
+}
+
+.card-flight .sub {
+  bottom: 9px;
+}
+
+/* Deck ghost used during a draw animation */
+.deck-flight {
+  background: linear-gradient(160deg, #1b5a9e, #0a3160);
+  border: 3px solid rgba(255, 255, 255, .9);
+  border-radius: 14px;
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, .35),
+    0 12px 24px rgba(0, 0, 0, .45);
+}
+
+.deck-flight::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 3px solid rgba(139, 233, 255, .5);
+  border-radius: 50%;
+  transform: rotate(-20deg);
+}
+
+/* Make the deck feel alive while it can be clicked */
+.deck.mine {
+  animation: deckReady 1.5s ease-in-out infinite;
+}
+
+.deck.mine:active {
+  transform: translateY(5px) scale(.96);
+}
+
+@keyframes deckReady {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 13px rgba(251, 191, 36, .85));
+  }
+}
+
+/* Stronger wild-card selection */
+.tile.picked {
+  animation:
+    wildSelected .7s ease-in-out infinite alternate,
+    cardDeal .55s cubic-bezier(.2, 1.35, .35, 1) both;
+}
+
+@keyframes wildSelected {
+  from {
+    filter: brightness(1);
+  }
+
+  to {
+    filter: brightness(1.22) saturate(1.2);
+  }
+}
+
+/* Invalid action feedback */
+#tiles.hand-shake {
+  animation: handShake .38s ease-in-out;
+}
+
+@keyframes handShake {
+  0%, 100% {
+    transform: translateX(-50%);
+  }
+
+  20% {
+    transform: translateX(calc(-50% - 10px));
+  }
+
+  40% {
+    transform: translateX(calc(-50% + 9px));
+  }
+
+  60% {
+    transform: translateX(calc(-50% - 6px));
+  }
+
+  80% {
+    transform: translateX(calc(-50% + 4px));
+  }
+}
+
+/* Large UNO feedback */
+.fx-label {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: 1001;
+  color: #fff;
+  font-size: clamp(38px, 7vw, 92px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 3px;
+  text-shadow:
+    0 5px 0 #7c0f0f,
+    0 0 28px rgba(255, 91, 91, .95);
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(.5) rotate(-8deg);
+  animation: unoBurst .9s cubic-bezier(.2, 1.4, .35, 1) forwards;
+}
+
+@keyframes unoBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.5) rotate(-8deg);
+  }
+
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15) rotate(4deg);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -65%) scale(1.12) rotate(4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile.deal,
+  .tile.picked,
+  .deck.mine,
+  #tiles.hand-shake,
+  .fx-label {
+    animation: none !important;
+  }
+
+  .deck.mine:active {
+    transform: none;
+  }
+}
 </style>
 </head>
 <body>
