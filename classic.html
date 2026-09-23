@@ -64,27 +64,24 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 .score{margin-top:3px;color:#ffd85b;font-size:15px;font-weight:900}
 .thinking{color:#8be9ff;font-size:13px;font-weight:800;min-height:15px}
 
-/* --- drawing board -------------------------------------------------------- */
+/* --- the board is the play surface --------------------------------------- */
 /* The stage geometry is measured from classic-bg/classic-table-scene.webp:
    the drawing surface painted on the table is a trapezoid (perspective), whose
    corners land at stage (532.6,466.4) (1080.8,466.4) (1144.2,705.7)
-   (454.8,705.7). The canvas is that trapezoid's bounding box, clipped to the
-   trapezoid itself, so the drawing sits IN the table's board and the wooden
-   border of the artwork stays visible around it. */
+   (454.8,705.7). Cards are playable only inside that trapezoid, so they read as
+   lying on the table's board and the wooden border of the artwork stays visible
+   around them. Nothing is drawn here any more — cards are thrown onto it. */
 .boardWrap{position:absolute;z-index:20;left:455px;top:466px;width:689px;height:239px}
-#board{width:689px;height:239px;display:block;background:rgba(247,250,252,.94);
-  clip-path:polygon(11.3% 0%,90.8% 0%,100% 100%,0% 100%);touch-action:none}
-.boardWrap.readonly #board{cursor:default}
-.boardWrap:not(.readonly) #board{cursor:crosshair}
+.boardPile{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  clip-path:polygon(11.3% 0%,90.8% 0%,100% 100%,0% 100%)}
+.boardEmpty{font-size:15px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
 .boardHint{position:absolute;left:0;right:0;top:100%;margin-top:8px;text-align:center;
   font-size:14px;font-weight:800;color:#cdefff;text-shadow:0 2px 6px #000}
 .boardTools{position:absolute;z-index:21;left:455px;top:424px;width:689px;
   display:flex;justify-content:space-between;align-items:center;gap:8px}
-.swatch,.clearBtn{pointer-events:auto;border-radius:10px;border:1px solid rgba(99,220,255,.6);
-  background:rgba(3,34,53,.85);color:#fff;font-weight:900;font-size:13px;padding:6px 10px;cursor:pointer}
-.swatch.on{outline:2px solid #ffe44d}
-/* Nobody draws by hand any more, so the swatches are hidden and the timer is
-   the only thing left in this row — keep it pinned to the board's right edge. */
+.boardCount{font-weight:900;font-size:14px;padding:5px 12px;border-radius:10px;
+  background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
+/* The timer is pinned to the board's right edge, opposite the pile count. */
 .timer{font-variant-numeric:tabular-nums;font-weight:900;font-size:16px;padding:5px 12px;
   margin-left:auto;border-radius:10px;background:rgba(3,34,53,.85);border:1px solid rgba(99,220,255,.6)}
 .timer.urgent{background:rgba(120,20,20,.9);border-color:#ff6b6b;color:#ffd9d9}
@@ -96,28 +93,36 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   background:rgba(3,34,53,.92);border:2px solid #ffe44d;box-shadow:0 8px 22px rgba(0,0,0,.45)}
 .reveal .blanks{letter-spacing:7px;color:#8be9ff}
 
-/* --- local 14-card hand --------------------------------------------------- */
+/* --- local hand: coloured letter cards ------------------------------------ */
 .bottom{position:absolute;z-index:25;left:0;right:0;bottom:0;height:180px}
 .hand{position:absolute;left:313px;bottom:70px;display:flex;gap:6px}
-.letter{width:64px;height:88px;border-radius:10px;cursor:pointer;user-select:none;
-  font-family:inherit;font-size:38px;font-weight:900;color:#12303f;
-  background:linear-gradient(180deg,#ffffff,#e6eef4);
-  border:2px solid rgba(3,31,47,.75);box-shadow:0 5px 0 rgba(0,0,0,.35);
-  display:grid;place-items:center;transition:transform .08s,box-shadow .08s}
-.letter:hover{transform:translateY(-4px)}
-.letter.selected{transform:translateY(-14px);color:#1b1000;
-  background:linear-gradient(180deg,#fff3b0,#ffd54a);border-color:#fff;}
+.card{width:64px;height:88px;border-radius:10px;cursor:pointer;user-select:none;
+  font-family:inherit;font-size:36px;font-weight:900;color:#fff;
+  border:2px solid rgba(255,255,255,.85);box-shadow:0 5px 0 rgba(0,0,0,.35);
+  display:grid;place-items:center;text-shadow:0 2px 5px rgba(0,0,0,.45);
+  transition:transform .08s,box-shadow .08s}
+.card:hover{transform:translateY(-6px)}
+.card:disabled{cursor:default;opacity:.45}
+.card-red{background:linear-gradient(180deg,#e0473c,#a8231a)}
+.card-blue{background:linear-gradient(180deg,#2f6fe0,#1a4699)}
+.card-green{background:linear-gradient(180deg,#31a35a,#1c6b39)}
+.card-yellow{background:linear-gradient(180deg,#e8b52c,#a97f10)}
+.card-wild{background:linear-gradient(135deg,#e0473c,#e8b52c 35%,#31a35a 65%,#2f6fe0)}
+/* a card resting on the board */
+.boardCard{position:absolute;width:104px;height:146px;border-radius:12px;
+  display:grid;place-items:center;font-size:52px;font-weight:900;color:#fff;
+  border:3px solid rgba(255,255,255,.9);text-shadow:0 3px 8px rgba(0,0,0,.5);
+  box-shadow:0 10px 22px rgba(0,0,0,.5)}
+.boardCard.landing{animation:land .28s ease-out}
+@keyframes land{from{transform:translateY(-150px) scale(1.4);opacity:.15}to{transform:none;opacity:1}}
 .handEmpty{position:absolute;left:313px;bottom:96px;width:974px;text-align:center;
   font-size:15px;font-weight:800;color:#cdefff}
-.wordPreview{position:absolute;left:0;right:0;bottom:26px;text-align:center;
-  font-size:24px;font-weight:900;letter-spacing:5px;min-height:30px;color:#ffe44d;
-  text-shadow:0 3px 8px #000}
 .actions{position:absolute;right:32px;bottom:70px;width:246px;display:flex;flex-direction:column;gap:12px}
 .action{font-family:inherit;font-size:17px;font-weight:900;padding:14px 0;border-radius:14px;
   cursor:pointer;color:#fff;background:rgba(3,34,53,.9);border:2px solid rgba(99,220,255,.65);
   box-shadow:0 5px 0 rgba(0,0,0,.35)}
 .action:disabled{opacity:.45;cursor:not-allowed}
-.action.submit{background:linear-gradient(180deg,#39c26a,#1f8c48);border-color:#8bf0b0}
+.action.draw{background:linear-gradient(180deg,#2f6fe0,#1a4699);border-color:#9cc4ff}
 
 /* --- chat (right) and reactions (left): small, out of the way ------------- */
 .chat{position:absolute;z-index:26;left:1292px;top:396px;width:276px;height:304px;
@@ -186,17 +191,12 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   <div class="banner"><div class="reveal" id="reveal">Waiting for the first turn…</div></div>
 
   <div class="boardTools">
-    <div style="display:flex;gap:6px;align-items:center">
-      <button class="swatch on" data-color="#12303f" style="background:#12303f">&#9679;</button>
-      <button class="swatch" data-color="#c0392b" style="background:#c0392b">&#9679;</button>
-      <button class="swatch" data-color="#1f6feb" style="background:#1f6feb">&#9679;</button>
-      <button class="clearBtn" id="clearBoard">CLEAR</button>
-    </div>
+    <div class="boardCount" id="boardCount">BOARD · 0 cards</div>
     <div class="timer" id="timer">--</div>
   </div>
 
-  <div class="boardWrap readonly" id="boardWrap">
-    <canvas id="board" width="1378" height="478"></canvas>
+  <div class="boardWrap" id="boardWrap">
+    <div class="boardPile" id="boardPile"><span class="boardEmpty" id="boardEmpty">Throw a card onto the board</span></div>
     <div class="boardHint" id="boardHint">Waiting for a turn…</div>
   </div>
 
@@ -216,10 +216,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
   <div class="bottom">
     <div class="hand" id="hand"></div>
     <div class="handEmpty" id="handEmpty" style="display:none">Waiting for your cards…</div>
-    <div class="wordPreview" id="wordPreview"></div>
     <div class="actions">
       <button class="action" id="shuffle">↝ SHUFFLE</button>
-      <button class="action submit" id="submit" disabled>✓ SUBMIT</button>
+      <button class="action draw" id="draw">＋ DRAW</button>
     </div>
   </div>
 
@@ -258,13 +257,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     roomId: null,
     snapshot: null,
     hand: [],
-    selected: [],          // ordered: click order is the answer order
-    targetWord: null,      // only ever set for the artist
+    played: [],            // what is lying on the board, oldest first
     turnNumber: 0,
     deadline: null,
     clockOffset: 0,        // serverNow - clientNow, so countdowns ignore skew
-    strokes: [],
-    color: "#12303f",
     seq: 0,
     // Handed to us by the parent game frame (index.html) when embedded.
     profile: { name: null, avatar: null, coins: null }
@@ -280,7 +276,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     el.classList.toggle("bad", !!bad);
   }
   const serverNow = () => Date.now() + state.clockOffset;
-  const isArtist = () => !!state.snapshot && state.snapshot.activePlayerId === state.playerId;
   const nameOf = (p) => (p.playerId === state.playerId ? "You" : (p.displayName || p.playerId.slice(0, 8)));
   const send = (msg) => {
     if (ws && ws.readyState === 1) { ws.send(JSON.stringify(msg)); return true; }
@@ -329,6 +324,24 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     $("turnPill").textContent = "TURN " + snap.turnNumber + " · " + String(snap.phase).toUpperCase();
   }
 
+  const COLORS = ["red", "yellow", "green", "blue"];
+
+  /**
+   * Cards carry a colour and a letter. The colour is the server's to decide; a
+   * card with no colour (an older snapshot, or the offline fixture) falls back
+   * to a stable colour derived from its id, so the same card always renders the
+   * same way instead of flickering between colours on every render.
+   */
+  function colorOf(card) {
+    if (card && card.color) return card.color;
+    let hash = 0;
+    const id = (card && card.cardId) || String((card && card.value) || "");
+    for (let i = 0; i < id.length; i += 1) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+    return COLORS[hash % COLORS.length];
+  }
+
+  const myTurn = () => !!state.snapshot && state.snapshot.activePlayerId === state.playerId;
+
   function renderHand() {
     const root = $("hand");
     root.textContent = "";
@@ -340,59 +353,34 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     $("handEmpty").style.display = "none";
     for (const card of state.hand) {
       const btn = document.createElement("button");
-      const picked = state.selected.includes(card.cardId);
-      btn.className = "letter" + (picked ? " selected" : "");
+      btn.className = "card card-" + colorOf(card);
       btn.type = "button";
       btn.textContent = card.value.toUpperCase();
-      btn.setAttribute("aria-label", "letter " + card.value);
-      btn.setAttribute("aria-pressed", String(picked));
-      btn.addEventListener("click", () => toggleCard(card.cardId));
+      btn.setAttribute("aria-label", "throw " + card.value.toUpperCase());
+      btn.disabled = !myTurn();
+      btn.addEventListener("click", () => throwCard(card));
       root.appendChild(btn);
     }
-    renderWordPreview();
-  }
-
-  function renderWordPreview() {
-    const word = state.selected
-      .map((id) => state.hand.find((c) => c.cardId === id))
-      .filter(Boolean)
-      .map((c) => c.value.toUpperCase())
-      .join("");
-    $("wordPreview").textContent = word;
-    // §13: the artist draws and does not solve. The server refuses it anyway;
-    // disabling the button just avoids offering an action that cannot work.
-    $("submit").disabled = word.length === 0 || state.hand.length === 0 || isArtist();
-  }
-
-  function toggleCard(cardId) {
-    const at = state.selected.indexOf(cardId);
-    if (at >= 0) state.selected.splice(at, 1);
-    else state.selected.push(cardId);
-    renderHand();
   }
 
   function renderTurn() {
     const snap = state.snapshot;
-    const artist = isArtist();
-    const wrap = $("boardWrap");
-
-    wrap.classList.toggle("readonly", !artist);
-    $("clearBoard").style.display = artist ? "" : "none";
-    document.querySelectorAll(".swatch").forEach((s) => (s.style.display = artist ? "" : "none"));
-
-    if (artist && state.targetWord) {
-      $("reveal").innerHTML = 'DRAW THIS: <span style="color:#ffe44d">' + state.targetWord.toUpperCase() + "</span>";
-      $("boardHint").textContent = "You are the artist — draw it. You cannot solve your own drawing.";
-    } else if (snap && snap.targetWordLength) {
-      // The house draws every round, so this is the state every player is
-      // always in: nobody is the artist, everybody can answer.
-      const blanks = Array.from({ length: snap.targetWordLength }, () => "_").join(" ");
-      $("reveal").innerHTML = 'GUESS THE DRAWING: <span class="blanks">' + blanks + "</span>";
-      $("boardHint").textContent = "The house drew this — pick letters from your hand to spell it.";
-    } else {
+    if (!snap || !snap.activePlayerId) {
       $("reveal").textContent = "Waiting for the first turn…";
       $("boardHint").textContent = "Waiting for a turn…";
+      return;
     }
+    const who = snap.activePlayerId === state.playerId
+      ? "you"
+      : (() => {
+          const p = snap.players.find((x) => x.playerId === snap.activePlayerId);
+          return p ? nameOf(p) : "the table";
+        })();
+    $("reveal").textContent = myTurn()
+      ? "YOUR TURN — throw a card onto the board"
+      : "Waiting for " + who + " to throw a card";
+    $("boardHint").textContent = "";
+    renderBoard();
   }
 
   function tickTimer() {
@@ -432,80 +420,70 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     setTimeout(() => b.remove(), 2500);
   }
 
-  /* --- drawing board ------------------------------------------------------ */
-  const board = $("board");
-  const ctx = board.getContext("2d");
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
+  /* ======================================================================
+     The board — a platform players throw cards onto
+     ======================================================================
+     Nothing is drawn here any more. The board is the table's play surface: the
+     pile of thrown cards lives inside the same trapezoid the artwork paints on
+     the table, so the newest card reads as lying on the board. The server owns
+     the pile; the client only asks to throw and then renders what it is told.
+     ====================================================================== */
 
-  function drawStroke(stroke) {
-    if (!stroke || !Array.isArray(stroke.points) || stroke.points.length === 0) return;
-    ctx.strokeStyle = stroke.color || "#12303f";
-    // board.width is the 2x backing store of the 689px-wide CSS board.
-    ctx.lineWidth = (stroke.width || 4) * (board.width / 689);
-    ctx.beginPath();
-    stroke.points.forEach(([nx, ny], i) => {
-      const x = nx * board.width, y = ny * board.height;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    if (stroke.points.length === 1) {
-      const [nx, ny] = stroke.points[0];
-      ctx.lineTo(nx * board.width + 0.6, ny * board.height + 0.6);
+  function renderBoard() {
+    const pile = $("boardPile");
+    const played = state.played || [];
+    pile.textContent = "";
+    $("boardCount").textContent = "BOARD · " + played.length + " card" + (played.length === 1 ? "" : "s");
+    if (played.length === 0) {
+      const empty = document.createElement("span");
+      empty.className = "boardEmpty";
+      empty.id = "boardEmpty";
+      empty.textContent = "Throw a card onto the board";
+      pile.appendChild(empty);
+      return;
     }
-    ctx.stroke();
-  }
-  function clearBoard() {
-    ctx.clearRect(0, 0, board.width, board.height);
-    state.strokes = [];
-  }
-  function applyLocalStroke(stroke) {
-    state.strokes.push(stroke);
-    drawStroke(stroke);
+    // The newest card lies square on top; the three beneath it fan out so the
+    // stack reads as a pile rather than as a single card.
+    const shown = played.slice(-4);
+    shown.forEach((card, i) => {
+      const el = document.createElement("div");
+      const back = shown.length - 1 - i;
+      el.className = "boardCard card-" + colorOf(card) + (back === 0 ? " landing" : "");
+      el.textContent = card.value.toUpperCase();
+      el.style.transform = "rotate(" + (back * 5 - 5) + "deg) translate(" + (back * 12) + "px," + (back * -5) + "px)";
+      el.style.zIndex = String(10 + i);
+      pile.appendChild(el);
+    });
   }
 
-  let drawing = null;
-  function normalise(ev) {
-    const r = board.getBoundingClientRect();
-    return [
-      Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)),
-      Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height))
-    ];
-  }
-  board.addEventListener("pointerdown", (ev) => {
-    if (!isArtist()) return;
-    board.setPointerCapture(ev.pointerId);
-    drawing = { points: [normalise(ev)], color: state.color, width: 4 };
-    drawStroke(drawing);
-  });
-  board.addEventListener("pointermove", (ev) => {
-    if (!drawing) return;
-    drawing.points.push(normalise(ev));
-    drawStroke({ points: drawing.points.slice(-2), color: drawing.color, width: drawing.width });
-  });
-  const endStroke = () => {
-    if (!drawing) return;
-    const stroke = drawing;
-    drawing = null;
-    applyLocalStroke(stroke);
-    send(withToken({
-      type: "draw_op",
+  /**
+   * Throw the clicked card onto the board. The board is server-owned, so this
+   * only asks; the pile re-renders when the server confirms the throw.
+   */
+  function throwCard(card) {
+    if (!myTurn()) {
+      setStatus("Not your turn", true);
+      return;
+    }
+    if (DEMO) {
+      state.played.push(card);
+      state.hand = state.hand.filter((c) => c.cardId !== card.cardId);
+      renderHand();
+      renderBoard();
+      return;
+    }
+    const ok = send(withToken({
+      type: "play_card",
       requestId: rid(),
       roomId: state.roomId,
       turnNumber: state.turnNumber,
-      strokes: [stroke]
+      cardId: card.cardId
     }));
-  };
-  board.addEventListener("pointerup", endStroke);
-  board.addEventListener("pointercancel", endStroke);
-  board.addEventListener("pointerleave", endStroke);
+    if (!ok) setStatus("Not connected", true);
+  }
 
-  document.querySelectorAll(".swatch").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.color = btn.dataset.color;
-      document.querySelectorAll(".swatch").forEach((s) => s.classList.toggle("on", s === btn));
-    });
-  });
-  $("clearBoard").addEventListener("click", clearBoard);
+  /* The board takes no pointer input of its own: cards are thrown from the hand,
+     which is the only way anything arrives here. */
 
   /* ======================================================================
      Server messages — the client renders what it is told and decides nothing
@@ -547,48 +525,45 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         if (msg.turnDeadlineAt) state.deadline = new Date(msg.turnDeadlineAt).getTime();
         if (typeof msg.turnNumber === "number" && msg.turnNumber !== state.turnNumber) {
           state.turnNumber = msg.turnNumber;
-          clearBoard();
         }
+        if (Array.isArray(msg.board)) state.played = msg.board.slice();
         renderPlayers();
         renderTurn();
         break;
 
       case "hand_sync": {
         state.hand = Array.isArray(msg.hand) ? msg.hand : [];
-        const keep = state.selected.filter((id) => state.hand.some((c) => c.cardId === id));
-        state.selected = keep;
         renderHand();
-        setStatus("Your private hand: " + state.hand.length + " cards");
+        setStatus("Your hand: " + state.hand.length + " cards");
+        break;
+      }
+
+      case "board_sync": {
+        // The board is the server's; this is the only place it is written.
+        if (Array.isArray(msg.board)) state.played = msg.board.slice();
+        renderBoard();
         break;
       }
 
       case "turn_started":
         state.turnNumber = msg.turnNumber;
         state.deadline = msg.turnDeadlineAt ? new Date(msg.turnDeadlineAt).getTime() : null;
-        state.targetWord = null;          // revealed only to the artist
-        clearBoard();
-        state.selected = [];
-        renderHand();
+        if (Array.isArray(msg.board)) state.played = msg.board.slice();
         if (state.snapshot) {
           state.snapshot.activePlayerId = msg.activePlayerId;
           state.snapshot.turnNumber = msg.turnNumber;
           state.snapshot.roundNumber = msg.roundNumber;
           state.snapshot.phase = "playing";
-          state.snapshot.targetWordLength = msg.targetWordLength;
           state.snapshot.turnDeadlineAt = msg.turnDeadlineAt;
         }
+        renderHand();
         renderPlayers();
         renderTurn();
         setStatus(
-          msg.activePlayerId === null
-            ? "The house is drawing — guess the word"
-            : msg.activePlayerId === state.playerId ? "Your turn to draw!" : "Someone is drawing…"
+          msg.activePlayerId === state.playerId
+            ? "Your turn — throw a card onto the board"
+            : "Waiting for the table…"
         );
-        break;
-
-      case "word_reveal":
-        state.targetWord = msg.targetWord;
-        renderTurn();
         break;
 
       case "bot_action": {
@@ -599,33 +574,30 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
         const where = ["left", "right", "top"][idx];
         if (where) {
           const slot = $("seat-" + where).querySelector(".thinking");
-          if (slot) slot.textContent = msg.kind === "submit" ? "solving…" : "no move";
+          if (slot) slot.textContent = msg.kind === "play" ? "throwing…" : "passed";
         }
         break;
       }
 
-      case "word_submission_result":
+      case "play_result":
         if (msg.hand && Array.isArray(msg.hand)) {
           state.hand = msg.hand;
-          state.selected = [];
           renderHand();
         }
-        if (msg.status === "accepted") { setStatus("Accepted ✓  +" + (msg.scoreDelta || 0)); state.selected = []; renderWordPreview(); }
-        else if (msg.status === "duplicate") setStatus("Already submitted");
-        else setStatus(msg.reason, true);
+        if (Array.isArray(msg.board)) state.played = msg.board.slice();
+        renderBoard();
+        if (msg.status === "accepted") setStatus("Thrown ✓" + (msg.scoreDelta ? "  +" + msg.scoreDelta : ""));
+        else if (msg.status === "duplicate") setStatus("Already thrown");
+        else if (msg.reason) setStatus(msg.reason, true);
         break;
 
       case "turn_ended": {
-        const label = msg.terminalState === "solved" ? "SOLVED"
-                    : msg.terminalState === "timed_out" ? "TIME UP"
-                    : "NO MOVE";
-        addChat("Turn " + msg.turnNumber, label + (msg.word ? " — the word was " + msg.word.toUpperCase() : ""));
-        setStatus("Turn " + msg.turnNumber + " ended: " + label);
-        state.selected = [];
-        state.targetWord = null;
+        addChat("Turn " + msg.turnNumber, msg.terminalState === "timed_out" ? "TIME UP" : "TURN ENDED");
+        setStatus("Turn " + msg.turnNumber + " ended");
         document.querySelectorAll(".thinking").forEach((t) => (t.textContent = ""));
-        clearBoard();
+        if (Array.isArray(msg.board)) state.played = msg.board.slice();
         renderHand();
+        renderBoard();
         break;
       }
 
@@ -635,15 +607,6 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
 
       case "reaction":
         addBubble(msg.emoji);
-        break;
-
-      case "draw_op":
-        if (!isArtist()) (msg.strokes || []).forEach(drawStroke);
-        break;
-
-      case "draw_sync":
-        clearBoard();
-        (msg.strokes || []).forEach(drawStroke);
         break;
 
       case "error":
@@ -678,23 +641,17 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     renderHand();
   });
 
-  $("submit").addEventListener("click", () => {
-    if (state.selected.length === 0) return;
-    const cards = state.selected
-      .map((id) => state.hand.find((c) => c.cardId === id))
-      .filter(Boolean);
-    if (cards.length !== state.selected.length) return;
-    const word = cards.map((c) => c.value).join("");
+  $("draw").addEventListener("click", () => {
+    if (!myTurn()) { setStatus("Not your turn", true); return; }
+    if (DEMO) { setStatus("Nothing left to draw in the demo"); return; }
     const ok = send(withToken({
-      type: "submit_word",
+      type: "draw_card",
       requestId: rid(),
       roomId: state.roomId,
       roundNumber: state.snapshot ? state.snapshot.roundNumber : 0,
-      turnNumber: state.turnNumber,
-      cards: cards.map((c) => c.cardId),
-      word
+      turnNumber: state.turnNumber
     }));
-    setStatus(ok ? "Submitting " + word.toUpperCase() + "…" : "Not connected");
+    setStatus(ok ? "Drawing…" : "Not connected");
   });
 
   $("send").addEventListener("click", sendChat);
@@ -726,27 +683,33 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
     state.snapshot = {
       type: "room_snapshot", roomId: "demo-room", eventSequence: 1,
       state: "active", phase: "playing", roundNumber: 1, turnNumber: 7,
-      // The house draws, so no seat is the artist and nobody is handed the word.
-      activePlayerId: null, firstSolverId: null, solvedAt: null, solveWindowEndsAt: null,
+      // Nobody draws and no seat is the artist: the board is where thrown cards
+      // land, and it is the local player's turn to throw.
+      activePlayerId: "me", firstSolverId: null, solvedAt: null, solveWindowEndsAt: null,
       turnStartedAt: new Date(Date.now() - 2600).toISOString(),
       turnDeadlineAt: new Date(Date.now() + 9400).toISOString(),
-      targetWordLength: 7,
       players: [mk("me", "You", 1450, false), mk("b1", "Aiko", 1240, true), mk("b2", "Kai", 980, true), mk("b3", "Mina", 1320, true)],
       serverTime: new Date().toISOString()
     };
     state.deadline = new Date(state.snapshot.turnDeadlineAt).getTime();
-    state.targetWord = null;   // only an artist is told the word, and there isn't one
     state.turnNumber = 7;
-    // Exactly 14 cards: the 7 letters of "lantern" plus 7 filler letters.
-    state.hand = "LANTERNXQZMKPY".split("").map((ch, i) => ({ cardId: "c" + i, value: ch.toLowerCase() }));
-    state.selected = [state.hand[0].cardId, state.hand[1].cardId];
+    // Cards already lying on the board, oldest first.
+    state.played = [
+      { cardId: "p1", value: "l", color: "red" },
+      { cardId: "p2", value: "a", color: "blue" },
+      { cardId: "p3", value: "n", color: "green" }
+    ];
+    // A seven-card hand that spells LANTERN.
+    state.hand = "LANTERN".split("").map((ch, i) => ({
+      cardId: "c" + i,
+      value: ch.toLowerCase(),
+      color: ["red", "yellow", "green", "blue"][i % 4]
+    }));
     renderPlayers(); renderHand(); renderTurn();
     setStatus("DEMO MODE — no server connection");
-    addChat("Aiko", "that looks like a lamp?");
-    addChat("Kai", "is it 7 letters?");
+    addChat("Aiko", "threw a red L");
+    addChat("Kai", "nice — a blue A to go with it");
     addBubble("😂");
-    applyLocalStroke({ points: [[0.15,0.55],[0.3,0.2],[0.45,0.55],[0.6,0.2],[0.75,0.55]], color: "#12303f", width: 4 });
-    applyLocalStroke({ points: [[0.22,0.7],[0.8,0.72]], color: "#c0392b", width: 5 });
   }
 
   /* The parent game frame (index.html) posts the player's profile when this page
