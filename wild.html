@@ -1113,9 +1113,27 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#061827;
      Connection
      ====================================================================== */
 
+  /**
+   * Where the game server is.
+   *
+   * This page is served from a static site and the game server is a different
+   * service, so the socket cannot be same-origin: it is the backend, unless this
+   * page is being served from the backend itself or from a dev machine. It is the
+   * same rule the classic client uses, so both games find the same server and
+   * both work from the one link.
+   */
+  const BACKEND_HOST = "champword-backend.onrender.com";
+  function backendSocketUrl() {
+    const host = location.hostname;
+    if (host === BACKEND_HOST || host === "localhost" || host === "127.0.0.1") {
+      const proto = location.protocol === "https:" ? "wss" : "ws";
+      return proto + "://" + location.host;
+    }
+    return "wss://" + BACKEND_HOST;
+  }
+
   function connect() {
-    const proto = location.protocol === "https:" ? "wss" : "ws";
-    ws = new WebSocket(proto + "://" + location.host);
+    ws = new WebSocket(backendSocketUrl());
     ws.addEventListener("open", () => setStatus("Connected — finding players…"));
     ws.addEventListener("close", () => setStatus("Disconnected — reload to reconnect", true));
     ws.addEventListener("error", () => setStatus("Connection error", true));
