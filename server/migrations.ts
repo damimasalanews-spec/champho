@@ -21,11 +21,21 @@ export const migrations: Migration[] = [
   { version: 3, name: "protocol_indexes_and_immutability", filename: "db/003_protocol_indexes_and_immutability.sql" },
   { version: 4, name: "connection_version", filename: "db/004_connection_version.sql" },
   { version: 5, name: "turn_engine", filename: "db/005_turn_engine.sql" },
-  { version: 6, name: "submission_id_is_text", filename: "db/006_submission_id_is_text.sql" }
+  { version: 6, name: "submission_id_is_text", filename: "db/006_submission_id_is_text.sql" },
+  { version: 7, name: "board_and_stake", filename: "db/007_board_and_stake.sql" }
 ];
 
-function stripTransactionWrapper(sql: string): string {
-  const withoutBegin = sql.replace(/^\s*BEGIN\s*;\s*/i, "");
+/**
+ * Migrations carry their own BEGIN/COMMIT, and the runner strips it because it
+ * runs each migration inside a transaction it controls. BEGIN must be recognised
+ * even when the file opens with comments: a file whose BEGIN survives would run
+ * inside the runner's transaction, and its COMMIT would close that transaction
+ * early — taking the migration ledger entry with it, silently.
+ *
+ * Exported so the stripping can be tested without a database.
+ */
+export function stripTransactionWrapper(sql: string): string {
+  const withoutBegin = sql.replace(/^(\s|--[^\n]*\n)*BEGIN\s*;\s*/i, "");
   return withoutBegin.replace(/\s*COMMIT\s*;\s*$/i, "");
 }
 
