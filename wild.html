@@ -188,9 +188,13 @@
   display:flex;align-items:flex-end;gap:0;min-height:0;z-index:30}
 .tile{width:96px;height:132px;font-size:46px;margin-left:-36px;border-radius:13px;
   transform-origin:50% 165%;transform:rotate(var(--rot,0deg)) translateY(var(--dy,0px));
-  transition:transform .1s}
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease}
 .tile:first-child{margin-left:0}
-.tile:hover:not(:disabled),.tile.picked{transform:rotate(var(--rot,0deg)) translateY(calc(var(--dy,0px) - 18px)) scale(1.05)}
+/* the lift: a back-out curve so the card springs up rather than gliding, and a
+   z-index so it clears its neighbours instead of sliding under them */
+.tile:hover:not(:disabled){transform:rotate(var(--rot,0deg)) translateY(calc(var(--dy,0px) - 24px)) scale(1.18);
+  box-shadow:0 20px 35px rgba(0,0,0,.4);z-index:40}
+.tile.picked{transform:rotate(var(--rot,0deg)) translateY(calc(var(--dy,0px) - 18px)) scale(1.05)}
 .tile .corner{left:9px;top:7px;font-size:15px}
 .tile .sub{bottom:9px;font-size:11px}
 
@@ -266,8 +270,13 @@
   pointer-events: none;
 }
 
+/* `backwards`, not `both`. The `to` keyframe is the tile's own resting transform,
+   so nothing is lost by not holding it — but holding it means the animation
+   outranks every normal transform declaration on the tile, and that silently kills
+   the hover lift. Measured: with `both`, even an inline transform on a tile was
+   ignored. */
 .tile.deal {
-  animation: cardDeal .55s cubic-bezier(.2, 1.35, .35, 1) both;
+  animation: cardDeal .55s cubic-bezier(.2, 1.35, .35, 1) backwards;
 }
 
 @keyframes cardDeal {
@@ -350,10 +359,10 @@
 }
 
 /* Stronger wild-card selection */
+/* the brightness pulse only: listing cardDeal here as well held the transform on a
+   selected card, so the lift below never showed */
 .tile.picked {
-  animation:
-    wildSelected .7s ease-in-out infinite alternate,
-    cardDeal .55s cubic-bezier(.2, 1.35, .35, 1) both;
+  animation: wildSelected .7s ease-in-out infinite alternate;
 }
 
 @keyframes wildSelected {
@@ -573,16 +582,12 @@
 /* ==========================================================================
    The board's discard pile
 
-   .discard-pile and .discarded-card, and the tilt and the impact shake, live in
-   game/styles.css. These two rules are only the board's own fitting: the pile box
-   sits centred on the felt, and each 104x146 card is centred in the 100x150 box so
-   its random offset spreads evenly around the middle instead of off one corner.
+   The pile box, the cards, their tilt and the impact shake all come from
+   game/styles.css. The board is a flex container, so the pile box centres itself
+   on the felt; the one thing it needs is for each 104x146 card to be centred in
+   the box, or its random offset would spread off one corner instead of around the
+   middle.
    ========================================================================== */
-
-#boardPile .discard-pile {
-  width: 100px;
-  height: 150px;
-}
 
 #boardPile .discarded-card {
   left: 50%;
@@ -1108,7 +1113,7 @@
     let tilt = discardTilts.get(cardId);
     if (!tilt) {
       const roll = (span) => Math.round((Math.random() * span * 2 - span) * 10) / 10;
-      tilt = { rot: roll(12), x: roll(3), y: roll(3) };
+      tilt = { rot: roll(10), x: roll(4), y: roll(4) };
       discardTilts.set(cardId, tilt);
     }
     return tilt;
@@ -1581,12 +1586,13 @@
         }
         sfx.note(392, 0.09, "triangle", 0.05);
 
-        // and the pile takes the weight of it: the shake runs for exactly as long
-        // as the keyframe, so the class clears itself the moment it is done
+        // and the pile takes the weight of it: held for exactly as long as the
+        // keyframe runs (0.12s in game/styles.css), so the next throw can retrigger
+        // it cleanly rather than being swallowed by a class that is still on
         const box = document.querySelector("#boardPile .discard-pile");
         if (box) {
           box.classList.add("impact");
-          setTimeout(() => box.classList.remove("impact"), 150);
+          setTimeout(() => box.classList.remove("impact"), 120);
         }
       }
 
