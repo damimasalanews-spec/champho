@@ -3,6 +3,8 @@ import { closeTurn, type TransitionOutcome } from "./engine.js";
 import {
   ROUND_END_PAUSE_MS,
   expireCardTurn,
+  playBotTurn,
+  readBotTurn,
   roundEndElapsed,
   startCardRound,
   type RoundOutcomeForClient
@@ -139,6 +141,23 @@ export async function sweepExpiredTurns(hooks: SweepHooks = {}, now: Date = new 
   for (const job of planSweep(turns.rows, roundEnds.rows, now)) {
     try {
       if (job.job === "expire_card") {
+        // A bot still on the clock at its deadline moves now, rather than having
+        // its turn drawn and passed for it. This is the net under the bot timers:
+        // if one is never armed — for any reason at all — the table would
+        // otherwise run every single turn down to the clock. That is not a frozen
+        // game, but from a seat it is indistinguishable from one, and it is what
+        // the players reported.
+        const bot = await readBotTurn(job.roomId).catch(() => null);
+        if (bot && bot.turnNumber === job.turnNumber) {
+          const played = await playBotTurn(job.roomId, job.turnNumber);
+          if (played.ok) {
+            done += 1;
+            telemetry("bot_turn_at_deadline", { roomId: job.roomId, turnNumber: job.turnNumber });
+            await hooks.onTurnExpired?.(job.roomId, played);
+            continue;
+          }
+        }
+
         const outcome = await expireCardTurn({
           roomId: job.roomId,
           turnNumber: job.turnNumber,
