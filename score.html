@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Champ Words — scoring console</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1220; --panel:#111a2b; --panel2:#0e1626; --line:rgba(255,255,255,.12);
+    --ink:#e8eefc; --dim:#93a4c4; --gold:#fbbf24; --win:#22c55e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Nunito',system-ui,sans-serif;padding:22px 16px 60px}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{margin:0 0 2px;font-size:24px;letter-spacing:.4px}
+  .sub{color:var(--dim);font-size:13px;font-weight:700;margin-bottom:16px;line-height:1.5}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  .panel h2{margin:0 0 12px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--dim)}
+
+  /* ---- the bars ---- */
+  .board{position:relative;padding:6px 0 26px}
+  .row{display:grid;grid-template-columns:110px 1fr 74px;align-items:center;gap:10px;margin:9px 0}
+  .who{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .who .crown{color:var(--gold)}
+  .track{position:relative;height:26px;background:var(--panel2);border-radius:6px;overflow:hidden}
+  .fill{height:100%;border-radius:6px;transition:width .35s cubic-bezier(.34,1.4,.64,1)}
+  .pts{font-size:14px;font-weight:900;text-align:right;font-variant-numeric:tabular-nums}
+  .pts .gain{color:var(--win);font-size:12px}
+  .sc{width:74px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:4px 6px;font:inherit;font-weight:900;text-align:right}
+  /* the goal marker, drawn over the tracks rather than inside one of them */
+  .goal{position:absolute;top:0;bottom:22px;width:0;border-left:2px dashed #ef4444;pointer-events:none}
+  .goal span{position:absolute;top:-1px;left:50%;transform:translate(-50%,-100%);
+    background:#ef4444;color:#fff;font-size:11px;font-weight:900;padding:2px 8px;border-radius:999px;white-space:nowrap}
+  .axis{position:absolute;left:120px;right:84px;bottom:0;display:flex;justify-content:space-between;color:var(--dim);font-size:11px;font-weight:800}
+
+  /* ---- the three stat columns ---- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 8px}
+  .stat .k{color:var(--dim);font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+  .stat .v{font-size:20px;font-weight:900;margin-top:4px;font-variant-numeric:tabular-nums}
+
+  /* ---- controls ---- */
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .seg{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px}
+  .seg button{background:none;border:0;color:var(--dim);font:inherit;font-weight:900;font-size:13px;
+    padding:7px 15px;border-radius:999px;cursor:pointer}
+  .seg button.on{background:#2563eb;color:#fff}
+  select,input[type=text]{width:100%;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    border-radius:10px;padding:9px 10px;font:inherit;font-weight:800}
+  .fieldrow{margin-top:12px}
+  .fieldrow .lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:800;color:var(--dim);margin-bottom:5px}
+  .fieldrow .lbl b{color:var(--ink);font-size:13px}
+  input[type=range]{width:100%;accent-color:#2563eb}
+  .note{color:var(--dim);font-size:12px;font-weight:700;margin-top:12px;line-height:1.5}
+  .note code{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11px}
+  @media (max-width:680px){
+    .controls{grid-template-columns:1fr}
+    .row{grid-template-columns:86px 1fr 64px}
+    .axis{left:96px;right:74px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Scoring console</h1>
+  <div class="sub">
+    Every number here comes from the server's own rules — <code>letterValue</code> and
+    <code>scoreHand</code> in <code>server/cards.ts</code>. Nothing is scored by a second set of
+    constants: a test compares this page's table against that file and fails if they drift.
+  </div>
+
+  <div class="panel">
+    <h2>Match standing</h2>
+    <div class="board" id="board">
+      <div class="goal" id="goalMarker"><span id="goalChip">Goal: 500</span></div>
+      <div id="rows"></div>
+      <div class="axis"><span>0 pts</span><span>125 pts</span><span>250 pts</span><span>375 pts</span><span id="axisMax">500 pts</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="stats">
+      <div class="stat"><div class="k">Round Tally</div><div class="v" id="tally">+0 pts</div></div>
+      <div class="stat"><div class="k">Leading Player</div><div class="v" id="leader">—</div></div>
+      <div class="stat"><div class="k">Points To Win</div><div class="v" id="toWin">—</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Scoring rules and remaining hand</h2>
+    <div class="controls">
+      <div>
+        <div class="lbl" style="font-size:12px;font-weight:800;color:var(--dim);margin-bottom:6px">Scoring Target Rules</div>
+        <div class="seg" id="goalSeg">
+          <button type="button" data-goal="500" class="on">Standard (500)</button>
+          <button type="button" data-goal="300">Short Match (300)</button>
+        </div>
+        <div class="fieldrow">
+          <div class="lbl">Round winner <span>everyone else's hand scores to them</span></div>
+          <select id="winner"></select>
+        </div>
+      </div>
+      <div>
+        <div class="lbl" style="font-size:12px;font-weight:800;color:var(--dim);margin-bottom:6px">Remaining Hand</div>
+        <select id="handOf"></select>
+        <div class="note" id="subtotalLine">Opponent subtotal: 0 pts</div>
+      </div>
+    </div>
+
+    <div id="handEditor" style="margin-top:14px">
+      <div class="fieldrow">
+        <div class="lbl">Letter Cards <span>face value, by rarity</span><b><span id="letterPts">0</span> pts</b></div>
+        <input type="text" id="letters" value="cymbal" spellcheck="false" autocomplete="off">
+      </div>
+      <div class="fieldrow">
+        <div class="lbl">Action Cards <span>skip · reverse · draw2 — 20 pts</span><b><span id="actionCount">0</span> cards / <span id="actionPts">0</span> pts</b></div>
+        <input type="range" id="actions" min="0" max="7" step="1" value="1">
+      </div>
+      <div class="fieldrow">
+        <div class="lbl">Wild Cards <span>wild · wild4 · discardAll — 50 pts</span><b><span id="wildCount">0</span> cards / <span id="wildPts">0</span> pts</b></div>
+        <input type="range" id="wilds" min="0" max="4" step="1" value="0">
+      </div>
+    </div>
+    <div class="note">
+      Actions and wilds are counts because every card in those buckets is worth the same.
+      Letters are spelled out because they are not: <code>e</code> is 1 and <code>z</code> is 6,
+      the same way the official deck makes a 9 cost more than a 1.
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------------------------------------------------------------------------
+  // Mirrors server/cards.ts. A test reads this block and compares it against that
+  // file, so the console cannot quietly start scoring by its own rules.
+  // ---------------------------------------------------------------------------
+  const SCORING = {
+    letters: { e: 1, a: 1, i: 1, o: 1, t: 1, n: 1, s: 1, r: 1,
+               l: 2, u: 2, d: 2, g: 2, b: 2, c: 2, m: 2, p: 2,
+               f: 3, h: 3, v: 3, w: 3, y: 4, k: 4, j: 4,
+               x: 5, q: 6, z: 6 },
+    letterFallback: 5,   // letterValue() falls back to 5 for anything unlisted
+    actionPoints: 20,    // skip, reverse, draw2
+    wildPoints: 50       // wild, wild4, discardAll
+  };
+
+  const letterValue = (letter) => SCORING.letters[String(letter).toLowerCase()] ?? SCORING.letterFallback;
+
+  const SEATS = [
+    { name: 'Player 1', colour: 'linear-gradient(90deg,#3b82f6,#60a5fa)', score: 417, hand: { letters: 'cymbal', actions: 1, wilds: 0 } },
+    { name: 'Player 2', colour: 'linear-gradient(90deg,#b91c1c,#ef4444)', score: 320, hand: { letters: 'quartz', actions: 0, wilds: 0 } },
+    { name: 'Player 4', colour: 'linear-gradient(90deg,#a16207,#eab308)', score: 245, hand: { letters: 'jumbo', actions: 2, wilds: 0 } },
+    { name: 'Player 3', colour: 'linear-gradient(90deg,#15803d,#22c55e)', score: 190, hand: { letters: 'vex', actions: 0, wilds: 1 } }
+  ];
+
+  let goal = 500;
+  // Opens on Player 4 taking the round, which reproduces the reference panel's two
+  // headline numbers coherently: the leader sits on 417 and 83 points are needed to
+  // reach 500. (The reference's own numbers do not reconcile — it shows a +137 tally
+  // beside a 34-point opponent subtotal, and a bar already carrying its own gain — so
+  // these are chosen to add up rather than to copy.)
+  let winnerSeat = 2;
+  let editingSeat = 1;
+
+  /** What the cards left in a hand are worth — scoreHand(), by another name. */
+  function handValue(hand) {
+    let total = 0;
+    for (const ch of String(hand.letters || '')) {
+      if (/[a-z]/i.test(ch)) total += letterValue(ch);
+    }
+    total += (hand.actions || 0) * SCORING.actionPoints;
+    total += (hand.wilds || 0) * SCORING.wildPoints;
+    return total;
+  }
+
+  /** What the round is worth to the seat that went out: everyone else's hand. */
+  const roundTally = () => SEATS.reduce((sum, seat, i) => (i === winnerSeat ? sum : sum + handValue(seat.hand)), 0);
+
+  function render() {
+    const tally = roundTally();
+    const scored = SEATS.map((seat, i) => ({ ...seat, total: seat.score + (i === winnerSeat ? tally : 0) }));
+    const best = Math.max(...scored.map((s) => s.total));
+    const leader = scored.find((s) => s.total === best);
+    const max = Math.max(goal, ...scored.map((s) => s.total));
+
+    // bars
+    document.getElementById('rows').innerHTML = scored.map((seat) => {
+      const pct = Math.max(0, Math.min(100, (seat.total / max) * 100));
+      const gained = seat.total - seat.score;
+      return `<div class="row">
+        <div class="who">${seat.name}${seat.total === best ? ' <span class="crown">🏆</span>' : ''}</div>
+        <div class="track"><div class="fill" style="width:${pct.toFixed(1)}%;background:${seat.colour}"></div></div>
+        <div class="pts">${seat.total}${gained ? ` <span class="gain">(+${gained})</span>` : ''}</div>
+      </div>`;
+    }).join('');
+
+    // the marker rides the same scale as the bars
+    const goalPct = Math.max(0, Math.min(100, (goal / max) * 100));
+    const marker = document.getElementById('goalMarker');
+    marker.style.left = `calc(110px + (100% - 110px - 74px) * ${(goalPct / 100).toFixed(4)})`;
+    document.getElementById('goalChip').textContent = `Goal: ${goal}`;
+    document.getElementById('axisMax').textContent = `${max} pts`;
+    document.querySelectorAll('#goalSeg button').forEach((b) => b.classList.toggle('on', Number(b.dataset.goal) === goal));
+
+    document.getElementById('tally').textContent = `+${tally} pts`;
+    document.getElementById('leader').textContent = `${leader.name} (${leader.total})`;
+    document.getElementById('toWin').textContent = `${Math.max(0, goal - best)} pts`;
+    document.getElementById('subtotalLine').textContent = `Opponent subtotal: ${handValue(SEATS[editingSeat].hand)} pts`;
+
+    // the editor edits one seat's hand at a time
+    const hand = SEATS[editingSeat].hand;
+    document.getElementById('letters').value = hand.letters;
+    document.getElementById('actions').value = hand.actions;
+    document.getElementById('wilds').value = hand.wilds;
+    document.getElementById('letterPts').textContent = handValue({ letters: hand.letters, actions: 0, wilds: 0 });
+    document.getElementById('actionCount').textContent = hand.actions;
+    document.getElementById('actionPts').textContent = hand.actions * SCORING.actionPoints;
+    document.getElementById('wildCount').textContent = hand.wilds;
+    document.getElementById('wildPts').textContent = hand.wilds * SCORING.wildPoints;
+
+    // scores are inputs on each row, so they are re-created each render
+    document.querySelectorAll('#rows .row').forEach((row, i) => {
+      const box = document.createElement('input');
+      box.type = 'number'; box.className = 'sc'; box.value = SEATS[i].score; box.min = '0';
+      box.title = `${SEATS[i].name} score before this round`;
+      box.addEventListener('input', () => { SEATS[i].score = Math.max(0, Number(box.value) || 0); render(); });
+      row.appendChild(box);
+    });
+  }
+
+  // ---- wiring ----
+  document.getElementById('goalSeg').addEventListener('click', (event) => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    goal = Number(button.dataset.goal);
+    render();
+  });
+  document.getElementById('winner').innerHTML = SEATS.map((s, i) => `<option value="${i}">${s.name}</option>`).join('');
+  document.getElementById('winner').value = String(winnerSeat);
+  document.getElementById('winner').addEventListener('change', (event) => { winnerSeat = Number(event.target.value); render(); });
+  document.getElementById('handOf').innerHTML = SEATS.map((s, i) => `<option value="${i}">${s.name} hand cards</option>`).join('');
+  document.getElementById('handOf').value = String(editingSeat);
+  document.getElementById('handOf').addEventListener('change', (event) => { editingSeat = Number(event.target.value); render(); });
+  document.getElementById('letters').addEventListener('input', (event) => { SEATS[editingSeat].hand.letters = event.target.value; render(); });
+  document.getElementById('actions').addEventListener('input', (event) => { SEATS[editingSeat].hand.actions = Number(event.target.value); render(); });
+  document.getElementById('wilds').addEventListener('input', (event) => { SEATS[editingSeat].hand.wilds = Number(event.target.value); render(); });
+
+  render();
+</script>
+</body>
+</html>
