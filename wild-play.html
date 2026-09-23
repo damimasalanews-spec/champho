@@ -730,6 +730,197 @@
 .pcard .nbanner .nname {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, .6);
 }
+
+/* ===========================================================================
+   THE ARCADE HUD
+
+   The chrome from the arcade layout, on this table, with every piece wired to the
+   event it actually stands for:
+
+     the clock      #timerPill, which already counts down the real turn deadline
+     the banner     the real uno_called event, naming the seat that said it, with
+                    the fanfare and the confetti
+     the strike     a real draw penalty (card_drawn with a count above one), fired
+                    at the seat the server says took the cards
+     the rim        the same penalty, reaching past the table's own edges
+
+   These are skinned here rather than added as a second anything: the clock is the
+   one clock, and the banner and the rim are the only ones of their kind on the
+   page.
+   =========================================================================== */
+
+/* the clock, in arcade glass: the same numbers, a heavier shell, and digits that
+   do not make the pill twitch as they change */
+#timerPill {
+  background: rgba(0, 0, 0, .42);
+  border: 3px solid #fff;
+  border-radius: 20px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .3);
+}
+
+#timerPill.low {
+  border-color: #ffcc00;
+  background: rgba(120, 0, 0, .5);
+  box-shadow: 0 4px 14px rgba(255, 60, 0, .45);
+}
+
+/* --- the "UNO!" callout, over the table but outside it -------------------- */
+.uno-announcement-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.uno-announcement-banner {
+  padding: 15px 60px;
+  border: 5px solid #fff;
+  border-radius: 50px;
+  background: linear-gradient(180deg, #ff3300 0%, #cc0000 100%);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, .6), 0 0 30px rgba(255, 50, 0, .4);
+  transform: scale(0);
+  opacity: 0;
+  transform-style: preserve-3d;
+}
+
+@keyframes banner-burst-in {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  50%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
+  75%  { transform: scale(.95) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes banner-burst-out {
+  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: scale(0) rotate(20deg); opacity: 0; }
+}
+
+.uno-announcement-banner.animate-in { animation: banner-burst-in .4s cubic-bezier(.175, .885, .32, 1.275) forwards; }
+.uno-announcement-banner.animate-out { animation: banner-burst-out .3s ease-in forwards; }
+
+.uno-announcement-text {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow:
+    -4px -4px 0 #000, 4px -4px 0 #000,
+    -4px 4px 0 #000, 4px 4px 0 #000,
+    0 10px 15px rgba(0, 0, 0, .6);
+}
+
+.uno-announcement-subtext {
+  margin: 5px 0 0;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+  color: #ffcc00;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+/* particles are children of the overlay, never of the banner: the banner is being
+   scaled and rotated by its own animation, and children would inherit that */
+.uno-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size, 16px);
+  height: var(--size, 16px);
+  border-radius: var(--radius, 4px);
+  background: var(--color, #ffcc00);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, .3);
+  pointer-events: none;
+  animation: particle-explosion var(--duration, .8s) cubic-bezier(.25, 1, .5, 1) forwards;
+}
+
+@keyframes particle-explosion {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0) rotate(var(--rot));
+    opacity: 0;
+  }
+}
+
+/* --- the strike ---------------------------------------------------------- */
+.shockwave-vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  pointer-events: none;
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity .15s ease-out;
+}
+
+.shockwave-vignette.active-flash {
+  opacity: 1;
+  background: radial-gradient(circle, transparent 30%, rgba(155, 0, 255, .6) 80%, rgba(255, 0, 60, .8) 100%);
+}
+
+/* The strike lands on #game — and it has to carry the stage fit with it.
+
+   #game is positioned by `translate(-50%,-50%) scale(var(--s))` to centre the
+   1600x900 stage in the window (line 28). An animation on `transform` does not add
+   to that value, it replaces it: shake on a bare transform and the entire table is
+   thrown into the top-left corner for 650ms. So every frame restates the centring,
+   then the shove, then the fit.
+
+   Two details that are load-bearing rather than stylistic:
+
+   - translate3d sits BEFORE the scale, so its offsets stay in unscaled stage pixels
+     and the hit reads at the same strength on a laptop and a big monitor. After the
+     scale they would be multiplied by --s and a small window would barely move.
+   - the scale multiplies --s instead of replacing it, so a small window shakes a
+     small table rather than snapping it to full size.
+
+   Nothing is set that would change how descendants render — no transform-style:
+   preserve-3d, no backface-visibility. translate3d alone already gives the layer its
+   own compositing, and the plates under it are laid out by left/top, so they ride
+   along without being reprojected. */
+@keyframes aaa-camera-strike {
+  0%   { transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(var(--s, 1)) rotate(0deg); filter: contrast(1); }
+  8%   { transform: translate(-50%, -50%) translate3d(-14px, 8px, 0) scale(calc(var(--s, 1) * 1.04)) rotate(-2deg); filter: contrast(1.4) brightness(1.2); }
+  16%  { transform: translate(-50%, -50%) translate3d(12px, -10px, 0) scale(calc(var(--s, 1) * .97)) rotate(1.5deg); }
+  24%  { transform: translate(-50%, -50%) translate3d(-10px, 6px, 0) scale(calc(var(--s, 1) * 1.02)) rotate(-1deg); }
+  32%  { transform: translate(-50%, -50%) translate3d(8px, -4px, 0) scale(calc(var(--s, 1) * .99)) rotate(.8deg); }
+  40%  { transform: translate(-50%, -50%) translate3d(-6px, 5px, 0) scale(calc(var(--s, 1) * 1.01)) rotate(-.5deg); filter: contrast(1.2); }
+  55%  { transform: translate(-50%, -50%) translate3d(4px, -3px, 0) scale(calc(var(--s, 1) * .99)) rotate(.3deg); }
+  70%  { transform: translate(-50%, -50%) translate3d(-2px, 2px, 0) scale(var(--s, 1)) rotate(-.1deg); }
+  100% { transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(var(--s, 1)) rotate(0deg); filter: contrast(1); }
+}
+
+#game.penalty-strike-active {
+  animation: aaa-camera-strike .65s cubic-bezier(.215, .610, .355, 1.000) both;
+}
+
+/* a seat taking a card gets the same slam the pile does */
+.pcard.impact,
+.pcard.you.impact {
+  animation: seat-slam .12s ease-out;
+}
+
+@keyframes seat-slam {
+  0% { transform: scale(1); }
+  50% { transform: scale(.94); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #game.penalty-strike-active { animation: none; }
+  .pcard.impact, .pcard.you.impact { animation: none; }
+}
 </style>
 </head>
 <body>
@@ -865,13 +1056,31 @@
       <div class="menu-logo">📱↻</div>
       <div class="menu-tag">Turn your device sideways to play Go Wild.</div>
     </div>
+   </div>
+ </div>
+ </div>
+
+<!-- The two pieces of arcade chrome that must NOT be measured in stage pixels.
+
+     #game is a 1600x900 box scaled by --s to fit the window, so anything parented
+     under it is positioned in stage coordinates and scaled with the table. A banner
+     has to be the same size on every screen, and a screen-wide rim has to reach the
+     edges of the screen — so both are siblings of #stage instead of children of it,
+     viewport-sized, and deliberately outside the table's shake.
+
+     Neither needs a `hidden` class: the banner's own rule holds it at scale(0) /
+     opacity 0 until .animate-in is put on it, and the rim rests at opacity 0. -->
+<div class="uno-announcement-overlay" id="unoCalloutOverlay">
+  <div class="uno-announcement-banner" id="unoBanner">
+    <h1 class="uno-announcement-text" id="unoBannerText">UNO!</h1>
+    <p class="uno-announcement-subtext" id="unoBannerSubtext"></p>
   </div>
 </div>
-</div>
+<div class="shockwave-vignette" id="shockwaveLayer"></div>
 
-<!-- The classic game's sounds, so the effects are the same effects. The file
-     declares its helpers at top level, so note() / whoosh() / setSoundMuted()
-     become globals this page can call. -->
+ <!-- The classic game's sounds, so the effects are the same effects. The file
+      declares its helpers at top level, so note() / whoosh() / setSoundMuted()
+      become globals this page can call. -->
 <script src="game/sound.js"></script>
 <script>
 (() => {
@@ -1949,6 +2158,169 @@
     });
   }
 
+  /* ========================================================================
+     THE ARCADE CHROME, DRIVEN BY THE REAL EVENTS
+
+     None of this decides anything. Every trigger here is an event the server
+     already sends, and the payload already carries who it happened to:
+
+       uno_called              payload.seat            ->  the banner + confetti
+       card_drawn count > 1    payload.seat, .count   ->  the strike + the rim
+
+     A count above one is every penalty there is: the +2, the +4, and being caught
+     holding one card. A voluntary single draw is left alone, with the light whoosh
+     it already had.
+     ======================================================================== */
+
+  const UNO_BANNER_IN = 400;      // must match banner-burst-in's .4s
+  const UNO_BANNER_HOLD = 1500;
+  const UNO_BANNER_OUT = 300;     // must match banner-burst-out's .3s
+  const UNO_COLORS = ["#ffcc00", "#ff3300", "#00c853", "#2979ff", "#ffffff", "#9b00ff"];
+  /** A lower, heavier whoosh than a dealt card's, so a penalty sounds like one. */
+  const PENALTY_FLIGHT_SOUND = { dur: .30, gain: .05, when: 0, freq: 820 };
+
+  const reducedMotion = () =>
+    !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  /**
+   * The plate a given seat index is drawn on for *this* viewer.
+   *
+   * The events carry an absolute seat index, but which plate that is depends on
+   * where the viewer is sitting: the seats rotate. relativeSeat 0 is always the
+   * viewer's own front plate, and the rest walk SEAT_SLOTS in order. seatOriginRect
+   * does the same arithmetic to fly a card; this is the plate itself, so the strike
+   * can land on it.
+   */
+  function plateOfSeat(seat) {
+    const view = state.view;
+    if (!view || typeof seat !== "number" || seat < 0) return null;
+    const count = view.seats.length;
+    if (!count) return null;
+    const relative = (seat - view.you.seat + count) % count;
+    return relative === 0 ? $("seat-me") : $("seat-" + SEAT_SLOTS[relative - 1]);
+  }
+
+  /** The confetti burst, thrown from the centre of the callout overlay. */
+  function spawnUnoConfettiExplosion() {
+    const overlay = $("unoCalloutOverlay");
+    if (!overlay || reducedMotion()) return;
+    const PIECES = 36;
+    for (let i = 0; i < PIECES; i++) {
+      const particle = document.createElement("div");
+      particle.className = "uno-particle";
+      // Evenly spaced with a little jitter, so the burst reads as a ring rather
+      // than a clump, and never repeats exactly.
+      const angle = (Math.PI * 2 * i) / PIECES + Math.random() * .35;
+      const distance = 130 + Math.random() * 250;
+      particle.style.setProperty("--dx", (Math.cos(angle) * distance).toFixed(1) + "px");
+      particle.style.setProperty("--dy", (Math.sin(angle) * distance).toFixed(1) + "px");
+      particle.style.setProperty("--rot", (Math.random() * 720 - 360).toFixed(0) + "deg");
+      particle.style.setProperty("--size", (7 + Math.random() * 9).toFixed(1) + "px");
+      particle.style.setProperty("--radius", Math.random() < .35 ? "50%" : "3px");
+      particle.style.setProperty("--color", UNO_COLORS[i % UNO_COLORS.length]);
+      particle.style.setProperty("--duration", (.6 + Math.random() * .5).toFixed(2) + "s");
+      overlay.appendChild(particle);
+      // The keyframes end at opacity 0, but a node that only ever faded out would
+      // still be hit-testable and still be counted, so it is taken out of the DOM.
+      setTimeout(() => particle.remove(), 1300);
+    }
+  }
+
+  let unoBannerTimers = [];
+
+  /**
+   * Raise the banner, naming the seat the server says called it.
+   *
+   * The name comes from nameOfSeat, so it is whatever that seat is called on this
+   * viewer's screen — including "You" when it is the viewer's own call.
+   */
+  function triggerUnoDeclarationBanner(who) {
+    const banner = $("unoBanner");
+    if (!banner) return;
+    unoBannerTimers.forEach(clearTimeout);
+    unoBannerTimers = [];
+    $("unoBannerText").textContent = "UNO!";
+    $("unoBannerSubtext").textContent = who ? who + " is on one card" : "";
+    banner.classList.remove("animate-in", "animate-out");
+    void banner.offsetWidth;  // a second call restarts the burst instead of stacking
+    banner.classList.add("animate-in");
+    try {
+      if (state.soundOn && typeof playUnoDeclarationSound === "function") playUnoDeclarationSound();
+    } catch { /* no sound */ }
+    unoBannerTimers.push(setTimeout(() => {
+      banner.classList.remove("animate-in");
+      banner.classList.add("animate-out");
+    }, UNO_BANNER_IN + UNO_BANNER_HOLD));
+    unoBannerTimers.push(setTimeout(() => {
+      banner.classList.remove("animate-out");
+    }, UNO_BANNER_IN + UNO_BANNER_HOLD + UNO_BANNER_OUT));
+    spawnUnoConfettiExplosion();
+  }
+
+  /** The penalty cards, off the deck and onto the seat that owes them. */
+  function flyPenaltyCards(plate, count) {
+    const from = rectOfElement($("deck"));
+    const to = rectOfElement(plate && plate.querySelector(".atile"));
+    if (!from || !to) return;
+    const cards = Math.max(1, Math.min(4, count || 1));
+    for (let i = 0; i < cards; i++) {
+      // Staggered, so four cards read as four cards and the same card is not simply
+      // drawn four times. The tumble index is the card's place in the run, which is
+      // what gives each one a different tilt.
+      setTimeout(() => {
+        animateFlight(makeDeckFlight(), from, to, -8 + i * 5, PENALTY_FLIGHT_SOUND, i);
+      }, i * 110);
+    }
+  }
+
+  let strikeTimer = null;
+
+  /**
+   * The whole penalty as one gesture: the table takes the hit, the rim blooms past
+   * it, the seat that owes the cards takes a smaller one of its own, and the cards
+   * fly from the deck to that seat so the penalty has a visible source.
+   *
+   * `seat` is the index the event carries rather than a plate name, because which
+   * plate that is depends on where this viewer is sitting.
+   */
+  function triggerProfessionalPenaltyStrike(seat, count) {
+    const plate = plateOfSeat(seat);
+    const quiet = reducedMotion();
+
+    // the table rattle — #game, which carries the stage fit in its keyframes
+    const game = $("game");
+    if (game && !quiet) {
+      game.classList.remove("penalty-strike-active");
+      void game.offsetWidth;  // restart when two penalties land back to back
+      game.classList.add("penalty-strike-active");
+      clearTimeout(strikeTimer);
+      strikeTimer = setTimeout(() => game.classList.remove("penalty-strike-active"), 660);
+    }
+
+    // the rim, on the same frame, reaching past the table's own edges
+    const layer = $("shockwaveLayer");
+    if (layer && !quiet) {
+      layer.classList.add("active-flash");
+      setTimeout(() => layer.classList.remove("active-flash"), 300);
+    }
+
+    // the seat itself
+    if (plate && !quiet) {
+      plate.classList.remove("impact");
+      void plate.offsetWidth;
+      plate.classList.add("impact");
+      setTimeout(() => plate.classList.remove("impact"), 220);
+    }
+
+    // the cards still fly under reduced motion: they are the information, not the
+    // decoration — which seat those cards went to is the point of the event.
+    flyPenaltyCards(plate, count);
+
+    try {
+      if (state.soundOn && typeof playDraw4ImpactDamageSound === "function") playDraw4ImpactDamageSound();
+    } catch { /* no sound */ }
+  }
+
   function onEvent(msg) {
     const payload = msg.payload || {};
     const mine = state.view ? state.view.you.seat : -1;
@@ -1968,9 +2340,16 @@
           try {
             if (typeof playDrawCardSound === "function") playDrawCardSound();
           } catch { /* no sound */ }
+          // the light whoosh above is the cards; this is the weight of them landing
+          triggerProfessionalPenaltyStrike(payload.seat, payload.count);
         }
         break;
-      case "uno_called": addChat(nameOfSeat(payload.seat), "called UNO"); break;
+      case "uno_called": {
+        const who = nameOfSeat(payload.seat);
+        addChat(who, "called UNO");
+        triggerUnoDeclarationBanner(who);
+        break;
+      }
       case "uno_caught": addChat(nameOfSeat(payload.seat), "was caught — two cards"); break;
       case "turn_ended": break;
       case "round_completed":
