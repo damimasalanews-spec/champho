@@ -1756,6 +1756,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     });
   }
   wire('#homeQuickPlay,#hqStart,[data-home-hit="classic"]','game/');
-  wire('#homeRoom,[data-home-hit="wild"]','wild.html');
+  // GO WILD opens wild-play.html, not wild.html: wild.html is the arcade demo page,
+  // which has its own mock data and no socket — it renders a table but cannot deal, so
+  // opening it from here would give a player a game that cannot be played. The playable
+  // client is the one that connects to champword-backend. Both entry points, the mode
+  // card and the artwork hotspot, follow this same line.
+  wire('#homeRoom,[data-home-hit="wild"]','wild-play.html');
 })();
 </script></body></html>

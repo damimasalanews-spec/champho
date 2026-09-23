@@ -130,7 +130,7 @@ Verified on `main` at `6afbae2`:
 - **No engine is wired to it.** The page's inline scripts (66 KB + 28 KB + 11 KB) contain no card logic at all — no `legal()`, no `playCard`, no turn handling. Nothing calls `show('game')`.
 - The readable engine at the repo root, `game.js` (132 KB), targets exactly these element ids (`colorHint`, `eventBanner`, `tableFlash`, `colorModal`, `discard`, `hand`) and does contain colour/word matching, Wild and Wild Draw Four with a challenge. It is referenced by no page, on either branch.
 - `index.html` embeds its CSS as gzip+base64 blobs, but embeds no JavaScript beyond a 372-byte stub. There is no build script in the repo, so `index.html` is effectively hand-maintained.
-- `firebase.js` still holds `YOUR_API_KEY` placeholders and the Cloud Functions sources are not in this repo, so online rooms cannot run.
+- `firebase.js` held `YOUR_API_KEY` placeholders and the Cloud Functions sources were never in this repo, so online rooms cannot run. It has since been removed, along with `firebase.json`, `firestore.rules` and the `functions/` stub (whose `main: index.js` was never committed). That leaves the bullet above's engine with a dangling `import {firebaseConfig} from './firebase.js'`: still readable, still referenced by no page, and not loadable until something hands it a config. It was kept for exactly that reason rather than removed with the rest.
 
 So this is not a change to a working mode — it is the first engine behind the table.
 
