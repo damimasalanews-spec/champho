@@ -10,6 +10,17 @@ import {
   type TurnEnded,
   type WordSubmissionResult
 } from "./engine.js";
+import {
+  applyRoundAction,
+  playBotTurn,
+  readBotTurn,
+  startCardRound,
+  type RoundActionKind,
+  type RoundOutcomeForClient
+} from "./round-engine.js";
+import type { RoundView } from "./round-view.js";
+import { COLORS, type CardColor } from "./cards.js";
+import { cardTurnDelayMs } from "./bots.js";
 import { createRoom, getPrivateHand, joinRoom, markPlayerDisconnected, resumeRoom, type DisconnectHooks } from "./rooms.js";
 import { startScheduler, sweepExpiredTurns, type Scheduler } from "./scheduler.js";
 import { botAnswerDelayMs, clampToWindow, planBotTurn } from "./bots.js";
@@ -18,6 +29,19 @@ import { serveStatic } from "./static.js";
 import { doodleFor } from "./doodles.js";
 import { issueSession, verifySession, type SessionIdentity } from "./identity.js";
 import { telemetry, telemetryError } from "./telemetry.js";
+
+/**
+ * Everything a seat may do on its turn, by the name the client sends. Kept at
+ * module scope so the handler is a lookup rather than five near-identical
+ * branches that can drift apart.
+ */
+const CARD_ACTIONS: Record<string, RoundActionKind> = {
+  play_card: "play",
+  draw_card: "draw",
+  pass_turn: "pass",
+  call_uno: "uno",
+  catch_uno: "catch"
+};
 
 export type ServerOptions = {
   disconnectHooks?: DisconnectHooks;
@@ -160,6 +184,50 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
       ...(typeof requestId === "string" && requestId ? { requestId } : {}),
       ...extra
     });
+
+  /**
+   * A card round sends each seat its own view. There is no shared snapshot to
+   * broadcast — a view holds the seat's own hand and only counts of everyone
+   * else's — so this is the only way a round reaches a client.
+   */
+  const publishViews = (views: { playerId: string; view: RoundView }[]) => {
+    for (const { playerId, view } of views) {
+      for (const [socket, socketPlayerId] of socketsFor(view.roomId)) {
+        if (socketPlayerId !== playerId) continue;
+        send(socket, view);
+      }
+    }
+  };
+
+  /**
+   * Give a bot seat its turn. The delay comes from the personality's thinking
+   * range, so a bot never answers faster than a person could, and the turn
+   * number guards against a timer outliving the turn it was scheduled for.
+   */
+  const scheduleCardBots = async (roomId: string, turnNumber: number) => {
+    if (!options.enableBots) return;
+    const bot = await readBotTurn(roomId).catch(() => null);
+    if (!bot || bot.turnNumber !== turnNumber) return;
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const outcome = await playBotTurn(roomId, turnNumber);
+          if (outcome.views.length > 0) publishViews(outcome.views);
+          for (const event of outcome.events) broadcast(roomId, event);
+          if (outcome.ok) await scheduleCardBots(roomId, outcome.turnNumber);
+        } catch (error) {
+          telemetryError("bot_card_turn_failed", error, { roomId, turnNumber });
+        }
+      })();
+    }, cardTurnDelayMs(bot.personality));
+    timer.unref();
+
+    const key = `${roomId}:${turnNumber}`;
+    const timers = botTimers.get(key) ?? [];
+    timers.push(timer);
+    botTimers.set(key, timers);
+  };
 
   const cancelBotTimers = (roomId: string, turnNumber: number) => {
     const key = `${roomId}:${turnNumber}`;
@@ -443,15 +511,13 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
 
     broadcast(roomId, results[0]!.snapshot);
 
-    // Hands are deliberately NOT sent here: the deal happens inside
-    // beginFirstTurn below, and announceTurn delivers each player's cards
-    // afterwards. Sending here would ship empty hands.
-    const started = await beginFirstTurn(roomId);
-    if (!started) return;
+    // The deal happens here rather than at join, and each seat is sent its own
+    // view: a view holds that seat's hand, so it cannot be broadcast.
+    const started = await startCardRound(roomId);
+    if (!started.ok) return;
+    publishViews(started.views);
     for (const event of started.events) broadcast(roomId, event);
-    broadcast(roomId, started.snapshot);
-    await announceTurn(roomId, started.snapshot.turnNumber);
-    await scheduleBots(roomId, started.snapshot.turnNumber);
+    await scheduleCardBots(roomId, started.turnNumber);
   };
 
   const matchmakingTimer = enableMatchmaking
@@ -618,68 +684,67 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
 
         if (type === "start_round") {
           if (typeof context.roomId !== "string") throw new Error("invalid_request_id");
-          const started = await beginFirstTurn(context.roomId);
-          if (started) {
-            for (const event of started.events) broadcast(context.roomId, event);
-            broadcast(context.roomId, started.snapshot);
-            await announceTurn(context.roomId, started.snapshot.turnNumber);
-            await scheduleBots(context.roomId, started.snapshot.turnNumber);
+          const started = await startCardRound(context.roomId);
+          if (!started.ok) {
+            protocolError(socket, started.code ?? "cannot_start", requestId);
+            return;
           }
+          publishViews(started.views);
+          for (const event of started.events) broadcast(context.roomId, event);
+          await scheduleCardBots(context.roomId, started.turnNumber);
           return;
         }
 
-        if (type === "submit_word") {
+        // One handler for the five things a seat may do on its turn: they differ
+        // only in which action the rules are asked to apply.
+        if (typeof type === "string" && CARD_ACTIONS[type]) {
           if (typeof context.roomId !== "string") throw new Error("invalid_request_id");
           if (typeof message.roomId !== "string" || message.roomId !== context.roomId) throw new Error("invalid_request_id");
-          if (typeof message.turnNumber !== "number" || !Number.isInteger(message.turnNumber)) throw new Error("invalid_cards");
-          if (!Array.isArray(message.cards) || message.cards.length < 1 || message.cards.length > 14) {
-            throw new Error("invalid_cards");
-          }
-          if (message.cards.some((card) => typeof card !== "string" || !card)) throw new Error("invalid_cards");
-          if (typeof message.word !== "string" || !message.word.trim() || message.word.length > 64) {
-            throw new Error("invalid_cards");
+          if (typeof message.turnNumber !== "number" || !Number.isInteger(message.turnNumber)) {
+            throw new Error("invalid_action");
           }
           if (typeof message.requestId !== "string" || !message.requestId) throw new Error("invalid_request_id");
 
-          const outcome = await submitWord({
-            requestId: message.requestId,
+          const cardId = typeof message.cardId === "string" && message.cardId ? message.cardId : null;
+          const named = typeof message.color === "string" && (COLORS as readonly string[]).includes(message.color)
+            ? (message.color as CardColor)
+            : null;
+          const targetPlayerId = typeof message.targetPlayerId === "string" && message.targetPlayerId
+            ? message.targetPlayerId
+            : null;
+
+          const outcome = await applyRoundAction({
             roomId: context.roomId,
-            playerId: identity.playerId,
-            roundNumber: typeof message.roundNumber === "number" ? message.roundNumber : 0,
             turnNumber: message.turnNumber,
-            cards: message.cards as string[],
-            word: message.word
+            // The client's request id is the ledger key, so a retry is replayed
+            // rather than thrown twice.
+            actionId: message.requestId,
+            kind: CARD_ACTIONS[type] as RoundActionKind,
+            playerId: identity.playerId,
+            cardId,
+            color: named,
+            targetPlayerId
           });
 
-          if (outcome.result) {
-            send(socket, outcome.result as WordSubmissionResult);
-            if (outcome.handChanged) await sendHandToSocket(socket, context.roomId, identity.playerId);
-          } else if (outcome.code) {
-            // §5: a submit ALWAYS answers with a word_submission_result, even
-            // when it is refused. Sending a bare `error` for stale_turn (and
-            // friends) left the client waiting for a result that never arrived,
-            // which is indistinguishable from a lost network response.
-            send(socket, {
-              type: "word_submission_result",
-              requestId: typeof requestId === "string" ? requestId : "",
-              roomId: context.roomId,
-              roundNumber: outcome.snapshot ? outcome.snapshot.roundNumber : 0,
-              status: "rejected",
-              reason: outcome.code,
-              serverTime: new Date().toISOString(),
-              phase: outcome.snapshot ? outcome.snapshot.phase : "playing",
-              cardsConsumed: 0,
-              cardsDrawn: 0,
-              handChanged: false,
-              scoreDelta: 0,
-              coinDelta: 0
-            } satisfies WordSubmissionResult);
-          }
+          // Every action answers, accepted or refused. A client left waiting for
+          // a result that never arrives cannot tell that apart from a lost
+          // response.
+          send(socket, {
+            type: "action_result",
+            requestId: message.requestId,
+            roomId: context.roomId,
+            kind: CARD_ACTIONS[type],
+            status: outcome.ok ? "accepted" : "rejected",
+            reason: outcome.code,
+            replayed: outcome.replayed,
+            roundNumber: outcome.roundNumber,
+            turnNumber: outcome.turnNumber,
+            serverTime: new Date().toISOString()
+          });
 
-          // Tell the room a word landed, then schedule the next turn's bots.
+          if (outcome.views.length > 0) publishViews(outcome.views);
           for (const event of outcome.events) broadcast(context.roomId, event);
-          if (outcome.snapshot) broadcast(context.roomId, outcome.snapshot);
-          if (outcome.turnEnded) await publishOutcome(context.roomId, outcome);
+          if (outcome.ok) await scheduleCardBots(context.roomId, outcome.turnNumber);
           return;
         }
 

@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
-import { CLASSIC_SEAT_COUNT, appendEvent, type RoomEvent } from "./rooms.js";
+import { CLASSIC_SEAT_COUNT, appendEvent, type BotPersonality, type RoomEvent } from "./rooms.js";
+import { planCardTurn } from "./bots.js";
 import { BUY_IN_COINS, COLORS, type CardColor } from "./cards.js";
 import {
   callUno,
@@ -755,4 +756,88 @@ export async function expireCardTurn(input: {
 export function roundEndElapsed(deadlineAt: Date | null, now: Date): boolean {
   if (!deadlineAt) return true;
   return now.getTime() >= deadlineAt.getTime() + ROUND_END_PAUSE_MS;
+}
+
+/**
+ * Who the server owes a move to, when that seat is a bot.
+ *
+ * The caller only needs to know whether a bot is on the clock and how long it
+ * should appear to think; the decision itself belongs to planCardTurn.
+ */
+export async function readBotTurn(
+  roomId: string
+): Promise<{ turnNumber: number; playerId: string; personality: BotPersonality } | null> {
+  const result = await pool.query<{
+    turn_number: string;
+    phase: string;
+    active_player_id: string | null;
+    is_bot: boolean | null;
+    bot_personality: BotPersonality | null;
+  }>(
+    `SELECT r.turn_number,r.phase,r.active_player_id,p.is_bot,p.bot_personality
+       FROM public.game_rooms r
+       LEFT JOIN public.room_players p
+         ON p.room_id=r.id AND p.player_id=r.active_player_id
+      WHERE r.id=$1`,
+    [roomId]
+  );
+
+  const row = result.rows[0];
+  if (!row || row.phase !== "playing" || !row.active_player_id) return null;
+  if (row.is_bot !== true) return null;
+
+  return {
+    turnNumber: Number(row.turn_number),
+    playerId: row.active_player_id,
+    personality: row.bot_personality ?? "normal"
+  };
+}
+
+/**
+ * Take a bot's turn. The plan is drawn from the same rules the human seats play
+ * under, and applied through the same transaction, so a bot cannot do anything a
+ * player could not.
+ */
+export async function playBotTurn(roomId: string, turnNumber: number): Promise<RoundOutcomeForClient> {
+  const bot = await readBotTurn(roomId);
+  if (!bot || bot.turnNumber !== turnNumber) {
+    return {
+      ok: false,
+      code: "not_bot_turn",
+      replayed: false,
+      roundNumber: 0,
+      turnNumber,
+      views: [],
+      events: [],
+      result: null
+    };
+  }
+
+  // A read of the table to decide, then the ordinary action path to apply it:
+  // the bot takes its turn through exactly the same transaction and ledger as a
+  // human seat, so it cannot do anything a player could not.
+  const [seats, room] = await Promise.all([
+    pool.query<SeatRow>(
+      `SELECT ${SEAT_COLUMNS} FROM public.room_players WHERE room_id=$1 ORDER BY seat_number`,
+      [roomId]
+    ),
+    pool.query<RoomRow>(`SELECT ${ROOM_COLUMNS} FROM public.game_rooms WHERE id=$1`, [roomId])
+  ]);
+  if (room.rowCount !== 1) throw new Error("room_not_found");
+
+  const round = toLoadedRound(room.rows[0] as RoomRow, seats.rows);
+  const seat = round.seats.indexOf(bot.playerId);
+  if (seat < 0) throw new Error("corrupt_round_row:bot_not_seated");
+
+  const plan = planCardTurn(round, seat);
+
+  return await applyRoundAction({
+    roomId,
+    turnNumber,
+    actionId: `bot:${turnNumber}:${bot.playerId}`,
+    kind: plan.kind === "play" ? "play" : "draw",
+    playerId: bot.playerId,
+    cardId: plan.cardId,
+    color: plan.color
+  });
 }
