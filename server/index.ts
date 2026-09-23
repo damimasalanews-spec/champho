@@ -233,21 +233,30 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
   const scheduleCardBots = async (roomId: string, turnNumber: number) => {
     if (!options.enableBots) return;
     const bot = await readBotTurn(roomId).catch(() => null);
-    if (!bot || bot.turnNumber !== turnNumber) return;
+    // Nothing to schedule: no bot is on the clock, or the round is over.
+    if (!bot) return;
+
+    // Trust the row over the caller. `readBotTurn` reports the turn number the
+    // database actually holds, and a caller one turn out of step would otherwise
+    // arm nothing at all — silently, and for the rest of the match. A table whose
+    // bots never move runs every turn down to the timer, and a timer that always
+    // expires is indistinguishable from a game that has frozen.
+    const turn = bot.turnNumber;
+    if (turn !== turnNumber) telemetry("bot_turn_resynced", { roomId, asked: turnNumber, live: turn });
 
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const outcome = await playBotTurn(roomId, turnNumber);
+          const outcome = await playBotTurn(roomId, turn);
           await publishRoundOutcome(roomId, outcome);
         } catch (error) {
-          telemetryError("bot_card_turn_failed", error, { roomId, turnNumber });
+          telemetryError("bot_card_turn_failed", error, { roomId, turnNumber: turn });
         }
       })();
     }, cardTurnDelayMs(bot.personality));
     timer.unref();
 
-    const key = `${roomId}:${turnNumber}`;
+    const key = `${roomId}:${turn}`;
     const timers = botTimers.get(key) ?? [];
     timers.push(timer);
     botTimers.set(key, timers);
