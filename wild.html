@@ -541,6 +541,88 @@
             });
         }
 
+        // ---- a draw penalty landing -------------------------------------------
+        // The rattle, the sub-bass hit, and the cards going out one at a time to the
+        // seat that has to take them. The seat's counter stack goes up by the same
+        // number when the last card lands, so the penalty leaves the table changed and
+        // not just shaken.
+        const opponentHandSize = { 'opponent-left': 7, 'opponent-top': 7, 'opponent-right': 7 };
+
+        const PENALTY_SLOT_TO_COUNTER = {
+            left_enemy: 'opponent-left',
+            top_enemy: 'opponent-top',
+            right_enemy: 'opponent-right'
+        };
+
+        // A plain wild draws nothing in the real rules. This page has no server to send a
+        // PLAYER_PENALTY_HIT, so the local wild stands in as the demo's trigger: it is the
+        // one place to change when a real penalty packet arrives, and the function itself
+        // takes the seat and the count so a packet can call it as it is.
+        const DEMO_PENALTY_ON_WILD = { seat: 'left_enemy', cards: 4 };
+
+        function handleDraw4PenaltyImpact(targetPlayerSlotKey, totalCardsToDraw = 4) {
+            const tableCanvasNode = document.querySelector('.game-table');
+            const deckSourceNode = document.getElementById('central-deck');
+            if (!tableCanvasNode || !deckSourceNode) return;
+
+            // Restart from the top if a shake is already running: the forced reflow is what
+            // lets the same animation fire twice in a row.
+            tableCanvasNode.classList.remove('penalty-shake-active');
+            void tableCanvasNode.offsetWidth;
+            tableCanvasNode.classList.add('penalty-shake-active');
+
+            if (typeof playDraw4ImpactDamageSound === 'function') playDraw4ImpactDamageSound();
+
+            const deckBounds = deckSourceNode.getBoundingClientRect();
+            const deckX = deckBounds.left + deckBounds.width / 2;
+            const deckY = deckBounds.top + deckBounds.height / 2;
+
+            const slotNodeLookups = {
+                left_enemy: document.getElementById('slot-opponent-left'),
+                top_enemy: document.getElementById('slot-opponent-top'),
+                right_enemy: document.getElementById('slot-opponent-right'),
+                local_player: document.getElementById('local-player-hand')
+            };
+
+            const destinationNode = slotNodeLookups[targetPlayerSlotKey];
+            if (!destinationNode) return;
+
+            const destBounds = destinationNode.getBoundingClientRect();
+            const targetX = destBounds.left + destBounds.width / 2;
+            const targetY = destBounds.top + destBounds.height / 2;
+
+            // 110ms apart, so they read as cards being dealt at you rather than one clump
+            for (let cardIdx = 0; cardIdx < totalCardsToDraw; cardIdx += 1) {
+                setTimeout(() => {
+                    const flightCardNode = document.createElement('div');
+                    flightCardNode.classList.add('card-in-flight');
+
+                    flightCardNode.style.setProperty('--deck-x', `${deckX}px`);
+                    flightCardNode.style.setProperty('--deck-y', `${deckY}px`);
+                    flightCardNode.style.setProperty('--target-x', `${targetX}px`);
+                    flightCardNode.style.setProperty('--target-y', `${targetY}px`);
+                    flightCardNode.style.setProperty('--target-rot', `${(Math.random() * 40) - 20}deg`);
+
+                    tableCanvasNode.appendChild(flightCardNode);
+                    requestAnimationFrame(() => flightCardNode.classList.add('thrown'));
+
+                    if (typeof playCardRuffleSound === 'function') playCardRuffleSound();
+                    setTimeout(() => flightCardNode.remove(), 580);
+                }, cardIdx * 110);
+            }
+
+            // The seat holds them now. Timed to the last card landing, not to the click.
+            const counterKey = PENALTY_SLOT_TO_COUNTER[targetPlayerSlotKey];
+            if (counterKey) {
+                setTimeout(() => {
+                    opponentHandSize[counterKey] += totalCardsToDraw;
+                    updateOpponentCounters(counterKey, opponentHandSize[counterKey]);
+                }, (totalCardsToDraw - 1) * 110 + 600);
+            }
+
+            setTimeout(() => tableCanvasNode.classList.remove('penalty-shake-active'), 460);
+        }
+
         // ---- the wild colour wheel --------------------------------------------
         // Four quadrants, one choice, and the choice does not travel anywhere: this
         // page has no socket, so declaring a colour re-tints the wild card that is
@@ -576,6 +658,9 @@
             }
 
             concealColorPickerWheel();
+
+            // The colour is declared, so the penalty that follows a wild is applied.
+            handleDraw4PenaltyImpact(DEMO_PENALTY_ON_WILD.seat, DEMO_PENALTY_ON_WILD.cards);
         }
 
         function wireColorWheel() {

@@ -149,3 +149,18 @@ function playChatBubblePopSound() {
   note(880, 0.03, 'triangle', 0.06, 0.00, 900);
   note(1200, 0.04, 'triangle', 0.05, 0.02, 1100);
 }
+
+/**
+ * A draw penalty landing.
+ *
+ * A sub-bass drop for the weight of it plus two short friction sweeps for the cards
+ * coming off the deck. The lowest thing this file plays by some margin: a penalty is
+ * meant to feel like being hit, not like being told.
+ */
+function playDraw4ImpactDamageSound() {
+  if (soundMuted) return;
+  note(160, 0.40, 'square', 0.15, 0.00, 45);
+  note(280, 0.25, 'triangle', 0.10, 0.02, 90);
+  whoosh(0.35, 0.08, 0.00, 750);
+  whoosh(0.20, 0.05, 0.08, 900);
+}
