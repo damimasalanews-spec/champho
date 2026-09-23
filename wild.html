@@ -489,6 +489,39 @@
     whoosh(...args) { try { if (state.soundOn && typeof whoosh === "function") whoosh(...args); } catch { /* no sound */ } }
   };
 
+  /**
+   * A browser will not let an AudioContext make a sound until the player has
+   * pressed something on the page, so the first note of a session used to be
+   * swallowed and only the notes after it were heard. The first press resumes the
+   * context, and every note from then on plays.
+   *
+   * `once`, because the context only ever needs waking the one time, and passive,
+   * because this listens on every press to catch the first one and must not delay
+   * the press it is riding on. `ac()` is the sound module's own accessor and does
+   * the wake-up itself; this only has to reach it before the first note is played.
+   */
+  let audioUnlocked = false;
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+
+    try {
+      if (typeof ac === "function") {
+        const context = ac();
+
+        if (context.state === "suspended") {
+          context.resume();
+        }
+
+        audioUnlocked = true;
+      }
+    } catch {
+      // Audio is unavailable
+    }
+  }
+
+  window.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
+
   /* --- effects, drawn with the classic stylesheet's own classes ------------ */
   const fxLayer = () => $("fx");
 
@@ -952,13 +985,22 @@
   }
 
   function throwCard(card) {
-    if (!myTurn()) { toast("Not your turn"); return; }
+    if (!myTurn()) {
+      toast("Not your turn");
+      sfx.note(180, 0.12, "sawtooth", 0.04);
+      return;
+    }
+
     if (card.kind === "wild" || card.kind === "wild4") {
       state.pendingWild = state.pendingWild && state.pendingWild.cardId === card.cardId ? null : card;
+      // arming and disarming a wild changes nothing on the board until a colour is
+      // picked, so the two notes are what tells the player it took
+      sfx.note(state.pendingWild ? 720 : 260, 0.1, "triangle", 0.05);
       renderHand();
       renderControls();
       return;
     }
+
     state.pendingWild = null;
     sfx.note(520, 0.08, "square", 0.05);
     action("play_card", { cardId: card.cardId });
