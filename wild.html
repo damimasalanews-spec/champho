@@ -569,6 +569,27 @@
   --rot: 12deg;
   --dy: 22px;
 }
+
+/* ==========================================================================
+   The board's discard pile
+
+   .discard-pile and .discarded-card, and the tilt and the impact shake, live in
+   game/styles.css. These two rules are only the board's own fitting: the pile box
+   sits centred on the felt, and each 104x146 card is centred in the 100x150 box so
+   its random offset spreads evenly around the middle instead of off one corner.
+   ========================================================================== */
+
+#boardPile .discard-pile {
+  width: 100px;
+  height: 150px;
+}
+
+#boardPile .discarded-card {
+  left: 50%;
+  top: 50%;
+  margin-left: -52px;
+  margin-top: -73px;
+}
 </style>
 </head>
 <body>
@@ -1074,6 +1095,25 @@
     else setStatus(hand.length === 1 ? "One card left — call UNO!" : "");
   }
 
+  /**
+   * The tilt each thrown card keeps once it has landed.
+   *
+   * Rolled once per card and remembered, not rolled per render: renderBoard
+   * rebuilds the pile from the server view on every update, so a fresh roll each
+   * time would make the whole pile twitch whenever anyone threw anything.
+   */
+  const discardTilts = new Map();
+
+  function discardTilt(cardId) {
+    let tilt = discardTilts.get(cardId);
+    if (!tilt) {
+      const roll = (span) => Math.round((Math.random() * span * 2 - span) * 10) / 10;
+      tilt = { rot: roll(12), x: roll(3), y: roll(3) };
+      discardTilts.set(cardId, tilt);
+    }
+    return tilt;
+  }
+
   function renderBoard() {
     const pile = $("boardPile");
     const view = state.view;
@@ -1119,20 +1159,28 @@
       empty.textContent = "Throw a card onto the board";
       pile.appendChild(empty);
     } else {
-      // the newest card lies square on top; the three beneath fan out, so the
-      // stack reads as a pile rather than as one card
-      const shown = view.board.slice(-4);
-      shown.forEach((card, i) => {
-        const back = shown.length - 1 - i;
+      // The pile: every card thrown this round stays down, each holding the small
+      // tilt it was given when it arrived, newest on top. The tilt is applied by
+      // the stylesheet (a rotate/translate off --discard-rot/x/y), so nothing here
+      // writes a transform inline — an inline one would override the sheet and the
+      // cards would all land square on top of each other.
+      const box = document.createElement("div");
+      box.className = "discard-pile";
+      view.board.forEach((card, i) => {
+        const tilt = discardTilt(card.cardId);
         const el = document.createElement("div");
-        el.className = "boardCard " + colorClass(card);
+        // boardCard keeps the face and the card size; discarded-card adds the tilt
+        // and the transition, and is what the flight looks for when it lands
+        el.className = "boardCard discarded-card " + colorClass(card);
         el.dataset.cardId = card.cardId;
         el.textContent = faceOf(card).glyph;
-        el.style.transform = "rotate(" + (back * 5 - 5) + "deg) translate(" + (back * 12) + "px," + (back * -5) + "px)";
+        el.style.setProperty("--discard-rot", tilt.rot + "deg");
+        el.style.setProperty("--discard-x", tilt.x + "px");
+        el.style.setProperty("--discard-y", tilt.y + "px");
         el.style.zIndex = String(10 + i);
-        if (back === 0) el.classList.add("landing");
-        pile.appendChild(el);
+        box.appendChild(el);
       });
+      pile.appendChild(box);
     }
 
     if (myTurn()) {
@@ -1532,6 +1580,14 @@
           );
         }
         sfx.note(392, 0.09, "triangle", 0.05);
+
+        // and the pile takes the weight of it: the shake runs for exactly as long
+        // as the keyframe, so the class clears itself the moment it is done
+        const box = document.querySelector("#boardPile .discard-pile");
+        if (box) {
+          box.classList.add("impact");
+          setTimeout(() => box.classList.remove("impact"), 150);
+        }
       }
 
       const oldHandIds = new Set(before.you.hand.map((card) => card.cardId));
