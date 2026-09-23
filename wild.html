@@ -14,6 +14,20 @@
 </head>
 <body>
 
+  <!-- High-Fidelity Network Initialization SplashScreen Layer -->
+  <div id="app-loading-screen" class="game-loading-overlay">
+    <h1 class="loading-title-brand">CHAMP WORD</h1>
+    <div class="loading-subtitle-brand">The Word Card Battle</div>
+    
+    <!-- Vector Hardware Accelerated Loader Ring -->
+    <div class="arcade-spinner-ring"></div>
+    
+    <!-- Dynamic State Update Message String -->
+    <div id="loading-status-string" class="loading-status-text">CONNECTING TO AUTHORITATIVE SEATS...</div>
+  </div>
+
+  <!-- The main table architecture layout sits cleanly below -->
+
     <!-- Full Screen Graphic Effects Layer -->
     <div id="screen-effects" class="screen-effect-layer"></div>
 
@@ -873,6 +887,60 @@
             });
         }
 
+        /* ==================================================================
+           THE LOADING SCREEN
+
+           ONE THING THE SPEC ASSUMED THAT THIS PAGE DOES NOT HAVE: there is no
+           `socket` here. wild.html runs on the mock engine — see the note in
+           startNextLocalRound, and the "Mock WebSocket structural engine
+           variables" comment at the top of this script. Grep the file for
+           `new WebSocket` and you get nothing, and the server's own packet types
+           are lowercase (welcome, match_found, room_snapshot, round_view), not
+           ROOM_JOIN_SUCCESS / ROOM_FULL_ERROR.
+
+           So the three socket handlers the spec describes are NOT here. Writing
+           them would fail at parse time with `ReferenceError: socket is not
+           defined` and take the entire page down with it — no table, no deal,
+           nothing. That is the one thing worth not copying literally.
+
+           The dismiss is wired to the ready point this page actually has: the
+           boot sequence below. That is the same moment in the user's terms — the
+           room is joined, the table is live, and the first card is about to fly.
+           If a real socket is added later the handlers go back in and the boot
+           call comes out; the overlay is driven purely by classList, so the two
+           triggers can coexist without fighting.
+           ================================================================== */
+
+        // 1. Appends an active, short audio chime to confirm network loading resolution
+        function playMatchJoinSuccessChime() {
+            if (soundMuted) return;
+            // Snappy ascending three-tone pulse sequence
+            note(523.25, 0.08, 'sine', 0.05, 0.00, 523); // C5
+            note(659.25, 0.08, 'sine', 0.05, 0.05, 659); // E5
+            note(987.77, 0.16, 'sine', 0.07, 0.10, 988); // B5 Success peak
+        }
+
+        // 2. State machine utility to update messaging values dynamically
+        function setLoaderStatusMessage(newMessageString) {
+            const statusStringField = document.getElementById('loading-status-string');
+            if (statusStringField) {
+                statusStringField.innerText = newMessageString.toUpperCase();
+            }
+        }
+
+        // 3. Gracefully slides the backdrop away once connection conditions are checked
+        function dismissAppLoadingScreen() {
+            const loadingOverlayNode = document.getElementById('app-loading-screen');
+            if (!loadingOverlayNode) return;
+
+            setLoaderStatusMessage("Match Found! Joining...");
+
+            setTimeout(() => {
+                loadingOverlayNode.classList.add('loaded');
+                playMatchJoinSuccessChime();
+            }, 400); // Gives users a brief moment to register success feedback state
+        }
+
         // Automatically auto-boot sequence triggers on window load
         window.addEventListener('DOMContentLoaded', () => {
             wireChat();
@@ -881,8 +949,15 @@
             const unoButton = document.getElementById('btn-uno-call');
             if (unoButton) unoButton.addEventListener('click', () => triggerUnoDeclarationBanner('Champ'));
             initializeArcadeMatchTimer(149);   // 02:29
+            // The table is wired and the clock is running, so the connect phase is over:
+            // this is the same beat a real client would call the join a success on.
+            setLoaderStatusMessage("Synchronizing Game Room Lobby State...");
             // Initiates full simulated arcade dealing engine sequence matching layout blueprints
             setTimeout(() => {
+                // Dismissed BEFORE the deal rather than after it, so the cinematic deal is
+                // watched rather than played out behind an opaque mask. The deal takes
+                // 28 cards x 220ms + 300ms, and hiding all of it would waste it.
+                dismissAppLoadingScreen();
                 initializeCinematic3DDeal(playersMock, localHandMock);
             }, 800);
         });
