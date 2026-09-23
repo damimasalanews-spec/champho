@@ -91,3 +91,19 @@ function playDrawCardSound() {
   // A foundational low-end reminder that you just took damage
   note(180, 0.20, 'sine', 0.05, 0.00, 100);
 }
+
+/**
+ * The turn clock, ticking.
+ *
+ * A dry wood-block click, one per second: high and quiet while there is time, and
+ * lower and louder once the clock is nearly out, so the warning is audible without
+ * the tick ever competing with the cards. Arrived with the Go Wild page's own
+ * sheet; it is the one function that page needed and this file lacked.
+ */
+function playTimerTickSound(isUrgent = false) {
+  if (soundMuted) return;
+  const pitch = isUrgent ? 580 : 920;
+  const gainVolume = isUrgent ? 0.08 : 0.03;
+  const durTime = isUrgent ? 0.04 : 0.02;
+  note(pitch, durTime, 'triangle', gainVolume, 0, pitch - 180);
+}

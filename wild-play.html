@@ -1,0 +1,2377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Champ Word Go Wild</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<!-- The classic game's stylesheet, shared rather than copied: the pills, the HUD,
+     the player plates and their name banners, the letter tiles, the chat panel,
+     the toast and the effects layer are then the same code, so they cannot drift
+     apart. Only what the card table adds is written below. -->
+<link rel="stylesheet" href="game/styles.css">
+<style>
+/* ===========================================================================
+   CHAMP WORD — Go Wild
+
+   The page the classic game is on, with the card table in the middle. Same HUD,
+   same plates, same tiles, same chat, same effects, because they are the same
+   stylesheet; what follows is only what cards need that a word game does not.
+   =========================================================================== */
+
+/* The classic page is fluid and sized from the viewport. This one is a fixed
+   1600x900 stage scaled as a whole, so the couple of sizes the shared sheet
+   derives from the viewport are re-declared here in stage pixels. Everything
+   built on --seat follows automatically, which is why it is a variable. */
+#stage{position:fixed;inset:0;overflow:hidden}
+#stage #game{position:absolute;left:50%;top:50%;width:1600px;height:900px;
+  transform:translate(-50%,-50%) scale(var(--s,1));transform-origin:center;
+  --seat:132px}
+/* the stage carries its own backdrop: the same art the classic page blurs, so the
+   two pages sit in the same room */
+#tableArt{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  object-position:center;z-index:1;pointer-events:none}
+#game #bg{z-index:0;inset:-4%}
+#parchment{width:760px}
+
+/* --- the board is the play surface ---------------------------------------- */
+/* Geometry is measured from classic-bg/classic-table-scene.webp: the board painted
+   on the table is a trapezoid at stage (532.6,466.4) (1080.8,466.4)
+   (1144.2,705.7) (454.8,705.7). Cards thrown onto it lie inside that trapezoid,
+   so they read as resting on the table with the wooden border still visible. */
+.boardWrap{position:absolute;left:455px;top:466px;width:689px;height:239px;z-index:6}
+.dirArrow{position:absolute;inset:-46px -32px;z-index:0}
+.dirArrow.flip{transform:scaleX(-1)}
+.boardPile{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  clip-path:polygon(11.3% 0%,90.8% 0%,100% 100%,0% 100%)}
+.boardEmpty{font-size:17px;font-weight:900;color:#ffe9b0;text-shadow:0 2px 8px rgba(0,0,0,.65)}
+/* a card where it landed: the classic tile's proportions and bottom edge, at card
+   size, in the colour of the card */
+.boardCard{position:absolute;width:104px;height:146px;border-radius:14px;
+  display:grid;place-items:center;font-size:52px;font-weight:900;color:#fff;
+  border:3px solid rgba(255,255,255,.9);
+  box-shadow:0 6px 0 rgba(0,0,0,.35), 0 12px 24px rgba(0,0,0,.45);
+  text-shadow:0 3px 8px rgba(0,0,0,.5)}
+.boardCard.landing{animation:cardLand .3s cubic-bezier(.2,1.5,.4,1)}
+@keyframes cardLand{from{transform:translateY(-150px) scale(1.4) rotate(-8deg);opacity:.2}
+  to{transform:none;opacity:1}}
+/* the winning word, dealt onto the board one letter at a time */
+.wordCard{width:88px;height:128px;margin-left:-12px;border-radius:12px;display:grid;
+  place-items:center;align-content:center;gap:2px;font-size:54px;font-weight:900;color:var(--ink);
+  background:linear-gradient(#fffdf5,#ffe9b0);border:3px solid #fff6da;
+  box-shadow:0 6px 0 #d19a1e, 0 12px 26px rgba(0,0,0,.5);
+  animation:dealIn .45s cubic-bezier(.2,1.5,.4,1) both}
+.wordCard:first-child{margin-left:0}
+.wordCard .idx{font-size:11px;letter-spacing:2px;color:#a98428}
+/* the word itself, in the classic page's parchment lettering */
+#wordPreview{position:absolute;left:455px;right:445px;bottom:118px;text-align:center;
+  font-size:26px;font-weight:900;letter-spacing:6px;color:#e7cf9d;min-height:32px;
+  text-shadow:0 2px 0 #c9a86a,0 5px 10px rgba(0,0,0,.5);z-index:7}
+
+/* --- the deck, left of the board, as a deck is ---------------------------- */
+.deck{position:absolute;left:296px;top:408px;width:104px;height:146px;z-index:8;
+  background:none;border:0;padding:0;cursor:pointer;font-family:inherit}
+.deck .back{position:absolute;inset:0;border-radius:14px;
+  border:3px solid rgba(255,255,255,.9);background:linear-gradient(160deg,#1b5a9e,#0a3160);
+  box-shadow:0 6px 0 rgba(0,0,0,.35), 0 12px 24px rgba(0,0,0,.45)}
+.deck .back::after{content:"";position:absolute;left:12px;top:12px;right:12px;bottom:12px;
+  border-radius:50%;border:3px solid rgba(139,233,255,.5);transform:rotate(-20deg)}
+.deck .back2{transform:translate(-8px,-8px)}
+.deck .back3{transform:translate(-16px,-16px);opacity:.8}
+.deck:disabled{cursor:default;filter:grayscale(.55) brightness(.75)}
+.deck.mine .back{box-shadow:0 0 0 4px var(--gold), 0 6px 0 rgba(0,0,0,.35)}
+
+/* --- the hand: the classic letter tiles, at 7 across ---------------------- */
+#bottomPanel{width:auto}
+#tiles{gap:10px;min-height:74px}
+.tile{width:62px;height:74px;font-size:34px;border-radius:12px}
+.tile .corner{position:absolute;left:8px;top:6px;font-size:13px;font-weight:900;opacity:.85}
+.tile .sub{position:absolute;left:0;right:0;bottom:7px;font-size:10px;letter-spacing:1px}
+.tile{position:relative}
+/* a card that cannot be thrown right now is dimmed, not hidden: a seat reads its
+   own hand to plan the next turn */
+.tile:disabled{filter:grayscale(.35) brightness(.75);cursor:default;opacity:.9}
+.tile.playable{box-shadow:0 0 0 3px var(--gold), 0 4px 0 #0b62c4, 0 6px 10px rgba(0,0,0,.35)}
+.tile.drawn{box-shadow:0 0 0 3px #7dd3fc, 0 4px 0 #0b62c4, 0 6px 10px rgba(0,0,0,.35)}
+.tile.picked{transform:translateY(-12px);box-shadow:0 0 0 4px var(--gold), 0 4px 0 #0b62c4}
+.card-red{background:linear-gradient(#f2604f,#c0241a);border-color:#ff9d90}
+.card-blue{background:linear-gradient(#5ab6ff,#1e88f0);border-color:#8fd0ff}
+.card-green{background:linear-gradient(#4ade80,#16a34a);border-color:#9ff0bb}
+.card-yellow{background:linear-gradient(#fbd45f,#d99a0b);border-color:#ffe9a3}
+.card-wild{background:linear-gradient(135deg,#e0473c,#e8b52c 34%,#31a35a 66%,#2f6fe0);border-color:#fff}
+
+/* the colour picker sits in the same panel as the buttons: a wild opens the
+   picker, and going down to one card is when the call is owed */
+#picker{display:flex;gap:10px;justify-content:center;align-items:center}
+#picker.hidden{display:none}
+.picker-cap{font-size:12px;font-weight:900;letter-spacing:.6px;color:#9fdcff}
+.swatch{width:54px;height:40px;border-radius:12px;border:2px solid rgba(255,255,255,.85);
+  font-size:10px;font-weight:900;box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.swatch:disabled{opacity:.55;cursor:not-allowed}
+.swatch-red{background:linear-gradient(#f2604f,#c0241a)}
+.swatch-blue{background:linear-gradient(#5ab6ff,#1e88f0)}
+.swatch-green{background:linear-gradient(#4ade80,#16a34a)}
+.swatch-yellow{background:linear-gradient(#fbd45f,#d99a0b)}
+#unoBtn.ready{animation:readyPulse 1s ease-in-out infinite}
+
+/* --- the reveal ----------------------------------------------------------- */
+#result{position:absolute;left:492px;top:170px;width:616px;z-index:52;display:none}
+#result.on{display:block}
+#result .sub{font-size:14px;font-weight:800;color:#bfe3ff;margin-bottom:10px}
+#result .sub b{color:var(--gold)}
+#standings{display:flex;flex-direction:column;gap:6px;width:100%;margin-bottom:8px}
+#standings .cell{display:flex;justify-content:flex-end;gap:8px;padding:5px 10px;border-radius:12px;
+  font-size:14px;font-weight:900;background:linear-gradient(#12497f,#0a3160);
+  border:2px solid rgba(47,125,192,.8)}
+#standings .cell.head{background:none;border:0;color:#7dd3fc;font-size:11px;letter-spacing:1px;padding:0 10px}
+#standings .cell.win{border-color:var(--gold);color:#ffe89b}
+#result .foot{display:flex;justify-content:space-between;font-size:13px;font-weight:900;color:#bfe3ff}
+#result .foot .next{color:var(--gold)}
+
+/* --- the seats carry a card count where classic carries a word count ------ */
+.fanCount{font-size:13px;font-weight:900;color:#fff;background:rgba(6,33,63,.72);
+  border:1px solid rgba(125,211,252,.6);border-radius:999px;padding:1px 9px}
+.fan{position:absolute;left:50%;bottom:calc(var(--seat)*-.30);transform:translateX(-50%);
+  display:flex;align-items:center;gap:6px;z-index:5}
+.miniCard{width:20px;height:28px;flex:0 0 20px;margin-left:-11px;border-radius:4px;
+  border:1.5px solid rgba(255,255,255,.85);background:linear-gradient(160deg,#1b5a9e,#0a3160)}
+.seat-tag{position:absolute;left:50%;top:calc(var(--seat)*-.02);transform:translateX(-50%);
+  font-size:12px;font-weight:900;color:var(--gold);white-space:nowrap}
+.catch{position:absolute;right:calc(var(--seat)*-.10);top:calc(var(--seat)*.62);
+  width:36px;height:36px;border-radius:50%;border:2px solid #fff;font-size:18px;font-weight:900;
+  background:linear-gradient(#ff6b6b,#b81313);box-shadow:0 4px 10px rgba(0,0,0,.5);display:none}
+.catch.on{display:grid;place-items:center;animation:lowPulse 1s ease-in-out infinite}
+.turn-ring{position:absolute;inset:calc(var(--seat)*-.08);border-radius:calc(var(--seat)*.3);
+  border:4px solid var(--gold);box-shadow:0 0 22px rgba(251,191,36,.75);display:none}
+.pcard.is-active .turn-ring{display:block}
+
+/* --- what the classic page does not have: a status line over the table ---- */
+#status{position:absolute;left:0;right:0;top:74px;text-align:center;z-index:22;
+  font-size:17px;font-weight:900;color:#bfe3ff;text-shadow:0 2px 8px rgba(0,0,0,.7)}
+#status.bad{color:#fecaca}
+
+/* ===========================================================================
+   The table, arranged as the reference screenshot arranges it.
+
+   Seats sit at the four points round the table — mid-left, far, mid-right and
+   near-left — each with the name banner under the tile, and each rival holds a
+   fanned face-down hand beside their own plate rather than in a list. The deck
+   sits upper-left, the pile on the centre of the board, and the viewer's own
+   hand is a fan along the bottom with the calls to its right.
+   =========================================================================== */
+.pcard.pos-tl{left:142px;top:196px}     /* mid-left seat */
+.pcard.pos-tr{left:1300px;top:170px}    /* mid-right seat */
+.pcard.pos-ml{left:590px;top:44px}      /* far seat */
+.pcard.pos-front{left:179px;top:632px;transform:none}  /* the viewer, near-left */
+/* every plate keeps its banner under the tile, so the four read as one family */
+.pcard .nbanner{left:50%;top:auto;bottom:calc(var(--seat)*-.22);transform:translateX(-50%)}
+
+/* --- a rival hand is a fan of card backs beside the plate ------------------ */
+.fan{position:absolute;left:calc(var(--seat)*.78);top:calc(var(--seat)*.34);
+  display:flex;align-items:flex-start;gap:0;z-index:4;pointer-events:none}
+.pcard.pos-tr .fan{left:auto;right:calc(var(--seat)*.78)}
+.pcard.pos-ml .fan{left:calc(var(--seat)*.96);top:calc(var(--seat)*.52)}
+.miniCard{width:34px;height:48px;flex:0 0 34px;margin-left:-20px;border-radius:5px;
+  border:2px solid rgba(255,255,255,.9);background:linear-gradient(160deg,#1b5a9e,#0a3160);
+  box-shadow:0 4px 8px rgba(0,0,0,.45);transform-origin:50% 130%;
+  transform:rotate(var(--rot,0deg)) translateY(var(--dy,0px))}
+.fanCount{margin-left:10px;font-size:13px;font-weight:900;color:#fff;
+  background:rgba(6,33,63,.8);border:1px solid rgba(125,211,252,.6);border-radius:999px;padding:1px 9px;
+  align-self:flex-start}
+.catch{position:absolute;right:calc(var(--seat)*-.16);top:calc(var(--seat)*.52);
+  width:36px;height:36px;border-radius:50%;border:2px solid #fff;font-size:18px;font-weight:900;
+  background:linear-gradient(#ff6b6b,#b81313);box-shadow:0 4px 10px rgba(0,0,0,.5);display:none}
+
+/* --- the viewer's hand: a fan along the bottom ---------------------------- */
+#tiles{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);
+  display:flex;align-items:flex-end;gap:0;min-height:0;z-index:30}
+.tile{width:96px;height:132px;font-size:46px;margin-left:-36px;border-radius:13px;
+  transform-origin:50% 165%;transform:rotate(var(--rot,0deg)) translateY(var(--dy,0px));
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .2s ease}
+.tile:first-child{margin-left:0}
+/* the lift: a back-out curve so the card springs up rather than gliding, and a
+   z-index so it clears its neighbours instead of sliding under them */
+.tile:hover:not(:disabled){transform:rotate(var(--rot,0deg)) translateY(calc(var(--dy,0px) - 24px)) scale(1.18);
+  box-shadow:0 20px 35px rgba(0,0,0,.4);z-index:40}
+.tile.picked{transform:rotate(var(--rot,0deg)) translateY(calc(var(--dy,0px) - 18px)) scale(1.05)}
+.tile .corner{left:9px;top:7px;font-size:15px}
+.tile .sub{bottom:9px;font-size:11px}
+
+/* --- the calls, to the right of the hand, as the reference has them -------- */
+#bottomPanel{left:auto;right:34px;bottom:26px;width:auto;display:flex;
+  flex-direction:column;align-items:flex-end;gap:10px}
+#panelBtns{display:flex;gap:10px}
+#unoBtn{border-radius:999px;font-size:19px;font-style:italic;padding:16px 34px;
+  background:radial-gradient(circle at 50% 32%,#ff7b7b,#c81e1e 70%);border-color:#fff;
+  box-shadow:0 7px 0 #7c0f0f, 0 12px 26px rgba(0,0,0,.5)}
+#passBtn{padding:16px 30px;font-size:17px}
+
+/* --- the deck, upper-left, as the reference places it --------------------- */
+.deck{left:362px;top:147px}
+
+/* --- measured on the live page, then corrected here ----------------------- */
+/* a plate that sizes itself to its contents collapsed to 68px on the right-hand
+   seat, letting half of that avatar hang outside its own box */
+.pcard{width:var(--seat)}
+/* the banner kept its own offset and sat off-centre under every tile */
+.pcard .nbanner{left:0;right:0;width:100%;transform:none;justify-content:center;box-sizing:border-box}
+/* the rotated corners of the outermost cards hung 15px past the stage and were
+   clipped by it */
+#tiles{bottom:34px}
+/* the panel reached left across the hand, so the calls painted over the last
+   card. Wrapping the colour picker makes the panel narrow enough to sit clear of
+   the fan, which is where the reference keeps its CALL UNO. */
+/* The shared rule centres the panel with translateX(-50%). Moving it right
+   without clearing that transform left it drawn half its width to the left —
+   straight on top of the hand, where it swallowed every click aimed at a card.
+   This is the fix for the unresponsive table. */
+#bottomPanel{right:30px;bottom:30px;max-width:300px;transform:none}
+#picker{flex-wrap:wrap;justify-content:flex-end;max-width:264px}
+.picker-cap{width:100%;text-align:right}
+.swatch{width:46px;height:34px}
+
+/* ===========================================================================
+   The burning border, copied from the clip.
+
+   A bold gold band round the avatar of whichever seat is on the clock, with
+   white four-point sparkles glinting along it, eroding to nothing as the throw
+   window closes. Only the seat on the clock gets it.
+   =========================================================================== */
+.atile{position:relative}
+/* A pair of bold red arrows rides the avatar's own rounded-square edge, leading
+   a band that is the clock: the whole edge is lit when the throw window opens,
+   and by the time it shuts there is nothing left. Travel is clockwise, one lap
+   per turn.
+
+   The band is laid out in the page's own pixels by gwBuild(), taken from the
+   plate's measured size and its own border-radius, so it hugs the border rather
+   than circling it -- a circle only ever touches a rounded square at four
+   points. Each piece is bevelled: a dark underside a shade lower, the red face
+   over it, a lit top edge, which is what makes it read as a solid.
+
+   The plain gold .turn-ring would draw a second ring on top of this one, so it
+   stands down on this page. Classic mode is another page and keeps its own. */
+.gw{position:absolute;inset:-18px;display:none;pointer-events:none;overflow:visible}
+.pcard.is-active .gw{display:block}
+.pcard.is-active .turn-ring{display:none}
+.gw-under{fill:none;stroke:#3A0507;stroke-width:12;transform:translate(0,2.5px)}
+.gw-band{fill:none;stroke:#B81812;stroke-width:11}
+.gw-lit{fill:none;stroke:#FF7A5C;stroke-width:4;opacity:.9;transform:translate(0,-3.4px)}
+.gw-head .h-under{fill:#3A0507}
+.gw-head .h-face{fill:#C81E12}
+.gw-head .h-lit{fill:none;stroke:#FF7A5C;stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+
+/* ==========================================================================
+   Go Wild polish: card flights, stronger feedback and deck interaction
+   ========================================================================== */
+
+#fx {
+  pointer-events: none;
+}
+
+/* `backwards`, not `both`. The `to` keyframe is the tile's own resting transform,
+   so nothing is lost by not holding it — but holding it means the animation
+   outranks every normal transform declaration on the tile, and that silently kills
+   the hover lift. Measured: with `both`, even an inline transform on a tile was
+   ignored. */
+.tile.deal {
+  animation: cardDeal .55s cubic-bezier(.2, 1.35, .35, 1) backwards;
+}
+
+@keyframes cardDeal {
+  from {
+    opacity: 0;
+    transform:
+      rotate(var(--rot, 0deg))
+      translateY(calc(var(--dy, 0px) + 28px))
+      scale(.72);
+  }
+
+  to {
+    opacity: 1;
+    transform:
+      rotate(var(--rot, 0deg))
+      translateY(var(--dy, 0px))
+      scale(1);
+  }
+}
+
+/* A card travelling between the hand, deck and board */
+.card-flight {
+  position: fixed !important;
+  z-index: 1000;
+  pointer-events: none !important;
+  margin: 0 !important;
+  transform-origin: center center;
+  transition: none !important;
+  animation: none !important;
+  opacity: 1 !important;
+  box-sizing: border-box;
+  /* the card is a solid object while it tumbles: keep its own 3D space, and never
+     show its mirrored back face when a rotation carries it past the viewer */
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, .42));
+}
+
+.card-flight .corner {
+  left: 9px;
+  top: 7px;
+}
+
+.card-flight .sub {
+  bottom: 9px;
+}
+
+/* Deck ghost used during a draw animation */
+.deck-flight {
+  background: linear-gradient(160deg, #1b5a9e, #0a3160);
+  border: 3px solid rgba(255, 255, 255, .9);
+  border-radius: 14px;
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, .35),
+    0 12px 24px rgba(0, 0, 0, .45);
+}
+
+.deck-flight::after {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 3px solid rgba(139, 233, 255, .5);
+  border-radius: 50%;
+  transform: rotate(-20deg);
+}
+
+/* Make the deck feel alive while it can be clicked */
+.deck.mine {
+  animation: deckReady 1.5s ease-in-out infinite;
+}
+
+.deck.mine:active {
+  transform: translateY(5px) scale(.96);
+}
+
+@keyframes deckReady {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 13px rgba(251, 191, 36, .85));
+  }
+}
+
+/* Stronger wild-card selection */
+/* the brightness pulse only: listing cardDeal here as well held the transform on a
+   selected card, so the lift below never showed */
+.tile.picked {
+  animation: wildSelected .7s ease-in-out infinite alternate;
+}
+
+@keyframes wildSelected {
+  from {
+    filter: brightness(1);
+  }
+
+  to {
+    filter: brightness(1.22) saturate(1.2);
+  }
+}
+
+/* Invalid action feedback */
+#tiles.hand-shake {
+  animation: handShake .38s ease-in-out;
+}
+
+@keyframes handShake {
+  0%, 100% {
+    transform: translateX(-50%);
+  }
+
+  20% {
+    transform: translateX(calc(-50% - 10px));
+  }
+
+  40% {
+    transform: translateX(calc(-50% + 9px));
+  }
+
+  60% {
+    transform: translateX(calc(-50% - 6px));
+  }
+
+  80% {
+    transform: translateX(calc(-50% + 4px));
+  }
+}
+
+/* Large UNO feedback */
+.fx-label {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: 1001;
+  color: #fff;
+  font-size: clamp(38px, 7vw, 92px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 3px;
+  text-shadow:
+    0 5px 0 #7c0f0f,
+    0 0 28px rgba(255, 91, 91, .95);
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(.5) rotate(-8deg);
+  animation: unoBurst .9s cubic-bezier(.2, 1.4, .35, 1) forwards;
+}
+
+@keyframes unoBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.5) rotate(-8deg);
+  }
+
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.15) rotate(4deg);
+  }
+
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -65%) scale(1.12) rotate(4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile.deal,
+  .tile.picked,
+  .deck.mine,
+  #tiles.hand-shake,
+  .fx-label {
+    animation: none !important;
+  }
+
+  .deck.mine:active {
+    transform: none;
+  }
+}
+
+/* ==========================================================================
+   Screenshot-style table arrangement
+   ========================================================================== */
+
+.pcard.pos-tl {
+  left: 120px;
+  top: 270px;
+}
+
+.pcard.pos-tr {
+  left: 1320px;
+  top: 270px;
+}
+
+.pcard.pos-ml {
+  left: 680px;
+  top: 55px;
+}
+
+.pcard.pos-front {
+  left: 180px;
+  top: 650px;
+}
+
+/* Seven opponent cards */
+.miniCard {
+  width: 48px;
+  height: 68px;
+  flex-basis: 48px;
+  margin-left: -25px;
+  border-radius: 7px;
+  border: 3px solid #fff;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, .45);
+}
+
+/* Top player's cards spread horizontally */
+.pcard.pos-ml .fan {
+  left: 50%;
+  top: calc(var(--seat) * .85);
+  transform: translateX(-50%) rotate(0deg);
+}
+
+/* Left player's cards angle toward the table */
+.pcard.pos-tl .fan {
+  left: calc(var(--seat) * .85);
+  top: calc(var(--seat) * .32);
+  transform: rotate(-38deg);
+}
+
+/* Right player's cards angle toward the table */
+.pcard.pos-tr .fan {
+  right: calc(var(--seat) * .85);
+  top: calc(var(--seat) * .32);
+  transform: rotate(38deg);
+}
+
+/* The player's seven cards */
+#tiles {
+  left: 53%;
+  bottom: 18px;
+  gap: 0;
+}
+
+.tile {
+  width: 112px;
+  height: 158px;
+  margin-left: -42px;
+  border-radius: 16px;
+  font-size: 58px;
+  border: 4px solid #fff;
+  box-shadow:
+    0 7px 0 rgba(0, 0, 0, .28),
+    0 14px 22px rgba(0, 0, 0, .42);
+}
+
+.tile:first-child {
+  margin-left: 0;
+}
+
+/* Show exactly seven cards cleanly on a 1600px stage.
+
+   NOTE: these do not take effect as written. The fan angles are already set on
+   each tile by renderHand(), which writes --rot and --dy as *inline* styles, and
+   an inline custom property outranks a stylesheet one. To move the fan, change
+   the maths in renderHand: rot (i - mid) * 8, dy |i - mid| * 7.5 gives about
+   these values for a seven card hand. Left here because it documents the intent
+   and would take over the moment that inline write is removed. */
+#tiles .tile:nth-child(1) {
+  --rot: -12deg;
+  --dy: 22px;
+}
+
+#tiles .tile:nth-child(2) {
+  --rot: -8deg;
+  --dy: 12px;
+}
+
+#tiles .tile:nth-child(3) {
+  --rot: -4deg;
+  --dy: 5px;
+}
+
+#tiles .tile:nth-child(4) {
+  --rot: 0deg;
+  --dy: 0px;
+}
+
+#tiles .tile:nth-child(5) {
+  --rot: 4deg;
+  --dy: 5px;
+}
+
+#tiles .tile:nth-child(6) {
+  --rot: 8deg;
+  --dy: 12px;
+}
+
+#tiles .tile:nth-child(7) {
+  --rot: 12deg;
+  --dy: 22px;
+}
+
+/* ==========================================================================
+   The board's discard pile
+
+   The pile box, the cards, their tilt and the impact shake all come from
+   game/styles.css. The board is a flex container, so the pile box centres itself
+   on the felt; the one thing it needs is for each 104x146 card to be centred in
+   the box, or its random offset would spread off one corner instead of around the
+   middle.
+   ========================================================================== */
+
+#boardPile .discarded-card {
+  left: 50%;
+  top: 50%;
+  margin-left: -52px;
+  margin-top: -73px;
+}
+
+/* ===========================================================================
+   The card face — the arcade skin.
+
+   A card on this table is a piece of plastic: a thick white shell, a deep drop
+   onto the felt, a lit pill across the middle of the face, and lettering heavy
+   enough to read from across the room. That is what this block is.
+
+   WHY IT LIVES HERE AND NOT IN game/styles.css
+
+   The shared sheet is linked in <head>, so it comes *before* this block in
+   document order; the rules above already set .tile's size, radius, border and
+   shadow. A skin written in game/styles.css would tie on specificity and lose
+   the cascade to every one of them. Here it is last, so it wins without a single
+   !important.
+
+   WHY THE STATE SHADOWS SURVIVE
+
+   .tile carries four states that each own their shadow — playable (the gold
+   ring), drawn, picked, and the hover lift. Rather than restate them, the base
+   skin is scoped with :not() so it only paints an *idle* tile, and the lip and
+   the pill are drawn on the pseudo-elements, which no state ever touches. That
+   is the whole trick: adding a skin without touching a single state rule.
+   =========================================================================== */
+.tile:not(.playable):not(.drawn):not(.picked):not(:hover),
+.boardCard,
+.card-flight {
+  border: 4px solid #fff;
+  /* the drop is what lifts the card off the felt; the hard 3px edge under it is the
+     card's own thickness, sitting on the table */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, .45), 0 3px 0 rgba(0, 0, 0, .4);
+}
+
+/* the shell clips its own art, so the pill reads as printed inside the card */
+.tile,
+.boardCard,
+.card-flight {
+  overflow: hidden;
+}
+
+/* the lip: the inset lip and highlight that make plastic look like plastic */
+.tile::before,
+.boardCard::before,
+.card-flight:not(.deck-flight)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 3px 6px rgba(255, 255, 255, .5),
+    inset 0 -8px 12px rgba(0, 0, 0, .2);
+}
+
+/* the pill: the stylised oval across the face, bled past both edges so only its
+   middle shows — a shape to sit behind the glyph, not an ellipse on the card */
+.tile::after,
+.boardCard::after,
+.card-flight:not(.deck-flight)::after {
+  content: "";
+  position: absolute;
+  left: -14%;
+  top: 10%;
+  width: 130%;
+  height: 80%;
+  z-index: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .22);
+  /* the offset throws the lit edge off-centre, so the disc reads as a printed
+     highlight under a light rather than as a symmetric wash */
+  transform: rotate(-28deg) translate3d(-5px, -5px, 0);
+  pointer-events: none;
+}
+
+/* The face. The outline is 2px, not the 3px of the 100x150 reference: these cards
+   are 96x132 with a 46px letter, and 3px at that size closes the counters on an
+   E or an A. 2px is the same weight the official deck uses at this proportion. */
+.tile > span:first-child,
+.card-flight > span:first-child,
+.boardCard {
+  position: relative;
+  z-index: 2;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000,
+    -2px 2px 0 #000, 2px 2px 0 #000,
+    3px 5px 0 rgba(0, 0, 0, .4);
+}
+
+/* the corner letter: same hand as the face, sat above the pill */
+.tile .corner,
+.card-flight .corner {
+  z-index: 3;
+  color: #fff;
+  opacity: 1;
+  text-shadow:
+    -1px -1px 0 #000, 1px -1px 0 #000,
+    -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+/* the word under an action card's glyph, on the same plane */
+.tile .sub,
+.card-flight .sub {
+  z-index: 3;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, .75);
+}
+
+/* ===========================================================================
+   The name pill.
+
+   The seat banners are already the red pill of the reference: a rounded gradient
+   plate with a white rim, a number badge and the player's name. What they were
+   missing is a shell that reads as crisp at this size and lettering that holds up
+   against its own gradient, so this sharpens the rim and lights the top edge.
+
+   The pill's COLOUR is deliberately not touched. It comes from --bnr, a per-seat
+   variable, and that is the one thing on the plate that tells four seats apart at
+   a glance: a single hardcoded red — which is what the brief asked for — would
+   throw it away and make every player look like the same player.
+   =========================================================================== */
+.pcard .nbanner {
+  border-color: #fff;
+  box-shadow: 0 3px 9px rgba(0, 0, 0, .45), inset 0 2px 4px rgba(255, 255, 255, .35);
+}
+.pcard .nbanner .nbadge {
+  border-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+}
+.pcard .nbanner .nname {
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, .6);
+}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="game">
+  <div id="bg"></div>
+  <img id="tableArt" src="classic-bg/classic-table-scene.webp" alt="">
+
+  <!-- the classic HUD, with this game's mode -->
+  <header id="hud">
+    <div id="logo">
+      <span class="crown">👑</span>
+      <span class="l1">CHAMP</span>
+      <span class="l2">WORD</span>
+    </div>
+    <div class="pill mode-pill" id="modePill">GO WILD</div>
+    <div class="hud-right">
+      <div class="pill" id="turnPill">WAITING</div>
+      <div class="pill" id="timerPill">⏱ --:--</div>
+      <button class="icon-btn" id="soundBtn" title="Sound on/off">🔊</button>
+      <button class="icon-btn" id="musicBtn" title="Music on/off">🎼</button>
+      <div class="pill coin-pill"><span class="coin">🪙</span><span id="myScore">0</span></div>
+      <button class="icon-btn" id="homeBtn" title="Menu">🏠</button>
+    </div>
+  </header>
+
+  <div id="status">Connecting…</div>
+
+  <!-- the seats, in the classic plate vocabulary -->
+  <div id="cards">
+    <div class="pcard pos-tl" id="seat-left">
+      <div class="plate">
+        <div class="atile" id="av-left"><span class="aemoji">🙂</span></div>
+        <div class="turn-ring"></div>
+        <div class="nbanner"><span class="nbadge">1</span><span class="nname" data-name>Waiting…</span></div>
+        <div class="pcoins">🪙 <span data-coins>0</span></div>
+        <div class="fan" data-fan></div>
+        <button class="catch" type="button" title="Catch this seat before it calls UNO">!</button>
+      </div>
+    </div>
+    <div class="pcard pos-tr" id="seat-right">
+      <div class="plate">
+        <div class="atile" id="av-right"><span class="aemoji">😎</span></div>
+        <div class="turn-ring"></div>
+        <div class="nbanner"><span class="nbadge">2</span><span class="nname" data-name>Waiting…</span></div>
+        <div class="pcoins">🪙 <span data-coins>0</span></div>
+        <div class="fan" data-fan></div>
+        <button class="catch" type="button" title="Catch this seat before it calls UNO">!</button>
+      </div>
+    </div>
+    <div class="pcard pos-ml" id="seat-top">
+      <div class="plate">
+        <div class="atile" id="av-top"><span class="aemoji">🧐</span></div>
+        <div class="turn-ring"></div>
+        <div class="nbanner"><span class="nbadge">3</span><span class="nname" data-name>Waiting…</span></div>
+        <div class="pcoins">🪙 <span data-coins>0</span></div>
+        <div class="fan" data-fan></div>
+        <button class="catch" type="button" title="Catch this seat before it calls UNO">!</button>
+      </div>
+    </div>
+    <!-- the player's own seat: front of the table, largest, as in classic -->
+    <div class="pcard you pos-front" id="seat-me">
+      <div class="plate">
+        <div class="atile" id="av-me"><img id="meAvatar" alt="" hidden><span class="aemoji" id="meAvatarFallback">🧑</span><img class="aframe" id="meFrame" alt="" hidden></div>
+        <div class="nbanner"><span class="nbadge">YOU</span><span class="nname" data-name>You</span></div>
+        <div class="pcoins">🪙 <span data-coins>0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- the board: the play surface, inside the board the artwork paints -->
+  <div class="boardWrap" id="boardWrap">
+    <svg class="dirArrow" id="dirArrow" viewBox="0 0 400 200" fill="none" aria-hidden="true">
+      <path d="M30 132 C56 34, 344 34, 370 132" stroke="#8be9ff" stroke-opacity=".45" stroke-width="18" stroke-linecap="round"/>
+      <path d="M370 132 l-36 -28 l40 -8 z" fill="#8be9ff" fill-opacity=".65"/>
+    </svg>
+    <div class="boardPile" id="boardPile"></div>
+  </div>
+  <div id="wordPreview"></div>
+
+  <button class="deck" id="deck" type="button" title="Draw a card">
+    <span class="back back3"></span><span class="back back2"></span><span class="back"></span>
+  </button>
+
+  <div id="sideBtns">
+    <button class="side-btn" id="reactBtn" title="Send a reaction">😄</button>
+    <button class="side-btn" id="chatBtn" title="Toggle chat">💬</button>
+  </div>
+
+  <!-- the hand fans along the bottom; the panel beside it holds the calls.
+       They are siblings, not parent and child, so the fan positions itself
+       against the table rather than against the panel. -->
+  <div id="tiles"></div>
+  <div id="bottomPanel">
+    <div id="picker" class="hidden">
+      <span class="picker-cap" id="pickerCap">COLOUR</span>
+      <button class="swatch swatch-red" type="button" data-color="red" disabled>RED</button>
+      <button class="swatch swatch-yellow" type="button" data-color="yellow" disabled>YELLOW</button>
+      <button class="swatch swatch-green" type="button" data-color="green" disabled>GREEN</button>
+      <button class="swatch swatch-blue" type="button" data-color="blue" disabled>BLUE</button>
+    </div>
+    <div id="panelBtns">
+      <button class="btn btn-blue" id="passBtn" type="button" disabled>PASS</button>
+      <button class="btn btn-green" id="unoBtn" type="button" disabled>CALL UNO</button>
+    </div>
+  </div>
+
+  <aside id="chatPanel">
+    <div class="chat-head"><span>LIVE CHAT</span><span class="chat-count" id="chatCount">👥 4</span></div>
+    <div id="chatMsgs"></div>
+    <div class="chat-input">
+      <input id="chatInput" type="text" maxlength="200" placeholder="Type a message..." autocomplete="off">
+      <button id="send" title="Send">➤</button>
+    </div>
+  </aside>
+
+  <div id="emojiPicker" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
+  <div id="fx"></div>
+
+  <div class="overlay hidden" id="result">
+    <div class="menu-card leaderboard">
+      <div class="lb-crown">👑</div>
+      <div class="result-title" id="resultTitle">ROUND WON</div>
+      <div class="sub" id="resultSub"></div>
+      <div id="standings"></div>
+      <div class="foot"><span id="resultFoot"></span><span class="next" id="resultNext"></span></div>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="rotate">
+    <div class="menu-card">
+      <div class="menu-logo">📱↻</div>
+      <div class="menu-tag">Turn your device sideways to play Go Wild.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- The classic game's sounds, so the effects are the same effects. The file
+     declares its helpers at top level, so note() / whoosh() / setSoundMuted()
+     become globals this page can call. -->
+<script src="game/sound.js"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const COLORS = ["red", "yellow", "green", "blue"];
+  /**
+   * The rival plates in the order the turn walks them, which is the order they
+   * sit around the table: the viewer's own plate is at the near-left, then the
+   * left plate, then the far one, then the right one, and back.
+   *
+   * This array is the seat ring as the player sees it, so it has to run clockwise
+   * — `seat-left`, `seat-top`, `seat-right`. Listing them in any other order makes
+   * the turn highlight hop across the table (left, right, far, back) instead of
+   * walking it, which reads as the turn jumping from one player to another.
+   */
+  const SEAT_SLOTS = ["left", "top", "right"];
+  const PLACEHOLDER = "—";
+
+  /* --- stage scaling: the only place the viewport is ever read ------------- */
+  /**
+   * The table is a fixed 16:9 stage scaled as one piece, so a window of any shape
+   * works and it merely letterboxes. The turn-your-device note is therefore kept
+   * for genuinely portrait screens, and it is dismissible: a full-screen overlay
+   * that cannot be closed is indistinguishable from a frozen page, which is what
+   * a narrower window used to get.
+   */
+  function fit() {
+    const w = window.innerWidth, h = window.innerHeight;
+    document.getElementById("stage").style.setProperty("--s", Math.min(w / 1600, h / 900));
+    $("rotate").classList.toggle("hidden", !(w / h < 0.9 && !state.rotateDismissed));
+    gwFit();   // the plates may have changed size under the band
+  }
+  window.addEventListener("resize", fit, { passive: true });
+  window.addEventListener("orientationchange", fit, { passive: true });
+
+  const params = new URLSearchParams(location.search);
+  const DEMO = params.get("demo");
+  // ?demo=1 a full hand · ?demo=uno a hand owing a call · ?demo=win the reveal
+  const OFFLINE = DEMO === "1" || DEMO === "uno" || DEMO === "win";
+
+  const state = {
+    sessionToken: localStorage.getItem("champword.session") || null,
+    playerId: null,
+    roomId: null,
+    view: null,
+    snapshot: null,
+    deadline: null,
+    clockOffset: 0,
+    seq: 0,
+    pendingWild: null,
+    tableClosed: null,
+    profile: { name: null, avatar: null, coins: null, portrait: null, frame: null },
+    soundOn: true,
+    /** Once the player has closed the portrait note, it stays closed. */
+    rotateDismissed: false
+  };
+
+  let ws = null;
+
+  /* --- helpers ------------------------------------------------------------ */
+  const rid = () => "r" + Date.now() + "-" + (++state.seq);
+  const setStatus = (text, bad) => {
+    const el = $("status");
+    el.textContent = text;
+    el.classList.toggle("bad", !!bad);
+  };
+  const serverNow = () => Date.now() + state.clockOffset;
+  const send = (msg) => {
+    if (ws && ws.readyState === 1) { ws.send(JSON.stringify(msg)); return true; }
+    return false;
+  };
+  const withToken = (msg) => (state.sessionToken ? Object.assign({ sessionToken: state.sessionToken }, msg) : msg);
+  const myTurn = () => !!state.view && state.view.phase === "playing" && state.view.activePlayerId === state.view.you.playerId;
+  const nameOfSeat = (seat) => {
+    const view = state.view;
+    if (!view) return PLACEHOLDER;
+    const found = view.seats[seat];
+    if (!found) return PLACEHOLDER;
+    if (found.playerId === view.you.playerId) return state.profile.name || "You";
+    return found.displayName || found.playerId.slice(0, 8);
+  };
+  const seatOfPlayer = (playerId) => (state.view ? state.view.seats.findIndex((s) => s.playerId === playerId) : -1);
+
+  /* --- the classic page's sounds, guarded: a missing file must not break play */
+  const sfx = {
+    note(...args) { try { if (state.soundOn && typeof note === "function") note(...args); } catch { /* no sound */ } },
+    whoosh(...args) { try { if (state.soundOn && typeof whoosh === "function") whoosh(...args); } catch { /* no sound */ } }
+  };
+
+  /**
+   * A browser will not let an AudioContext make a sound until the player has
+   * pressed something on the page, so the first note of a session used to be
+   * swallowed and only the notes after it were heard. The first press resumes the
+   * context, and every note from then on plays.
+   *
+   * `once`, because the context only ever needs waking the one time, and passive,
+   * because this listens on every press to catch the first one and must not delay
+   * the press it is riding on. `ac()` is the sound module's own accessor and does
+   * the wake-up itself; this only has to reach it before the first note is played.
+   */
+  let audioUnlocked = false;
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+
+    try {
+      if (typeof ac === "function") {
+        const context = ac();
+
+        if (context.state === "suspended") {
+          context.resume();
+        }
+
+        audioUnlocked = true;
+      }
+    } catch {
+      // Audio is unavailable
+    }
+  }
+
+  window.addEventListener("pointerdown", unlockAudio, { once: true, passive: true });
+  // a key is also a gesture: the keyboard path must not stay silent
+  window.addEventListener("keydown", unlockAudio, { once: true });
+
+  /* --- effects, drawn with the classic stylesheet's own classes ------------ */
+  const fxLayer = () => $("fx");
+
+  function toast(text) {
+    const el = $("toast");
+    el.textContent = text;
+    el.classList.remove("hidden");
+    el.style.animation = "none";
+    void el.offsetWidth;
+    el.style.animation = "";
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => el.classList.add("hidden"), 1800);
+  }
+
+  /** Confetti, in the classic colours and the classic fall. */
+  function confetti(count = 60) {
+    const colors = ["#fbbf24", "#4db1ff", "#34d977", "#f2604f", "#ffe9a3"];
+    for (let i = 0; i < count; i += 1) {
+      const bit = document.createElement("span");
+      bit.className = "confetti";
+      bit.style.left = Math.random() * 100 + "%";
+      bit.style.background = colors[i % colors.length];
+      bit.style.animationDuration = (1.6 + Math.random() * 1.4) + "s";
+      bit.style.animationDelay = (Math.random() * 0.5) + "s";
+      fxLayer().appendChild(bit);
+      setTimeout(() => bit.remove(), 3600);
+    }
+  }
+
+  /** Coins flying up to the HUD, as the classic page does when it pays out. */
+  function coinFly(count = 10) {
+    const target = document.querySelector(".coin-pill");
+    const box = target ? target.getBoundingClientRect() : { left: innerWidth / 2, top: 20, width: 40, height: 20 };
+    for (let i = 0; i < count; i += 1) {
+      const coin = document.createElement("span");
+      coin.className = "coin-fly";
+      coin.textContent = "🪙";
+      coin.style.left = (innerWidth / 2 + (Math.random() * 200 - 100)) + "px";
+      coin.style.top = (innerHeight * 0.6) + "px";
+      fxLayer().appendChild(coin);
+      requestAnimationFrame(() => {
+        coin.style.transform = `translate(${box.left - innerWidth / 2}px, ${box.top - innerHeight * 0.6}px) scale(.6)`;
+        coin.style.opacity = "0";
+      });
+      setTimeout(() => coin.remove(), 900);
+    }
+  }
+
+  function emoteBubble(emoji, playerId) {
+    const view = state.view;
+    const seat = seatOfPlayer(playerId);
+    const count = view ? view.seats.length : 0;
+    const rel = view && seat >= 0 && count > 0 ? (seat - view.you.seat + count) % count : 0;
+    // the same relative slot renderSeats uses, or the bubble lands on the wrong plate
+    const host = rel > 0 ? $("seat-" + SEAT_SLOTS[rel - 1]) : null;
+    if (!host) { toast(emoji); return; }
+    const bubble = document.createElement("div");
+    bubble.className = "bubble show";
+    bubble.textContent = emoji;
+    host.querySelector(".plate").appendChild(bubble);
+    setTimeout(() => bubble.remove(), 1900);
+  }
+
+  /* --- cards --------------------------------------------------------------- */
+  /** The one piece of card meaning the client may read; it never decides rules. */
+  function faceOf(card) {
+    switch (card.kind) {
+      case "skip": return { glyph: "⊘", label: "SKIP" };
+      case "reverse": return { glyph: "⇄", label: "REV" };
+      case "draw2": return { glyph: "+2", label: "" };
+      case "wild4": return { glyph: "+4", label: "WILD" };
+      case "wild": return { glyph: "★", label: "WILD" };
+      case "discardAll": return { glyph: "✕", label: "ALL" };
+      default: return { glyph: String(card.value || "?").toUpperCase(), label: "" };
+    }
+  }
+  const colorClass = (card) => "card-" + (card.color || "wild");
+  const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+  /* ======================================================================
+     Rendering — the client draws what the server tells it, decides nothing
+     ====================================================================== */
+
+  function render() {
+    renderHud();
+    renderSeats();
+    renderHand();
+    renderBoard();
+    renderControls();
+    renderGw();
+  }
+
+  function renderHud() {
+    const view = state.view;
+    const seat = view ? view.seats[view.you.seat] : null;
+    if (view) {
+      $("turnPill").textContent = view.phase === "round_end"
+        ? "ROUND " + view.roundNumber + " · REVEAL"
+        : "ROUND " + view.roundNumber + " · TURN " + view.turnNumber;
+    } else if (state.snapshot) {
+      $("turnPill").textContent = "TURN " + state.snapshot.turnNumber;
+    }
+    const coins = view ? view.you.coins : state.profile.coins;
+    $("myScore").textContent = coins === null || coins === undefined ? "0" : coins;
+    $("modePill").textContent = state.tableClosed ? "TABLE OVER" : "GO WILD";
+    // The player's own plate needs the same dressing as the rivals. It is the one
+    // they look at most, and it is the one the seat loop never touches, because
+    // that loop only walks the other seats.
+    if (seat) {
+      const own = $("seat-me");
+      // own plate is on the clock as often as anyone else's, and it is the one
+      // the seat loop never reaches
+      own.classList.toggle("is-active", view.phase === "playing" && seat.isActive);
+      const ring = ["#22d3ee", "#fbbf24", "#a78bfa", "#34d977"][seat.seat % 4];
+      own.querySelector(".atile").style.setProperty("--ring", ring);
+      const banner = own.querySelector(".nbanner");
+      banner.style.setProperty("--bnr", ["#0e7490", "#be185d", "#1d4ed8", "#b45309"][seat.seat % 4]);
+      banner.querySelector(".nname").textContent = state.profile.name || "You";
+      own.querySelector("[data-coins]").textContent = seat.coins;
+    }
+  }
+
+  /** Seat order is relative to the viewer, so every player sees the table the
+   *  same way round: the next seat sits immediately after their own. */
+  function renderSeats() {
+    const view = state.view;
+    for (const slot of SEAT_SLOTS) {
+      const el = $("seat-" + slot);
+      el.style.display = "none";
+      el.querySelector("[data-fan]").textContent = "";
+      const catchBtn = el.querySelector(".catch");
+      catchBtn.classList.remove("on");
+      catchBtn.onclick = null;
+    }
+    if (!view) return;
+
+    view.seats.forEach((seat) => {
+      const rel = (seat.seat - view.you.seat + view.seats.length) % view.seats.length;
+      if (rel === 0) return;
+      const slot = SEAT_SLOTS[rel - 1];
+      if (!slot) return;
+      const el = $("seat-" + slot);
+      el.style.display = "";
+      el.classList.toggle("is-active", view.phase === "playing" && seat.isActive);
+      el.querySelector("[data-name]").textContent = (seat.displayName || seat.playerId.slice(0, 8)) + (seat.isBot ? " 🤖" : "");
+      el.querySelector("[data-coins]").textContent = seat.coins;
+      // the ring and the banner colour are properties of the seat, not of the
+      // page: each player sits under their own colour, as they do in classic
+      const ring = ["#22d3ee", "#fbbf24", "#a78bfa", "#34d977"][seat.seat % 4];
+      el.querySelector(".atile").style.setProperty("--ring", ring);
+      const banner = el.querySelector(".nbanner");
+      banner.style.setProperty("--bnr", ["#0e7490", "#be185d", "#1d4ed8", "#b45309"][seat.seat % 4]);
+      // The badge is where the seat sits in the turn order *from this viewer*: 1
+      // throws after you, 2 after that, 3 last — so the plates read 1, 2, 3 as the
+      // turn walks them clockwise. The absolute seat number would read 2, 3, 4 and
+      // would not match the order the turn actually visits them in.
+      banner.querySelector(".nbadge").textContent = String(rel);
+      el.querySelector(".aemoji").textContent = seat.isBot ? "🤖" : "🧑";
+
+      const fan = el.querySelector("[data-fan]");
+      const fanMid = (seat.handCount - 1) / 2;
+      for (let i = 0; i < seat.handCount; i += 1) {
+        const mini = document.createElement("span");
+        mini.className = "miniCard";
+        mini.style.zIndex = String(i);
+        mini.style.setProperty("--rot", ((i - fanMid) * 5) + "deg");
+        mini.style.setProperty("--dy", (Math.abs(i - fanMid) * 3) + "px");
+        fan.appendChild(mini);
+      }
+      const count = document.createElement("span");
+      count.className = "fanCount";
+      count.textContent = String(seat.handCount);
+      fan.appendChild(count);
+
+      // one card and no call: anyone may catch it, and it costs two cards
+      const catchBtn = el.querySelector(".catch");
+      if (view.phase === "playing" && seat.handCount === 1 && !seat.saidUno) {
+        catchBtn.classList.add("on");
+        catchBtn.onclick = () => catchUno(seat.playerId);
+      }
+    });
+  }
+
+  // when the last hand-card ruffle played, so a rebuild under the pointer cannot
+  // stack them (see the mouseenter listener)
+  let lastRuffleAt = 0;
+
+  // The round whose hand has already been dealt onto the table, so the cascade runs
+  // when a hand first appears rather than on every server update.
+  let dealtRound = null;
+
+  /**
+   * The gap between one card of the deal and the next.
+   *
+   * This is the deal's whole tempo, so it is the one number to reach for. At 280ms
+   * a card lands nearly every third of a second, a seat is served every 1.12s, and
+   * the seven passes take 7.84s — the last card touches down at 8.32s.
+   *
+   * WATCH THE TURN WINDOW. GW_TOTAL is 10s and the deal runs *inside* the first
+   * turn rather than before it, so at 280ms the deal owns 8.3s of a 10s clock and a
+   * player who is first to act gets ~1.7s with a full hand. A card is revealed as
+   * its own flight lands, so the hand is clickable as it arrives rather than after
+   * it — that is what keeps turn one playable. If turn one starts timing out, this
+   * is the number to cut: 140ms still reads as a deliberate deal, in 3.9s.
+   */
+  const DEAL_STEP_MS = 280;
+
+  /** How long a card stays in the air. animateFlight uses this too, so a card can
+   *  never be revealed while its own ghost is still travelling. */
+  const FLIGHT_MS = 480;
+
+  /**
+   * The two sounds a card in flight makes.
+   *
+   * A card thrown between the hand, deck and board whooshes low and heavy. A dealt
+   * card is the lighter, brighter ruffle — these are the same parameters
+   * `playCardRuffleSound` uses in game/sound.js, so asking for that sound and
+   * letting the flight play it is one sound per card, not two. It matters over a
+   * whole deal: 28 of the heavy whooshes running into each other is mud.
+   */
+  const FLIGHT_SOUND = { dur: .24, gain: .045, when: 0, freq: 1200 };
+  const DEAL_SOUND = { dur: .12, gain: .03, when: 0, freq: 1800 };
+
+  /**
+   * Deal the opening hand out of the deck to every seat at the table.
+   *
+   * The rhythm is the one a dealer actually works at: a card to each seat in turn,
+   * round the table, seven times over. Every card leaves the deck, crosses to the
+   * place it belongs and ruffles as it goes, so all four hands at the table arrive
+   * as a deal instead of the viewer's hand sliding in while the rivals' fans blink
+   * into existence.
+   *
+   * The viewer's own cards fly face up: they are already face up in the fan, so a
+   * face-down ghost would be hiding something the player can see anyway. A rival's
+   * cards fly face down, which is all this client knows about them — the server
+   * sends a seat its own hand and nothing but a *count* for everyone else, so there
+   * is no face to fly.
+   *
+   * A card is held out of the fan until its own ghost lands, so the deal reads as
+   * cards arriving rather than as ghosts landing on cards that were already there.
+   * `finishDeal` clears anything still hidden once the last card is down, so a
+   * flight that never ran cannot leave a card the player cannot see.
+   *
+   * Sound comes from animateFlight, told to play DEAL_SOUND: the ruffle
+   * `playCardRuffleSound` plays, not the heavier whoosh a thrown card makes. There
+   * is deliberately no separate ruffle call per card on top of it — one card, one
+   * sound. 28 cards of doubled audio is mud, and it would also defeat the throttle
+   * that keeps a mouse sweeping across the hand from stacking whooshes.
+   */
+  function dealOpeningHand(view, hand) {
+    const deck = rectOfElement($("deck"));
+    if (!deck) return;
+    const tiles = [...document.querySelectorAll("#tiles .tile")];
+    // A rival's fan is the cards beside their plate, in the order this viewer's
+    // turn order walks the seats, so it lines up with SEAT_SLOTS.
+    const seatCount = Math.max(1, view.seats.length);
+    const rivals = SEAT_SLOTS.slice(0, seatCount - 1).map(
+      (slot) => [...document.querySelectorAll("#seat-" + slot + " [data-fan] .miniCard")]
+    );
+
+    // Seven either way at the opening deal, but a fan and a hand are counted
+    // separately: the deal runs to whichever of them is longer and a seat that has
+    // run out of cards is simply skipped.
+    const passes = Math.max(1, hand.length, 0, ...rivals.map((fan) => fan.length));
+    const hold = (element) => { if (element) element.style.opacity = "0"; };
+    const release = (element) => { if (element) element.style.opacity = ""; };
+
+    let step = 0;
+    let lastAt = 0;
+
+    for (let pass = 0; pass < passes; pass += 1) {
+      for (let rel = 0; rel < seatCount; rel += 1) {
+        const at = step * DEAL_STEP_MS;
+        step += 1;
+        lastAt = at;
+        // the flick of a card leaving a hand: the tilt alternates as the dealer
+        // works round the table
+        const rotate = rel % 2 === 0 ? -6 : 6;
+
+        // the viewer's own hand: face up, onto the tile it belongs to
+        if (rel === 0) {
+          const card = hand[pass];
+          const tile = tiles[pass];
+          if (!card || !tile) continue;
+          const target = rectOfElement(tile);
+          if (!target) continue;
+          hold(tile);
+          // the pass number seeds the tumble, so no two of a deal's seven waves
+          // tumble the same way
+          setTimeout(() => animateFlight(makeCardFlight(card), deck, target, rotate, DEAL_SOUND, pass), at);
+          setTimeout(() => release(tile), at + FLIGHT_MS);
+          continue;
+        }
+
+        // a rival: face down, onto the back that already stands for it
+        const mini = (rivals[rel - 1] || [])[pass];
+        const target = rectOfElement(mini);
+        if (!target) continue;
+        hold(mini);
+        setTimeout(() => animateFlight(makeDeckFlight(), deck, target, rotate, DEAL_SOUND, pass), at);
+        setTimeout(() => release(mini), at + FLIGHT_MS);
+      }
+    }
+
+    setTimeout(finishDeal, lastAt + FLIGHT_MS + 120);
+  }
+
+  /** Put back anything the deal is still holding once the last card has landed. */
+  function finishDeal() {
+    document.querySelectorAll("#tiles .tile, .fan .miniCard").forEach((element) => {
+      element.style.opacity = "";
+    });
+  }
+
+  function renderHand() {
+    const root = $("tiles");
+    root.textContent = "";
+    const view = state.view;
+    if (!view) return;
+
+    const hand = view.you.hand;
+    const legal = new Set(view.you.legal);
+    const canThrow = myTurn();
+    const mid = (hand.length - 1) / 2;
+    // A new round is dealt by the cascade, which flies every card in from the deck
+    // and holds each one out of the fan until it lands. The CSS drop-in is skipped
+    // on that one render, so a card cannot arrive twice; every later render — the
+    // hand being rebuilt under a hover, a throw, a draw — keeps it.
+    const dealing = hand.length > 0 && view.roundNumber !== dealtRound;
+
+    hand.forEach((card, i) => {
+      const face = faceOf(card);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "tile " + colorClass(card);
+      // the card's own id, so a flight can be matched back to the tile it left
+      btn.dataset.cardId = card.cardId;
+      if (canThrow && legal.has(card.cardId)) btn.classList.add("playable");
+      if (view.you.drawnCardId === card.cardId) btn.classList.add("drawn");
+      if (state.pendingWild && state.pendingWild.cardId === card.cardId) btn.classList.add("picked");
+      if (!dealing) {
+        btn.style.animationDelay = (i * 55) + "ms";
+        btn.classList.add("deal");
+      }
+      // a hand is held, not laid out: the cards fan from the middle and drop away
+      // at the ends, which is why these are variables rather than a flat row
+      btn.style.setProperty("--rot", ((i - mid) * 3.5) + "deg");
+      btn.style.setProperty("--dy", (Math.abs(i - mid) * 5) + "px");
+
+      const glyph = document.createElement("span");
+      glyph.textContent = face.glyph;
+      btn.appendChild(glyph);
+      if (face.label) {
+        const label = document.createElement("span");
+        label.className = "sub";
+        label.textContent = face.label;
+        btn.appendChild(label);
+      }
+      if (card.kind === "letter") {
+        const corner = document.createElement("span");
+        corner.className = "corner";
+        corner.textContent = face.glyph;
+        btn.appendChild(corner);
+      }
+
+      btn.disabled = !canThrow || !legal.has(card.cardId);
+      btn.setAttribute("aria-label", "throw " + face.glyph + (face.label ? " " + face.label : ""));
+      btn.addEventListener("click", () => throwCard(card));
+      // the paper ruffle as the cursor lifts a card. The hand is rebuilt on every
+      // server update and Chrome fires mouseenter on the fresh element when the
+      // pointer is already over it, so without the throttle one hover would ruffle
+      // again on every render, and sweeping across seven cards would stack seven
+      // whooshes into mud.
+      btn.addEventListener("mouseenter", () => {
+        if (Date.now() - lastRuffleAt < 140) return;
+        lastRuffleAt = Date.now();
+        try {
+          if (typeof playCardRuffleSound === "function") playCardRuffleSound();
+        } catch { /* no sound */ }
+      });
+      root.appendChild(btn);
+    });
+
+    // A new round deals the hand out of the deck, once. Keyed on the round number,
+    // or every server update would fly the whole hand out of the deck again.
+    if (dealing) {
+      dealtRound = view.roundNumber;
+      dealOpeningHand(view, hand);
+    }
+
+    if (hand.length === 0) setStatus(view.phase === "round_end" ? "You went out." : "No cards.");
+    else setStatus(hand.length === 1 ? "One card left — call UNO!" : "");
+  }
+
+  /**
+   * The tilt each thrown card keeps once it has landed.
+   *
+   * Rolled once per card and remembered, not rolled per render: renderBoard
+   * rebuilds the pile from the server view on every update, so a fresh roll each
+   * time would make the whole pile twitch whenever anyone threw anything.
+   */
+  const discardTilts = new Map();
+
+  function discardTilt(cardId) {
+    let tilt = discardTilts.get(cardId);
+    if (!tilt) {
+      const roll = (span) => Math.round((Math.random() * span * 2 - span) * 10) / 10;
+      tilt = { rot: roll(10), x: roll(4), y: roll(4) };
+      discardTilts.set(cardId, tilt);
+    }
+    return tilt;
+  }
+
+  function renderBoard() {
+    const pile = $("boardPile");
+    const view = state.view;
+    pile.textContent = "";
+
+    if (!view) {
+      const empty = document.createElement("span");
+      empty.className = "boardEmpty";
+      empty.textContent = "Throw a card onto the board";
+      pile.appendChild(empty);
+      $("wordPreview").textContent = "";
+      return;
+    }
+
+    // a settled round turns the board into the reveal: the winning word, spelled
+    // out where the pile was
+    if (view.result) {
+      const word = String(view.result.word || "");
+      $("wordPreview").textContent = word.toUpperCase();
+      word.split("").forEach((letter, i) => {
+        const tile = document.createElement("div");
+        tile.className = "wordCard";
+        tile.style.animationDelay = (i * 70) + "ms";
+        tile.style.zIndex = String(10 + i);
+        const glyph = document.createElement("span");
+        glyph.textContent = letter.toUpperCase();
+        const idx = document.createElement("span");
+        idx.className = "idx";
+        idx.textContent = i + 1;
+        tile.appendChild(glyph);
+        tile.appendChild(idx);
+        pile.appendChild(tile);
+      });
+      return;
+    }
+
+    $("wordPreview").textContent = view.namedColor ? "COLOUR · " + view.namedColor.toUpperCase() : "";
+    $("dirArrow").classList.toggle("flip", view.direction === -1);
+
+    if (view.board.length === 0) {
+      const empty = document.createElement("span");
+      empty.className = "boardEmpty";
+      empty.textContent = "Throw a card onto the board";
+      pile.appendChild(empty);
+    } else {
+      // The pile: every card thrown this round stays down, each holding the small
+      // tilt it was given when it arrived, newest on top. The tilt is applied by
+      // the stylesheet (a rotate/translate off --discard-rot/x/y), so nothing here
+      // writes a transform inline — an inline one would override the sheet and the
+      // cards would all land square on top of each other.
+      const box = document.createElement("div");
+      box.className = "discard-pile";
+      view.board.forEach((card, i) => {
+        const tilt = discardTilt(card.cardId);
+        const el = document.createElement("div");
+        // boardCard keeps the face and the card size; discarded-card adds the tilt
+        // and the transition, and is what the flight looks for when it lands
+        el.className = "boardCard discarded-card " + colorClass(card);
+        el.dataset.cardId = card.cardId;
+        el.textContent = faceOf(card).glyph;
+        el.style.setProperty("--discard-rot", tilt.rot + "deg");
+        el.style.setProperty("--discard-x", tilt.x + "px");
+        el.style.setProperty("--discard-y", tilt.y + "px");
+        el.style.zIndex = String(10 + i);
+        box.appendChild(el);
+      });
+      pile.appendChild(box);
+    }
+
+    if (myTurn()) {
+      setStatus(view.you.drawnCardId ? "Throw the card you drew, or pass" : "Your turn — throw a card or draw");
+    } else if (view.phase === "playing") {
+      const active = view.activePlayerId ? seatOfPlayer(view.activePlayerId) : -1;
+      setStatus("Waiting for " + nameOfSeat(active));
+    }
+  }
+
+  /** The colours and CALL UNO share the bottom panel, because a wild opens the
+   *  picker and going down to one card is when the call is owed. */
+  function renderControls() {
+    const view = state.view;
+    const pass = $("passBtn");
+    const deck = $("deck");
+    const unoBtn = $("unoBtn");
+
+    if (!view) {
+      $("picker").classList.add("hidden");
+      unoBtn.disabled = true;
+      unoBtn.classList.remove("ready");
+      unoBtn.onclick = null;
+      deck.disabled = true;
+      deck.classList.remove("mine");
+      deck.onclick = null;
+      pass.disabled = true;
+      pass.onclick = null;
+      return;
+    }
+
+    const mine = myTurn();
+    const hand = view.you.hand;
+    const legalWild = hand.some((card) => (card.kind === "wild" || card.kind === "wild4") && view.you.legal.includes(card.cardId));
+
+    const waiting = !!state.pendingWild && mine;
+    $("picker").classList.toggle("hidden", !waiting && !legalWild);
+    if (waiting) $("pickerCap").textContent = "PICK A COLOUR";
+    else if (legalWild) $("pickerCap").textContent = "THROW A WILD";
+    document.querySelectorAll(".swatch").forEach((btn) => {
+      btn.disabled = !waiting;
+      btn.onclick = waiting ? () => pickColor(btn.dataset.color) : null;
+    });
+
+    const owed = view.phase === "playing" && hand.length <= 2 && hand.length > 0;
+    unoBtn.disabled = !owed || view.you.saidUno;
+    unoBtn.classList.toggle("ready", !unoBtn.disabled && hand.length === 1);
+    unoBtn.onclick = owed ? callUno : null;
+
+    const canDraw = mine && !view.you.drawnCardId;
+    deck.disabled = !canDraw;
+    deck.classList.toggle("mine", canDraw);
+    deck.onclick = canDraw ? drawCard : null;
+
+    const canPass = mine && (!!view.you.drawnCardId || view.you.legal.length === 0);
+    pass.disabled = !canPass;
+    pass.onclick = canPass ? passTurn : null;
+  }
+
+  /** The reveal, in the classic leaderboard's own row vocabulary. */
+  function renderResult() {
+    const view = state.view;
+    const panel = $("result");
+    if (!view || !view.result) {
+      panel.classList.add("hidden");
+      panel.classList.remove("on");
+      return;
+    }
+    const result = view.result;
+    const winner = result.winnerSeat;
+    const won = winner === view.you.seat;
+    panel.classList.remove("hidden");
+    panel.classList.add("on");
+    $("resultTitle").textContent = won ? "YOU WON THE ROUND" : "ROUND WON BY " + nameOfSeat(winner).toUpperCase();
+    $("resultSub").innerHTML = "The board spells <b>" + escapeHtml(String(result.word).toUpperCase()) +
+      "</b> — the word the winning hand held. Pot <b>🪙 " + result.pot + "</b>.";
+
+    const table = $("standings");
+    table.textContent = "";
+    for (const head of ["PLAYER", "CARDS WORTH", "COINS"]) {
+      const cell = document.createElement("div");
+      cell.className = "cell head";
+      if (head === "PLAYER") cell.style.justifyContent = "flex-start";
+      cell.textContent = head;
+      table.appendChild(cell);
+    }
+    const ordered = result.standings.slice().sort((a, b) => a.seat - b.seat);
+    for (const row of ordered) {
+      const values = [
+        (row.seat + 1) + "  " + nameOfSeat(row.seat) + (row.seat === winner ? " 👑" : ""),
+        row.seat === winner ? "—" : String(row.remaining),
+        (row.coins > 0 ? "+" : "") + row.coins
+      ];
+      values.forEach((value, i) => {
+        const cell = document.createElement("div");
+        cell.className = "cell" + (row.seat === winner ? " win" : "");
+        if (i === 0) cell.style.justifyContent = "flex-start";
+        cell.textContent = value;
+        table.appendChild(cell);
+      });
+    }
+
+    $("resultFoot").textContent = state.tableClosed ? "TABLE OVER · " + state.tableClosed : "Winner takes the pot";
+
+    // the payout, announced the same way the classic page announces one
+    if (!panel.dataset.paid) {
+      panel.dataset.paid = "1";
+      confetti(won ? 90 : 30);
+      coinFly(won ? 14 : 6);
+      sfx.whoosh(0.4, 0.06);
+      sfx.note(won ? 880 : 330, 0.18, "triangle", 0.06);
+      if (won) setTimeout(() => sfx.note(1175, 0.22, "triangle", 0.06), 160);
+      try {
+        parent.postMessage({ champEarn: { coins: result.standings[view.you.seat].coins, result: "round" } }, "*");
+      } catch { /* not embedded */ }
+    }
+  }
+
+  /* --- the clock, as the classic pill -------------------------------------- */
+  function tickClock() {
+    const el = $("timerPill");
+    const view = state.view;
+    const reveal = !!view && view.phase === "round_end";
+    el.classList.remove("low");
+    if (!state.deadline) { el.textContent = "⏱ --:--"; return; }
+    const ms = Math.max(0, state.deadline - serverNow());
+    const secs = Math.ceil(ms / 1000);
+    el.textContent = "⏱ " + Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+    if (!reveal && ms <= 10_000) el.classList.add("low");
+    if (reveal) $("resultNext").textContent = secs > 0 ? "NEXT ROUND IN " + secs + "s" : "DEALING…";
+  }
+  setInterval(tickClock, 200);
+
+  /* --- chat ---------------------------------------------------------------- */
+  function renderChat() {
+    // the shared stylesheet sizes #chatMsgs, so the messages area only has the
+    // right shape under that id
+    const root = $("chatMsgs");
+    $("chatCount").textContent = "👥 " + Math.max(1, state.view ? state.view.seats.length : 4);
+    while (root.childElementCount > 80) root.removeChild(root.firstChild);
+    root.scrollTop = root.scrollHeight;
+  }
+  function addChat(who, text) {
+    const d = document.createElement("div");
+    d.className = "msg";
+    const b = document.createElement("span");
+    b.className = "who";
+    b.textContent = who + ": ";
+    d.appendChild(b);
+    d.appendChild(document.createTextNode(text));
+    $("chatMsgs").appendChild(d);
+    renderChat();
+  }
+
+  /* ======================================================================
+     Actions — each of these is a request. The server decides.
+     ====================================================================== */
+
+  function action(type, extra) {
+    if (OFFLINE) { toast("DEMO MODE"); return false; }
+    if (!state.view) { toast("No table yet"); return false; }
+    const ok = send(withToken(Object.assign({
+      type, requestId: rid(), roomId: state.roomId, turnNumber: state.view.turnNumber
+    }, extra || {})));
+    if (!ok) toast("Not connected");
+    return ok;
+  }
+
+  function throwCard(card) {
+    if (!myTurn()) {
+      toast("Not your turn");
+      badActionFeedback();
+      return;
+    }
+
+    if (card.kind === "wild" || card.kind === "wild4") {
+      const selecting = !(state.pendingWild && state.pendingWild.cardId === card.cardId);
+      state.pendingWild = selecting ? card : null;
+      // arming and disarming a wild changes nothing on the board until a colour is
+      // picked, so the two notes are what tells the player it took
+      sfx.note(selecting ? 720 : 260, 0.1, "triangle", 0.05);
+      renderHand();
+      renderControls();
+      return;
+    }
+
+    state.pendingWild = null;
+    sfx.note(520, 0.08, "square", 0.05);
+    action("play_card", { cardId: card.cardId });
+  }
+
+  function pickColor(color) {
+    const card = state.pendingWild;
+    if (!card) return;
+    state.pendingWild = null;
+    sfx.note(660, 0.1, "square", 0.05);
+    action("play_card", { cardId: card.cardId, color });
+  }
+
+  function drawCard() { sfx.whoosh(0.18, 0.04); action("draw_card"); }
+  function passTurn() { action("pass_turn"); }
+  function callUno() {
+    showFxLabel("UNO!");
+    // a rising three-note call; note() takes a start offset, so these stack up
+    sfx.note(660, 0.12, "triangle", 0.07);
+    sfx.note(990, 0.18, "triangle", 0.07, 0.1);
+    sfx.note(1320, 0.22, "triangle", 0.06, 0.22);
+    action("call_uno");
+    toast("UNO!");
+  }
+  function catchUno(targetPlayerId) {
+    sfx.note(220, 0.22, "sawtooth", 0.06);
+    action("catch_uno", { targetPlayerId });
+    toast("Caught!");
+  }
+
+  function sendChat() {
+    const input = $("chatInput");
+    const text = input.value.trim();
+    if (!text) return;
+    send(withToken({ type: "chat_send", requestId: rid(), text }));
+    input.value = "";
+  }
+
+  /* ======================================================================
+     Server messages
+     ====================================================================== */
+
+  /* ----------------------------------------------------------------------
+     Card flights — a card leaves the hand (or a rival's plate) and lands on
+     the board, or comes off the deck into the hand. Everything below works in
+     measured page pixels: the board is a scaled stage, so a card in flight is
+     positioned absolutely rather than inside it.
+     ---------------------------------------------------------------------- */
+
+  function rectOfElement(element) {
+    if (!element) return null;
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height
+    };
+  }
+
+  /** Where a player sits on *this* viewer's screen, as a plate to fly a card from. */
+  function seatOriginRect(view, playerId) {
+    if (!view || !playerId) return null;
+    const seatIndex = view.seats.findIndex((seat) => seat.playerId === playerId);
+    if (seatIndex < 0) return null;
+    const relativeSeat = (seatIndex - view.you.seat + view.seats.length) % view.seats.length;
+    const host = relativeSeat === 0 ? $("seat-me") : $("seat-" + SEAT_SLOTS[relativeSeat - 1]);
+    return rectOfElement(host?.querySelector(".atile"));
+  }
+
+  /** A throwaway copy of a card face, for the duration of one flight. */
+  function makeCardFlight(card) {
+    const face = faceOf(card);
+    const ghost = document.createElement("div");
+    ghost.className = "tile card-flight " + colorClass(card);
+    const glyph = document.createElement("span");
+    glyph.textContent = face.glyph;
+    ghost.appendChild(glyph);
+    if (face.label) {
+      const label = document.createElement("span");
+      label.className = "sub";
+      label.textContent = face.label;
+      ghost.appendChild(label);
+    }
+    if (card.kind === "letter") {
+      const corner = document.createElement("span");
+      corner.className = "corner";
+      corner.textContent = face.glyph;
+      ghost.appendChild(corner);
+    }
+    return ghost;
+  }
+
+  function makeDeckFlight() {
+    const ghost = document.createElement("div");
+    ghost.className = "card-flight deck-flight";
+    return ghost;
+  }
+
+  function animateFlight(ghost, from, to, rotate = 0, sound = FLIGHT_SOUND, tumble = 0) {
+    if (!ghost || !from || !to) return;
+    document.body.appendChild(ghost);
+    ghost.style.left = from.left + "px";
+    ghost.style.top = from.top + "px";
+    ghost.style.width = from.width + "px";
+    ghost.style.height = from.height + "px";
+    const fromCenterX = from.left + from.width / 2;
+    const fromCenterY = from.top + from.height / 2;
+    const toCenterX = to.left + to.width / 2;
+    const toCenterY = to.top + to.height / 2;
+    const dx = toCenterX - fromCenterX;
+    const dy = toCenterY - fromCenterY;
+    // the card changes size on the way: the rack is not the board
+    const scale = Math.min(1.35, Math.max(.55, to.width / from.width));
+
+    // The card comes off the felt. How high depends on how far it has to go: a hop
+    // from the deck to the next plate barely clears the table, a throw clean across
+    // it arcs high. Clamped at both ends so a short hop still reads as a throw and
+    // a long one never climbs out of the frame.
+    //
+    // The lift is carried on the Z axis under the ghost's own perspective(), which
+    // is what makes it read as coming toward the player rather than as growing:
+    // perspective() is written into the transform instead of onto an ancestor
+    // because a card in flight is a fixed-position node on <body>, and putting
+    // perspective on the stage would reproject the whole table — every tile, every
+    // plate — to change one card.
+    const distance = Math.hypot(dx, dy);
+    const lift = Math.max(28, Math.min(160, distance * .19));
+
+    // Derived, not random. A card dealt to this seat on this pass always tumbles
+    // the same way, so a deal is reproducible frame for frame and can be asserted
+    // against rather than eyeballed. Seven passes give seven distinct tumbles.
+    const tiltX = -8 - (tumble % 4) * 3;
+    const tiltY = rotate >= 0 ? 18 + (tumble % 3) * 5 : -18 - (tumble % 3) * 5;
+
+    const keyframes = [
+      {
+        // flat on the deck, already leaning the way the flick will send it
+        transform: `perspective(1100px) translate3d(0px, 0px, 0px) rotateZ(${rotate * .4}deg) scale(1)`
+      },
+      {
+        // off the felt, up toward the camera, tumbling on all three axes
+        transform:
+          `perspective(1100px) translate3d(${dx * .42}px, ${dy * .42 - lift * .35}px, ${lift}px) ` +
+          `rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotateZ(${rotate * -1}deg) scale(${scale * 1.12})`
+      },
+      {
+        // down flat onto the card it belongs to, the tumble spent
+        transform:
+          `perspective(1100px) translate3d(${dx}px, ${dy}px, 0px) ` +
+          `rotateX(0deg) rotateY(0deg) rotateZ(${rotate}deg) scale(${scale})`
+      }
+    ];
+    const animation = ghost.animate(keyframes, {
+      duration: FLIGHT_MS,
+      easing: "cubic-bezier(.2, .85, .3, 1)",
+      fill: "forwards"
+    });
+    sfx.whoosh(sound.dur, sound.gain, sound.when, sound.freq);
+    animation.addEventListener("finish", () => ghost.remove());
+  }
+
+  /** A refused move: the hand shakes and buzzes, so a dead click is not silent. */
+  function badActionFeedback() {
+    const hand = $("tiles");
+    hand.classList.remove("hand-shake");
+    void hand.offsetWidth; // restart the animation on a repeated refusal
+    hand.classList.add("hand-shake");
+    sfx.note(170, 0.13, "sawtooth", 0.045);
+    setTimeout(() => {
+      hand.classList.remove("hand-shake");
+    }, 450);
+  }
+
+  /** The big centred announcement — UNO, and anything else worth shouting. */
+  function showFxLabel(text) {
+    const label = document.createElement("div");
+    label.className = "fx-label";
+    label.textContent = text;
+    document.body.appendChild(label);
+    setTimeout(() => label.remove(), 1000);
+  }
+
+  /**
+   * The sound a thrown card makes when it lands.
+   *
+   * A wild announces that a colour is coming; a skip announces a block; everything
+   * else — numbers, reverse, the +2s — is the plain tabletop impact. The two special
+   * ones are looked up on window because they live in game/sound.js, which this page
+   * is built to survive without.
+   */
+  function soundForThrow(card) {
+    const kind = card ? card.kind : null;
+    const name =
+      kind === "wild" || kind === "wild4" ? "playWildCardSound" :
+      kind === "skip" ? "playSkipCardSound" :
+      "playCardSlamSound";
+    try {
+      if (typeof window[name] === "function") window[name]();
+    } catch { /* no sound */ }
+  }
+
+  function onView(view) {
+    const before = state.view;
+    // the hand and deck as they were drawn, so a flight knows where to start
+    const beforeDom = before
+      ? {
+          hand: new Map(
+            [...document.querySelectorAll("#tiles [data-card-id]")].map((element) => [
+              element.dataset.cardId,
+              rectOfElement(element)
+            ])
+          ),
+          deck: rectOfElement($("deck"))
+        }
+      : null;
+    state.view = view;
+    state.roomId = view.roomId;
+    state.deadline = view.deadlineAt ? new Date(view.deadlineAt).getTime() : null;
+    if (!view.result) {
+      const panel = $("result");
+      panel.classList.add("hidden");
+      panel.classList.remove("on");
+      delete panel.dataset.paid;
+    }
+    if (state.pendingWild && !view.you.hand.some((card) => card.cardId === state.pendingWild.cardId)) {
+      state.pendingWild = null;
+    }
+    render();
+    renderResult();
+    tickClock();
+    // the flights run after the board has been redrawn, so the landing card is
+    // measured where it actually finished up rather than where it used to be
+    requestAnimationFrame(() => {
+      if (!before || !beforeDom) return;
+
+      const boardGrew = view.board.length > before.board.length;
+      if (boardGrew) {
+        const playedCard = view.board[view.board.length - 1];
+        const boardCards = [...document.querySelectorAll("#boardPile .boardCard")];
+        const target = boardCards[boardCards.length - 1];
+        // my own throw flies from my hand; a rival's comes from their plate
+        const source =
+          beforeDom.hand.get(playedCard.cardId) ||
+          seatOriginRect(before, before.activePlayerId);
+        const targetRect = rectOfElement(target);
+        if (source && targetRect) {
+          animateFlight(
+            makeCardFlight(playedCard),
+            source,
+            targetRect,
+            playedCard.kind === "wild" || playedCard.kind === "wild4" ? 12 : -4
+          );
+        }
+        // and the pile takes the weight of it: held for exactly as long as the
+        // keyframe runs (0.12s in game/styles.css), so the next throw can retrigger
+        // it cleanly rather than being swallowed by a class that is still on
+        const box = document.querySelector("#boardPile .discard-pile");
+        if (box) {
+          box.classList.add("impact");
+          setTimeout(() => box.classList.remove("impact"), 120);
+        }
+        // the landing sound for whichever card it was — this also replaces the plain
+        // 392Hz note that used to play here, so a landing is one sound, not a tone
+        // buried under the slam
+        soundForThrow(playedCard);
+      }
+
+      const oldHandIds = new Set(before.you.hand.map((card) => card.cardId));
+      const newCard = view.you.hand.find((card) => !oldHandIds.has(card.cardId));
+      const handGrew = view.you.hand.length > before.you.hand.length;
+      if (newCard && handGrew) {
+        const target = [...document.querySelectorAll("#tiles [data-card-id]")].find(
+          (element) => element.dataset.cardId === newCard.cardId
+        );
+        const sourceRect = beforeDom.deck;
+        const targetRect = rectOfElement(target);
+        if (sourceRect && targetRect) {
+          animateFlight(makeDeckFlight(), sourceRect, targetRect, -8);
+        }
+      }
+    });
+  }
+
+  function onEvent(msg) {
+    const payload = msg.payload || {};
+    const mine = state.view ? state.view.you.seat : -1;
+    switch (msg.eventType) {
+      case "card_thrown": {
+        const card = payload.card;
+        const who = payload.seat === mine ? "You" : nameOfSeat(payload.seat);
+        if (card) addChat(who, "threw " + faceOf(card).glyph + (payload.namedColor ? " · " + String(payload.namedColor).toUpperCase() : ""));
+        break;
+      }
+      case "card_drawn":
+        if (payload.seat !== mine) addChat(nameOfSeat(payload.seat), "drew a card");
+        // A draw of more than one card is a penalty: the +2, the +4, and being caught
+        // holding one card without saying UNO all arrive here with count 2 or 4. A
+        // voluntary single draw keeps the light whoosh it already had.
+        if ((payload.count || 1) > 1) {
+          try {
+            if (typeof playDrawCardSound === "function") playDrawCardSound();
+          } catch { /* no sound */ }
+        }
+        break;
+      case "uno_called": addChat(nameOfSeat(payload.seat), "called UNO"); break;
+      case "uno_caught": addChat(nameOfSeat(payload.seat), "was caught — two cards"); break;
+      case "turn_ended": break;
+      case "round_completed":
+        addChat("Board", "round won by " + nameOfSeat(payload.winnerSeat) + " · " + String(payload.word || "").toUpperCase());
+        break;
+      default: break;
+    }
+  }
+
+  function onMessage(msg) {
+    switch (msg.type) {
+      case "server_ready":
+        send({ type: "hello", requestId: rid(), clientVersion: "3.0", mode: "cards" });
+        break;
+      case "welcome":
+        state.playerId = msg.playerId;
+        state.sessionToken = msg.sessionToken;
+        localStorage.setItem("champword.session", msg.sessionToken);
+        if (msg.serverTime) state.clockOffset = new Date(msg.serverTime).getTime() - Date.now();
+        setStatus("Finding players…");
+        send(withToken({ type: "find_match", requestId: rid(), displayName: state.profile.name || "You" }));
+        break;
+      case "match_queued": setStatus("Waiting for players…"); break;
+      case "match_found":
+        state.roomId = msg.roomId;
+        setStatus("Match found — dealing…");
+        break;
+      case "room_snapshot":
+        state.snapshot = msg;
+        state.roomId = msg.roomId;
+        if (msg.serverTime) state.clockOffset = new Date(msg.serverTime).getTime() - Date.now();
+        if (!state.view) renderHud();
+        break;
+      case "round_view": onView(msg); break;
+      case "event": onEvent(msg); break;
+      case "action_result":
+        if (msg.status === "accepted") {
+          setStatus("");
+        } else if (msg.reason) {
+          // the server refused it: say so in words and shake the hand
+          const message = refusal(msg.reason);
+          badActionFeedback();
+          toast(message);
+          setStatus(message, true);
+        }
+        break;
+      case "round_refused":
+        state.tableClosed = refusal(msg.reason);
+        toast(state.tableClosed);
+        setStatus("Cannot start — " + state.tableClosed, true);
+        break;
+      case "table_closed":
+        state.tableClosed = refusal(msg.reason);
+        setStatus("Table over — " + state.tableClosed, true);
+        renderHud();
+        break;
+      case "chat_message":
+        addChat(msg.playerId === state.playerId ? "You" : nameOfSeat(seatOfPlayer(msg.playerId)), msg.text);
+        break;
+      case "reaction": emoteBubble(msg.emoji, msg.playerId); break;
+      case "error":
+        if (msg.code === "stale_turn") { toast("Too late"); setStatus("Too late — the table moved on", true); }
+        else if (msg.code !== "resume_already_active") { toast(refusal(msg.code)); setStatus(refusal(msg.code), true); }
+        break;
+      default: break;
+    }
+  }
+
+  function refusal(code) {
+    switch (code) {
+      case "needs_stake": return "not enough coins to buy in (500 needed)";
+      case "table_not_full": return "the table needs all four seats";
+      case "must_name_color": return "that wild needs a colour";
+      case "illegal_play": return "that card does not match the board";
+      case "not_your_turn": return "not your turn";
+      case "already_drew": return "you already drew — throw it or pass";
+      case "card_not_in_hand": return "you do not hold that card";
+      case "round_over": return "the round is over";
+      case "uno_was_called": return "UNO was already called";
+      case "nothing_to_catch": return "nothing to catch";
+      case "table_closed": return "the table is over";
+      case null: return "refused";
+      default: return String(code);
+    }
+  }
+
+  /* --- connection: the static site reaches the backend service ------------- */
+  const BACKEND_HOST = "champword-backend.onrender.com";
+  function backendSocketUrl() {
+    const host = location.hostname;
+    if (host === BACKEND_HOST || host === "localhost" || host === "127.0.0.1") {
+      return (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host;
+    }
+    return "wss://" + BACKEND_HOST;
+  }
+
+  function connect() {
+    ws = new WebSocket(backendSocketUrl());
+    ws.addEventListener("open", () => setStatus("Connected — finding players…"));
+    ws.addEventListener("close", () => setStatus("Disconnected — reload to reconnect", true));
+    ws.addEventListener("error", () => setStatus("Connection error", true));
+    ws.addEventListener("message", (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch { return; }
+      if (msg && typeof msg === "object") onMessage(msg);
+    });
+  }
+
+  /* ======================================================================
+     The burning border
+     ====================================================================== */
+
+  /**
+   * The band the clip shows: a rounded square laid out on the plate's own
+   * measured size and its own border-radius, so it hugs the border exactly
+   * rather than circling it.
+   *
+   * Built here and injected into the four plates rather than written out four
+   * times in the markup, so the seats cannot drift apart, and rebuilt when the
+   * page's --seat changes, so it keeps hugging them.
+   */
+  const GW_TOTAL = 10_000; // the server's throw window, in ms
+  const GW_PAD = 18;       // the svg sits this far proud of the plate
+  const GW_HEADS = 2;      // a pair of chevrons: the front one leads the band
+  const GW_GAP = 17;       // px between them along the edge
+
+  let gwRaf = 0;
+  let gwSize = 0;
+  const gwSeats = [];      // one cell per plate: the band it carries, and where
+
+  const gwPathD = (size, radius) => {
+    const p = GW_PAD, s = size, r = Math.min(radius, s / 2);
+    const inner = p + r, far = p + s - r, mid = p + s / 2;
+    // starts at the top of the plate and runs clockwise, which is the way the
+    // clip sweeps: the arrows then travel the way they point
+    return "M" + mid + "," + p +
+      " H" + far + " A" + r + "," + r + " 0 0 1 " + (p + s) + "," + inner +
+      " V" + far + " A" + r + "," + r + " 0 0 1 " + far + "," + (p + s) +
+      " H" + inner + " A" + r + "," + r + " 0 0 1 " + p + "," + far +
+      " V" + inner + " A" + r + "," + r + " 0 0 1 " + inner + "," + p +
+      " H" + mid + " Z";
+  };
+
+  // one chevron, bevelled: a dark underside sitting a shade lower, the red face
+  // over it, a lit top edge. That is what reads as a solid rather than a shape
+  const GW_ARROW =
+    '<path class="h-under" transform="translate(0,2.5)" d="M11,0 L-7,-9.5 L-1.5,0 L-7,9.5 Z"/>' +
+    '<path class="h-face" d="M11,0 L-7,-9.5 L-1.5,0 L-7,9.5 Z"/>' +
+    '<path class="h-lit" d="M11,0 L-7,-9.5 L-1.5,0"/>';
+
+  function gwBuild() {
+    const NS = "http://www.w3.org/2000/svg";
+    gwSeats.length = 0;
+    document.querySelectorAll(".atile").forEach((tile) => {
+      const stale = tile.querySelector(".gw");
+      if (stale) stale.remove();
+      const size = tile.offsetWidth || 132;
+      gwSize = size;
+      const radius = parseFloat(getComputedStyle(tile).borderTopLeftRadius) || size * 0.25;
+      const d = gwPathD(size, radius);
+      const box = size + GW_PAD * 2;
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("class", "gw");
+      svg.setAttribute("viewBox", "0 0 " + box + " " + box);
+      svg.setAttribute("aria-hidden", "true");
+      const stroke = (cls) => {
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("class", cls);
+        p.setAttribute("d", d);
+        // the clock is a fraction of the edge, not a number of pixels, so the
+        // dash maths is the same on a 92px plate as on a 168px one
+        p.setAttribute("pathLength", "100");
+        svg.appendChild(p);
+        return p;
+      };
+      const under = stroke("gw-under");
+      const band = stroke("gw-band");
+      const lit = stroke("gw-lit");
+      const heads = [];
+      for (let i = 0; i < GW_HEADS; i++) {
+        const g = document.createElementNS(NS, "g");
+        g.setAttribute("class", "gw-head");
+        g.innerHTML = GW_ARROW;
+        svg.appendChild(g);
+        heads.push(g);
+      }
+      tile.appendChild(svg);
+      gwSeats.push({ card: tile.closest(".pcard"), svg, band, under, lit, heads,
+        len: band.getTotalLength() });
+    });
+  }
+
+  // the plates are sized from --seat, so a window that changes it needs the
+  // band laid out again
+  function gwFit() {
+    const tile = document.querySelector(".atile");
+    if (tile && tile.offsetWidth && tile.offsetWidth !== gwSize) gwBuild();
+  }
+
+  /**
+   * One clock for the whole table, read off the server's deadline rather than
+   * counted from zero, so a view that arrives mid-turn picks the sweep up
+   * exactly where the turn already is.
+   *
+   * The lit band starts as the whole edge and the arrows eat into it: at the
+   * open both edges sit on the head, and by the close the head has caught the
+   * tail up and there is nothing left. The band therefore always trails the
+   * arrows, which is what the clip does.
+   */
+  function gwTick() {
+    gwRaf = 0;
+    const view = state.view;
+    const live = !!view && view.phase === "playing" && !!view.deadlineAt;
+    const left = live ? Math.max(0, new Date(view.deadlineAt).getTime() - serverNow()) : 0;
+    const t = live ? Math.min(1, Math.max(0, 1 - left / GW_TOTAL)) : 0;
+
+    gwSeats.forEach((cell) => {
+      if (!live || !cell.card || !cell.card.classList.contains("is-active")) return;
+      const litPct = 100 * (1 - t);
+      const dash = litPct.toFixed(2) + " " + Math.max(0.02, 100 - litPct).toFixed(2);
+      const offset = (100 - 200 * t).toFixed(2);
+      [cell.under, cell.band, cell.lit].forEach((p) => {
+        p.style.strokeDasharray = dash;
+        p.style.strokeDashoffset = offset;
+      });
+      cell.heads.forEach((g, i) => {
+        const at = (t * cell.len - i * GW_GAP + cell.len * 2) % cell.len;
+        const p = cell.band.getPointAtLength(at);
+        // step along the edge to read the heading; wrap at the seam so the last
+        // pixel of the lap does not point back the way it came
+        const q = cell.band.getPointAtLength((at + (at > cell.len - 2 ? -2 : 2) + cell.len) % cell.len);
+        const ang = Math.atan2(q.y - p.y, q.x - p.x) * 180 / Math.PI;
+        g.setAttribute("transform", "translate(" + p.x + "," + p.y + ") rotate(" + ang + ")");
+      });
+    });
+
+    if (live && t < 1) gwRaf = requestAnimationFrame(gwTick);
+  }
+
+  function renderGw() {
+    if (!gwRaf) gwRaf = requestAnimationFrame(gwTick);
+  }
+
+  /* --- controls ------------------------------------------------------------ */
+  // tapping the portrait note closes it, so it can never trap the page
+  $("rotate").addEventListener("click", () => {
+    state.rotateDismissed = true;
+    $("rotate").classList.add("hidden");
+  });
+  $("send").addEventListener("click", sendChat);
+  $("chatInput").addEventListener("keydown", (ev) => { if (ev.key === "Enter") sendChat(); });
+  $("chatBtn").addEventListener("click", () => $("chatPanel").classList.toggle("hidden"));
+  $("soundBtn").addEventListener("click", () => {
+    state.soundOn = !state.soundOn;
+    $("soundBtn").textContent = state.soundOn ? "🔊" : "🔇";
+    try { if (typeof setSoundMuted === "function") setSoundMuted(!state.soundOn); } catch { /* no sound */ }
+  });
+  $("homeBtn").addEventListener("click", () => {
+    try { parent.postMessage({ champHome: true }, "*"); } catch { /* not embedded */ }
+  });
+
+  /* Music is generated rather than shipped. The classic page has a music button
+     and a music file; this page has neither the file nor any wish to add one, and
+     a button that does nothing is worse than one that plays something. A slow
+     arpeggio at very low gain, over the same WebAudio the classic effects use. */
+  const MUSIC = [392, 523, 659, 523, 440, 587, 698, 587];
+  let musicTimer = null;
+  let musicStep = 0;
+  function setMusic(on) {
+    state.musicOn = on;
+    $("musicBtn").textContent = on ? "🎼" : "🎵";
+    if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    if (!on) return;
+    musicTimer = setInterval(() => {
+      if (!state.soundOn) return;
+      sfx.note(MUSIC[musicStep % MUSIC.length], 0.5, "sine", 0.018);
+      musicStep += 1;
+    }, 900);
+  }
+  $("musicBtn").addEventListener("click", () => setMusic(!state.musicOn));
+
+  const EMOJIS = ["😀", "😂", "😮", "❤️", "🔥", "👏", "😎", "🎉"];
+  $("reactBtn").addEventListener("click", () => {
+    const picker = $("emojiPicker");
+    if (!picker.classList.contains("hidden")) { picker.classList.add("hidden"); return; }
+    picker.textContent = "";
+    for (const emoji of EMOJIS) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = emoji;
+      b.addEventListener("click", () => {
+        picker.classList.add("hidden");
+        emoteBubble(emoji, state.playerId);
+        sfx.note(740, 0.09, "sine", 0.05);
+        send(withToken({ type: "reaction_send", requestId: rid(), emoji }));
+      });
+      picker.appendChild(b);
+    }
+    picker.classList.remove("hidden");
+  });
+
+  /* ======================================================================
+     Offline fixtures — VISUAL QA ONLY (?demo=1, ?demo=uno, ?demo=win)
+     ====================================================================== */
+
+  function demoView(mode) {
+    const finished = mode === "win";
+    const cards = (letters, color, prefix) => letters.split("").map((ch, i) => ({
+      cardId: (prefix || "w") + i, value: ch, color, kind: "letter"
+    }));
+    const seats = [
+      { playerId: "me", seat: 0, displayName: "You", connected: true, isBot: false, handCount: finished ? 0 : 7, saidUno: false, score: 0, coins: finished ? 2000 : 500, isActive: !finished },
+      // the opening deal: every seat holds HAND_SIZE cards, so the fixture shows
+      // the table as it looks when the round starts
+      { playerId: "b1", seat: 1, displayName: "Aiko", connected: true, isBot: true, handCount: finished ? 7 : 7, saidUno: false, score: 0, coins: 500, isActive: false },
+      { playerId: "b2", seat: 2, displayName: "Mina", connected: true, isBot: true, handCount: finished ? 7 : 7, saidUno: false, score: 0, coins: 500, isActive: false },
+      { playerId: "b3", seat: 3, displayName: "Kai", connected: true, isBot: true, handCount: finished ? 7 : 7, saidUno: false, score: 0, coins: 500, isActive: false }
+    ];
+    const board = [
+      { cardId: "p1", value: "l", color: "red", kind: "letter" },
+      { cardId: "p2", value: "a", color: "blue", kind: "letter" },
+      { cardId: "p3", value: "+2", color: "green", kind: "draw2" },
+      { cardId: "p4", value: "n", color: "green", kind: "letter" }
+    ];
+    const hand = finished
+      ? []
+      : mode === "uno"
+        ? cards("na", "blue", "u")
+        : cards("lanter", "yellow").concat([{ cardId: "x1", value: "wild", color: null, kind: "wild" }]);
+    const legal = finished ? [] : mode === "uno" ? ["u0"] : ["w0", "x1"];
+    return {
+      type: "round_view", roomId: "demo-room", roundNumber: 2, turnNumber: 11,
+      phase: finished ? "round_end" : "playing",
+      activePlayerId: finished ? null : "me",
+      direction: 1, namedColor: null, board, drawCount: 63,
+      deadlineAt: new Date(Date.now() + (finished ? 7000 : GW_TOTAL)).toISOString(),
+      seats,
+      you: {
+        playerId: "me", seat: 0, hand, legal,
+        drawnCardId: mode === "uno" ? "u0" : null,
+        word: finished ? "lantern" : null, saidUno: false, coins: finished ? 2000 : 500
+      },
+      result: finished ? {
+        winnerSeat: 0, word: "lantern", pot: 2000,
+        standings: [
+          { seat: 0, remaining: 0, word: "lantern", coins: 1500 },
+          { seat: 1, remaining: 12, word: "picture", coins: -500 },
+          { seat: 2, remaining: 5, word: "balloons", coins: -500 },
+          { seat: 3, remaining: 21, word: "mountain", coins: -500 }
+        ]
+      } : null
+    };
+  }
+
+  function runDemo() {
+    state.playerId = "me";
+    state.roomId = "demo-room";
+    state.profile = { name: "Champ BJ", avatar: null, coins: "12,480" };
+    state.snapshot = { type: "room_snapshot", roomId: "demo-room", turnNumber: 11, players: [] };
+    render();
+    onView(demoView(DEMO === "win" ? "win" : DEMO === "uno" ? "uno" : "play"));
+    setStatus("DEMO MODE — no server connection");
+    addChat("Aiko", "threw a green +2");
+    addChat("Kai", "down to one card…");
+  }
+
+  /* The parent page posts the player's profile when this page is embedded: the
+     same message the classic game reads, so the dashboard dresses both games. */
+  addEventListener("message", (event) => {
+    const data = event && event.data ? event.data : {};
+    const profile = data.champProfile || data.champLoadout || data;
+    const avatar = profile.portrait || profile.avatar || data.champEquippedAvatar;
+    if (typeof avatar === "string" && avatar) state.profile.avatar = avatar;
+    if (typeof profile.frame === "string" && profile.frame) state.profile.frame = profile.frame;
+    const name = profile.name || data.champName;
+    if (typeof name === "string" && name) state.profile.name = name;
+    if (data.champCoins !== undefined && data.champCoins !== null && data.champCoins !== "") {
+      state.profile.coins = data.champCoins;
+    }
+    if (state.profile.avatar) {
+      const img = $("meAvatar");
+      if (img.getAttribute("src") !== state.profile.avatar) img.src = state.profile.avatar;
+      img.hidden = false;
+      $("meAvatarFallback").hidden = true;
+      if (state.profile.frame) {
+        const frame = $("meFrame");
+        if (frame) { frame.src = state.profile.frame; frame.hidden = false; }
+      }
+    }
+    $("seat-me").querySelector("[data-name]").textContent = state.profile.name || "You";
+  });
+
+  // every plate gets the band; only the one on the clock shows it
+  gwBuild();
+
+  fit();
+  if (OFFLINE) runDemo();
+  else connect();
+  // tell the dashboard this game is up, exactly as the classic game does
+  try { parent.postMessage({ champReady: true }, "*"); } catch { /* not embedded */ }
+})();
+</script>
+</body>
+</html>
