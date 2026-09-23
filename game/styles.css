@@ -703,3 +703,37 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   .discard-pile.impact{animation:none}
   .hand-container .card{transition:none}
 }
+
+/* --- COMPACT CARD DEATING LAYOUT ---
+   Kept as given, but nothing on the Go Wild page carries either class yet: its hand
+   is #tiles of .tile buttons and its deck is #deck, which is already on screen and
+   already used as the origin of a card flight. So this is here for the day the hand
+   is moved onto .hand-container, and inert until then. The one part worth keeping in
+   mind is the pair of !important rules on .card.dealing: they are strong enough to
+   beat an inline transform, which is exactly what the deal cascade needs and exactly
+   what would break the hover lift if the class were ever left on a card. */
+
+/* The shared dealer deck element position */
+.draw-deck-source {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100px;
+  height: 150px;
+  background: linear-gradient(135deg, #222 0%, #111 100%);
+  border: 3px solid #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+}
+
+/* Card in transit from the deck source container to the player hand layout */
+.card.dealing {
+  position: fixed !important;
+  top: 40% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) scale(0.6) rotate(0deg) !important;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: none; /* Block regular physics curve until layout target frame matches */
+}
