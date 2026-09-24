@@ -1293,72 +1293,109 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 
 /* --- THE UNREVEALED ENEMY CARD BACK TEMPLATE --- */
 .card.card-back {
-  background: linear-gradient(135deg, #e60000 0%, #990000 100%) !important;
+  background: linear-gradient(135deg, #ff1744 0%, #b3001e 100%) !important;
   border-color: #ffffff !important;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.3) !important;
   cursor: default !important;
 }
 
-/* Renders the signature dark oval badge with an accent anchor in the middle of card backs.
+/* Renders the trademark dark logo pill inside the center of card backs.
 
-   The positioning comes from the base .card::before further up — that rule sets
-   position:absolute, and this one only overrides its size, fill and rotation. The
-   card is a centred flex box, so the badge sits dead centre without a top/left. */
-.card.card-back::before {
+   Drawn on ::after, not ::before. The base .card::before is the diagonal sheen — a
+   translucent white ellipse across the card — so a badge hung on the same pseudo-element
+   had to fight it for its own fill. ::after is unused by a face-down card, so the badge
+   gets it to itself and the sheen is switched off rather than painted over.
+
+   The disc is centred the same way the old one was: .card is a centred flex box, and an
+   absolutely-positioned pseudo-element with no top/left takes its static position from
+   the container's alignment. */
+.card.card-back::after {
   content: 'CW';
   position: absolute;
-  width: 75px;
-  height: 75px;
+  width: 65px;
+  height: 65px;
   background: #111111;
   border: 3px solid #ffcc00;
   border-radius: 50%;
-  transform: rotate(0deg);
   display: flex;
   justify-content: center;
   align-items: center;
   font-family: 'Nunito', sans-serif;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 900;
   color: #ffcc00;
   text-shadow: none;
   box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  transform: rotate(-10deg);
+  z-index: 5;
 }
 
-/* Strips display layers out of card back interiors safely */
-.card.card-back .card-value, 
-.card.card-back .corner-value {
+/* Strips out face values and the sheen from background-only enemy cards */
+.card.card-back .card-value,
+.card.card-back .corner-value,
+.card.card-back::before {
   display: none !important;
 }
 
-/* Opponent Fan Containers (Renders small hidden card fans on left/right wings) */
-.opponent-fan-tray {
+/* ==========================================================================
+   HAND CONTAINERS: OPEN AT THE TOP, HIDDEN ON THE WINGS
+
+   Cards are the same size on every seat — one .card block, 105x158 — so a hand is made
+   to fit its container rather than the container being told a smaller card. What differs
+   between seats is only how the cards are fanned.
+
+   The earlier mini-card overrides (45x68 backs, and a 30px badge to fit them) are gone
+   with this: they existed only because the tray was too small for a real card.
+   ========================================================================== */
+
+/* The teammate's open hand, fanned across the top seat. 380px holds seven full-size cards
+   at the 32px spread the renderer uses: 6 x 32 + 105 = 297px, plus room to tilt. */
+.opponent-top-hand {
   position: relative;
-  width: 120px;
-  height: 60px;
+  width: 380px;
+  height: 160px;
   margin-top: 15px;
   display: flex;
   justify-content: center;
-}
-.opponent-fan-tray .card {
-  position: absolute;
-  width: 45px;
-  height: 68px;
-  border: 1.5px solid #fff;
-  border-radius: 5px;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  align-items: flex-end;
+  transform-style: preserve-3d;
 }
 
-/* The CW badge on a TRAY back.
+/* The wing trays are NOT 380px wide, and that is deliberate.
 
-   The 75px badge above is sized for the 105px card. A tray back is 45px, so the badge is
-   wider than the card it sits on: .card clips with overflow:hidden, and the fan overlaps
-   at 12px, so what actually reaches the screen is a chain of cut-off letters rather than
-   a row of card backs. Same badge, scaled to the card it is drawn on — 30px inside 45px,
-   with the ring and the letting brought down to match. The full-size rule is untouched, so
-   a back drawn at full size still wears the 75px disc. */
-.opponent-fan-tray .card.card-back::before {
-  width: 30px;
-  height: 30px;
-  border-width: 2px;
-  font-size: 0.7rem;
+   .player-slot is a centred flex column, so a 380px child widens the whole column and the
+   90px portrait centres inside it — which walks the left and right avatars ~145px in from
+   the rim they are anchored to, and drags the pill and the fan in with them. The tray
+   stays portrait-width and the fanned backs overflow it symmetrically, which keeps the
+   seat anchored to its edge and the fan centred on it. */
+.opponent-fan-tray {
+  position: relative;
+  width: 90px;
+  height: 160px;
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transform-style: preserve-3d;
+}
+
+/* ==========================================================================
+   THE SEAT COLUMN
+
+   .opponent-profile-wrapper had no rule at all until now, which made it a plain block:
+   its children were laid out from its left edge and the name pill stretched to the
+   full width of the seat. That was invisible while every seat was 90px wide — the
+   portrait filled the box, so left-aligned and centred looked identical.
+
+   The partner's 380px card rack made it visible: the rack set the seat's width, the
+   portrait stayed pinned to the left of it, and the top seat's face ended up at x=495
+   instead of the centre line at x=640, with the pill smeared across 380px.
+
+   A centred column is what the markup always assumed. The wing seats are unchanged by
+   it — their widest child is still the 90px portrait, so their box does not move.
+   ========================================================================== */
+.opponent-profile-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }

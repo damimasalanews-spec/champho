@@ -78,14 +78,19 @@
             </div>
         </div>
 
-        <!-- CHAIR TOP SLOT: Poker -->
+        <!-- CHAIR TOP SLOT: Poker, sitting opposite and playing open.
+
+             The top seat is the partner, so its hand is dealt face up rather than
+             hidden. That is why it carries an open card rack and no count: seven
+             cards you can read do not need a digit standing in for them. The left
+             and right seats keep their counts, because their hands are face down. -->
         <div class="player-slot opponent-top" id="slot-opponent-top">
             <div class="opponent-profile-wrapper">
                 <div class="avatar-frame" id="avatar-img-top">
                     <div class="avatar-container">👩‍🦰</div>
                 </div>
                 <div class="player-pill-tag">Poker</div>
-                <div class="opponent-card-count-stack" id="count-stack-opponent-top"></div>
+                <div class="opponent-top-hand" id="teammate-hand-container"></div>
             </div>
         </div>
 
@@ -223,7 +228,19 @@
             { id: 'c6', color: 'wild', value: '★', type: 'wild', isAction: true },
             { id: 'c7', color: 'green', value: '6', type: 'number' }
         ];
-        
+
+        // The partner's hand, dealt face up at the top seat. On a networked client this
+        // arrives as packet.teammateCards; here it rides on the mock like every other seat.
+        const teammateHandMock = [
+            { id: 't1', color: 'blue', value: '4', type: 'number' },
+            { id: 't2', color: 'blue', value: '8', type: 'number' },
+            { id: 't3', color: 'red', value: '1', type: 'number' },
+            { id: 't4', color: 'yellow', value: '9', type: 'number' },
+            { id: 't5', color: 'green', value: '5', type: 'number' },
+            { id: 't6', color: 'wild', value: '★', type: 'wild', isAction: true },
+            { id: 't7', color: 'blue', value: '6', type: 'number' }
+        ];
+
         // The victory screen needs two numbers per seat that the deal did not: what the
         // seat has scored so far, and what the cards still in its hand are worth. The
         // second is the one the server computes with scoreHand() — the winner of a round
@@ -404,23 +421,74 @@
             fanTray.innerHTML = '';
 
             const count = Math.max(0, Math.min(20, Number(totalCardsInHand) || 0));
+            const midIndex = (count - 1) / 2;
 
             for (let i = 0; i < count; i += 1) {
                 const backCard = document.createElement('div');
                 backCard.classList.add('card', 'card-back');
+                backCard.style.position = 'absolute';
 
-                // Fan them out sideways along a relative pixel axis, and narrow the
-                // spacing as the hand grows so a big hand still fits the tray.
-                const spacing = count > 8 ? 9 : 12;
-                const leftOffset = (i * spacing) - ((count - 1) * spacing) / 2;
-                const rotationAngle = (i - (count - 1) / 2) * 6;
+                // Anchored on the tray's centre line and pulled back by half a card, so the
+                // fan stays centred on the seat whether it is holding two cards or ten.
+                // The tray is narrower than the fan on purpose — the backs overflow it
+                // symmetrically rather than widening the seat and moving its portrait.
+                const offsetFromMiddle = i - midIndex;
+                const horizontalSpread = offsetFromMiddle * 14;   // tighter than an open hand
+                const rotationAngle = offsetFromMiddle * 5;
+                const verticalDip = Math.abs(offsetFromMiddle) * 2;
 
-                backCard.style.left = `${leftOffset}px`;
-                backCard.style.transform = `rotate(${rotationAngle}deg)`;
+                backCard.style.left = `calc(50% + ${horizontalSpread}px)`;
+                backCard.style.transform = `translate3d(-50%, 0, 0) translateY(${verticalDip}px) rotate(${rotationAngle}deg)`;
                 backCard.style.zIndex = i;
 
                 fanTray.appendChild(backCard);
             }
+        }
+
+        /**
+         * TEAM MECHANIC: Renders the partner's hand face up across the top seat.
+         *
+         * Same card, same size, same fan as the local hand — the only difference is which
+         * seat it is drawn on. Seven cards at a 32px spread come to 297px, which is what
+         * the 380px rack on that seat is for.
+         *
+         * @param {Array} cardsArray - The partner's cards, faces and all
+         */
+        function renderTeammateHandFaceUp(cardsArray) {
+            const container = document.getElementById('teammate-hand-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const cards = Array.isArray(cardsArray) ? cardsArray : [];
+            const midIndex = (cards.length - 1) / 2;
+
+            cards.forEach((card, i) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = `card ${card.color || 'blue'}`;
+                cardEl.style.position = 'absolute';
+
+                // Fans cards sideways and slightly down at the edges, the same arc the
+                // local hand uses so a partner's hand reads as the same kind of object.
+                const offsetFromMiddle = i - midIndex;
+                const horizontalSpread = offsetFromMiddle * 32;   // an open hand, so legible
+                const rotationAngle = offsetFromMiddle * 4;
+                const verticalDip = Math.abs(offsetFromMiddle) * 2;
+
+                cardEl.style.left = `calc(50% + ${horizontalSpread}px)`;
+                cardEl.style.transform = `translate3d(-50%, 0, 0) translateY(${verticalDip}px) rotate(${rotationAngle}deg)`;
+                cardEl.style.zIndex = i;
+
+                const valueClass = (card.isAction || String(card.value ?? '').length > 1)
+                    ? 'card-value action-symbol' : 'card-value';
+
+                cardEl.innerHTML = `
+                    <div class="corner-value corner-top-left">${card.value}</div>
+                    <div class="${valueClass}">${card.value}</div>
+                    <div class="corner-value corner-bottom-right">${card.value}</div>
+                `;
+
+                container.appendChild(cardEl);
+            });
         }
 
         /** Draws both enemy fans and their counts from one source of truth. */
@@ -520,7 +588,10 @@
                 // The two side seats share one source of truth via paintSeatHands, so a
                 // seat's digit and its card backs can never drift apart.
                 paintSeatHands();
-                updateOpponentCounters('opponent-top', 7);
+                // The top seat is the partner, so its hand is dealt open instead of being
+                // counted. It has no count stack to fill any more — seven readable cards
+                // are their own number.
+                renderTeammateHandFaceUp(teammateHandMock);
                 highlightTurnIndicator('local-player');
                 startTurnClockSimulation();
             }, (fullDealPipeline.length * frameIntervalRate) + 300);
@@ -988,6 +1059,9 @@
                 // last round's hand. The deal repaints them at seven.
                 renderHiddenEnemyFanStack(slotKey.replace('opponent-', ''), 0);
             });
+
+            // The partner's open hand empties with everyone else's. The deal repaints it.
+            renderTeammateHandFaceUp([]);
 
             concealVictoryScoreboard();
 
