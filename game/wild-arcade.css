@@ -1231,21 +1231,9 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
    The colour is a shade of the felt itself rather than white — at 0.35 opacity it
    reads as terrain, not as a label, which is what the reference has.
    ========================================================================== */
-.game-table::after {
-  content: 'UNO';
-  position: absolute;
-  top: 52%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(2.4) rotate(-12deg);
-  font-family: 'Nunito', sans-serif;
-  font-size: 8rem;
-  font-weight: 900;
-  color: #559b0b; /* Blends cleanly into background green terrain */
-  opacity: 0.35;
-  letter-spacing: -4px;
-  pointer-events: none;
-  z-index: 1;
-}
+/* The felt watermark that used to sit here was removed with the illustrated
+   backdrop: a translucent CW ghost over painted art reads as a smudge, and the
+   mockup has no watermark. The ::after is left free rather than repurposed. */
 
 /* ==========================================================================
    CW WATERMARK, DISCARD SURFACE, AND CARD BACKS
@@ -1261,21 +1249,9 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
    ========================================================================== */
 
 /* Overwrites background vector text to display the custom "CW" watermark */
-.game-table::after {
-  content: 'CW';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(2.6) rotate(-14deg);
-  font-family: 'Nunito', sans-serif;
-  font-size: 8rem;
-  font-weight: 900;
-  color: #4b890a; /* Subtle dark green blending into layout gradients */
-  opacity: 0.28;
-  letter-spacing: -2px;
-  pointer-events: none;
-  z-index: 1;
-}
+/* The felt watermark that used to sit here was removed with the illustrated
+   backdrop: a translucent CW ghost over painted art reads as a smudge, and the
+   mockup has no watermark. The ::after is left free rather than repurposed. */
 
 /* Central Table Discard Area Surface where thrown cards land.
    Scoped to .center-play-zone so it only reaches the live pile; the base
@@ -1448,3 +1424,214 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 .opponent-top .player-pill-tag    { background: linear-gradient(180deg, #e64a19 0%, #b71c1c 100%); } /* Poker Red */
 .opponent-right .player-pill-tag  { background: linear-gradient(180deg, #2ea44f 0%, #137333 100%); } /* Jess Green */
 .local-user-slot .player-pill-tag { background: linear-gradient(180deg, #9c27b0 0%, #6a1b9a 100%); } /* Cw Purple */
+
+/* ==========================================================================
+   ISLAND TABLE POLISH
+
+   Matching the target mockup: illustrated island backdrop, UNO-oval card backs,
+   circular portraits with a gold star, counts as a number on a green strip, a
+   big dashed throw box with a crown, and the deck + Card Cascade in the top-left.
+   ========================================================================== */
+
+/* The illustrated island. background-size:cover because the plate came back 3:2
+   and the table is 16:9 — so it crops a little off the top and bottom rim rather
+   than stretching the island out of shape. All the art that matters (the clean
+   centre the cards sit on) survives the crop. */
+.game-table {
+  background-color: #3ba311;
+  /* ../assets, not assets: this sheet lives in game/, so a bare assets/ would resolve
+     to game/assets/ and 404. The page itself is at the root, which is why the same
+     path written in HTML would have worked and this one would not. */
+  background-image: url('../assets/island-table-bg.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* The crown watermark the island plate does not carry, sunk into the throw box. */
+.center-play-zone::before {
+  content: '👑';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3.4rem;
+  opacity: 0.22;
+  pointer-events: none;
+  filter: saturate(0.6) brightness(0.9);
+}
+
+/* The throw box itself: the big dashed rounded rectangle the mockup has in the middle. */
+.center-play-zone {
+  width: 320px;
+  height: 220px;
+  border: 3px dashed rgba(255, 255, 255, 0.55);
+  border-radius: 20px;
+}
+
+/* --- CARD BACKS: THE UNO OVAL --- */
+.card.card-back {
+  background: linear-gradient(135deg, #ff1744 0%, #c1001c 100%) !important;
+  border-color: #ffffff !important;
+  cursor: default !important;
+}
+
+/* The mark is a wide dark oval on a tilt, with the wordmark inside it — the
+   branding on the mockup's card backs. ::after is free on a face-down card, and
+   the base ::before sheen is switched off below so nothing washes the oval. */
+.card.card-back::after {
+  content: 'UNO';
+  position: absolute;
+  width: 84%;
+  height: 40%;
+  background: #15110f;
+  border-radius: 50%;
+  transform: rotate(-20deg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #a30000, -1px -1px 0 #ffcc00, 1px -1px 0 #ffcc00, -1px 1px 0 #ffcc00;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.45);
+  z-index: 5;
+}
+.card.card-back .card-value,
+.card.card-back .corner-value,
+.card.card-back::before {
+  display: none !important;
+}
+
+/* --- CIRCULAR PORTRAITS WITH A GOLD STAR --- */
+.avatar-frame {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  border: 4px solid #ffffff;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+}
+/* The emoji sits inside the ring, sized to the ring rather than to the old square. */
+.avatar-container {
+  width: 82px;
+  height: 82px;
+  border: 0;
+  font-size: 2.6rem;
+}
+/* Level star, pinned to the portrait's top-left and allowed to hang off the rim. */
+.avatar-hud-wrapper::after {
+  content: '★';
+  position: absolute;
+  top: -2px;
+  left: -6px;
+  font-size: 1.35rem;
+  color: #ffd54a;
+  text-shadow: 0 2px 3px rgba(0,0,0,0.55);
+  pointer-events: none;
+  z-index: 6;
+}
+/* And the turn ring follows the round portrait, not the square one it was cut for. */
+.avatar-hud-wrapper::before {
+  width: 94px;
+  height: 94px;
+  top: -6px;
+  left: -6px;
+}
+
+/* --- COUNTS: A NUMBER ON A GREEN STRIP --- */
+.opponent-card-count-stack {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 62px;
+  height: 26px;
+  margin-top: 4px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #2f7d1c 0%, #1d5410 100%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.35);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: -1px -1px 0 #000, 1px 1px 0 #000;
+}
+/* The old digit-cards are gone; the strip carries the number as text now. */
+.mini-counter-card { display: none !important; }
+
+/* --- THE YELLOW UNO PILL --- */
+#btn-uno-call {
+  width: 140px;
+  height: 62px;
+  border-radius: 34px;
+  border: 4px solid #ffffff;
+  background: linear-gradient(180deg, #fff200 0%, #ffaa00 100%);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4), inset 0 3px 6px #ffffff;
+  color: #14110c;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-shadow: none;
+}
+
+/* --- TOP-LEFT: THE DECK AND THE CARD CASCADE --- */
+.top-left-deck-group {
+  position: absolute;
+  /* Clears the timer badge, which owns top:22px left:30px and runs to about x=170. */
+  top: 22px;
+  left: 200px;
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  z-index: 500;
+}
+.draw-pile-3d {
+  width: 84px;
+  height: 122px;
+  border-radius: 12px;
+  border: 4px solid #ffffff;
+  background: linear-gradient(135deg, #ff1744 0%, #c1001c 100%);
+  box-shadow: -5px 7px 0 #222222, -10px 14px 20px rgba(0,0,0,0.4);
+  transform: rotate(-24deg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 2px 2px 0 #a30000, -1px -1px 0 #ffcc00, 1px -1px 0 #ffcc00, -1px 1px 0 #ffcc00;
+}
+.card-cascade-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px 11px;
+  border-radius: 14px;
+  background: rgba(23, 74, 12, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+}
+.cascade-title {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.cascade-stack-row { display: flex; align-items: center; height: 30px; }
+.mini-cascade-card {
+  width: 15px;
+  height: 25px;
+  border-radius: 3px;
+  border: 1px solid #ffffff;
+  background: linear-gradient(180deg, #e01b24 0%, #9c0010 100%);
+  box-shadow: 1px 2px 4px rgba(0,0,0,0.35);
+}

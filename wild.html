@@ -48,8 +48,27 @@
         </div>
 
         <!-- Central Deck Field Space -->
+        <!-- The draw pile has moved out of the middle and up into the top-left corner,
+             beside the Card Cascade stack, which is where the target mockup has it. The
+             deck keeps its id: the deal and the flight animations read its rect, so they
+             follow it wherever it sits. The middle keeps only the throw box.
+
+             The UNO face on the deck is .draw-deck-source::before, already in the sheet. -->
+        <div class="top-left-deck-group">
+            <div class="draw-deck-source draw-pile-3d" id="central-deck"></div>
+            <div class="card-cascade-container">
+                <span class="cascade-title">Card Cascade</span>
+                <div class="cascade-stack-row">
+                    <div class="mini-cascade-card" style="transform: rotate(-10deg);"></div>
+                    <div class="mini-cascade-card" style="transform: rotate(-5deg); margin-left: -8px;"></div>
+                    <div class="mini-cascade-card" style="transform: rotate(5deg); margin-left: -8px;"></div>
+                    <div class="mini-cascade-card" style="transform: rotate(12deg); margin-left: -8px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- The throw box: the dashed surface the played cards land on. -->
         <div class="center-play-zone" id="center-board-zone">
-            <div class="draw-deck-source" id="central-deck"></div>
             <div class="discard-pile" id="discard-deck-pile"></div>
         </div>
 
@@ -400,13 +419,11 @@
             if (!targetStack) return;
             targetStack.innerHTML = '';
 
-            const countStr = countNumber.toString();
-            for (let char of countStr) {
-                const miniCard = document.createElement('div');
-                miniCard.classList.add('mini-counter-card');
-                miniCard.innerText = char;
-                targetStack.appendChild(miniCard);
-            }
+            // A plain number on the green strip. It used to build one little card per
+            // digit; the mockup shows a number, which reads faster and cannot be mistaken
+            // for a playable card. Same input and same seat lookup, so the deal, the
+            // penalty and the round reset all keep working without changes.
+            targetStack.textContent = String(Math.max(0, Number(countNumber) || 0));
         }
 
         /**
@@ -426,24 +443,24 @@
             fanTray.innerHTML = '';
 
             const count = Math.max(0, Math.min(20, Number(totalCardsInHand) || 0));
-            const midIndex = (count - 1) / 2;
+            const isLeft = slotKey === 'left';
 
             for (let i = 0; i < count; i += 1) {
                 const backCard = document.createElement('div');
                 backCard.classList.add('card', 'card-back');
                 backCard.style.position = 'absolute';
 
-                // Anchored on the tray's centre line and pulled back by half a card, so the
-                // fan stays centred on the seat whether it is holding two cards or ten.
-                // The tray is narrower than the fan on purpose — the backs overflow it
-                // symmetrically rather than widening the seat and moving its portrait.
-                const offsetFromMiddle = i - midIndex;
-                const horizontalSpread = offsetFromMiddle * 14;   // tighter than an open hand
-                const rotationAngle = offsetFromMiddle * 5;
-                const verticalDip = Math.abs(offsetFromMiddle) * 2;
+                // A diagonal cascade running down and inward, tilting a little further with
+                // every card, so the two enemy tracks bracket the table the way the target
+                // mockup has them instead of sitting in flat rows. The tray is deliberately
+                // narrower and shorter than the cascade: the backs overflow it rather than
+                // widening the seat and dragging its portrait away from the rim.
+                const direction = isLeft ? 1 : -1;
 
-                backCard.style.left = `calc(50% + ${horizontalSpread}px)`;
-                backCard.style.transform = `translate3d(-50%, 0, 0) translateY(${verticalDip}px) rotate(${rotationAngle}deg)`;
+                backCard.style.top = `${i * 20}px`;
+                backCard.style.left = `calc(50% + ${direction * i * 10}px)`;
+                backCard.style.transform =
+                    `translate3d(-50%, 0, 0) rotate(${direction * (24 + i * 1.5)}deg) scale(0.78)`;
                 backCard.style.zIndex = i;
 
                 fanTray.appendChild(backCard);
