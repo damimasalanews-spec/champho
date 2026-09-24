@@ -197,11 +197,21 @@
 
         // Mock WebSocket structural engine variables for runtime simulation testing
         let activeTimerInterval = null;
+        // Seven cards, carrying the action kinds the table needs: the +2, the skip, the
+        // reverse, the discard-all and the wild.
+        //
+        // `type` is what the effect branch keys off and `isAction` is what the typography
+        // keys off. Note the wild's face is '★' and the skip's is '🚫': the face is display
+        // only, so nothing may decide what a card DOES by reading it. See the effect branch
+        // in executeLocalCardPlay.
         const localHandMock = [
-            { id: 101, color: 'red', value: '1' },
-            { id: 102, color: 'blue', value: '5' },
-            { id: 103, color: 'yellow', value: '9' },
-            { id: 104, color: 'green', value: 'W' }
+            { id: 'c1', color: 'red', value: '3', type: 'number' },
+            { id: 'c2', color: 'yellow', value: '+2', type: 'draw2', isAction: true },
+            { id: 'c3', color: 'green', value: '🚫', type: 'skip', isAction: true },
+            { id: 'c4', color: 'blue', value: '🔁', type: 'reverse', isAction: true },
+            { id: 'c5', color: 'red', value: 'ALL', type: 'discard_all', isAction: true },
+            { id: 'c6', color: 'wild', value: '★', type: 'wild', isAction: true },
+            { id: 'c7', color: 'green', value: '6', type: 'number' }
         ];
         
         // The victory screen needs two numbers per seat that the deal did not: what the
@@ -240,10 +250,19 @@
             cardsArray.forEach((card, i) => {
                 const cardEl = document.createElement('div');
                 cardEl.classList.add('card', card.color);
-                
+                // The discard-all wears its own accent, so the face says what it does.
+                if (card.type === 'discard_all') cardEl.classList.add('discard-all');
+
                 // Add inner text nodes
                 const valueEl = document.createElement('span');
                 valueEl.classList.add('card-value');
+                // Action faces are longer than a digit — "+2", "ALL", "★" — and at the 5rem
+                // the numerals are set in they run past the card's border, so they take the
+                // smaller size. isAction is the card's own flag; the length test is the
+                // safety net for a card that turns up without one.
+                if (card.isAction || String(card.value ?? '').length > 1) {
+                    valueEl.classList.add('action-symbol');
+                }
                 valueEl.innerText = card.value;
                 cardEl.appendChild(valueEl);
 
@@ -311,15 +330,24 @@
             centerZone.classList.add('impact');
             setTimeout(() => centerZone.classList.remove('impact'), 130);
 
-            // Execute corresponding effect layer triggers based on card rules
-            if (cardData.value === 'W') {
+            // Execute corresponding effect layer triggers based on card rules.
+            //
+            // Decided by the card's KIND, not by the character printed on its face. The face
+            // is display only — the wild shows ★ and the skip shows 🚫 — so reading the value
+            // was a trap: change the glyph and the wild silently stops opening the wheel.
+            // The old single-character test stays as a fallback for a card that arrives with
+            // no type at all.
+            const cardEffect = cardData.type
+                || (cardData.value === 'W' ? 'wild' : cardData.value === 'S' ? 'skip' : 'other');
+
+            if (cardEffect === 'wild') {
                 playWildCardSound();
                 triggerScreenFlash('effect-wild');
                 // A wild has no colour of its own. Hold the card that has just landed
                 // so the wheel can colour it, then open the wheel.
                 awaitingWildCard = placedCard;
                 presentColorPickerWheel();
-            } else if (cardData.value === 'S') {
+            } else if (cardEffect === 'skip') {
                 playSkipCardSound();
                 triggerScreenFlash('effect-skip');
             }

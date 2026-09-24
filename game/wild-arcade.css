@@ -1198,3 +1198,20 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 .opponent-top .player-pill-tag {
   background: linear-gradient(180deg, #d35400 0%, #a04000 100%);
 }
+
+/* Custom Action Card Icon Typography Formatting */
+.card .card-value.action-symbol {
+  font-size: 2.8rem; /* Scales down special symbols (+2, 🚫, 🔁) so they don't break borders */
+  letter-spacing: -2px;
+}
+
+/* Special "Discard All" Card Inner Accent Ring */
+.card.discard-all::after {
+  content: '⚡';
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 1.2rem;
+  text-shadow: none;
+  opacity: 0.8;
+}
