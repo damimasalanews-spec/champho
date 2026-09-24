@@ -1215,3 +1215,34 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   text-shadow: none;
   opacity: 0.8;
 }
+
+/* ==========================================================================
+   THE TABLE WATERMARK
+
+   The one piece of the "official board canvas" spec that was not already on the
+   page. A giant UNO sunk into the felt, so the table still reads as a table when
+   the middle is empty.
+
+   z-index 1 deliberately: the seats run 50-300 and the centre zone is 100, so the
+   mark sits under every one of them and never competes with a card. #game-table is
+   position:relative, so the ::after anchors to the table rather than the window,
+   and pointer-events:none keeps it out of the way of anything that is not.
+
+   The colour is a shade of the felt itself rather than white — at 0.35 opacity it
+   reads as terrain, not as a label, which is what the reference has.
+   ========================================================================== */
+.game-table::after {
+  content: 'UNO';
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(2.4) rotate(-12deg);
+  font-family: 'Nunito', sans-serif;
+  font-size: 8rem;
+  font-weight: 900;
+  color: #559b0b; /* Blends cleanly into background green terrain */
+  opacity: 0.35;
+  letter-spacing: -4px;
+  pointer-events: none;
+  z-index: 1;
+}
