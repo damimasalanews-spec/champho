@@ -1246,3 +1246,119 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   pointer-events: none;
   z-index: 1;
 }
+
+/* ==========================================================================
+   CW WATERMARK, DISCARD SURFACE, AND CARD BACKS
+
+   The watermark below supersedes the 'UNO' one added a turn earlier: same
+   selector, so this one wins by being last. 'CW' is the right mark for this
+   table anyway — the word game's own initials rather than the brand it borrows
+   its rules from.
+
+   .card-back and .opponent-fan-tray are new. Until this turn nothing on the page
+   drew a face-down card, so the enemy seats showed a bare number; the backs are
+   what let a seat show a hand rather than a count.
+   ========================================================================== */
+
+/* Overwrites background vector text to display the custom "CW" watermark */
+.game-table::after {
+  content: 'CW';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(2.6) rotate(-14deg);
+  font-family: 'Nunito', sans-serif;
+  font-size: 8rem;
+  font-weight: 900;
+  color: #4b890a; /* Subtle dark green blending into layout gradients */
+  opacity: 0.28;
+  letter-spacing: -2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Central Table Discard Area Surface where thrown cards land.
+   Scoped to .center-play-zone so it only reaches the live pile; the base
+   .discard-pile rule further up already carried the dashed surface and this
+   sharpens its size and adds the inner shadow. */
+.center-play-zone .discard-pile {
+  position: relative;
+  width: 110px;
+  height: 165px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 3px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  box-shadow: inset 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* --- THE UNREVEALED ENEMY CARD BACK TEMPLATE --- */
+.card.card-back {
+  background: linear-gradient(135deg, #e60000 0%, #990000 100%) !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3) !important;
+  cursor: default !important;
+}
+
+/* Renders the signature dark oval badge with an accent anchor in the middle of card backs.
+
+   The positioning comes from the base .card::before further up — that rule sets
+   position:absolute, and this one only overrides its size, fill and rotation. The
+   card is a centred flex box, so the badge sits dead centre without a top/left. */
+.card.card-back::before {
+  content: 'CW';
+  position: absolute;
+  width: 75px;
+  height: 75px;
+  background: #111111;
+  border: 3px solid #ffcc00;
+  border-radius: 50%;
+  transform: rotate(0deg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #ffcc00;
+  text-shadow: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+
+/* Strips display layers out of card back interiors safely */
+.card.card-back .card-value, 
+.card.card-back .corner-value {
+  display: none !important;
+}
+
+/* Opponent Fan Containers (Renders small hidden card fans on left/right wings) */
+.opponent-fan-tray {
+  position: relative;
+  width: 120px;
+  height: 60px;
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+}
+.opponent-fan-tray .card {
+  position: absolute;
+  width: 45px;
+  height: 68px;
+  border: 1.5px solid #fff;
+  border-radius: 5px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+/* The CW badge on a TRAY back.
+
+   The 75px badge above is sized for the 105px card. A tray back is 45px, so the badge is
+   wider than the card it sits on: .card clips with overflow:hidden, and the fan overlaps
+   at 12px, so what actually reaches the screen is a chain of cut-off letters rather than
+   a row of card backs. Same badge, scaled to the card it is drawn on — 30px inside 45px,
+   with the ring and the letting brought down to match. The full-size rule is untouched, so
+   a back drawn at full size still wears the 75px disc. */
+.opponent-fan-tray .card.card-back::before {
+  width: 30px;
+  height: 30px;
+  border-width: 2px;
+  font-size: 0.7rem;
+}

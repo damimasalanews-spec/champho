@@ -70,6 +70,11 @@
                 </div>
                 <div class="player-pill-tag">Kalkal</div>
                 <div class="opponent-card-count-stack" id="count-stack-opponent-left"></div>
+                <!-- The hidden hand, as card backs. Sits under the count rather than
+                     replacing it: the count is what the penalty strike and the round
+                     reset already keep honest, and the fan is what makes a seat look
+                     like it is holding cards. -->
+                <div class="opponent-fan-tray" id="fan-hand-left"></div>
             </div>
         </div>
 
@@ -92,6 +97,11 @@
                 </div>
                 <div class="player-pill-tag">Jess</div>
                 <div class="opponent-card-count-stack" id="count-stack-opponent-right"></div>
+                <!-- The hidden hand, as card backs. Sits under the count rather than
+                     replacing it: the count is what the penalty strike and the round
+                     reset already keep honest, and the fan is what makes a seat look
+                     like it is holding cards. -->
+                <div class="opponent-fan-tray" id="fan-hand-right"></div>
             </div>
         </div>
 
@@ -377,6 +387,52 @@
             }
         }
 
+        /**
+         * ENEMY MECHANIC: Generates masked card backs for an enemy seat.
+         *
+         * A fan of face-down cards, one per card the seat is holding, so a seat shows a
+         * hand rather than a bare digit. The count is the only thing it is given — which
+         * is the whole point of a card back: the page knows how many cards are there and
+         * nothing about what they are.
+         *
+         * @param {string} slotKey - Seating key suffix: 'left' or 'right'
+         * @param {number} totalCardsInHand - How many backs to fan out
+         */
+        function renderHiddenEnemyFanStack(slotKey, totalCardsInHand) {
+            const fanTray = document.getElementById(`fan-hand-${slotKey}`);
+            if (!fanTray) return;
+            fanTray.innerHTML = '';
+
+            const count = Math.max(0, Math.min(20, Number(totalCardsInHand) || 0));
+
+            for (let i = 0; i < count; i += 1) {
+                const backCard = document.createElement('div');
+                backCard.classList.add('card', 'card-back');
+
+                // Fan them out sideways along a relative pixel axis, and narrow the
+                // spacing as the hand grows so a big hand still fits the tray.
+                const spacing = count > 8 ? 9 : 12;
+                const leftOffset = (i * spacing) - ((count - 1) * spacing) / 2;
+                const rotationAngle = (i - (count - 1) / 2) * 6;
+
+                backCard.style.left = `${leftOffset}px`;
+                backCard.style.transform = `rotate(${rotationAngle}deg)`;
+                backCard.style.zIndex = i;
+
+                fanTray.appendChild(backCard);
+            }
+        }
+
+        /** Draws both enemy fans and their counts from one source of truth. */
+        function paintSeatHands() {
+            ['left', 'right'].forEach((slotKey) => {
+                const counterKey = `opponent-${slotKey}`;
+                const held = opponentHandSize[counterKey] ?? 7;
+                updateOpponentCounters(counterKey, held);
+                renderHiddenEnemyFanStack(slotKey, held);
+            });
+        }
+
         // Activates the neon direction arrow tracing system around game board
         function highlightTurnIndicator(activeSlotKey) {
             document.querySelectorAll('.direction-arrow').forEach(arrow => {
@@ -460,10 +516,11 @@
             // Cleanly paint active interactions upon deal compilation conclusion
             setTimeout(() => {
                 renderHand(finalHandData);
-                // Initialize default counters
-                updateOpponentCounters('opponent-left', 7);
+                // Initialize default counters, and the hidden-hand fans beside them.
+                // The two side seats share one source of truth via paintSeatHands, so a
+                // seat's digit and its card backs can never drift apart.
+                paintSeatHands();
                 updateOpponentCounters('opponent-top', 7);
-                updateOpponentCounters('opponent-right', 7);
                 highlightTurnIndicator('local-player');
                 startTurnClockSimulation();
             }, (fullDealPipeline.length * frameIntervalRate) + 300);
@@ -726,6 +783,9 @@
                 setTimeout(() => {
                     opponentHandSize[counterKey] += totalCardsToDraw;
                     updateOpponentCounters(counterKey, opponentHandSize[counterKey]);
+                    // The fan takes the penalty cards too, so the backs and the digit
+                    // never tell different stories about the same seat.
+                    renderHiddenEnemyFanStack(counterKey.replace('opponent-', ''), opponentHandSize[counterKey]);
                 }, Math.pow(totalCardsToDraw - 1, 0.85) * 110 + 620);
             }
 
@@ -924,6 +984,9 @@
                 const counterStackNode = document.getElementById(`count-stack-${slotKey}`);
                 if (counterStackNode) counterStackNode.innerHTML = '';
                 opponentHandSize[slotKey] = 7;
+                // The fans empty with the counters, so a new round never opens showing
+                // last round's hand. The deal repaints them at seven.
+                renderHiddenEnemyFanStack(slotKey.replace('opponent-', ''), 0);
             });
 
             concealVictoryScoreboard();
