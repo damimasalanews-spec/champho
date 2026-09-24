@@ -466,8 +466,12 @@
 
                 backCard.style.top = `${i * 20}px`;
                 backCard.style.left = `calc(50% + ${direction * i * 10}px)`;
+                // Full size, like every other hand on the table. This used to carry a
+                // scale(0.78), which made the hidden hands quietly smaller than the
+                // teammate's and the player's — the one place on the board where a card
+                // was not the same card.
                 backCard.style.transform =
-                    `translate3d(-50%, 0, 0) rotate(${direction * (24 + i * 1.5)}deg) scale(0.78)`;
+                    `translate3d(-50%, 0, 0) rotate(${direction * (24 + i * 1.5)}deg)`;
                 backCard.style.zIndex = i;
 
                 fanTray.appendChild(backCard);
