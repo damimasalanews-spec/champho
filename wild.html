@@ -104,11 +104,18 @@
              cards you can read do not need a digit standing in for them. The left
              and right seats keep their counts, because their hands are face down. -->
         <div class="player-slot opponent-top" id="slot-opponent-top">
-            <div class="opponent-profile-wrapper avatar-hud-wrapper">
-                <div class="avatar-frame" id="avatar-img-top">
-                    <div class="avatar-container">👩‍🦰</div>
+            <!-- The opposite seat reads as a row: the portrait on the left, its open hand
+                 to the right of it. The portrait column keeps .avatar-hud-wrapper so the
+                 turn ring and the level star stay anchored to the face — hung on the
+                 whole row instead, they would sit ~200px away from the head they are
+                 meant to circle. -->
+            <div class="opponent-top-row">
+                <div class="opponent-profile-wrapper avatar-hud-wrapper">
+                    <div class="avatar-frame" id="avatar-img-top">
+                        <div class="avatar-container">👩‍🦰</div>
+                    </div>
+                    <div class="player-pill-tag">Poker</div>
                 </div>
-                <div class="player-pill-tag">Poker</div>
                 <div class="opponent-top-hand" id="teammate-hand-container"></div>
             </div>
         </div>

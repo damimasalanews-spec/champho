@@ -1635,3 +1635,51 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   background: linear-gradient(180deg, #e01b24 0%, #9c0010 100%);
   box-shadow: 1px 2px 4px rgba(0,0,0,0.35);
 }
+
+/* ==========================================================================
+   THE OPPOSITE SEAT IS A ROW
+
+   Portrait on the left, its open hand to the right of it, instead of the portrait
+   sitting on top of the cards.
+
+   The portrait column keeps .avatar-hud-wrapper, so the turn ring (::before) and the
+   level star (::after) stay anchored to the face. Hung on the row instead they would
+   sit ~200px to the left of the head they are meant to circle, because both are placed
+   at a fixed -6px offset from whatever they are attached to.
+   ========================================================================== */
+.opponent-top-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+}
+
+/* The rack carried a top margin for the stacked layout; in the row it is beside the
+   portrait, not under it, so that margin only pushed the cards down out of line. */
+.opponent-top-row .opponent-top-hand {
+  margin-top: 0;
+}
+
+/* The portrait column must size to the portrait here.
+
+   .opponent-profile-wrapper normally carries width:100%, which is right when it is the
+   whole seat: it spans the seat so its children have somewhere to centre. As a row item
+   that same 100% resolves against the row instead, the column stretches to 258px, and
+   the turn ring — pinned at a fixed -6px from the column's edge — ends up circling empty
+   table 88px left of the face. Auto puts it back on the head. */
+.opponent-top-row .avatar-hud-wrapper {
+  width: auto;
+}
+
+/* The opposite seat is nudged right, off the top-left furniture.
+
+   Making it a row moved the portrait left, which walked it under the Card Cascade
+   panel: at 1280x900 the panel runs to x=444, the portrait spanned x=400-482, and the
+   panel is z-index 500 against the seat's 50 — so it painted over the face rather than
+   behind it. 70px (stage pixels, like every other measurement on this board) clears the
+   panel and still leaves the portrait left of the centre line with its cards right of it.
+
+   Measured after: portrait x=470-552, cards x=570-950, panel ends x=444. */
+.opponent-top {
+  transform: translateX(calc(-50% + 70px));
+}
