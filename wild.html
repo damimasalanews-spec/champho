@@ -64,7 +64,7 @@
              flying to a seat, and counters that never reset between rounds. -->
         <!-- CHAIR LEFT SLOT: Kalkal -->
         <div class="player-slot opponent-left" id="slot-opponent-left">
-            <div class="opponent-profile-wrapper">
+            <div class="opponent-profile-wrapper avatar-hud-wrapper">
                 <div class="avatar-frame" id="avatar-img-left">
                     <div class="avatar-container">👩</div>
                 </div>
@@ -85,7 +85,7 @@
              cards you can read do not need a digit standing in for them. The left
              and right seats keep their counts, because their hands are face down. -->
         <div class="player-slot opponent-top" id="slot-opponent-top">
-            <div class="opponent-profile-wrapper">
+            <div class="opponent-profile-wrapper avatar-hud-wrapper">
                 <div class="avatar-frame" id="avatar-img-top">
                     <div class="avatar-container">👩‍🦰</div>
                 </div>
@@ -96,7 +96,7 @@
 
         <!-- CHAIR RIGHT SLOT: Jess -->
         <div class="player-slot opponent-right" id="slot-opponent-right">
-            <div class="opponent-profile-wrapper">
+            <div class="opponent-profile-wrapper avatar-hud-wrapper">
                 <div class="avatar-frame" id="avatar-img-right">
                     <div class="avatar-container">👨</div>
                 </div>
@@ -121,12 +121,17 @@
              positioning box by 4px, and stays in the bottom-left corner the brief asked
              for. At 160px the tray (z-index 300) sat on top of the portrait (z-index 50)
              with ~1,568px^2 of overlap. -->
-        <div class="player-slot" id="slot-local-player" style="bottom: 25px; left: 214px;">
+        <!-- local-user-slot is the seat's name in the stylesheet, and it is what
+             gives this pill its own colour. The inline gradient came out so the rule
+             can reach it. The label stays "Champ" rather than the brief's "Cw": the
+             UNO banner announces this seat as CHAMP, and two names for one player on
+             the same screen is a worse bug than a mismatched pill. -->
+        <div class="player-slot local-user-slot" id="slot-local-player" style="bottom: 25px; left: 214px;">
             <div class="avatar-hud-wrapper">
                 <div class="avatar-frame" id="avatar-img-local">
                     <div class="avatar-container">🧑</div>
                 </div>
-                <div class="player-pill-tag" style="background: linear-gradient(180deg, #e67e22 0%, #d35400 100%);">Champ</div>
+                <div class="player-pill-tag">Champ</div>
             </div>
         </div>
 
@@ -509,6 +514,21 @@
             const targetArrow = document.getElementById(`arrow-${activeSlotKey}`);
             if (targetArrow) {
                 targetArrow.classList.add('active-turn');
+            }
+
+            // The same turn, shown on the seat itself: a neon ring around the portrait
+            // whose turn it is. Driven from this one function so the arrow and the ring
+            // can never disagree about whose turn it is — a second indicator is worth
+            // having, a second source of truth is not.
+            document.querySelectorAll('.avatar-hud-wrapper').forEach((wrapper) => {
+                wrapper.classList.remove('active-turn');
+            });
+            const seatNode = document.getElementById(
+                activeSlotKey === 'local-player' ? 'slot-local-player' : `slot-${activeSlotKey}`
+            );
+            const seatWrapper = seatNode ? seatNode.querySelector('.avatar-hud-wrapper') : null;
+            if (seatWrapper) {
+                seatWrapper.classList.add('active-turn');
             }
         }
 

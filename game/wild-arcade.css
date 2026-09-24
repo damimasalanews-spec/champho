@@ -1399,3 +1399,52 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   align-items: center;
   width: 100%;
 }
+
+/* ==========================================================================
+   THE SEAT RING, AND A COLOUR PER SEAT
+
+   Two pieces of the "island square" spec that are additive: neither replaces
+   anything that already worked, so both could go in without an overwrite.
+
+   Naming note: the spec calls the seat wrapper .avatar-hud-wrapper. The three
+   opponent seats already carried .opponent-profile-wrapper, the local seat
+   carried .avatar-hud-wrapper, so the markup now carries both. The rules below
+   are the spec's, and they land on all four seats because of that.
+   ========================================================================== */
+
+.avatar-hud-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Dynamic active turn indicators circling the player profile ring bounds.
+
+   The spec puts this ring at 94px, which is 82 + 12 — right for its 82px portrait.
+   This table's portraits are 90px, so the same 6px of stand-off is 102px here.
+   Sizing it off the spec's literal number would have drawn a ring inside the face. */
+.avatar-hud-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 102px;
+  height: 102px;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  transition: border-color 0.3s ease;
+  pointer-events: none;
+}
+.avatar-hud-wrapper.active-turn::before {
+  border-color: #00ffcc; /* Electric neon active path ring border */
+  filter: drop-shadow(0 0 8px #00ffcc);
+}
+
+/* Specific Pill Color Assignment Layers matching screenshot profiles.
+   One colour per seat, so four pills are told apart at a glance instead of
+   three blues and one orange. */
+.opponent-left .player-pill-tag   { background: linear-gradient(180deg, #1b73e8 0%, #004ecc 100%); } /* Kalkal Blue */
+.opponent-top .player-pill-tag    { background: linear-gradient(180deg, #e64a19 0%, #b71c1c 100%); } /* Poker Red */
+.opponent-right .player-pill-tag  { background: linear-gradient(180deg, #2ea44f 0%, #137333 100%); } /* Jess Green */
+.local-user-slot .player-pill-tag { background: linear-gradient(180deg, #9c27b0 0%, #6a1b9a 100%); } /* Cw Purple */
