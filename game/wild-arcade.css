@@ -1854,3 +1854,393 @@ tail so they read as embers rather than confetti. */
 @media (prefers-reduced-motion: reduce) {
   #throw-flight-card, .throw-ghost, #throw-impact-ring, .throw-spark { animation: none; }
 }
+
+/* ==========================================================================
+   THE 16:9 BOARD LAYOUT
+
+   Everything above this line was measured against a free-flowing 100vw x 100vh
+   table, which meant every position was a guess at one size and a different
+   guess at another. This section replaces that with the layout spec:
+
+       +--------------------------------------------------------------+
+       |  OPPONENT 1                         OPPONENT 2               |
+       |   avatar                               avatar                 |
+       |     (o)                                   (o)                 |
+       |    [cards]                           [cards]                  |
+       |                                                              |
+       |                    [DRAW PILE]   [PLAY PILE]                 |
+       |                                                              |
+       |  OPPONENT 3                                 GAME / TIMER      |
+       |   (o)                                                          |
+       |  [cards]                                                      |
+       |                                                              |
+       |            ------- YOUR HAND / CARDS -------                  |
+       |       [] [] [] [] [] [] []                                    |
+       +--------------------------------------------------------------+
+
+   The board is a fixed 1920x1080. .viewport-frame letterboxes it, .stage scales
+   it to fit, and every measurement below is in stage pixels — so "80px from the
+   left rim" means the same proportion of the frame at 1920x1080, at 1366x768 and
+   on a phone held sideways. Nothing here needs a media query for size, which is
+   the whole point: there is only one layout, at every size.
+
+   ========================================================================== */
+
+/* The letterbox: fixed, clipped, and nothing else. */
+.viewport-frame {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #14310a;
+}
+
+/* The board. Centred by the same declaration that scales it, rather than by the
+   parent's layout.
+
+   Deliberately NOT grid/flex centring plus a bare scale(). A 1920px child in a
+   1366px box makes the grid track size to the child, and Chrome then paints and
+   reports the scaled box from the track's origin rather than the child's centre —
+   measured at 1366x768 it came out at x=277..1642, hanging 276px off the right of
+   the screen. translate(-50%,-50%) then scale() is exact at every factor: at
+   scale 1 in a 1920x1080 window it lands on 0,0, and at 0.7111 in a 1366x768 one
+   it lands on 0.4,0. The percentages resolve against the board's own 1920x1080,
+   so they do not need to know the viewport either. */
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+  transform-origin: center center;
+}
+
+/* The table fills the stage now instead of the window. The illustrated plate keeps
+   background-size: cover, which is correct for the 16:9 board it was always meant
+   for — the 3:2 crop it had to survive before is gone. */
+.game-table {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* The throw rig rides inside the stage so its cards are the board's cards. It stays
+   out of .game-table, which carries the perspective and the penalty strike. */
+#throw-camera-rig {
+  position: absolute;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* --- THE FOUR CORNERS -------------------------------------------------------
+   Two seats across the top, one seat and the match clock across the bottom, and
+   the hand on the floor between them. */
+
+/* OPPONENT 1 — top left. */
+.opponent-left {
+  left: 80px;
+  top: 48px;
+  transform: none;
+}
+
+/* OPPONENT 2 — top right. */
+.opponent-right {
+  left: auto;
+  right: 80px;
+  top: 48px;
+  transform: none;
+}
+
+/* OPPONENT 3 — bottom left. This is the partner seat, the one dealt face up, so it
+   keeps its row: portrait on the left, its open hand beside it. Stacking it the way
+   the other two are stacked would put 380px of readable cards directly above the
+   player's own hand, which is the one place on the board they must not be. */
+.opponent-top {
+  left: 80px;
+  top: 604px;
+  transform: none;
+}
+
+/* --- THE CENTRE BOARD ------------------------------------------------------
+   The two piles side by side, on the table plane. Each is its own dashed drop box
+   with its label, and the boxes are what the spec draws in the middle. */
+.center-play-zone {
+  top: 452px;
+  left: 50%;
+  width: auto;
+  height: auto;
+  gap: 56px;
+  border: 0;
+  border-radius: 0;
+}
+
+/* The crown watermark sat behind the single throw box. With two labelled boxes in
+   the middle it is just noise on the felt. */
+.center-play-zone::before {
+  content: none;
+}
+
+.pile-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 168px;
+  padding: 18px 18px 12px;
+  border: 3px dashed rgba(255, 255, 255, 0.55);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.16);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.pile-caption {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
+  white-space: nowrap;
+}
+
+/* The drop box is on the slot now, so the two piles do not each draw a second one
+   inside it. */
+.center-play-zone .discard-pile {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* The draw pile, as a pile: the same 105x158 as every other card on the board, and
+   flat on the table plane rather than the tilted ornament it was in the corner. The
+   stacked shadow is what makes it read as more than one card. */
+.center-play-zone .draw-pile-3d {
+  width: 105px;
+  height: 158px;
+  border-radius: 14px;
+  border: 4.5px solid #ffffff;
+  transform: none;
+  box-shadow:
+    4px 6px 0 rgba(0, 0, 0, 0.35),
+    8px 12px 0 rgba(0, 0, 0, 0.22),
+    0 16px 26px rgba(0, 0, 0, 0.45);
+}
+
+/* --- THE MATCH CLOCK, bottom right ----------------------------------------- */
+.arcade-timer-badge {
+  top: 700px;
+  left: auto;
+  right: 80px;
+}
+
+/* --- YOUR HAND, on the floor ---------------------------------------------- */
+
+/* The label band: a hairline rule either side of the word, the way the spec draws
+   the hand's heading. Decorative, no state, and it centres on the same axis as the
+   cards below it. */
+.hand-band-label {
+  position: absolute;
+  left: 50%;
+  bottom: 246px;
+  transform: translateX(-50%);
+  width: 720px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 190;
+  pointer-events: none;
+}
+
+.hand-band-label::before,
+.hand-band-label::after {
+  content: '';
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+}
+
+.hand-band-label span {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 2.6px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+}
+
+/* The hand is a level row, not the fan it was. The fan's per-card rotation and dip
+   are written as inline custom properties by renderHand(), and an author rule needs
+   !important to outrank an inline style — which is exactly what these two are for.
+   The angle and the dip go to zero, the 32px spread opens out to 58px, and the row
+   still grows from the same centred axis. */
+.hand-container {
+  left: 50%;
+  bottom: 40px;
+  width: 1400px;
+  height: 190px;
+  align-items: flex-end;
+}
+
+.hand-container .card {
+  --arc-rotation: 0deg !important;
+  --arc-y: 0px !important;
+  transform:
+    translateX(calc(var(--index-offset) * 58px))
+    translateY(0px)
+    rotate(0deg)
+    scale(var(--card-scale, 1));
+}
+
+/* The hover lift keeps working: .card:hover carries its own !important transform, so
+   a card still rises out of the row under the cursor. It reads --arc-rotation for its
+   rotateY, and the !important zero above outranks any hover rule anyway — which is
+   why there is no hover override here: it would be dead. */
+
+/* --- THE LOCAL SEAT, bottom left -------------------------------------------
+   Tucked against the left rim, beside the row rather than under it: the hand is
+   453px wide and centred, so x=80..172 never touches it. */
+.local-user-slot {
+  left: 80px;
+  bottom: 60px;
+  top: auto;
+}
+
+/* --- CHAT, bottom left, opening upward ------------------------------------ */
+.chat-bubble-trigger {
+  left: 214px;
+  bottom: 60px;
+}
+
+.chat-picker-tray {
+  left: 214px;
+  bottom: 126px;
+}
+
+/* --- THE ACTION BUTTONS, bottom right -------------------------------------- */
+.controls-panel {
+  right: 80px;
+  bottom: 60px;
+}
+
+/* --- THE TURN ARROWS -------------------------------------------------------
+   They were four marks on a 380px ring in the middle, which no longer points at
+   anything: the seats moved to the corners. The ring becomes a full-board overlay
+   and each arrow is placed by its own id, next to the seat it belongs to. The
+   arrow-pulse keyframes read --base-rot, so the rotation has to be given twice —
+   once for the resting state, once for the animation to pulse around. */
+.floating-turn-ring {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  transform: none;
+}
+
+#arrow-opponent-left {
+  top: 196px;
+  left: 300px;
+  transform: rotate(28deg);
+  --base-rot: 28deg;
+}
+
+#arrow-opponent-right {
+  top: 196px;
+  left: auto;
+  right: 300px;
+  transform: rotate(152deg);
+  --base-rot: 152deg;
+}
+
+#arrow-opponent-top {
+  top: 640px;
+  left: 300px;
+  transform: rotate(-28deg);
+  --base-rot: -28deg;
+}
+
+#arrow-local-player {
+  bottom: 150px;
+  left: 930px;
+  transform: rotate(180deg);
+  --base-rot: 180deg;
+}
+
+/* --- THE CARD CASCADE ------------------------------------------------------
+   Kept in the markup, given no room on the board: the layout spec hands the
+   top-left corner to OPPONENT 1, and has no cascade panel in it. Delete this rule
+   to bring it back — it needs a position to land somewhere sensible. */
+.top-left-deck-group {
+  display: none;
+}
+
+/* ==========================================================================
+   HELD THE WRONG WAY UP
+
+   The board is 16:9 and landscape. A portrait phone would get a 1920x1080 board
+   scaled to about a fifth of its height — a stamp in the middle of the screen with
+   unreadable text on it. Better to ask for the rotation than to render that.
+
+   Only for phone-shaped portraits: a portrait tablet or a squashed desktop window
+   still gets the board, because at 1024px wide there is enough room to play.
+   ========================================================================== */
+.rotate-device-veil {
+  display: none;
+}
+
+@media (orientation: portrait) and (max-width: 1024px) {
+  .viewport-frame { display: none; }
+  .rotate-device-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 9999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, #2c6b18 0%, #102a06 100%);
+  }
+}
+
+.rotate-device-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 34px 42px;
+  border: 4px solid #ffffff;
+  border-radius: 26px;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.rotate-device-glyph {
+  font-size: 3.4rem;
+  animation: rotate-device-tilt 2.2s ease-in-out infinite;
+}
+
+@keyframes rotate-device-tilt {
+  0%, 45%   { transform: rotate(0deg); }
+  70%, 100% { transform: rotate(-90deg); }
+}
+
+.rotate-device-text {
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: #ffffff;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-device-glyph { animation: none; }
+}

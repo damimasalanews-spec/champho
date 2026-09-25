@@ -31,17 +31,26 @@
     <!-- Full Screen Graphic Effects Layer -->
     <div id="screen-effects" class="screen-effect-layer"></div>
 
-    <!-- The card-throw flight rig. Sits at body level, OUTSIDE .game-table on
-         purpose: the table carries perspective and a penalty strike can transform
-         it, and a fixed layer inside it would inherit both. Coordinates inside are
-         plain viewport pixels, which is exactly what getBoundingClientRect hands
-         back, so the flyer can be aimed at the pile with no conversion. -->
-    <div id="throw-camera-rig">
-        <div id="throw-flight-layer">
-            <div id="throw-impact-ring"></div>
-            <div id="throw-flight-card" style="opacity: 0;"></div>
-        </div>
-    </div>
+    <!-- ======================================================================
+         THE 16:9 STAGE
+
+         The table is no longer a free-flowing 100vw x 100vh page. It is a fixed
+         1920x1080 board scaled to fit whatever viewport it lands in, so the
+         composition is identical on a desktop at 1920x1080 and on a phone held
+         sideways — the same seats, the same two piles, the same share of the
+         screen given to the hand — just smaller. --stage-scale is that factor,
+         written by applyStageScale() on load and on every resize.
+
+         .viewport-frame is the letterbox: it centres the stage and clips what
+         overflows. The board's own HUD — seats, piles, hand, clock, action buttons,
+         chat tray — is inside the stage and scales with it, which is what makes the
+         composition identical at every size. The four full-screen overlays that are
+         NOT board furniture (the colour wheel, the UNO banner, the victory screen,
+         the shockwave rim) stay at body level, outside the frame, where they are
+         still sized in real device pixels and so still fill a real screen.
+         ====================================================================== -->
+    <div class="viewport-frame">
+    <div class="stage" id="game-stage">
 
     <div class="game-table">
 
@@ -59,15 +68,31 @@
             <div class="direction-arrow arrow-left" id="arrow-opponent-left"></div>
         </div>
 
-        <!-- Central Deck Field Space -->
-        <!-- The draw pile has moved out of the middle and up into the top-left corner,
-             beside the Card Cascade stack, which is where the target mockup has it. The
-             deck keeps its id: the deal and the flight animations read its rect, so they
-             follow it wherever it sits. The middle keeps only the throw box.
+        <!-- THE TWO PILES, CENTRE BOARD.
 
-             The UNO face on the deck is .draw-deck-source::before, already in the sheet. -->
+             Side by side on the table plane: the draw pile the deal feeds from, and
+             the play pile the throw lands on. Both keep their ids — the deal, the
+             flight and the penalty strike all read their rects, so they follow the
+             piles wherever the board puts them.
+
+             The UNO face on the draw pile is .draw-deck-source::before, already in
+             the sheet. The captions are the labels the layout spec draws in those
+             two boxes. -->
+        <div class="center-play-zone" id="center-board-zone">
+            <div class="pile-slot">
+                <div class="draw-deck-source draw-pile-3d" id="central-deck"></div>
+                <span class="pile-caption">Draw Pile</span>
+            </div>
+            <div class="pile-slot">
+                <div class="discard-pile" id="discard-deck-pile"></div>
+                <span class="pile-caption">Play Pile</span>
+            </div>
+        </div>
+
+        <!-- The Card Cascade panel. Kept in the markup, out of the layout: the new
+             board gives the top-left corner to OPPONENT 1, and the layout spec has no
+             cascade in it. One rule brings it back if you want it. -->
         <div class="top-left-deck-group">
-            <div class="draw-deck-source draw-pile-3d" id="central-deck"></div>
             <div class="card-cascade-container">
                 <span class="cascade-title">Card Cascade</span>
                 <div class="cascade-stack-row">
@@ -77,11 +102,6 @@
                     <div class="mini-cascade-card" style="transform: rotate(12deg); margin-left: -8px;"></div>
                 </div>
             </div>
-        </div>
-
-        <!-- The throw box: the dashed surface the played cards land on. -->
-        <div class="center-play-zone" id="center-board-zone">
-            <div class="discard-pile" id="discard-deck-pile"></div>
         </div>
 
         <!-- Peripheral Seating Layout Slots.
@@ -164,7 +184,9 @@
              can reach it. The label stays "Champ" rather than the brief's "Cw": the
              UNO banner announces this seat as CHAMP, and two names for one player on
              the same screen is a worse bug than a mismatched pill. -->
-        <div class="player-slot local-user-slot" id="slot-local-player" style="bottom: 25px; left: 214px;">
+        <!-- Positioned by .local-user-slot in the sheet, not inline: the board layout
+             owns the seat positions now, and an inline style would have outranked it. -->
+        <div class="player-slot local-user-slot" id="slot-local-player">
             <div class="avatar-hud-wrapper">
                 <div class="avatar-frame" id="avatar-img-local">
                     <div class="avatar-container">🧑</div>
@@ -172,6 +194,10 @@
                 <div class="player-pill-tag">Champ</div>
             </div>
         </div>
+
+        <!-- YOUR HAND, bottom centre: a label band over a level row of cards, the way
+             the layout spec draws it. The band is decorative and carries no state. -->
+        <div class="hand-band-label"><span>Your Hand</span></div>
 
         <!-- Local Interactive Player Base Container -->
         <div class="hand-container" id="local-player-hand"></div>
@@ -203,6 +229,29 @@
             </div>
         </div>
         <div class="chat-bubble-trigger" id="chat-trigger" role="button" tabindex="0" aria-label="Chat">💬</div>
+    </div>
+
+    <!-- The card-throw flight rig. Inside .stage, but OUTSIDE .game-table — the one
+         spot that satisfies both constraints. It cannot live in the table, because
+         the table carries a perspective and the penalty strike animates the table's
+         transform, and a flyer inside it would inherit both. It cannot live at body
+         level either, now that the board is scaled: at body level its 105x158 flyer
+         is a real 105x158 on screen while the board's cards are 105x158 x
+         --stage-scale, so on a phone the flying card would be three times the size
+         of the card it came from.
+
+         Here it inherits the stage's scale, so its cards ARE the board's cards, and
+         the aim goes through stageRect(): the viewport rects from
+         getBoundingClientRect converted into stage pixels. One conversion, one
+         place, and the flyer can never disagree with what was painted. -->
+    <div id="throw-camera-rig">
+        <div id="throw-flight-layer">
+            <div id="throw-impact-ring"></div>
+            <div id="throw-flight-card" style="opacity: 0;"></div>
+        </div>
+    </div>
+
+    </div>
     </div>
 
     <!-- The wild colour wheel. Deliberately OUTSIDE .game-table: the table carries
@@ -247,6 +296,18 @@
          reason as the wheel and the banner: the strike animates the table's transform,
          and a fixed layer inside it would be shoved around with the table. -->
     <div id="screen-shockwave-layer" class="shockwave-vignette"></div>
+
+    <!-- Held the wrong way up. The board is 16:9 and every measurement in it assumes
+         a landscape viewport, so a portrait phone gets a 0.2x board in the middle of
+         the screen and nothing readable. This asks for the rotation instead. It is a
+         press-out overlay at body level, so it is sized in device pixels rather than
+         stage pixels, and it is CSS-only — no script, no state. -->
+    <div class="rotate-device-veil" aria-hidden="true">
+        <div class="rotate-device-card">
+            <div class="rotate-device-glyph">📱</div>
+            <div class="rotate-device-text">Turn your device sideways</div>
+        </div>
+    </div>
 
     <!-- Script Execution Pipelines -->
     <script src="game/sound.js"></script>
@@ -393,6 +454,46 @@
         let throwCameraTX = 0, throwCameraTY = 0; // camera follow target
         const throwSparks = [];               // impact particles, pooled and removed
 
+        // ==================================================================
+        // THE STAGE SCALE
+        //
+        // The board is a fixed 1920x1080 scaled to fit the viewport. Everything the
+        // board draws is already in stage pixels — only two things need this: the
+        // stylesheet's --stage-scale, and the throw, whose aim comes out of
+        // getBoundingClientRect and therefore arrives in device pixels.
+        //
+        // stageRect() reads the conversion back off the element's own box instead of
+        // trusting a cached number. A resize that lands between two frames can then
+        // never leave the flyer aimed at where the pile used to be: to do that, the
+        // stage would have to lie about its own bounding box.
+        // ==================================================================
+        const STAGE_W = 1920, STAGE_H = 1080;
+
+        function applyStageScale() {
+            const fit = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+            document.documentElement.style.setProperty('--stage-scale', String(fit > 0 ? fit : 1));
+        }
+
+        function stageRect() {
+            const el = document.getElementById('game-stage');
+            if (!el) return { left: 0, top: 0, scale: 1 };
+            const r = el.getBoundingClientRect();
+            return { left: r.left, top: r.top, scale: r.width / STAGE_W || 1 };
+        }
+
+        // A viewport rect — what the DOM hands back, already scaled — as a point in
+        // stage pixels, which is what the flight layer draws in.
+        function toStagePoint(viewportRect, stage) {
+            return {
+                x: (viewportRect.left + viewportRect.width / 2 - stage.left) / stage.scale,
+                y: (viewportRect.top + viewportRect.height / 2 - stage.top) / stage.scale,
+            };
+        }
+
+        window.addEventListener('resize', applyStageScale);
+        window.addEventListener('orientationchange', applyStageScale);
+        applyStageScale();
+
         // The easing curves the spec calls for: strong acceleration out of the
         // hand, smooth deceleration into the pile, spin that dies out before land.
         function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
@@ -432,10 +533,15 @@
             // Where the card sits now, and where it has to end up. The pile rotates
             // 24° about X with the table, so the raw rect is measured mid-transform:
             // close enough to aim with, and exactly what the player's eye judges by.
+            // Both rects arrive in device pixels and the flight layer draws in stage
+            // pixels. One conversion, here, so every number downstream — the curve,
+            // the camera look-at, the landing point — is in the same units as the
+            // board the player is actually looking at.
+            const stage = stageRect();
             const from = cardElement.getBoundingClientRect();
             const pile = document.getElementById('discard-deck-pile').getBoundingClientRect();
-            const p0 = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
-            const p2 = { x: pile.left + pile.width / 2, y: pile.top + pile.height / 2 };
+            const p0 = toStagePoint(from, stage);
+            const p2 = toStagePoint(pile, stage);
 
             // The control point of the curve: lifted above both ends, and bowed out
             // to one side.
@@ -457,7 +563,11 @@
                 y: Math.min(p0.y, p2.y) - arc,
             };
             const tilt0 = parseFloat(cardElement.style.getPropertyValue('--arc-rotation')) || 0;
-            const k0 = from.width / 105;              // hand card scale relative to table card
+            // The hand card's width relative to a table card, in STAGE pixels: the
+            // measured rect is scaled by the stage, so the stage scale comes back out
+            // of it and what is left is the hand's own scale (1, or 1.25 while the
+            // card is hovered). The flyer then grows from this to exactly 1.0.
+            const k0 = from.width / (105 * stage.scale);
 
             // A quiet clone underneath: 2–3 fading echoes stretched along the path.
             // The impact ring and the sparks are shared single nodes.
@@ -612,8 +722,11 @@
             // camera: ease toward the midpoint of the travel, never toward the card
             // itself, then back to rest on impact
             if (t > THROW.lift && t <= THROW.land) {
-                const lookX = (s.x + a.p2.x) / 2 - innerWidth / 2;
-                const lookY = (s.y + a.p2.y) / 2 - innerHeight * 0.55;
+                // Stage dimensions, not innerWidth/innerHeight: the camera is panning
+                // across the board, not across the viewport, now that the board is a
+                // scaled 1920x1080 object inside it.
+                const lookX = (s.x + a.p2.x) / 2 - STAGE_W / 2;
+                const lookY = (s.y + a.p2.y) / 2 - STAGE_H * 0.55;
                 throwCameraTX = Math.min(9, Math.max(-9, -lookX * 0.07));
                 throwCameraTY = Math.min(7, Math.max(-7, -lookY * 0.07));
             } else {
@@ -797,7 +910,7 @@
 
             // a tiny camera recoil impulse — the follow lerp absorbs it into the
             // return-to-rest, so it reads as weight and not as shake
-            throwCameraX += Math.min(4, Math.max(-4, (a.p2.x - innerWidth / 2) * 0.02));
+            throwCameraX += Math.min(4, Math.max(-4, (a.p2.x - STAGE_W / 2) * 0.02));
             throwCameraY += 3.5;
         }
 
