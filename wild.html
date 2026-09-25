@@ -63,6 +63,19 @@
             <span id="game-countdown-string">02:29</span>
         </div>
 
+        <!-- Settings, top-right corner. Board furniture, so it lives in the stage and
+             scales with everything else.
+
+             The spec calls for a gear icon and no behaviour, but a button that does
+             nothing when tapped is worse than no button, so this one drives the only
+             setting the page has: the sound. The glyph stays a gear — the spec's icon —
+             and the muted state shows as a dimmed, struck-through treatment plus
+             aria-pressed, rather than by swapping the icon out. -->
+        <button class="arcade-settings-btn" id="settings-trigger" type="button"
+                aria-label="Sound on — tap to mute" aria-pressed="false">
+            <span class="gear-glyph" aria-hidden="true">⚙</span>
+        </button>
+
         <!-- Live Neon Turn Indicator Rig -->
         <div class="floating-turn-ring">
             <div class="direction-arrow arrow-top" id="arrow-opponent-top"></div>
@@ -71,23 +84,17 @@
             <div class="direction-arrow arrow-left" id="arrow-opponent-left"></div>
         </div>
 
-        <!-- Central Deck Field Space -->
-        <!-- The draw pile sits up in the top-left corner, beside the Card Cascade stack.
-             The deck keeps its id: the deal and the flight animations read its rect, so
-             they follow it wherever it sits. The middle keeps only the throw box.
+        <!-- THE DRAW PACKET. ONE packet, upper-left of the central play area.
+
+             The layout spec is explicit that there must be only one draw/UNO box, so the
+             Card Cascade that used to sit beside this one is gone — two stacks of cards
+             in the same corner read as two packets, which is exactly what the spec rules
+             out. The deck keeps its id: the deal and the flight animations read its rect,
+             so they follow it wherever it sits.
 
              The UNO face on the deck is .draw-deck-source::before, already in the sheet. -->
         <div class="top-left-deck-group">
             <div class="draw-deck-source draw-pile-3d" id="central-deck"></div>
-            <div class="card-cascade-container">
-                <span class="cascade-title">Card Cascade</span>
-                <div class="cascade-stack-row">
-                    <div class="mini-cascade-card" style="transform: rotate(-10deg);"></div>
-                    <div class="mini-cascade-card" style="transform: rotate(-5deg); margin-left: -8px;"></div>
-                    <div class="mini-cascade-card" style="transform: rotate(5deg); margin-left: -8px;"></div>
-                    <div class="mini-cascade-card" style="transform: rotate(12deg); margin-left: -8px;"></div>
-                </div>
-            </div>
         </div>
 
         <!-- The throw box: the dashed surface the played cards land on. -->
@@ -159,23 +166,19 @@
             </div>
         </div>
 
-        <!-- CHAIR BOTTOM SLOT: Local User (Champ / You). The portrait is the one thing
-             this page did not have — the local seat was only ever the hand at the foot
-             of the table.
+        <!-- CHAIR BOTTOM SLOT: Local User (Champ / You).
 
-             left is 214px rather than the 160px the brief specified, because 160px puts the
-             portrait underneath the chat picker tray. At 1280x900 the measured boxes are:
-             tray x 48-192, this seat x 214-304, hand wrapper x 308-972, and the cards
-             actually drawn x 517-763. So 214px clears the tray by 22px and the hand's
-             positioning box by 4px, and stays in the bottom-left corner the brief asked
-             for. At 160px the tray (z-index 300) sat on top of the portrait (z-index 50)
-             with ~1,568px^2 of overlap. -->
-        <!-- local-user-slot is the seat's name in the stylesheet, and it is what
-             gives this pill its own colour. The inline gradient came out so the rule
-             can reach it. The label stays "Champ" rather than the brief's "Cw": the
-             UNO banner announces this seat as CHAMP, and two names for one player on
-             the same screen is a worse bug than a mismatched pill. -->
-        <div class="player-slot local-user-slot" id="slot-local-player" style="bottom: 25px; left: 214px;">
+             Positioned by .local-user-slot in the sheet, not inline. It used to carry
+             style="bottom: 25px; left: 214px;" — a bottom-left offset measured against a
+             1280x900 viewport to dodge the chat tray. The spec now fixes this seat at
+             X 170 / Y 820 on the 1920x1080 board, and an inline style outranks a
+             stylesheet, so the offset had to go to the sheet to be overridable at all.
+
+             local-user-slot is also the seat's name in the stylesheet, and it is what
+             gives this pill its own colour. The label stays "Champ" rather than the
+             brief's "Cw": the UNO banner announces this seat as CHAMP, and two names for
+             one player on the same screen is a worse bug than a mismatched pill. -->
+        <div class="player-slot local-user-slot" id="slot-local-player">
             <div class="avatar-hud-wrapper">
                 <div class="avatar-frame" id="avatar-img-local">
                     <div class="avatar-container">🧑</div>
@@ -189,7 +192,7 @@
 
         <!-- Control Action Panel -->
         <div class="controls-panel">
-            <button class="btn-arcade" id="btn-uno-call">UNO</button>
+            <button class="btn-arcade" id="btn-uno-call">CALL UNO</button>
         </div>
 
         <!-- Chat. Local only: this page has no socket, so these float up and play a
@@ -395,8 +398,12 @@
 
                 // Arc layouts calculations
                 const offsetFromMiddle = i - midIndex;
-                const rotationAngle = offsetFromMiddle * 5;
-                const verticalDip = Math.abs(offsetFromMiddle) * 4;
+                // The spec's small fan with the centre card raised. The sideways spread
+                // is not here — it is --hand-step in the sheet (62px, which puts seven
+                // 125px cards at the spec's ~497px hand width). These two are the tilt
+                // and the lift that make it an arc rather than a row.
+                const rotationAngle = offsetFromMiddle * 4;
+                const verticalDip = Math.abs(offsetFromMiddle) * 5;
 
                 cardEl.style.setProperty('--index-offset', offsetFromMiddle);
                 cardEl.style.setProperty('--arc-rotation', `${rotationAngle}deg`);
@@ -464,6 +471,21 @@
             if (!el) return { left: 0, top: 0, scale: 1 };
             const r = el.getBoundingClientRect();
             return { left: r.left, top: r.top, scale: r.width / STAGE_W || 1 };
+        }
+
+        // The flyer's own box, in stage pixels: the size of the card it becomes when it
+        // lands on the discard pile. That is no longer the size of a card in the hand —
+        // the spec gives the hand 125x175, the discard 130x180 and the draw packet
+        // 145x185 — so there is no single "table card" left to hard-code here. Read back
+        // off the flyer's own computed width, the sheet stays the one place it is set.
+        function flyerBox() {
+            const el = document.getElementById('throw-flight-card');
+            if (!el) return { w: 105, h: 158 };
+            const cs = getComputedStyle(el);
+            return {
+                w: parseFloat(cs.width) || 105,
+                h: parseFloat(cs.height) || 158,
+            };
         }
 
         // A viewport rect — what the DOM hands back, already scaled — as a point in
@@ -548,11 +570,14 @@
                 y: Math.min(p0.y, p2.y) - arc,
             };
             const tilt0 = parseFloat(cardElement.style.getPropertyValue('--arc-rotation')) || 0;
-            // The hand card's width relative to a table card, in STAGE pixels: the
-            // measured rect is scaled by the stage, so the stage scale comes back out
-            // of it and what is left is the hand's own scale (1, or 1.25 while the
-            // card is hovered). The flyer then grows from this to exactly 1.0.
-            const k0 = from.width / (105 * stage.scale);
+            // The hand card's width relative to the FLYER's, in stage pixels: the measured
+            // rect is scaled by the stage, so the stage scale comes back out of it and what
+            // is left is the hand's own scale against its own card (1, or 1.25 while the
+            // card is hovered). The flyer then grows from this to exactly 1.0, which is the
+            // discard card's size — the spec's 125x175 hand card arriving at 130x180 on the
+            // pile, not at some shared "table card" that no longer exists.
+            const box = flyerBox();
+            const k0 = from.width / (box.w * stage.scale);
 
             // A quiet clone underneath: 2–3 fading echoes stretched along the path.
             // The impact ring and the sparks are shared single nodes.
@@ -569,7 +594,7 @@
             const trail = [];
             paintedThrowKey = '';   // this throw repaints the flyer's face from scratch
             cardThrow = {
-                t0: 0, p0, p1, p2, spinDir, tilt0, k0,
+                t0: 0, p0, p1, p2, spinDir, tilt0, k0, box,
                 letter: cardData.value, color: cardData.color,
                 sourceEl: cardElement, onLanded,
                 ghostA, ghostB, ghostC, trail, impacted: false,
@@ -746,8 +771,16 @@
             // applied last, so they tilt the card in its own frame and are then
             // projected by the flight layer's perspective — a real lean rather than
             // the flat squash the same angles give without one.
+            //
+            // The half-box offsets are the flyer's OWN half-width and half-height, not
+            // the 52.5/79 of a 105x158 card: every operation here is about the box
+            // centre, so translating by the true half-size is what puts that centre on
+            // the curve. Hard-coding the old numbers would have landed a 130x180 card
+            // 9px right and 11px low of the pile.
+            const box = (cardThrow && cardThrow.box) || { w: 105, h: 158 };
+            const hw = box.w / 2, hh = box.h / 2;
             el.style.transform =
-                `translate3d(${(s.x - 52.5).toFixed(1)}px, ${(s.y - 79).toFixed(1)}px, ${s.z.toFixed(1)}px)` +
+                `translate3d(${(s.x - hw).toFixed(1)}px, ${(s.y - hh).toFixed(1)}px, ${s.z.toFixed(1)}px)` +
                 ` rotate(${s.dir.toFixed(2)}deg) scale(${s.sx.toFixed(4)}, ${s.sy.toFixed(4)}) rotate(${(-s.dir).toFixed(2)}deg)` +
                 ` rotate(${s.rot.toFixed(2)}deg) rotateX(${s.rx.toFixed(2)}deg) rotateY(${s.ry.toFixed(2)}deg)`;
         }
@@ -764,8 +797,11 @@
                 ghost.textContent = letter;
             }
             ghost.style.opacity = String(opacity);
+            // Same half-box offsets as the flyer, from the same box: the echoes have to
+            // sit on the flyer's centre or the smear trails off it.
+            const box = (cardThrow && cardThrow.box) || { w: 105, h: 158 };
             ghost.style.transform =
-                `translate3d(${(sample.x - 52.5).toFixed(1)}px, ${(sample.y - 79).toFixed(1)}px, ${sample.z.toFixed(1)}px)` +
+                `translate3d(${(sample.x - box.w / 2).toFixed(1)}px, ${(sample.y - box.h / 2).toFixed(1)}px, ${sample.z.toFixed(1)}px)` +
                 ` rotate(${sample.rot.toFixed(1)}deg) rotateX(${sample.rx.toFixed(1)}deg) rotateY(${sample.ry.toFixed(1)}deg)`;
         }
 
@@ -1010,14 +1046,19 @@
                 // widening the seat and dragging its portrait away from the rim.
                 const direction = isLeft ? 1 : -1;
 
-                backCard.style.top = `${i * 20}px`;
-                backCard.style.left = `calc(50% + ${direction * i * 10}px)`;
-                // Full size, like every other hand on the table. This used to carry a
-                // scale(0.78), which made the hidden hands quietly smaller than the
-                // teammate's and the player's — the one place on the board where a card
-                // was not the same card.
+                // The spec's side seats: 65x105 backs, 22px apart across and 30px down,
+                // so the fan cascades diagonally inward and every card keeps a ~43px
+                // strip of its neighbour — inside the spec's 38-45px overlap band. The
+                // card's own size is --side-card-* in the sheet; these are the steps.
+                //
+                // The faces are SMALLER than the player's and the partner's, and that is
+                // the spec's visual hierarchy rather than the uniformity this used to
+                // have: your hand is the biggest thing on the table, the side seats are
+                // the smallest, the top seat sits between them.
+                backCard.style.top = `${i * 30}px`;
+                backCard.style.left = `calc(50% + ${direction * i * 22}px)`;
                 backCard.style.transform =
-                    `translate3d(-50%, 0, 0) rotate(${direction * (24 + i * 1.5)}deg)`;
+                    `translate3d(-50%, 0, 0) rotate(${direction * (18 + i * 2)}deg)`;
                 backCard.style.zIndex = i;
 
                 fanTray.appendChild(backCard);
@@ -1048,10 +1089,14 @@
 
                 // Fans cards sideways and slightly down at the edges, the same arc the
                 // local hand uses so a partner's hand reads as the same kind of object.
+                // The spec's top seat: 105x150 cards at a 50px spread, the middle of the
+                // spec's 35-55px overlap band, so seven of them come to 405px — which is
+                // exactly what .opponent-top-hand is sized to. A wider spread would
+                // outgrow the rack and a tighter one would hide the corner indices.
                 const offsetFromMiddle = i - midIndex;
-                const horizontalSpread = offsetFromMiddle * 32;   // an open hand, so legible
-                const rotationAngle = offsetFromMiddle * 4;
-                const verticalDip = Math.abs(offsetFromMiddle) * 2;
+                const horizontalSpread = offsetFromMiddle * 50;
+                const rotationAngle = offsetFromMiddle * 3;
+                const verticalDip = Math.abs(offsetFromMiddle) * 4;
 
                 cardEl.style.left = `calc(50% + ${horizontalSpread}px)`;
                 cardEl.style.transform = `translate3d(-50%, 0, 0) translateY(${verticalDip}px) rotate(${rotationAngle}deg)`;
@@ -1261,6 +1306,33 @@
                 trigger.setAttribute('aria-expanded', 'false');
             }
         }
+
+        // Settings, top right. The spec asks for a gear button and stops there; a button
+        // that does nothing when tapped is worse than no button, and sound is the only
+        // setting this page has, so the gear owns it. setSoundMuted comes from
+        // game/sound.js; the typeof guard is because that file is an optional include and
+        // the page must not throw its own controls if it is missing.
+        let settingsSoundOff = false;
+
+        function applySettingsSoundOff(off) {
+            settingsSoundOff = !!off;
+            if (typeof setSoundMuted === 'function') setSoundMuted(settingsSoundOff);
+            const btn = document.getElementById('settings-trigger');
+            if (!btn) return;
+            btn.classList.toggle('is-muted', settingsSoundOff);
+            btn.setAttribute('aria-pressed', String(settingsSoundOff));
+            btn.setAttribute('aria-label',
+                settingsSoundOff ? 'Sound off — tap to unmute' : 'Sound on — tap to mute');
+        }
+
+        function wireSettingsButton() {
+            const btn = document.getElementById('settings-trigger');
+            if (!btn) return;
+            btn.addEventListener('click', () => applySettingsSoundOff(!settingsSoundOff));
+            applySettingsSoundOff(false);
+        }
+
+        wireSettingsButton();
 
         function flyEmote(glyph) {
             const flyer = document.createElement('div');

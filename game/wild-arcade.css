@@ -1984,3 +1984,491 @@ tail so they read as embers rather than confetti. */
 @media (prefers-reduced-motion: reduce) {
   .rotate-device-glyph { animation: none; }
 }
+
+/* ==========================================================================
+   THE 1920x1080 PRODUCTION LAYOUT
+
+   The board is a fixed 1920x1080 scaled to fit (see THE 16:9 STAGE below), so the
+   spec's pixel numbers go straight in here as CSS pixels with no conversion at all.
+   That is the entire reason for having built the stage: the spec is written in the
+   board's own coordinate system.
+
+   ---- Canvas ---------------------------------------------------------------
+   Resolution 1920x1080.  Aspect 16:9.  Orientation landscape.
+   Safe margin 40px from every edge, inside the spec's 35-50px band. Every edge
+   placement below is either 40px, or a spec coordinate that already implies it.
+
+   ---- Card sizes, and the hierarchy they create ----------------------------
+   yours     125 x 175   62px step          <- largest, and the easiest to hit
+   discard   130 x 180
+   draw      145 x 185
+   top       105 x 150   50px step
+   sides      65 x 105   22px across, 30px down    <- smallest, tightest overlap
+   The sizes live in the variables below because the JS renderers and the throw's
+   flyer box read them back out of the sheet; there is no second copy in script.
+
+   ---- One packet rule ------------------------------------------------------
+   Exactly ONE draw packet. The Card Cascade that used to sit beside the deck is
+   out of the markup: two stacks of cards in one corner read as two packets, which
+   is what the spec rules out.
+
+   ---- The one place the spec contradicts itself ----------------------------
+   The X/Y table puts the top avatar at X 885-1035 (centred) and the top player's
+   cards at X 780 — which would fan them straight through the avatar's face. The
+   reference screenshot shows them side by side with the PAIR centred, which is the
+   only reading where "TOP PLAYER: Centered horizontally" also holds. So the seat is
+   centred as a group: avatar left, open fan right, 40px between them. Avatars and
+   cards are the spec's exact sizes.
+   ========================================================================== */
+
+.stage {
+  /* Card sizes by seat — the spec's hierarchy, read back by the JS as well as used
+     here, so the sheet stays the single source of truth for how big a card is. */
+  --hand-card-w: 125px;   --hand-card-h: 175px;   --hand-step: 62px;
+  --discard-w: 130px;     --discard-h: 180px;
+  --draw-w: 145px;        --draw-h: 185px;
+  --top-card-w: 105px;    --top-card-h: 150px;
+  --side-card-w: 65px;    --side-card-h: 105px;
+
+  /* Avatars: top 150, yours 140, sides 135 */
+  --avatar-top: 150px;    --avatar-you: 140px;    --avatar-side: 135px;
+}
+
+/* --------------------------------------------------------------------------
+   TIMER — 170 x 70, top-left, 40px in from both edges. Clear of the draw packet,
+   which starts at X 430.
+   -------------------------------------------------------------------------- */
+.arcade-timer-badge {
+  top: 35px;
+  left: 40px;
+  width: 170px;
+  height: 70px;
+  padding: 0;
+  justify-content: center;
+  gap: 10px;
+  font-size: 2rem;
+  border-radius: 26px;
+}
+
+.arcade-timer-badge .clock-glyph { font-size: 1.7rem; }
+
+/* --------------------------------------------------------------------------
+   SETTINGS — 70 x 70, top-right, 40px in. Sits at X 1810 because 1920 - 40 - 70.
+   The gear is the spec's icon; the muted state dims it and strikes it through
+   rather than swapping the glyph, so it stays a gear button.
+   -------------------------------------------------------------------------- */
+.arcade-settings-btn {
+  position: absolute;
+  top: 35px;
+  left: 1810px;
+  width: 70px;
+  height: 70px;
+  z-index: 320;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .42);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .35);
+  transition: transform .12s ease, background .2s ease, color .2s ease;
+}
+
+.arcade-settings-btn:active { transform: scale(.92); }
+
+.arcade-settings-btn.is-muted {
+  background: rgba(0, 0, 0, .62);
+  color: rgba(255, 255, 255, .5);
+}
+
+.arcade-settings-btn.is-muted .gear-glyph { position: relative; }
+
+.arcade-settings-btn.is-muted .gear-glyph::after {
+  content: '';
+  position: absolute;
+  left: -7px;
+  right: -7px;
+  top: 50%;
+  height: 3px;
+  border-radius: 2px;
+  background: #ff5a5a;
+  transform: rotate(-45deg);
+}
+
+/* --------------------------------------------------------------------------
+   TURN INDICATOR — 400 x 300 centred on the discard card at (960, 480).
+
+   z-index 40 is the important number: the centre board is z-index 100, so the
+   curved indicator passes BEHIND the card it circles, which is what the spec
+   means by "it should not cover the card itself". It is a soft glow rather than
+   a solid ring for the same reason.
+   -------------------------------------------------------------------------- */
+.floating-turn-ring {
+  top: 480px;
+  left: 960px;
+  width: 400px;
+  height: 300px;
+  transform: translate(-50%, -50%) rotateX(24deg);
+  z-index: 40;
+}
+
+.floating-turn-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid rgba(150, 220, 255, .30);
+  box-shadow:
+    0 0 26px rgba(150, 220, 255, .26),
+    inset 0 0 22px rgba(150, 220, 255, .16);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   DRAW PACKET — 145 x 185 at (430, 120). Upper-left of the central play area,
+   not in the far corner. Tilted like a real packet, with the stacked-card shadow
+   .draw-pile-3d already carries.
+   -------------------------------------------------------------------------- */
+.top-left-deck-group {
+  position: absolute;
+  left: 430px;
+  top: 120px;
+  display: block;
+}
+
+#central-deck {
+  width: var(--draw-w);
+  height: var(--draw-h);
+  border-radius: 18px;
+  border-width: 5.5px;
+  transform: rotate(-20deg);
+}
+
+/* The UNO face scales with the packet: 1.8rem was set for a 105px card. */
+#central-deck::before {
+  font-size: 2.5rem;
+  transform: rotate(-20deg);
+}
+
+/* --------------------------------------------------------------------------
+   CENTRE DISCARD — 130 x 180, centred on (960, 480). The main focus of the centre
+   play area, one card visible on top, sitting slightly above the table with a
+   soft shadow.
+   -------------------------------------------------------------------------- */
+.center-play-zone {
+  top: 480px;
+  left: 960px;
+  width: var(--discard-w);
+  height: var(--discard-h);
+  transform: translate3d(-50%, -50%, 0) rotateX(24deg);
+  z-index: 100;
+}
+
+/* The pile and every card that lands in it are the discard size. The flyer is sized
+   by #throw-flight-card, which is why it is not listed here. */
+.center-play-zone .discard-pile,
+.center-play-zone .discarded-card {
+  width: var(--discard-w);
+  height: var(--discard-h);
+}
+
+.center-play-zone .discard-pile { border-radius: 17px; }
+
+/* The discard card's face, up from the 105px card's 5rem. */
+.center-play-zone .discarded-card .card-value { font-size: 6.2rem; }
+.center-play-zone .discarded-card .card-value.action-symbol { font-size: 3.5rem; }
+.center-play-zone .discarded-card .corner-value { font-size: 1.6rem; }
+
+/* --------------------------------------------------------------------------
+   THE THREE OPPONENTS
+
+   Top seat 105x150 cards, the side seats 65x105. Both keep their ids and their
+   internal structure; only their geometry and their card size change.
+   -------------------------------------------------------------------------- */
+
+/* --- top seat: portrait left, open fan right, the pair centred ------------- */
+.opponent-top {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.opponent-top-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.opponent-top .avatar-frame { width: var(--avatar-top); height: var(--avatar-top); }
+.opponent-top .avatar-container { font-size: 5rem; }
+
+.opponent-top .player-pill-tag {
+  width: 190px;
+  height: 55px;
+  margin-top: -22px;
+  border-radius: 28px;
+  font-size: 1.75rem;
+}
+
+/* 105px + 6 x 50px = 405px: seven cards at the spec's 50px step. The renderer writes
+   the per-card offsets; this is the rack they fan inside. */
+.opponent-top-hand {
+  width: calc(var(--top-card-w) + 6 * 50px);
+  height: var(--top-card-h);
+  margin-top: 0;
+  display: block;
+}
+
+.opponent-top-hand .card {
+  width: var(--top-card-w);
+  height: var(--top-card-h);
+  top: 0;
+}
+
+/* --- side seats: left-middle and right-middle ----------------------------- */
+.opponent-left  { left: 50px;   top: 210px; right: auto; transform: none; }
+.opponent-right { left: 1735px; top: 210px; right: auto; transform: none; }
+
+.opponent-left .avatar-frame,
+.opponent-right .avatar-frame { width: var(--avatar-side); height: var(--avatar-side); }
+
+.opponent-left .avatar-container,
+.opponent-right .avatar-container { font-size: 4.5rem; }
+
+.opponent-left .player-pill-tag,
+.opponent-right .player-pill-tag {
+  width: 170px;
+  height: 50px;
+  margin-top: -20px;
+  border-radius: 25px;
+  font-size: 1.5rem;
+}
+
+/* The fans are anchored to the spec's card origins rather than to the end of the
+   portrait column: left at X 150 / Y 300 (seat + 100 / + 90) and right at X 1700
+   (seat - 35). Width and height are 0 because the cards are absolutely positioned
+   around this point — the point is the anchor, not a box. */
+.opponent-fan-tray {
+  position: absolute;
+  left: 100px;
+  top: 90px;
+  width: 0;
+  height: 0;
+  margin-top: 0;
+  display: block;
+  z-index: 1;
+}
+
+.opponent-right .opponent-fan-tray { left: -35px; }
+
+/* Card faces off the avatar: the portrait overlaps the top of its own fan. */
+.opponent-profile-wrapper .avatar-frame { z-index: 4; }
+.opponent-profile-wrapper .player-pill-tag { z-index: 5; }
+
+.opponent-fan-tray .card.card-back {
+  width: var(--side-card-w);
+  height: var(--side-card-h);
+  border-radius: 9px;
+  border-width: 3px;
+}
+
+/* The counts sit under the pill, at the seat's own scale. */
+.opponent-card-count-stack {
+  margin-top: 6px;
+  min-width: 52px;
+  height: 24px;
+}
+
+/* --------------------------------------------------------------------------
+   YOUR SEAT — avatar 140 x 140 at (170, 820), 40px up from the hand's top edge.
+   -------------------------------------------------------------------------- */
+.local-user-slot {
+  left: 170px;
+  top: 820px;
+  right: auto;
+  bottom: auto;
+  transform: none;
+}
+
+.local-user-slot .avatar-frame { width: var(--avatar-you); height: var(--avatar-you); }
+.local-user-slot .avatar-container { font-size: 4.7rem; }
+
+.local-user-slot .player-pill-tag {
+  width: 180px;
+  height: 52px;
+  margin-top: -22px;
+  border-radius: 26px;
+  font-size: 1.6rem;
+}
+
+/* --------------------------------------------------------------------------
+   YOUR HAND — the biggest thing on the table. 125 x 175 cards at a 62px step,
+   centred on X 960, tops at Y 865, bottoms at Y 1040.
+
+   Seven cards at that step come to 497px, inside the spec's 450-500px hand width,
+   and the sideways spread is a variable so the hover rule below cannot drift out
+   of step with it. The per-card tilt and lift are still written by renderHand.
+   -------------------------------------------------------------------------- */
+.hand-container {
+  left: 960px;
+  top: 865px;
+  right: auto;
+  bottom: auto;
+  width: 700px;
+  height: var(--hand-card-h);
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  transform-style: preserve-3d;
+}
+
+.hand-container .card {
+  width: var(--hand-card-w);
+  height: var(--hand-card-h);
+  top: 0;
+  transform:
+    translateX(calc(var(--index-offset) * var(--hand-step)))
+    translateY(var(--arc-y))
+    rotate(var(--arc-rotation));
+}
+
+/* The hover keeps its intent — lift, tilt back, grow — but on the new geometry. It
+   must use --hand-step, not the 30px it was written with: at a 62px step a 30px
+   hover spread drags every card toward the middle of the fan as you point at it. */
+.hand-container .card:hover {
+  transform:
+    translateX(calc(var(--index-offset) * var(--hand-step)))
+    translateY(calc(var(--arc-y) - 46px))
+    translateZ(90px)
+    rotateX(-12deg)
+    rotateY(var(--arc-rotation))
+    scale(1.1) !important;
+}
+
+/* The hand's faces scale with the card: 5rem was set for a 105px card. */
+.hand-container .card .card-value { font-size: 6rem; }
+.hand-container .card .card-value.action-symbol { font-size: 3.3rem; }
+.hand-container .card .corner-value { font-size: 1.55rem; }
+
+/* --------------------------------------------------------------------------
+   CHAT — 100 x 100 circle, bottom-left, 40px in, clear of your avatar at X 170.
+   -------------------------------------------------------------------------- */
+.chat-bubble-trigger {
+  left: 40px;
+  top: 900px;
+  right: auto;
+  bottom: auto;
+  width: 100px;
+  height: 100px;
+  font-size: 2.6rem;
+}
+
+.chat-picker-tray {
+  left: 40px;
+  bottom: 200px;
+  width: 200px;
+}
+
+/* --------------------------------------------------------------------------
+   CALL UNO — visible button 200 x 120, inside the spec's 230 x 150 tap area,
+   40px in from the right and bottom edges. Bottom-right corner, clearly visible.
+   -------------------------------------------------------------------------- */
+.controls-panel {
+  right: 40px;
+  bottom: 40px;
+  z-index: 1000;
+}
+
+#btn-uno-call {
+  width: 200px;
+  height: 120px;
+  padding: 0;
+  border-radius: 30px;
+  font-size: 2.5rem;
+  line-height: 1.05;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* The throw's flyer and its echoes are the DISCARD size, not the old 105x158 — the
+   card it becomes when it lands is 130x180, and the flyer has to be that card from
+   the moment it leaves the hand or the handoff at the pile is a visible resize.
+
+   This is also the number the throw reads back (flyerBox() in wild.html) to work out
+   how far the card must grow between the hand and the pile, so it is set once, here,
+   and never restated in script. */
+#throw-flight-card,
+.throw-ghost {
+  width: var(--discard-w);
+  height: var(--discard-h);
+}
+
+#throw-flight-card { border-radius: 17px; }
+.throw-ghost { border-radius: 17px; }
+
+/* The flyer's own faces match the discard card it becomes. */
+#throw-flight-card .card-value,
+.throw-ghost .card-value { font-size: 6.2rem; }
+#throw-flight-card .card-value.action-symbol,
+.throw-ghost .card-value.action-symbol { font-size: 3.5rem; }
+
+/* The impact ring grows with the card it marks. Keyframes set border-width, so the
+   scale factor rides in a variable rather than being multiplied in here. */
+#throw-impact-ring {
+  width: calc(30px * var(--discard-w) / 105px);
+  height: calc(30px * var(--discard-w) / 105px);
+  margin: calc(-15px * var(--discard-w) / 105px) 0 0 calc(-15px * var(--discard-w) / 105px);
+}
+
+/* The avatar's left edge IS the seat's x from the spec table, and that takes a fixed
+   column width.
+
+   Each seat is a flex column with align-items: center, so the column sizes to its
+   WIDEST child and then centres the rest. The side nameplates are 170px against a
+   135px portrait, so the portrait was being centred inside 170px and landing 17.5px
+   right of the spec's x — measured at 67.5 instead of 50, and 190 instead of 170 on
+   the local seat, whose pill is 180px against a 140px portrait.
+
+   Pinning the column to the portrait's own width puts the portrait's left edge on the
+   seat's x, and lets the wider pill overhang it symmetrically — which is where a
+   centred nameplate under a portrait belongs, and is what the reference shows. */
+.opponent-left .avatar-hud-wrapper,
+.opponent-right .avatar-hud-wrapper { width: var(--avatar-side); }
+
+.opponent-top .avatar-hud-wrapper { width: var(--avatar-top); }
+
+.local-user-slot .avatar-hud-wrapper { width: var(--avatar-you); }
+
+/* The throw box comes off. Two reasons, one visual and one arithmetic.
+
+   Visual: the spec has the discard card alone on the felt as the centre's focal
+   point, not a card sitting inside a marked rectangle, and it asks for the centre
+   play area to stay uncluttered.
+
+   Arithmetic: .center-play-zone carries a 3px border, and .discard-pile is a flex
+   child of it. The border is inside the 130px border-box, so the content box was
+   124px and the pile — flex: 0 1 auto — shrank to fit it. The discard pile measured
+   124x180 against the spec's 130x180. flex: none on the pile so it can never be
+   squeezed by its container again, whatever the container's border does. */
+.center-play-zone {
+  border: 0;
+  background: transparent;
+}
+
+/* The crown watermark behind the pile goes with the box: same reason. */
+.center-play-zone::before { content: none; }
+
+.center-play-zone .discard-pile {
+  flex: none;
+  background: transparent;
+  /* A faint dashed rim, visible only while the pile is empty: the drop target still
+     needs to be legible on the first turn of a round. */
+  border-color: rgba(255, 255, 255, .22);
+}
