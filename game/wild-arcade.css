@@ -47,11 +47,11 @@ body {
 /* Draw Deck Source Deck Visual Structure */
 .draw-deck-source {
     position: relative;
-    width: 105px;
-    height: 158px;
+    width: 137px;
+    height: 206px;
     background: linear-gradient(135deg, #111111 0%, #292929 100%);
-    border: 4.5px solid #ffffff;
-    border-radius: 14px;
+    border: 6px solid #ffffff;
+    border-radius: 18px;
     box-shadow: 
         0 12px 24px rgba(0, 0, 0, 0.5),
         inset 0 3px 6px rgba(255, 255, 255, 0.4);
@@ -61,7 +61,7 @@ body {
 }
 .draw-deck-source::before {
     content: 'UNO';
-    font-size: 1.8rem;
+    font-size: 2.3rem;
     font-weight: 900;
     color: #ffaa00;
     transform: rotate(-25deg);
@@ -71,8 +71,8 @@ body {
 /* Discard Pile Stacking Field Box */
 .discard-pile {
     position: relative;
-    width: 105px;
-    height: 158px;
+    width: 137px;
+    height: 206px;
     background: rgba(0, 0, 0, 0.15);
     border: 3px dashed rgba(255, 255, 255, 0.3);
     border-radius: 14px;
@@ -97,12 +97,15 @@ body {
 /* ==========================================================================
    PREMIUM VECTOR ARCADE 3D CARDS
    ========================================================================== */
+/* The base every card is cut from, x1.3 like the seats. The seats override the SIZE for
+   their own hierarchy; this is what the flyer, the landing card and anything outside a
+   seat inherit, so it moves with them or the thrown card would shrink on impact. */
 .card, .discarded-card, .card-in-flight {
     box-sizing: border-box;
-    width: 105px;
-    height: 158px;
-    border-radius: 14px;
-    border: 4.5px solid #ffffff;
+    width: 137px;
+    height: 206px;
+    border-radius: 18px;
+    border: 6px solid #ffffff;
     position: relative;
     overflow: hidden;
     display: flex;
@@ -157,7 +160,7 @@ body {
 /* Large Central Value Typography text shadowing */
 .card .card-value, .discarded-card .card-value, .card-in-flight .card-value {
     font-family: 'Nunito', sans-serif;
-    font-size: 5rem;
+    font-size: 6.5rem;
     font-weight: 900;
     color: #ffffff;
     z-index: 2;
@@ -170,7 +173,7 @@ body {
 /* Small corner value notations */
 .card .corner-value {
     position: absolute;
-    font-size: 1.3rem;
+    font-size: 1.7rem;
     font-weight: 900;
     color: #fff;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
@@ -1457,13 +1460,15 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 3.4rem;
+  font-size: 4rem;
   opacity: 0.22;
   pointer-events: none;
   filter: saturate(0.6) brightness(0.9);
 }
 
-/* The throw box itself: the big dashed rounded rectangle the mockup has in the middle. */
+/* The throw box itself: the big dashed rounded rectangle the mockup has in the middle.
+   (Sizing and the dashes are both replaced further down — see the spec block, which sets
+   it to the discard card's own size and takes the border off.) */
 .center-play-zone {
   width: 320px;
   height: 220px;
@@ -1493,7 +1498,7 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   justify-content: center;
   align-items: center;
   font-family: 'Nunito', sans-serif;
-  font-size: 1.45rem;
+  font-size: 1.9rem;
   font-weight: 900;
   letter-spacing: 0.5px;
   color: #ffffff;
@@ -1509,26 +1514,26 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 
 /* --- CIRCULAR PORTRAITS WITH A GOLD STAR --- */
 .avatar-frame {
-  width: 82px;
-  height: 82px;
+  width: 107px;
+  height: 107px;
   border-radius: 50%;
   border: 4px solid #ffffff;
   box-shadow: 0 6px 14px rgba(0,0,0,0.4);
 }
 /* The emoji sits inside the ring, sized to the ring rather than to the old square. */
 .avatar-container {
-  width: 82px;
-  height: 82px;
+  width: 107px;
+  height: 107px;
   border: 0;
-  font-size: 2.6rem;
+  font-size: 3.4rem;
 }
 /* Level star, pinned to the portrait's top-left and allowed to hang off the rim. */
 .avatar-hud-wrapper::after {
   content: '★';
   position: absolute;
-  top: -2px;
-  left: -6px;
-  font-size: 1.35rem;
+  top: -3px;
+  left: -8px;
+  font-size: 1.75rem;
   color: #ffd54a;
   text-shadow: 0 2px 3px rgba(0,0,0,0.55);
   pointer-events: none;
@@ -1536,10 +1541,10 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 }
 /* And the turn ring follows the round portrait, not the square one it was cut for. */
 .avatar-hud-wrapper::before {
-  width: 94px;
-  height: 94px;
-  top: -6px;
-  left: -6px;
+  width: 122px;
+  height: 122px;
+  top: -8px;
+  left: -8px;
 }
 
 /* --- COUNTS: A NUMBER ON A GREEN STRIP --- */
@@ -1730,8 +1735,8 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   position: absolute;
   left: 0;
   top: 0;
-  width: 105px;
-  height: 158px;
+  width: 137px;
+  height: 206px;
   opacity: 0;
   transform-style: preserve-3d;
   backface-visibility: hidden;
@@ -2096,15 +2101,26 @@ tail so they read as embers rather than confetti. */
 
 .stage {
   /* Card sizes by seat — the spec's hierarchy, read back by the JS as well as used
-     here, so the sheet stays the single source of truth for how big a card is. */
-  --hand-card-w: 125px;   --hand-card-h: 175px;   --hand-step: 62px;
-  --discard-w: 130px;     --discard-h: 180px;
-  --draw-w: 145px;        --draw-h: 185px;
-  --top-card-w: 105px;    --top-card-h: 150px;
-  --side-card-w: 65px;    --side-card-h: 105px;
+     here, so the sheet stays the single source of truth for how big a card is.
 
-  /* Avatars: top 150, yours 140, sides 135 */
-  --avatar-top: 150px;    --avatar-you: 140px;    --avatar-side: 135px;
+     Everything here is the spec's number x1.3. The player asked for every card at every
+     seat — yours, the partner's, both enemies', and the deck and discard they are drawn
+     from — 30% bigger, so the whole set moves together rather than one seat growing
+     against the others and breaking the hierarchy the sizes encode.
+
+     --hand-step is a SIZE, not a spacing: at 62px it left 63px of each 125px card
+     showing, and 63 of 125 is the ratio the fan is drawn to. Scaling the cards without
+     this would bury each card under the next by 100px instead. Same for the discard and
+     draw packets — a big hand beside a small deck reads as a mistake, not a hierarchy. */
+  --hand-card-w: 163px;   --hand-card-h: 228px;   --hand-step: 81px;
+  --discard-w: 169px;     --discard-h: 234px;
+  --draw-w: 189px;        --draw-h: 241px;
+  --top-card-w: 137px;    --top-card-h: 195px;
+  --side-card-w: 85px;    --side-card-h: 137px;
+
+  /* Avatars, also x1.3: top 195, yours 182, sides 176. The emoji inside each ring is
+     sized by its own rule further down, so the glyph grows with the ring. */
+  --avatar-top: 195px;    --avatar-you: 182px;    --avatar-side: 176px;
 }
 
 /* --------------------------------------------------------------------------
@@ -2225,9 +2241,9 @@ tail so they read as embers rather than confetti. */
   transform: rotate(-20deg);
 }
 
-/* The UNO face scales with the packet: 1.8rem was set for a 105px card. */
+/* The UNO face scales with the packet, x1.3 with the card it is printed on. */
 #central-deck::before {
-  font-size: 2.5rem;
+  font-size: 3.3rem;
   transform: rotate(-20deg);
 }
 
@@ -2255,10 +2271,10 @@ tail so they read as embers rather than confetti. */
 
 .center-play-zone .discard-pile { border-radius: 17px; }
 
-/* The discard card's face, up from the 105px card's 5rem. */
-.center-play-zone .discarded-card .card-value { font-size: 6.2rem; }
-.center-play-zone .discarded-card .card-value.action-symbol { font-size: 3.5rem; }
-.center-play-zone .discarded-card .corner-value { font-size: 1.6rem; }
+/* The discard card's face, x1.3 with the card it is painted on. */
+.center-play-zone .discarded-card .card-value { font-size: 8.1rem; }
+.center-play-zone .discarded-card .card-value.action-symbol { font-size: 4.6rem; }
+.center-play-zone .discarded-card .corner-value { font-size: 2.1rem; }
 
 /* --------------------------------------------------------------------------
    THE THREE OPPONENTS
@@ -2282,7 +2298,7 @@ tail so they read as embers rather than confetti. */
 }
 
 .opponent-top .avatar-frame { width: var(--avatar-top); height: var(--avatar-top); }
-.opponent-top .avatar-container { font-size: 5rem; }
+.opponent-top .avatar-container { font-size: 6.5rem; }
 
 .opponent-top .player-pill-tag {
   width: 190px;
@@ -2292,10 +2308,11 @@ tail so they read as embers rather than confetti. */
   font-size: 1.75rem;
 }
 
-/* 105px + 6 x 50px = 405px: seven cards at the spec's 50px step. The renderer writes
-   the per-card offsets; this is the rack they fan inside. */
+/* 137px + 6 x 65px = 527px: seven of the partner's cards at the 65px step the renderer
+   fans them to (50px x1.3, same ratio of card shown as the local hand's 81/163). The
+   renderer writes the per-card offsets; this is the rack they fan inside. */
 .opponent-top-hand {
-  width: calc(var(--top-card-w) + 6 * 50px);
+  width: calc(var(--top-card-w) + 6 * 65px);
   height: var(--top-card-h);
   margin-top: 0;
   display: block;
@@ -2306,6 +2323,11 @@ tail so they read as embers rather than confetti. */
   height: var(--top-card-h);
   top: 0;
 }
+
+/* The partner's faces scale with their cards: the base 5rem was set for a 105px card. */
+.opponent-top-hand .card .card-value { font-size: 6.5rem; }
+.opponent-top-hand .card .card-value.action-symbol { font-size: 3.6rem; }
+.opponent-top-hand .card .corner-value { font-size: 1.7rem; }
 
 /* --- side seats: left-middle and right-middle ----------------------------- */
 /* The left seat is pinned to the board's left edge and the right seat to its right edge,
@@ -2320,7 +2342,7 @@ tail so they read as embers rather than confetti. */
 .opponent-right .avatar-frame { width: var(--avatar-side); height: var(--avatar-side); }
 
 .opponent-left .avatar-container,
-.opponent-right .avatar-container { font-size: 4.5rem; }
+.opponent-right .avatar-container { font-size: 5.9rem; }
 
 .opponent-left .player-pill-tag,
 .opponent-right .player-pill-tag {
@@ -2378,7 +2400,7 @@ tail so they read as embers rather than confetti. */
 }
 
 .local-user-slot .avatar-frame { width: var(--avatar-you); height: var(--avatar-you); }
-.local-user-slot .avatar-container { font-size: 4.7rem; }
+.local-user-slot .avatar-container { font-size: 6.1rem; }
 
 .local-user-slot .player-pill-tag {
   width: 180px;
@@ -2398,7 +2420,12 @@ tail so they read as embers rather than confetti. */
    -------------------------------------------------------------------------- */
 .hand-container {
   left: 960px;
-  top: 865px;
+  /* 865 was right for 175px cards: tops at 865, bottoms at 1040, 40px clear of the bottom
+     edge of the board. The cards are 228px now, so the hand moves up by the 53px they
+     gained — and 10px more. Measured, not guessed with a full seven dealt: at 812 the
+     outermost cards of the fan put their rotated corner 1px past the board's bottom edge
+     and were clipped by it. At 802 the lowest corner sits at 1071. */
+  top: 802px;
   right: auto;
   bottom: auto;
   width: 700px;
@@ -2433,10 +2460,10 @@ tail so they read as embers rather than confetti. */
     scale(1.1) !important;
 }
 
-/* The hand's faces scale with the card: 5rem was set for a 105px card. */
-.hand-container .card .card-value { font-size: 6rem; }
-.hand-container .card .card-value.action-symbol { font-size: 3.3rem; }
-.hand-container .card .corner-value { font-size: 1.55rem; }
+/* The hand's faces scale with the card, x1.3 along with it. */
+.hand-container .card .card-value { font-size: 7.8rem; }
+.hand-container .card .card-value.action-symbol { font-size: 4.3rem; }
+.hand-container .card .corner-value { font-size: 2rem; }
 
 /* --------------------------------------------------------------------------
    CHAT — 100 x 100 circle, bottom-left, 40px in, clear of your avatar at X 170.
@@ -2553,3 +2580,95 @@ tail so they read as embers rather than confetti. */
      needs to be legible on the first turn of a round. */
   border-color: rgba(255, 255, 255, .22);
 }
+
+/* ==========================================================================
+   TEXT POLISH — every piece of type on the table, to one standard
+
+   The type was set element by element as each one was added, most of it at 1rem or
+   so, and beside a 163px card and a 195px portrait it reads as a whisper. This is one
+   pass over all of it, ruled by two things:
+
+     * ONE VOICE. Nunito 900 throughout, with a dark shadow wherever the text sits on
+       the artwork rather than on a pill of its own — a white name on bright felt with
+       no shadow underneath it is the least readable thing on the board.
+
+     * THE PHONE IS THE SIZE THAT MATTERS. The whole 1920x1080 board is about 390
+       screen pixels tall on a phone held sideways, so one board rem is roughly six
+       screen pixels: 1rem of board type is 6px on the glass. Readable in a
+       screenshot, not at arm's length. These sizes are up 15-25% rather than doubled,
+       so that nothing reflows — every box that holds this text has been widened to
+       match, and only by what the glyphs gained.
+
+   The two numbers that are read at a glance — the countdown and the hand counts —
+   also get tabular figures, so a changing digit cannot jitter the pill around it.
+   ========================================================================== */
+
+.stage {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* --- the clock ---------------------------------------------------------- */
+.arcade-timer-badge {
+  font-size: 2.2rem;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.arcade-timer-badge .clock-glyph { font-size: 1.9rem; }
+
+/* --- names -------------------------------------------------------------- */
+/* Both names on purpose: the seats carry .player-pill-tag, and .player-name-tag is the
+   older name for the same element. Whichever the markup is using, it is styled here. */
+.player-name-tag,
+.player-pill-tag {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.55);
+}
+
+.opponent-top .player-pill-tag { width: 205px; height: 58px; font-size: 1.9rem; }
+
+.opponent-left .player-pill-tag,
+.opponent-right .player-pill-tag { width: 176px; height: 53px; font-size: 1.65rem; }
+
+.local-user-slot .player-pill-tag { width: 188px; height: 55px; font-size: 1.75rem; }
+
+/* --- the hand counts ---------------------------------------------------- */
+.opponent-card-count-stack {
+  min-width: 58px;
+  height: 27px;
+  font-size: 1.2rem;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* --- buttons ------------------------------------------------------------ */
+.btn-arcade {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+}
+
+#btn-uno-call {
+  font-size: 1.8rem;
+  letter-spacing: 0.8px;
+  line-height: 1.05;
+}
+
+.arcade-settings-btn { font-size: 2.1rem; }
+
+/* --- speech and the end of a round -------------------------------------- */
+.speech-bubble-pop,
+.speech-bubble-local {
+  font-size: 1.35rem;
+  letter-spacing: 0.2px;
+}
+
+.victory-header-text { font-size: 3.4rem; letter-spacing: 1.2px; }
+.victory-winner-callout { font-size: 1.6rem; }
+.points-badge-pop { font-size: 2.4rem; }

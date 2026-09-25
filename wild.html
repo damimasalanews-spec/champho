@@ -29,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=3">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=4">
 </head>
 <body>
 
@@ -422,11 +422,13 @@
                 // Arc layouts calculations
                 const offsetFromMiddle = i - midIndex;
                 // The spec's small fan with the centre card raised. The sideways spread
-                // is not here — it is --hand-step in the sheet (62px, which puts seven
-                // 125px cards at the spec's ~497px hand width). These two are the tilt
-                // and the lift that make it an arc rather than a row.
-                const rotationAngle = offsetFromMiddle * 4;
-                const verticalDip = Math.abs(offsetFromMiddle) * 5;
+                // is not here — it is --hand-step in the sheet (81px, which puts seven
+                // 163px cards at the spec's ~649px hand width). These two are the tilt and
+                // the lift that make it an arc rather than a row, at the same angle and
+                // dip per card relative to the bigger cards: 4deg/5px was written for
+                // 125px cards and reads as almost flat on 163px ones.
+                const rotationAngle = offsetFromMiddle * 5;
+                const verticalDip = Math.abs(offsetFromMiddle) * 6.5;
 
                 cardEl.style.setProperty('--index-offset', offsetFromMiddle);
                 cardEl.style.setProperty('--arc-rotation', `${rotationAngle}deg`);
@@ -1184,17 +1186,18 @@
                 // widening the seat and dragging its portrait away from the rim.
                 const direction = isLeft ? 1 : -1;
 
-                // The spec's side seats: 65x105 backs, 22px apart across and 30px down,
-                // so the fan cascades diagonally inward and every card keeps a ~43px
-                // strip of its neighbour — inside the spec's 38-45px overlap band. The
+                // The spec's side seats: 85x137 backs (65x105 x1.3), 29px apart across
+                // and 39px down, so the fan cascades diagonally inward and every card
+                // keeps a ~56px strip of its neighbour — the same fraction of the card as
+                // the 43px strip of a 65px back that the spec's band describes. The
                 // card's own size is --side-card-* in the sheet; these are the steps.
                 //
                 // The faces are SMALLER than the player's and the partner's, and that is
                 // the spec's visual hierarchy rather than the uniformity this used to
                 // have: your hand is the biggest thing on the table, the side seats are
                 // the smallest, the top seat sits between them.
-                backCard.style.top = `${i * 30}px`;
-                backCard.style.left = `calc(50% + ${direction * i * 22}px)`;
+                backCard.style.top = `${i * 39}px`;
+                backCard.style.left = `calc(50% + ${direction * i * 29}px)`;
                 backCard.style.transform =
                     `translate3d(-50%, 0, 0) rotate(${direction * (18 + i * 2)}deg)`;
                 backCard.style.zIndex = i;
@@ -1227,14 +1230,15 @@
 
                 // Fans cards sideways and slightly down at the edges, the same arc the
                 // local hand uses so a partner's hand reads as the same kind of object.
-                // The spec's top seat: 105x150 cards at a 50px spread, the middle of the
-                // spec's 35-55px overlap band, so seven of them come to 405px — which is
-                // exactly what .opponent-top-hand is sized to. A wider spread would
-                // outgrow the rack and a tighter one would hide the corner indices.
+                // The spec's top seat: 137x195 cards (105x150 x1.3) at a 65px spread —
+                // 50px x1.3, the same fraction of the card as before — so seven of them
+                // come to 527px, which is exactly what .opponent-top-hand is sized to. A
+                // wider spread would outgrow the rack and a tighter one would hide the
+                // corner indices.
                 const offsetFromMiddle = i - midIndex;
-                const horizontalSpread = offsetFromMiddle * 50;
-                const rotationAngle = offsetFromMiddle * 3;
-                const verticalDip = Math.abs(offsetFromMiddle) * 4;
+                const horizontalSpread = offsetFromMiddle * 65;
+                const rotationAngle = offsetFromMiddle * 4;
+                const verticalDip = Math.abs(offsetFromMiddle) * 5;
 
                 cardEl.style.left = `calc(50% + ${horizontalSpread}px)`;
                 cardEl.style.transform = `translate3d(-50%, 0, 0) translateY(${verticalDip}px) rotate(${rotationAngle}deg)`;

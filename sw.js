@@ -34,8 +34,10 @@
    did the same: a device reported the pre-fix board after the fix had shipped, so the
    plate's zoom (game/scene-fill.js) is being delivered under a fresh cache, and
    game/pwa.js now reloads the page once when an updated worker takes over — otherwise a
-   worker that has already claimed the page can keep painting the stylesheet it cached. */
-const VERSION = 'v3';
+   worker that has already claimed the page can keep painting the stylesheet it cached.
+   v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
+   sheet has to go with them. */
+const VERSION = 'v4';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;

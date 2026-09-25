@@ -146,7 +146,9 @@
         '.cw-install-btn{position:absolute;top:35px;right:126px;display:none;align-items:center;gap:12px;',
         'height:70px;padding:0 26px;border:3px solid #fff;border-radius:35px;cursor:pointer;',
         'background:linear-gradient(180deg,#ffd83d 0%,#f0a800 55%,#c07f00 100%);color:#3a2400;',
-        'font-family:Nunito,"Segoe UI",system-ui,sans-serif;font-size:1.45rem;font-weight:900;',
+        // 1.6rem, up from 1.45, with the rest of the board's type: see the text polish
+        // block at the end of wild-arcade.css.
+        'font-family:Nunito,"Segoe UI",system-ui,sans-serif;font-size:1.6rem;font-weight:900;',
         'letter-spacing:.5px;text-transform:uppercase;line-height:1;white-space:nowrap;',
         'box-shadow:0 5px 0 #8a5c00,0 12px 22px rgba(0,0,0,.42);z-index:330;',
         'transition:transform .12s ease,box-shadow .12s ease}',
