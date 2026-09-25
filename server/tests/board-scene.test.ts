@@ -151,6 +151,32 @@ test("the board's scale and width are computed from the screen, not fixed", asyn
     "the throw's camera must pan across the board's live width, not the spec's 1920");
 });
 
+test("the page that hosts the game cannot paint a band of its own beside it", async () => {
+  const html = await readFile(resolve(ROOT, "index.html"), "utf8");
+
+  // The installed app opens the table in a full-screen iframe over index.html, and
+  // index.html's own document background is a flat blue — style-part-*.css sets
+  // `html,body{background:#079bd3!important}` for the V38 home artwork. On a phone held
+  // sideways with a notch, iOS lays the page out inside the safe area and paints the strips
+  // either side of it with that document colour: two constant ~45px blue bars down the whole
+  // screen. That is what the player kept reporting, and no change inside the game could ever
+  // remove it, because it is painted outside the page the game is drawn in.
+  assert.ok(/viewport-fit=cover/.test(html),
+    "index.html does not claim the whole screen, so the device still paints strips beside it");
+  assert.ok(/body\.game-open\{[^}]*background:\s*#0d3807/.test(html),
+    "nothing repaints the document background while the game is open: the home artwork's blue shows through in those strips");
+
+  // And the game has to be told where those strips are, or the board ends up under the
+  // notch once the host does cover the whole screen: env() resolves to 0 inside an iframe,
+  // so the host measures the insets and posts them with the profile.
+  assert.ok(/champSafeArea/.test(html), "the host never posts the insets it can measure");
+  assert.ok(/padding:env\(safe-area-inset-top\)/.test(html), "the host's probe reads no insets at all");
+
+  const wild = await readFile(resolve(ROOT, "wild.html"), "utf8");
+  assert.ok(/data\.champSafeArea/.test(wild), "the game ignores the insets the host sends");
+  assert.ok(/hostInsets/.test(wild), "the game receives the insets but keeps no copy of them");
+});
+
 test("the plate is pushed in until the FELT reaches the frame's edges", async () => {
   const css = await sheet();
   const frame = ruleFor(css, ".viewport-frame");

@@ -494,6 +494,26 @@
         // ==================================================================
         const STAGE_W = 1920, STAGE_H = 1080;
 
+        // The device insets the host page measured, if this page is running inside it.
+        //
+        // The installed app opens this table in a full-screen iframe, and env() resolves to
+        // zero inside an iframe — so the page cannot see the phone's notch on its own. The
+        // host can, and posts what it measured with the player's profile, which arrives well
+        // before the first card is dealt. Null means nobody has told us: fall back to this
+        // page's own computed insets, which is exactly right when it IS the top document.
+        var hostInsets = null;
+
+        window.addEventListener('message', function (event) {
+            const data = event && event.data;
+            if (!data || !data.champSafeArea) return;
+            const s = data.champSafeArea;
+            hostInsets = {
+                top: parseFloat(s.top) || 0, right: parseFloat(s.right) || 0,
+                bottom: parseFloat(s.bottom) || 0, left: parseFloat(s.left) || 0,
+            };
+            applyStageScale();
+        });
+
         // The box the board is fitted into, and the two numbers that describe its shape.
         //
         // Both come off .viewport-frame rather than off the window. On a notched phone held
@@ -515,8 +535,14 @@
                          shiftX: 0, shiftY: 0 };
             }
             const cs = getComputedStyle(frame);
-            const pl = parseFloat(cs.paddingLeft) || 0, pr = parseFloat(cs.paddingRight) || 0;
-            const pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+            // The host's insets when there are any — see hostInsets above. env() resolves
+            // to zero inside an iframe, so on its own this page cannot tell that a phone's
+            // notch is sitting over the left edge of the board.
+            const host = hostInsets || {};
+            const pl = host.left != null ? host.left : (parseFloat(cs.paddingLeft) || 0);
+            const pr = host.right != null ? host.right : (parseFloat(cs.paddingRight) || 0);
+            const pt = host.top != null ? host.top : (parseFloat(cs.paddingTop) || 0);
+            const pb = host.bottom != null ? host.bottom : (parseFloat(cs.paddingBottom) || 0);
             return {
                 w, h,
                 safeW: w - pl - pr,
