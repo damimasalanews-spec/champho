@@ -121,7 +121,14 @@
         'border-radius:16px;background:rgba(0,0,0,.86);color:#fff;font-family:Nunito,"Segoe UI",system-ui,sans-serif;',
         'font-size:1.02rem;line-height:1.5;z-index:331;display:none;box-shadow:0 10px 26px rgba(0,0,0,.45)}',
         '.cw-install-hint.is-visible{display:block}',
-        '.cw-install-hint.cw-fixed{position:fixed;top:80px;right:14px;max-width:min(330px,78vw)}'
+        '.cw-install-hint.cw-fixed{position:fixed;top:80px;right:14px;max-width:min(330px,78vw)}',
+        // Inside the rotate veil. That veil only exists because the board is 16:9 and
+        // unplayable upright, and it REPLACES the board — so anything parented to the
+        // board is in a display:none subtree exactly when a phone held the normal way
+        // up needs it. This variant flows inside the veil's card instead.
+        '.cw-install-btn.cw-in-veil{position:static;margin:8px auto 0;height:62px;padding:0 26px;font-size:1.05rem;border-radius:31px}',
+        '.cw-install-btn.cw-in-veil svg{width:26px;height:26px}',
+        '.cw-install-hint.cw-in-veil{position:static;margin:16px auto 2px;max-width:300px;text-align:center}'
     ].join('');
 
     var INSTALL_GLYPH = '<svg viewBox="0 0 24 24" aria-hidden="true">'
@@ -148,6 +155,43 @@
             || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     }
 
+    // Where the button belongs right now, which is not a fixed answer.
+    //
+    // In landscape on the board page it goes inside #game-stage, positioned in the
+    // board's own pixels so it sits beside the settings gear and scales with the rest
+    // of the furniture. But the board is hidden in portrait on phones, replaced by the
+    // rotate veil — and a button nested inside a display:none subtree is not a button.
+    // Measured on an iPhone in portrait before this was fixed: 0x0, checkVisibility()
+    // false, while the veil said nothing about installing. Which was the one moment a
+    // first-time phone visitor actually needed it.
+    function installHost() {
+        var portrait = false;
+        try {
+            portrait = !!(window.matchMedia && window.matchMedia('(orientation: portrait)').matches);
+        } catch (error) { /* as above */ }
+
+        var veilCard = document.querySelector('.rotate-device-card');
+        var stage = document.getElementById('game-stage');
+
+        if (portrait && veilCard) return { host: veilCard, kind: 'veil' };
+        if (stage) return { host: stage, kind: 'stage' };
+        return { host: document.body, kind: 'fixed' };
+    }
+
+    function placeInstallButton() {
+        var target = installHost();
+        if (placeInstallButton._kind === target.kind) return;
+        placeInstallButton._kind = target.kind;
+
+        installButton.classList.toggle('cw-fixed', target.kind === 'fixed');
+        installButton.classList.toggle('cw-in-veil', target.kind === 'veil');
+        installHint.classList.toggle('cw-in-veil', target.kind === 'veil');
+        installHint.classList.toggle('cw-fixed', target.kind === 'fixed');
+
+        target.host.appendChild(installButton);
+        target.host.appendChild(installHint);
+    }
+
     function ensureInstallButton() {
         if (installButton) return installButton;
 
@@ -161,22 +205,12 @@
         installButton.setAttribute('aria-label', 'Install this game as an app');
         installButton.innerHTML = INSTALL_GLYPH + '<span class="cw-install-label">Install</span>';
 
-        // Inside the stage on the board page, so it is positioned in board pixels and
-        // takes the board's scale like every other piece of furniture. On the other
-        // pages there is no board, so it pins to the viewport instead.
-        var stage = document.getElementById('game-stage');
-        if (stage) {
-            stage.appendChild(installButton);
-        } else {
-            installButton.classList.add('cw-fixed');
-            document.body.appendChild(installButton);
-        }
-
         installHint = document.createElement('div');
-        installHint.className = 'cw-install-hint' + (stage ? '' : ' cw-fixed');
+        installHint.className = 'cw-install-hint';
         installHint.setAttribute('role', 'status');
         installHint.textContent = 'Tap Share, then "Add to Home Screen" to install.';
-        (stage || document.body).appendChild(installHint);
+
+        placeInstallButton();
 
         installButton.addEventListener('click', function () {
             if (champWord.installPrompt) {
@@ -197,7 +231,7 @@
         return installButton;
     }
 
-    function showInstallHint(text) {
+    function showInstallHint(text, holdMs) {
         ensureInstallButton();
         if (!installHint) return;
         if (text) installHint.textContent = text;
@@ -205,7 +239,7 @@
         clearTimeout(showInstallHint._timer);
         showInstallHint._timer = setTimeout(function () {
             if (installHint) installHint.classList.remove('is-visible');
-        }, 7000);
+        }, holdMs || 7000);
     }
 
     function showInstallButton() {
@@ -226,11 +260,29 @@
     // — so the event may already have been captured by the time this runs.
     if (champWord.installable) showInstallButton();
 
-    // iOS has no event to wait for. Offer the button after load, but only on the real
-    // thing: not in a desktop browser pretending to be an iPad, and not if already
-    // launched from the home screen.
+    // The board swaps itself for the rotate veil when a phone is held upright, and the
+    // veil is where a first-time visitor starts — so on a phone the visible host
+    // changes as the device turns. Without this the button stays parked in whichever
+    // subtree is no longer on screen, which is exactly the bug this fixes.
+    var replaceOnTurn = function () { if (installButton) placeInstallButton(); };
+    window.addEventListener('orientationchange', replaceOnTurn);
+    window.addEventListener('resize', replaceOnTurn);
+
+    // iOS gets more than a button, because on iOS there is no prompt behind it.
+    // Installing there is a manual Share-sheet action, it only exists in Safari, and it
+    // does not exist AT ALL inside the in-app browser that a link tapped in Messages,
+    // WhatsApp or Instagram opens — which is where a shared link usually lands. So the
+    // instructions are shown outright: a button is precisely what someone who is
+    // already stuck will not think to press.
     if (isIos() && !isStandalone()) {
-        var offerIos = function () { showInstallButton(); };
+        var offerIos = function () {
+            showInstallButton();
+            showInstallHint(
+                'On iPhone: open this page in Safari, tap Share, then "Add to Home Screen".'
+                + ' It only works in Safari — a link opened inside Messages, WhatsApp or Instagram cannot install.',
+                16000
+            );
+        };
         if (document.readyState === 'complete') offerIos();
         else window.addEventListener('load', offerIos, { once: true });
     }

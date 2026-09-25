@@ -232,3 +232,25 @@ test("the install offer is suppressed for an already-installed app, and handled 
   assert.ok(source.includes("Add to Home Screen"), "iOS is given no instruction");
   assert.ok(source.includes("maxTouchPoints"), "iPadOS reports itself as a Mac and needs the touch check");
 });
+
+test("the install button reaches a phone held upright, not just a desktop", async () => {
+  const source = await readFile(resolve(ROOT, "game/pwa.js"), "utf8");
+
+  // The board is 16:9 and the sheet hides it in portrait on phones, swapping in the
+  // rotate veil. A button parented to the board is then inside a display:none subtree
+  // — measured on an iPhone in portrait: 0x0, checkVisibility() false — which is
+  // exactly when a first-time phone visitor needs it. It must be able to live in the
+  // veil instead, and must follow the device as it turns.
+  assert.ok(source.includes("rotate-device-card"), "no veil host for the button to move into");
+  assert.ok(source.includes("cw-in-veil"), "no veil placement style");
+  assert.ok(/orientation: portrait/.test(source), "the portrait case is not detected");
+  assert.ok(source.includes("orientationchange"), "the button does not follow the device as it turns");
+
+  // The button must be parented somewhere that is actually on screen.
+  assert.ok(/function installHost/.test(source), "there is no host-selection step");
+
+  // And on iOS the instructions cannot hide behind a tap: Safari is the only browser
+  // that can install, and an in-app browser cannot install at all.
+  assert.ok(/showInstallHint\(/.test(source), "iOS is given no instructions");
+  assert.ok(source.includes("Safari"), "iOS instructions do not name Safari");
+});
