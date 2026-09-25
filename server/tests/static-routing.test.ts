@@ -132,6 +132,30 @@ test("the Go Wild page is the arcade demo, and the playable client is still serv
   assert.match(playable.text, /new WebSocket/, "the playable client must stay served");
 });
 
+test("the arcade demo throws its cards instead of teleporting them", async () => {
+  // The throw replaced the old same-tick pile append. These pin the pieces that
+  // made it correct: the flight rig exists, a second click during a flight lands
+  // the first throw instead of double-landing a card, one loop drives card/sparks/
+  // camera so particles cannot be stepped twice, and a reduced-motion request
+  // still reaches the page.
+  const demo = await get("/wild.html");
+
+  assert.match(demo.text, /id="throw-camera-rig"/);
+  assert.match(demo.text, /id="throw-flight-card"/);
+  assert.match(demo.text, /id="throw-impact-ring"/);
+  assert.match(
+    demo.text,
+    /if \(cardThrow\) finishThrow\(\);/,
+    "a second click during a flight must land the first throw"
+  );
+  assert.match(
+    demo.text,
+    /ensureThrowLoop\(\);/,
+    "one loop must drive card, sparks and camera"
+  );
+  assert.match(demo.text, /prefers-reduced-motion/, "the flight yields to reduced-motion requests");
+});
+
 test("the legacy address still resolves to the home page", async () => {
   const root = await get("/");
   const legacy = await get("/legacy.html");

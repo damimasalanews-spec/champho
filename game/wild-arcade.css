@@ -1683,3 +1683,139 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 .opponent-top {
   transform: translateX(calc(-50% + 70px));
 }
+
+/* ==========================================================================
+   THE CARD THROW
+
+   wild.html's play used to teleport: click, and the card was already on the pile.
+   This rig carries it — a fast lift, a curved launch, two spins, a snap, sparks.
+
+   The layer lives at BODY level, outside .game-table. Coordinates inside are
+   plain viewport pixels from getBoundingClientRect, so the flyer aims at the pile
+   with no conversion, and the table's own rotateX(24deg) is left untouched: the
+   throw is screen-space, the pile is table-space, and the landing point (the
+   pile's measured centre) is the same point on the retina either way.
+   ========================================================================== */
+
+/* The camera rig. transform:none until the follow code writes into it, so the
+   default table is untouched. Fixed, body-level, pointer-transparent. */
+#throw-camera-rig {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* The flight layer. The ring uses the empty-div-at-viewport-origin trick: left/top
+   0, and every effect is placed with its own left/top style, so positioning never
+   needs to subtract an anchor offset. */
+#throw-flight-layer {
+  position: absolute;
+  inset: 0;
+}
+
+#throw-flight-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 105px;
+  height: 158px;
+  opacity: 0;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, opacity, filter;
+  z-index: 2;
+}
+
+/* Ghost echoes — the visible motion blur. Real card faces at fading opacity, one
+   trail behind the other, so the flight reads as a smear rather than a strobe. */
+.throw-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 105px;
+  height: 158px;
+  border-radius: 14px;
+  border: 4.5px solid #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 2.8rem;
+  color: #fff;
+  text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+  opacity: 0;
+  z-index: 1;
+  will-change: transform, opacity;
+}
+
+.throw-ghost.red    { background: linear-gradient(135deg, #ff1744 0%, #b3001e 100%); }
+.throw-ghost.blue   { background: linear-gradient(135deg, #0066ff 0%, #0033aa 100%); }
+.throw-ghost.yellow { background: linear-gradient(135deg, #ffcc00 0%, #cc9900 100%); }
+.throw-ghost.green  { background: linear-gradient(135deg, #00cc44 0%, #007722 100%); }
+.throw-ghost.wild   { background: linear-gradient(135deg, #222222 0%, #050505 100%); }
+
+/* The impact ring: the burst of light at the point of impact. */
+#throw-impact-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  border: 5px solid rgba(255, 255, 255, .95);
+  box-shadow: 0 0 18px rgba(255, 255, 255, .8), 0 0 40px rgba(255, 200, 60, .5);
+  opacity: 0;
+  z-index: 3;
+}
+
+@keyframes throw-ring-go {
+  0%   { opacity: .95; transform: scale(.25); border-width: 5px; }
+  100% { opacity: 0;   transform: scale(3.6); border-width: 1px; }
+}
+
+/* The 0.50-0.65 settle. The flyer hands over at the pile's centre holding a 24°
+   face tilt; this drops the card the last few pixels into the stack and eases its
+   own transform into place. One animation, 150ms, no class removal: unlike the
+   reflex-rigged impacts, removing a fill:forwards class mid-settle would snap the
+   card back, so it stays and is discarded with the round. */
+@keyframes landed-settle-drop {
+  0%   { transform: rotate(var(--discard-rot)) translate3d(var(--discard-x), var(--discard-y), calc(var(--discard-z) + 14px)) scale(1.03); }
+  60%  { transform: rotate(var(--discard-rot)) translate3d(var(--discard-x), var(--discard-y), var(--discard-z)) scale(0.985); }
+  100% { transform: rotate(var(--discard-rot)) translate3d(var(--discard-x), var(--discard-y), var(--discard-z)) scale(1); }
+}
+
+.discarded-card.landed-settle {
+  animation: landed-settle-drop .15s cubic-bezier(.33, 1, .68, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discarded-card.landed-settle { animation: none; }
+}
+
+#throw-impact-ring.go {
+  animation: throw-ring-go .28s ease-out forwards;
+}
+
+/* The sparks: tiny glowing dots of light, gravity-pulled, fading with a quadratic
+tail so they read as embers rather than confetti. */
+.throw-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+  z-index: 3;
+}
+
+/* A request for less motion skips the whole flight rig, so it needs no reduced-motion
+   overrides — but the sparks themselves are harmless even if one fires anyway. */
+@media (prefers-reduced-motion: reduce) {
+  #throw-flight-card, .throw-ghost, #throw-impact-ring, .throw-spark { animation: none; }
+}
