@@ -3195,3 +3195,54 @@ tail so they read as embers rather than confetti. */
   border-radius: 38px;
   border-width: 10px;
 }
+
+/* ==========================================================================
+   THE CARD BACK IS RED, like the backs in the mockup
+
+   "Still the left and right cards is looking different." They were, and it was not
+   the arrangement — that measured to within a few pixels of the mockup's. It is that
+   the two cascades are made of card BACKS, and ours were near-black with a small
+   emblem where the mockup's are RED with a large white device on them. A dark card
+   next to a red one does not read as the same table, whatever the geometry says.
+
+   So the back is red: a red field with a large white device carrying the four colours
+   and the diamond, which is our own drawing — the mockup's back carries its wordmark
+   and that one is not ours to take. The same drawing is on the draw packet, so a
+   face-down card and the packet are obviously the same object.
+   ========================================================================== */
+
+.card.card-back,
+#central-deck {
+  background:
+    radial-gradient(115% 110% at 32% 6%, #ff6a63 0%, #e02830 42%, #b2121c 100%) !important;
+}
+
+/* The device: a big white rounded plate, the four arcs inside it, and the diamond core.
+   On red the four-colour arcs finally read — on the old near-black field the red arc was
+   the one that disappeared. */
+.card.card-back::after,
+#central-deck::before {
+  content: '' !important;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border-radius: inherit;
+  transform: none !important;
+  font-size: 0 !important;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg transform='translate(50 70)'%3E%3Crect x='-27' y='-38' width='54' height='76' rx='13' fill='%23ffffff' fill-opacity='.96'/%3E%3Cg fill='none' stroke-width='6.5' stroke-linecap='round'%3E%3Cpath d='M-19 7 A20 20 0 0 1 1 -19' stroke='%23ff4646'/%3E%3Cpath d='M7 -19 A20 20 0 0 1 19 1' stroke='%23ffd42a'/%3E%3Cpath d='M19 -7 A20 20 0 0 1 -1 19' stroke='%2334d35f'/%3E%3Cpath d='M-7 19 A20 20 0 0 1 -19 -1' stroke='%233b8bff'/%3E%3C/g%3E%3Cpath d='M0 -9 L9 0 L0 9 L-9 0 Z' fill='%23c9121f'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(104deg, rgba(255, 255, 255, 0) 6%, rgba(255, 255, 255, 0.22) 26%, rgba(255, 255, 255, 0.02) 42%, rgba(255, 255, 255, 0) 58%);
+  background-size: 100% 100%, 100% 100%;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.16);
+  z-index: 5;
+}
+
+/* The packet's device sits smaller than a card's: it is a stack seen at an angle. */
+#central-deck::before { background-size: 78% 78%, 100% 100%; }
+
+/* The cascades tilt a little more than they did: the mockup's cards read nearer 45deg
+   than 30, and at the table's small back size the extra tilt is what makes the run look
+   like cards sliding down the diagonal rather than a stepped column. */

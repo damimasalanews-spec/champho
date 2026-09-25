@@ -29,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=11">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=12">
 </head>
 <body>
 
@@ -1178,7 +1178,7 @@
                 backCard.style.top = `${i * 41}px`;
                 backCard.style.left = `calc(50% + ${direction * i * 19}px)`;
                 backCard.style.transform =
-                    `translate3d(-50%, 0, 0) rotate(${direction * (30 + i * 2)}deg)`;
+                    `translate3d(-50%, 0, 0) rotate(${direction * (38 + i * 2)}deg)`;
                 backCard.style.zIndex = i;
 
                 fanTray.appendChild(backCard);
