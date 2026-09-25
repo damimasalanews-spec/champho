@@ -18,6 +18,11 @@ const CONTENT_TYPES: Record<string, string> = {
   ".mjs": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  // The PWA manifest ships as manifest.json — .json is already mapped above, and every
+  // host serves it correctly, which .webmanifest cannot be relied on to do. This entry
+  // is here so a rename to the canonical extension cannot silently start serving the
+  // manifest as application/octet-stream, which Chrome rejects as an install criteria.
+  ".webmanifest": "application/manifest+json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
   ".png": "image/png",

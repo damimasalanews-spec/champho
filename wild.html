@@ -3,6 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Installable app + offline: see manifest.json, sw.js and game/pwa.js.
+         The manifest and the service worker are what make this a real app on a phone
+         (home-screen icon, standalone window, landscape lock) and what keeps it
+         playable with no network. -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1c4d06">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Champ Word">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+
     <title>Champ Word Go Wild</title>
     <!-- This page's sheet came in as game/wild-arcade.css rather than replacing
          game/styles.css, because game/styles.css is shared: game/index.html
@@ -1919,5 +1932,7 @@
             }, 800);
         });
     </script>
+
+    <script src="game/pwa.js" defer></script>
 </body>
 </html>

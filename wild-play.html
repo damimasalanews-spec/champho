@@ -3,6 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <!-- Installable app + offline: see manifest.json, sw.js and game/pwa.js.
+         The manifest and the service worker are what make this a real app on a phone
+         (home-screen icon, standalone window, landscape lock) and what keeps it
+         playable with no network. -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1c4d06">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Champ Word">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+
 <title>Champ Word Go Wild</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
@@ -2373,5 +2386,7 @@
   try { parent.postMessage({ champReady: true }, "*"); } catch { /* not embedded */ }
 })();
 </script>
+
+    <script src="game/pwa.js" defer></script>
 </body>
 </html>
