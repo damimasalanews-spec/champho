@@ -2918,14 +2918,15 @@ tail so they read as embers rather than confetti. */
 
 .stage {
   /* Cards, by seat. */
-  /* ONE card size for all four players. The mockup this was matched to drew the
-     hand large and the other three seats small; the player asked for the same size
-     everywhere, so the size is now a single pair and only the FAN SPACING differs
-     between seats — the hand spreads wide, the partner's fan and the two cascades
-     overlap more tightly, which is what makes four same-sized groups fit one table. */
+  /* The mockup's own hierarchy, which is what its left and right seats look like: the
+     hand is 178x260, the partner's 100x155, the two enemies' 89x130. There is no single
+     size there and cannot be — the player asked for one size across all four seats and
+     then for the left seat to look like the mockup, and the mockup sizes its own seats
+     differently (its hand cards are twice its enemy cards). These are the mockup's
+     numbers; going back to one size is a one-line change if that is what is wanted. */
   --hand-card-w: 178px;   --hand-card-h: 260px;   --hand-step: 84px;
-  --top-card-w: var(--hand-card-w);   --top-card-h: var(--hand-card-h);
-  --side-card-w: var(--hand-card-w);  --side-card-h: var(--hand-card-h);
+  --top-card-w: 100px;    --top-card-h: 155px;
+  --side-card-w: 89px;    --side-card-h: 130px;
   --discard-w: 203px;     --discard-h: 243px;
   --draw-w: 178px;        --draw-h: 260px;
 
@@ -2943,12 +2944,12 @@ tail so they read as embers rather than confetti. */
 .hand-container .card .corner-value { font-size: 2.2rem; }
 .hand-container .card .card-value.draw-count { font-size: 7rem; }
 
-/* Same card, so same faces — the partner's fan used to carry the small type that
-   went with a 100px card. */
-.opponent-top-hand .card .card-value { font-size: 8.4rem; }
-.opponent-top-hand .card .card-value.action-symbol { font-size: 4.7rem; }
-.opponent-top-hand .card .corner-value { font-size: 2.2rem; }
-.opponent-top-hand .card .card-value.draw-count { font-size: 7rem; }
+/* The partner's fan is the 100px card again, so it carries the small type that goes
+   with one — 4.7rem on a 100px card is the same share of the face as 8.4 on a 178px. */
+.opponent-top-hand .card .card-value { font-size: 4.7rem; }
+.opponent-top-hand .card .card-value.action-symbol { font-size: 2.6rem; }
+.opponent-top-hand .card .corner-value { font-size: 1.3rem; }
+.opponent-top-hand .card .mini-glyph { width: 1.3rem; height: 1.3rem; }
 
 .center-play-zone .discarded-card .card-value { font-size: 9.7rem; }
 .center-play-zone .discarded-card .card-value.action-symbol { font-size: 5.2rem; }
@@ -3004,11 +3005,11 @@ tail so they read as embers rather than confetti. */
    left is half a card back from where its first card lands. */
 /* Half a card back from the first card's left edge, at every card size: the renderer
    puts each card's left edge at the tray's centre. */
-/* 53 was measured when the cascade held seven 89px cards. At the table's one card size
-   the run is 740px tall, so it starts higher and shows six — see the renderer. */
+/* The mockup's left cascade: seven 89x130 backs at about 30deg, stepping 19 across and
+   41 down, which lands the group on the mockup's 284..544 x 365..770. */
 .opponent-left .opponent-fan-tray {
-  left: -65px;
-  top: 35px;
+  left: 8px;
+  top: 45px;
   width: var(--side-card-w);
   height: var(--side-card-h);
   margin-top: 0;
@@ -3021,12 +3022,11 @@ tail so they read as embers rather than confetti. */
   transform: none;
 }
 .opponent-right .player-pill-tag { margin-top: 7px; }
-/* 45 put the cascade's lowest card 22px into the CALL disc's circle once every card
-   grew to the table's one size. 20 clears it, and the left cascade keeps the
-   mockup's 53 — the two sides are not symmetric on the mockup either. */
+/* Mirrored: the mockup's right cascade sits at 1705..1948 x 365..754, and its two
+   sides are not symmetric — the right one is 16px shorter. */
 .opponent-right .opponent-fan-tray {
-  left: -97px;
-  top: 2px;
+  left: 31px;
+  top: 45px;
   width: var(--side-card-w);
   height: var(--side-card-h);
   margin-top: 0;

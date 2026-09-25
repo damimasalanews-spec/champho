@@ -131,26 +131,41 @@ test("the card system is drawn by the sheet, at every size", async () => {
   assert.ok(/\.card \.card-glyph\s*{[^}]*width:\s*\d+%/.test(css), "the action glyphs should be a share of the card");
 });
 
-test("all four players' cards are one size", async () => {
+test("the cards carry the mockup's size hierarchy, seat by seat", async () => {
   const css = await rulesOnly();
 
-  // Asked for directly: the mockup drew the hand large and the other three seats small,
-  // and the player wanted one card size across the table. The size lives in the hand's
-  // pair, and the other two seats REFERENCE it rather than repeating a number — which is
-  // what stops this drifting back apart the next time a seat is adjusted.
-  assert.ok(/--top-card-w:\s*var\(--hand-card-w\)/.test(css),
-    "the partner's cards are sized independently again");
-  assert.ok(/--side-card-w:\s*var\(--hand-card-w\)/.test(css),
-    "the enemies' cards are sized independently again");
-  assert.ok(/--top-card-h:\s*var\(--hand-card-h\)/.test(css) && /--side-card-h:\s*var\(--hand-card-h\)/.test(css),
-    "a seat takes its width from the hand and its own height");
+  // This replaced a "one size for all four players" test, at the player's request, and
+  // then that was replaced by this one when they asked for the left and right seats to
+  // look like the mockup again — the mockup sizes its own seats DIFFERENTLY (its hand
+  // cards are twice its enemy cards), so the two requests cannot both hold. What is
+  // pinned here is the mockup's own hierarchy, at the proportions measured off it:
+  // hand 178x260 is 7.6% of the board's width, the partner's 100x155 is 4.3%, the
+  // enemies' 89x130 is 3.8%.
+  // The LAST declaration wins in the cascade — the sheet declares these more than once
+  // as the layout was revised, and reading the first match reports a size the browser
+  // has not used for several rounds.
+  const seat = (name: string) => {
+    const re = new RegExp(`--${name}-card-w:\\s*(\\d+)px[\\s\\S]{0,120}?--${name}-card-h:\\s*(\\d+)px`, "g");
+    const all = [...css.matchAll(re)];
+    assert.ok(all.length, `no card size for the ${name} seat`);
+    const m = all[all.length - 1]!;
+    return { w: Number(m[1]), h: Number(m[2]) };
+  };
 
-  // …and no seat re-sizes the CARD itself in pixels. The containers keep their own
-  // widths on purpose — a rack has to be wide enough for the fan it holds — so this looks
-  // for a card rule, not for any pixel width in the block.
-  for (const seat of ["opponent-top-hand", "opponent-fan-tray", "hand-container"]) {
-    const cardRule = new RegExp(`\\.${seat}[^{]*\\.card\\s*\\{[^}]*width:\\s*\\d+px`);
-    assert.ok(!cardRule.test(css), `${seat} sets its own card width in pixels instead of the shared size`);
+  const hand = seat("hand"), partner = seat("top"), enemy = seat("side");
+  assert.equal(hand.w, 178, "the hand is not the mockup's card");
+  assert.equal(partner.w, 100, "the partner's cards are not the mockup's smaller card");
+  assert.equal(enemy.w, 89, "the enemies' cards are not the mockup's smallest card");
+
+  // …in that order, and at the mockup's card ratio (0.6875 on its own screenshot).
+  assert.ok(hand.w > partner.w && partner.w > enemy.w, "the seat hierarchy has been flattened");
+  // Tolerance is wider than the hand's would need on its own: the hand is 110x160 in the
+  // mockup, easy to read, while the partner's and enemies' cards are small and fanned, so
+  // their measured heights carry a few pixels of error. What matters is that every seat is
+  // a playing card and not a flat rectangle.
+  for (const [name, size] of Object.entries({ hand, partner, enemy })) {
+    const ratio = size.w / size.h;
+    assert.ok(Math.abs(ratio - 0.6875) < 0.05, `${name}'s cards are not the mockup's card ratio (${ratio.toFixed(3)})`);
   }
 });
 
