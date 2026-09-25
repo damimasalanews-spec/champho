@@ -3129,3 +3129,49 @@ tail so they read as embers rather than confetti. */
   border-radius: 50%;
   font-size: 2.4rem;
 }
+
+/* ==========================================================================
+   OFFICIAL FORMAT — the shape and the frame widths, to the published spec
+
+   What was searched, and what it says:
+
+     * the paper card is 3.5 x 2.5 in — 5:7, ratio 0.714 (Mattel's own spec,
+       repeated by every sizing guide);
+     * the APP's cards, measured off the player's own screenshot of it, are
+       110x160 in a 1441-wide frame: ratio 0.6875, and 7.6% of the screen width;
+     * the APP's portraits are 130 in a 666-high frame: 19.5% of the height, and
+       they are ROUNDED SQUARES with a thick rim, not circles;
+     * the APP's card border is 7-8px on a 110px card: 6.4-7% of its width.
+
+   Against that, this table's SIZES were already right — a 178px card on a 2340
+   board is 7.6% of the width and a 211px portrait on 1080 is 19.5% of the height,
+   both exactly the app's proportions, because they were measured off it two rounds
+   ago. Two things were not:
+
+     1  the portraits were circles. The app's are rounded squares, so the portrait
+        inside the frame is a rounded square now, and the turn ring follows it;
+     2  the card's white border was 6px on a 178px card — 3.4% — where the app's is
+        about twice that. 11px is 6.2%.
+
+   The card RATIO is kept at the app's 0.6875 rather than the paper card's 0.714.
+   Moving to the paper ratio would make the cards 178x249, 11px shorter, for a
+   1.5% difference nobody can see on a phone — say the word if you want the paper
+   card's exact 5:7 anyway.
+   ========================================================================== */
+
+.avatar-container {
+  /* A square with rounded corners, not a circle: this is the app's portrait format. */
+  border-radius: 22px;
+  /* 7px on a 211px portrait is 3.3% — the chunky rim the app's portraits wear, on top
+     of whatever colour the equipped skin puts on the frame. */
+  border: 7px solid #ffffff;
+}
+
+/* The turn ring is drawn outside the frame, so it has to be the same shape as it. */
+.avatar-hud-wrapper::before { border-radius: 30px; }
+
+.card, .discarded-card, .card-in-flight {
+  /* 11px on the 178px card every seat now shares: 6.2% of the width. */
+  border-width: 11px;
+  border-radius: 22px;
+}
