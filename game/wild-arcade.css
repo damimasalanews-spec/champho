@@ -1899,6 +1899,13 @@ tail so they read as embers rather than confetti. */
   position: fixed;
   inset: 0;
   overflow: hidden;
+  /* The device's real safe areas, as padding. The page is allowed to reach the rounded
+     corners and the notch (viewport-fit=cover, in the page's own <head>), and this is
+     what keeps the BOARD out of them: applyStageScale() reads these four numbers back off
+     the element and sizes and centres the board inside the safe box, while the plate
+     below still covers the whole frame. Zero on any screen without insets, so on a
+     desktop this changes nothing at all. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   /* The felt green, as the fallback if the plate fails to load: this element is what
      the board is transparent over, so it is the last thing behind every card. */
   background-color: #3ba311;
@@ -1908,33 +1915,36 @@ tail so they read as embers rather than confetti. */
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
+  /* border-box rather than the default padding-box. With padding on this element the
+     default would inset the illustration by the safe areas and leave the felt fallback
+     colour down two strips of the screen — a seam, in the one place this file exists to
+     keep seamless. The plate covers the whole frame; only the board inside it is inset. */
+  background-origin: border-box;
 }
 
-/* Wider than the board, and the plate needs pushing in.
+/* How far the plate is pushed in, so that FELT — not plate — reaches the edges.
 
-   `cover` fills the frame, but on anything wider than the plate's own 3:2 it fills by
-   WIDTH — so the plate's full width is on screen, water and all. The island reaches the
-   plate's edges at its widest row and not at its narrowest: measured, it is 1535px of
-   1536 at y=368 and 1255px at y=704. So the rows in between show a strip of flat water
-   down each side of the screen, which reads as a band in exactly the way the letterbox
-   did — the thing this whole change was meant to remove.
+   `cover` fills this frame at every aspect ratio: there is never a bar, which was the
+   first half of the report. But on anything wider than the plate's own 3:2 it fills by
+   WIDTH, so the plate's whole width is on screen, water and all. The island reaches the
+   plate's edges at its widest row and not at its narrowest — measured, 1535 of 1536
+   columns at plate row 368, 1255 at row 704 — so the rows in between show a band of flat
+   water down each side of the screen, and a squarer screen shows water in the corners
+   above and below the board. That band is the blue the player keeps reporting.
 
-   How much is not guesswork. For a frame of aspect A, cover shows the plate's full width
-   and a centred vertical slice; zooming by Z narrows that slice to 1536/Z of the plate's
-   width, and the island has to be at least that wide at EVERY row in the slice. Walked
-   row by row against the plate at aspect 2.164: at Z=1.28 one row near the island's
-   taper is still 152px short, and at Z=1.40 every row is covered. 142% takes that with a
-   margin, and holds across the 2.0-2.2 range that phones actually occupy.
+   Which rows end up visible depends on the zoom, and the zoom has to suit the frame, so
+   this cannot be a constant and cannot be one media query per aspect: it is solved at
+   runtime from the plate's measured felt spans by game/scene-fill.js, and applyStageScale()
+   writes the answer in as an inline background-size.
 
-   The threshold is 181/100 rather than 16/9 so that a 16:9 screen — the size the layout
-   spec is written for — keeps plain cover and stays pixel for pixel what it was. Above
-   16:9 but below 1.81 there is barely a letterbox to speak of, so the plate's own water
-   showing there is the original design, not a regression.
+   `cover` stays here as the declared value, for the one case fillZoom declines: a frame so
+   square that no zoom inside its cap covers it. Cover fills regardless, so the frame is
+   never letterboxed either way — the inline value only decides how much water is left
+   visible.
 
-   A single step, not a ramp: background-size cannot interpolate. */
-@media (min-aspect-ratio: 181/100) {
-  .viewport-frame { background-size: 142% auto; }
-}
+   This replaces a fixed 142% above min-aspect-ratio 181/100. That left 16:9 and 3:2 —
+   desktops, laptops and 16:9 phones — on plain cover, which is precisely the side band it
+   was written to remove; and it left every other shape to whatever cover happened to do. */
 
 /* The board, centred by the same declaration that scales it.
 
@@ -1955,7 +1965,13 @@ tail so they read as embers rather than confetti. */
      A fixed 1920 here is what left bands down the sides of every phone. */
   width: var(--stage-w, 1920px);
   height: 1080px;
-  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+  /* The safe-area shift, before the scale. On a notched phone held sideways the frame is
+     the whole screen but the board is centred in the SAFE box inside it, so a 44px inset
+     on one side and none on the other has to move the board 22px. applyStageScale()
+     measures those insets and writes them here; 0 on every screen without them.
+     Ordered translate(-50%,-50%) → translate(shift) → scale(), so the shift lands in
+     screen pixels: inside the scale it would move the board by shift x board-scale. */
+  transform: translate(-50%, -50%) translate(var(--stage-shift-x, 0px), var(--stage-shift-y, 0px)) scale(var(--stage-scale, 1));
   transform-origin: center center;
 }
 

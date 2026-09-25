@@ -28,6 +28,33 @@
     // straight off disk quiet, which matters because the arcade demo is opened that
     // way.
     if ('serviceWorker' in navigator && window.isSecureContext === true) {
+        // An updated worker taking over reloads this page ONCE, so a device that has just
+        // been sent a fix actually paints it.
+        //
+        // skipWaiting + clients.claim hand control to a new worker without the loaded page
+        // re-fetching anything it has already fetched: the stylesheet from before the fix
+        // stays on screen until the player navigates somewhere. That is how a board that
+        // had been fixed and deployed kept being reported as broken from a device that was
+        // already running the new worker.
+        //
+        // Guarded twice. Only when there was ALREADY a controller — a first install is
+        // already fresh, and reloading then is a pointless second load on the one visit
+        // that is slowest — and once per tab session, so a worker that keeps being replaced
+        // cannot become a reload loop.
+        var hadController = !!navigator.serviceWorker.controller;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (!hadController) return;
+            try {
+                if (sessionStorage.getItem('cw-reloaded-for-worker') === '1') return;
+                sessionStorage.setItem('cw-reloaded-for-worker', '1');
+            } catch (error) {
+                // Storage denied (private modes): a reload per update is not worth a throw
+                // here, so this is the one path that simply does not reload.
+                return;
+            }
+            window.location.reload();
+        });
+
         // After load, so registration never competes with the first paint. The
         // game's deal animation is already running by the time this fires.
         var register = function () {

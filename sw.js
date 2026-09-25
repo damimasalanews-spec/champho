@@ -30,8 +30,12 @@
 /* Bump this whenever a fix has to reach devices that already have the worker. Activate
    deletes every cache whose name is not in CACHES, so a bump is what evicts the old
    stylesheet from a phone that is otherwise perfectly happy serving it. v2 exists
-   because v1 kept a board fix off a device — see the fetch notes below. */
-const VERSION = 'v2';
+   because v1 kept a board fix off a device — see the fetch notes below. v3 because v2
+   did the same: a device reported the pre-fix board after the fix had shipped, so the
+   plate's zoom (game/scene-fill.js) is being delivered under a fresh cache, and
+   game/pwa.js now reloads the page once when an updated worker takes over — otherwise a
+   worker that has already claimed the page can keep painting the stylesheet it cached. */
+const VERSION = 'v3';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -51,6 +55,7 @@ const SHELL_ASSETS = [
   '/manifest.json',
   '/game/wild-arcade.css',
   '/game/styles.css',
+  '/game/scene-fill.js',
   '/game/sound.js',
   '/game/pwa.js',
   '/assets/island-table-bg.webp',

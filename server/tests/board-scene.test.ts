@@ -127,12 +127,20 @@ test("the board is as tall as the screen and as wide as it needs to be", async (
 test("the board's scale and width are computed from the screen, not fixed", async () => {
   const html = await readFile(resolve(ROOT, "wild.html"), "utf8");
 
-  // Scale by HEIGHT, so the board can never leave a band top or bottom.
-  assert.ok(/window\.innerHeight\s*\/\s*STAGE_H/.test(html),
-    "the scale must come from the screen height over the board height");
-  assert.ok(/Math\.max\(STAGE_W,\s*window\.innerWidth\s*\/\s*usable\)/.test(html),
+  // Scale by HEIGHT, so the board can never leave a band top or bottom — and from the
+  // SAFE box inside the frame, not from the window, because on a notched phone held
+  // sideways the two differ by the device's insets and the board belongs inside them.
+  assert.ok(/const scale = Math\.min\(box\.safeW \/ STAGE_W,\s*box\.safeH \/ STAGE_H\)/.test(html),
+    "the scale must come from the safe box's height over the board height");
+  assert.ok(/Math\.max\(STAGE_W,\s*box\.safeW \/ usable\)/.test(html),
     "the width must be at least 1920 and otherwise as wide as the screen needs");
   assert.ok(/setProperty\('--stage-w'/.test(html), "the computed width must reach the stylesheet");
+  // …and the board is centred in the safe box, which on an inset screen is not the
+  // screen's centre: the shift has to be published too, or the board sits under the notch.
+  assert.ok(/setProperty\('--stage-shift-x'/.test(html) && /setProperty\('--stage-shift-y'/.test(html),
+    "the safe-area shift must reach the stylesheet");
+  assert.ok(/paddingLeft/.test(html) && /clientWidth/.test(html),
+    "the insets must be measured off the frame, not assumed to be zero");
 
   // The throw aims in board pixels, and the board's width now varies, so the conversion
   // has to come off the height — dividing by the fixed 1920 would mis-scale it by
@@ -141,6 +149,88 @@ test("the board's scale and width are computed from the screen, not fixed", asyn
     "the aim conversion must derive the scale from the board's height");
   assert.ok(/stageW:\s*stage\.width/.test(html) && /a\.stageW/.test(html),
     "the throw's camera must pan across the board's live width, not the spec's 1920");
+});
+
+test("the plate is pushed in until the FELT reaches the frame's edges", async () => {
+  const css = await sheet();
+  const frame = ruleFor(css, ".viewport-frame");
+
+  // `cover` fills the frame at every aspect, but on anything wider than the plate's 3:2 it
+  // fills by WIDTH, and the island does not reach the plate's own edges except at its
+  // widest row. That leaves a band of flat water down each side — the blue the player
+  // reports. It cannot be fixed by one fixed zoom behind one aspect-ratio threshold: the
+  // 142%/181 case that used to be here left 16:9 and 3:2 — desktops, laptops and 16:9
+  // phones, the commonest screens of all — on plain cover, which is the band exactly.
+  assert.ok(!/min-aspect-ratio/.test(css),
+    "a fixed zoom behind an aspect-ratio threshold is back; it cannot cover every shape");
+  assert.ok(/background-origin:\s*border-box/.test(frame),
+    "the plate must cover the frame's safe-area padding too, or the felt fallback seams there");
+
+  const html = await readFile(resolve(ROOT, "wild.html"), "utf8");
+  assert.ok(/<script src="game\/scene-fill\.js"><\/script>/.test(html),
+    "wild.html never loads the fill solver, so the plate is left at cover");
+  assert.ok(html.indexOf("game/scene-fill.js") < html.indexOf("function applyStageScale"),
+    "the solver must be loaded before the code that calls it (classic scripts run in order)");
+  assert.ok(/fill\.fillZoom\(box\.w, box\.h\)/.test(html),
+    "the fill is not solved for the frame it has to fill");
+  assert.ok(/frame\.style\.backgroundSize/.test(html),
+    "the solved zoom never reaches the element");
+  assert.ok(/zoom \? \(zoom \* 100\) \+ '% auto' : 'cover'/.test(html),
+    "a shape with no solution must fall back to cover, which still fills the frame");
+});
+
+test("fillZoom really covers the felt, on every screen shape", async () => {
+  // The solver is a plain script, so the table of measured felt spans can be handed to
+  // this test directly, and the invariant it claims can be CHECKED rather than trusted.
+  // Imported through a URL rather than a literal specifier: it is a browser script with no
+  // types, and a literal would be a TypeScript module-resolution error, not a test.
+  await import(new URL("../../game/scene-fill.js", import.meta.url).href);
+  const fill = (globalThis as { ChampWordSceneFill?: Record<string, any> }).ChampWordSceneFill;
+  assert.ok(fill && typeof fill.fillZoom === "function", "game/scene-fill.js exports nothing");
+
+  const { ISLAND_LO: LO, ISLAND_HI: HI, PLATE_W, PLATE_H, STEP } = fill as {
+    ISLAND_LO: number[]; ISLAND_HI: number[]; PLATE_W: number; PLATE_H: number; STEP: number;
+  };
+  assert.equal(LO.length, HI.length, "the two felt spans are different lengths");
+  assert.ok(LO.length >= 60, "the spans are too coarsely sampled to be the island's taper");
+
+  const shapes: Array<[string, number, number]> = [
+    ["phone 2.16:1 (the reported one)", 1441, 666], ["the 1536x709 canvas", 1536, 709],
+    ["16:9 desktop", 1920, 1080], ["16:9 laptop", 1280, 720], ["16:10", 1440, 900],
+    ["3:2", 1536, 1024], ["4:3 tablet", 1024, 768], ["iPad Pro 11", 1194, 834],
+    ["21:9 ultrawide", 2560, 1080], ["5:4", 1280, 1024], ["square", 900, 900],
+    ["very wide", 2400, 700], ["small phone", 568, 320]
+  ];
+
+  for (const [name, w, h] of shapes) {
+    const z = fill.fillZoom(w, h) as number | null;
+    assert.ok(z && z >= 1, `${name}: no zoom found for ${w}x${h}`);
+
+    // Re-derive what that zoom actually shows, and check the felt on every row of it.
+    const scale = (z * w) / PLATE_W;
+    const top = PLATE_H / 2 - h / 2 / scale, bottom = PLATE_H / 2 + h / 2 / scale;
+    const i0 = Math.floor(top / STEP), i1 = Math.floor(bottom / STEP);
+    const needLeft = PLATE_W / 2 - PLATE_W / (2 * z);
+    const needRight = PLATE_W / 2 + PLATE_W / (2 * z);
+    assert.ok(i0 >= 0 && i1 + 1 < LO.length, `${name}: the visible slice leaves the plate`);
+
+    // Between two samples the span is read pessimistically, which is what the solver does.
+    for (let i = i0; i <= i1; i++) {
+      const lo = Math.max(LO[i]!, LO[i + 1]!);
+      const hi = Math.min(HI[i]!, HI[i + 1]!);
+      assert.ok(lo >= 0 && lo < needLeft,
+        `${name}: row ${i * STEP} starts its felt at column ${lo}, but the frame's left edge is at ${needLeft.toFixed(0)} — water would show there`);
+      assert.ok(hi > needRight,
+        `${name}: row ${i * STEP} ends its felt at column ${hi}, but the frame's right edge is at ${needRight.toFixed(0)} — water would show there`);
+    }
+  }
+
+  // And the shapes the old threshold left on plain cover must now genuinely be pushed in,
+  // or the band is still there on a 16:9 laptop.
+  assert.ok((fill.fillZoom(1920, 1080) as number) > 1.4,
+    "16:9 is barely zoomed; plain cover leaves the water band down the sides");
+  assert.ok((fill.fillZoom(1441, 666) as number) >= 1.35,
+    "the reported 2.16:1 shape is barely zoomed");
 });
 
 test("the corners are anchored to the board's edges, so they reach the screen", async () => {

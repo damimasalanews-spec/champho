@@ -305,6 +305,32 @@ test("the page asks for a worker update rather than waiting for the browser", as
   assert.ok(/updateViaCache:\s*'none'/.test(source), "the update check itself may be answered from cache");
 });
 
+test("a new worker taking over reloads the page once, so a fix is actually painted", async () => {
+  const source = await readFile(resolve(ROOT, "game/pwa.js"), "utf8");
+
+  // skipWaiting + clients.claim change who controls the page without making the loaded page
+  // re-fetch anything. A device that had already been sent the board fix went on painting
+  // the stylesheet from before it, and reported the bug again, because nothing reloaded.
+  assert.ok(/controllerchange/.test(source), "nothing reacts to the new worker taking over");
+  assert.ok(/window\.location\.reload\(\)/.test(source), "the page never reloads onto the new worker");
+
+  // …but only on an UPDATE. On a first install there was no controller, the page is already
+  // fresh, and reloading it would be a second load on the slowest visit there is.
+  assert.ok(/hadController/.test(source), "it reloads on first install too, for nothing");
+
+  // …and only once per tab, or a worker that keeps being replaced becomes a reload loop.
+  assert.ok(/cw-reloaded-for-worker/.test(source), "no once-per-session guard: a reload loop");
+});
+
+test("the fill solver is precached, so the zoom survives going offline", async () => {
+  const source = await readFile(resolve(ROOT, "sw.js"), "utf8");
+  // Without it an offline load leaves ChampWordSceneFill undefined, applySceneFill bails,
+  // and the frame falls back to cover — the water band, back on the screen of anyone who
+  // launched the installed app with no signal.
+  assert.ok(/['"]\/game\/scene-fill\.js['"]/.test(source),
+    "the worker does not precache game/scene-fill.js");
+});
+
 test("the stylesheet URL can be busted, so a stuck device is not stuck forever", async () => {
   const html = await readFile(resolve(ROOT, "wild.html"), "utf8");
   // Belt and braces alongside the worker: a changed URL is a cache miss at every layer,

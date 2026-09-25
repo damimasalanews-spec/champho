@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- viewport-fit=cover: without it a notched phone held sideways lays the page out
+         only inside the safe area and paints the strips either side of it with the page
+         background — two bands down the sides of the screen, which is the shape of the
+         bug the player keeps reporting. With it the page reaches the corners and the
+         insets become .viewport-frame's padding, which is what the board is kept out of
+         (see applyStageScale) while the table illustration runs edge to edge underneath. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- Installable app + offline: see manifest.json, sw.js and game/pwa.js.
          The manifest and the service worker are what make this a real app on a phone
          (home-screen icon, standalone window, landscape lock) and what keeps it
@@ -23,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=2">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=3">
 </head>
 <body>
 
@@ -311,6 +317,10 @@
     </div>
 
     <!-- Script Execution Pipelines -->
+    <!-- How far the table plate has to be zoomed for FELT to reach the frame's edges.
+         Before sound.js and the page's own script, both of which are classic scripts, so
+         it is defined by the time applyStageScale() runs. -->
+    <script src="game/scene-fill.js"></script>
     <script src="game/sound.js"></script>
     <script>
         'use strict';
@@ -484,22 +494,80 @@
         // ==================================================================
         const STAGE_W = 1920, STAGE_H = 1080;
 
+        // The box the board is fitted into, and the two numbers that describe its shape.
+        //
+        // Both come off .viewport-frame rather than off the window. On a notched phone held
+        // sideways that element is the whole screen — the page is viewport-fit=cover — and
+        // it carries the device's safe insets as padding, because the black pill of the home
+        // indicator and the rounded corners sit there. The board belongs inside those
+        // insets, so the fit uses the padding box minus the padding, and the plate behind it
+        // is left to cover the frame entire. Everywhere without insets — every desktop, every
+        // Android — the padding is 0 and this is simply the viewport.
+        function frameBox() {
+            const frame = document.querySelector('.viewport-frame');
+            const w = frame ? frame.clientWidth : 0;
+            const h = frame ? frame.clientHeight : 0;
+            if (!w || !h) {
+                // Before the frame exists, or a page without one: the window is the best
+                // answer available, and it is the right one on any screen without insets.
+                return { w: window.innerWidth, h: window.innerHeight,
+                         safeW: window.innerWidth, safeH: window.innerHeight,
+                         shiftX: 0, shiftY: 0 };
+            }
+            const cs = getComputedStyle(frame);
+            const pl = parseFloat(cs.paddingLeft) || 0, pr = parseFloat(cs.paddingRight) || 0;
+            const pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+            return {
+                w, h,
+                safeW: w - pl - pr,
+                safeH: h - pt - pb,
+                // How far the safe box's centre sits from the frame's, so the board can be
+                // centred in the safe box rather than in the screen. Read by .stage's own
+                // transform, in screen pixels — inside the scale it would be multiplied by
+                // the board's scale and land somewhere else entirely.
+                shiftX: (pl - pr) / 2,
+                shiftY: (pt - pb) / 2,
+            };
+        }
+
+        // How far the plate behind the board has to be zoomed for its felt — not the plate
+        // itself — to reach all four edges of the frame. See game/scene-fill.js: the answer
+        // depends on the frame's shape and on which plate rows end up visible, so it is
+        // solved from the plate's measured felt spans rather than fixed per breakpoint.
+        function applySceneFill(frame, box) {
+            const fill = window.ChampWordSceneFill;
+            if (!fill || !frame) return;
+            const zoom = fill.fillZoom(box.w, box.h);
+            // A null answer means no zoom inside the cap covers this shape. `cover` is what
+            // the stylesheet declares and it fills the frame at every aspect, so that is the
+            // fallback: the plate's own water stays visible there rather than a gap opening.
+            frame.style.backgroundSize = zoom ? (zoom * 100) + '% auto' : 'cover';
+        }
+
         function applyStageScale() {
+            const box = frameBox();
+
             // The scale is the SMALLER of the two fits, and that choice is what protects
             // the board's 1920 width on a narrow screen. Taking the height alone and
             // forcing the width up to at least 1920 made the board 1365px wide inside a
             // 1024px iPad: the seats sit at the board's edges, so an over-wide board
             // pushes both of them off the sides. Measured, not theorised.
-            const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+            const scale = Math.min(box.safeW / STAGE_W, box.safeH / STAGE_H);
             const usable = scale > 0 ? scale : 1;
 
             // Then widen the board until it covers the screen's width too. On a screen
             // wider than 16:9 that is wider than 1920 and the board itself reaches both
             // sides, which is the 1536x709 case. On 16:9 and narrower it stays exactly
             // 1920 and the scene behind it fills whatever is left over.
-            const width = Math.max(STAGE_W, window.innerWidth / usable);
+            const width = Math.max(STAGE_W, box.safeW / usable);
             document.documentElement.style.setProperty('--stage-scale', String(usable));
             document.documentElement.style.setProperty('--stage-w', Math.round(width) + 'px');
+            document.documentElement.style.setProperty('--stage-shift-x', box.shiftX + 'px');
+            document.documentElement.style.setProperty('--stage-shift-y', box.shiftY + 'px');
+
+            // The plate is sized from the FRAME, not from the safe box: it covers the whole
+            // frame, insets included, and only the board inside it is inset.
+            applySceneFill(document.querySelector('.viewport-frame'), box);
         }
 
         function stageRect() {
