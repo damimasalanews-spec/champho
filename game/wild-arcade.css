@@ -3175,3 +3175,21 @@ tail so they read as embers rather than confetti. */
   border-width: 11px;
   border-radius: 22px;
 }
+
+/* The portrait FILLS its frame.
+   Measured on the live page after the block above: the frame is 211px and the
+   portrait inside it was still 107px — half the frame empty, a small picture in a
+   big box. The app's portraits fill theirs (a 130px frame holds roughly a 118px
+   portrait, 91%), so at this frame size the portrait is 188px — 89% — with the rim
+   and the corner radius scaled to it: 10px on 188 is 5.3%, the same rim weight the
+   app has, and a 38px radius keeps the same corner curve as the frame around it.
+   Only found by measuring: at a glance the old one just read as "a bit small". */
+.opponent-top .avatar-container,
+.opponent-left .avatar-container,
+.opponent-right .avatar-container,
+.local-user-slot .avatar-container {
+  width: 188px;
+  height: 188px;
+  border-radius: 38px;
+  border-width: 10px;
+}
