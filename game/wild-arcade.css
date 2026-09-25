@@ -2112,15 +2112,21 @@ tail so they read as embers rather than confetti. */
      showing, and 63 of 125 is the ratio the fan is drawn to. Scaling the cards without
      this would bury each card under the next by 100px instead. Same for the discard and
      draw packets — a big hand beside a small deck reads as a mistake, not a hierarchy. */
-  --hand-card-w: 163px;   --hand-card-h: 228px;   --hand-step: 81px;
+  /* Your hand is the PARTNER'S hand now, exactly: same 137x195 card, same 65px step, so
+     the two seats read as the same object rather than your side being a bigger version of
+     it. The player asked for exactly that — Champ's avatar and cards to match the Poker
+     seat — after seeing the 163x228 the last change gave this one. */
+  --hand-card-w: 137px;   --hand-card-h: 195px;   --hand-step: 65px;
   --discard-w: 169px;     --discard-h: 234px;
   --draw-w: 189px;        --draw-h: 241px;
   --top-card-w: 137px;    --top-card-h: 195px;
   --side-card-w: 85px;    --side-card-h: 137px;
 
-  /* Avatars, also x1.3: top 195, yours 182, sides 176. The emoji inside each ring is
-     sized by its own rule further down, so the glyph grows with the ring. */
-  --avatar-top: 195px;    --avatar-you: 182px;    --avatar-side: 176px;
+  /* Avatars, also x1.3: top 195, sides 176 — and yours 195, the same as the top seat's
+     rather than the 182 x1.3 first gave it, because the player asked for Champ's to match
+     the Poker seat's exactly. The emoji inside each ring is sized by its own rule further
+     down, so the glyph grows with the ring. */
+  --avatar-top: 195px;    --avatar-you: 195px;    --avatar-side: 176px;
 }
 
 /* --------------------------------------------------------------------------
@@ -2392,40 +2398,51 @@ tail so they read as embers rather than confetti. */
    YOUR SEAT — avatar 140 x 140 at (170, 820), 40px up from the hand's top edge.
    -------------------------------------------------------------------------- */
 .local-user-slot {
-  left: 170px;
-  top: 820px;
+  /* 170 was the spec's X for a 140px portrait. The portrait is 195 now, like the top
+     seat's, and the player asked for the seat to come a little to the right of where it
+     was — 40 board px, about 15 screen px on a phone held sideways. Still 215px clear of
+     the hand's leftmost card and 70px clear of the chat button. */
+  left: 210px;
+  /* 820 was set against a 140px portrait. The portrait is 195 now, so the seat starts 13px
+     higher and the nameplate under it keeps the exact clearance from the board's bottom
+     edge that it had: 1038, against 1080. */
+  top: 807px;
   right: auto;
   bottom: auto;
   transform: none;
 }
 
 .local-user-slot .avatar-frame { width: var(--avatar-you); height: var(--avatar-you); }
-.local-user-slot .avatar-container { font-size: 6.1rem; }
+/* 6.5rem, matching .opponent-top's glyph: the portrait is the same size, so the face in it
+   is too. */
+.local-user-slot .avatar-container { font-size: 6.5rem; }
 
+/* The top seat's nameplate, exactly: 205x58 at 1.9rem. */
 .local-user-slot .player-pill-tag {
-  width: 180px;
-  height: 52px;
+  width: 205px;
+  height: 58px;
   margin-top: -22px;
-  border-radius: 26px;
-  font-size: 1.6rem;
+  border-radius: 28px;
+  font-size: 1.9rem;
 }
 
 /* --------------------------------------------------------------------------
-   YOUR HAND — the biggest thing on the table. 125 x 175 cards at a 62px step,
-   centred on X 960, tops at Y 865, bottoms at Y 1040.
+   YOUR HAND — the same object as the partner's hand: 137 x 195 cards at a 65px
+   step, the top seat's own numbers, centred on X 960.
 
-   Seven cards at that step come to 497px, inside the spec's 450-500px hand width,
-   and the sideways spread is a variable so the hover rule below cannot drift out
-   of step with it. The per-card tilt and lift are still written by renderHand.
+   Seven cards at that step come to 527px, inside the spec's hand width, and the
+   sideways spread is a variable so the hover rule below cannot drift out of step
+   with it. The per-card tilt and lift are still written by renderHand, at the top
+   seat's 4deg and 5px.
    -------------------------------------------------------------------------- */
 .hand-container {
   left: 960px;
   /* 865 was right for 175px cards: tops at 865, bottoms at 1040, 40px clear of the bottom
-     edge of the board. The cards are 228px now, so the hand moves up by the 53px they
-     gained — and 10px more. Measured, not guessed with a full seven dealt: at 812 the
-     outermost cards of the fan put their rotated corner 1px past the board's bottom edge
-     and were clipped by it. At 802 the lowest corner sits at 1071. */
-  top: 802px;
+     edge of the board. 195px cards put the same bottom line at 845; this sits 5px higher
+     than that, because the fan's outer cards are tilted and dipped and their rotated
+     corners reach lower than the flat bottom edge — 1074 measured with a full seven dealt,
+     inside the board's 1080 with a little room. */
+  top: 840px;
   right: auto;
   bottom: auto;
   width: 700px;
@@ -2460,10 +2477,11 @@ tail so they read as embers rather than confetti. */
     scale(1.1) !important;
 }
 
-/* The hand's faces scale with the card, x1.3 along with it. */
-.hand-container .card .card-value { font-size: 7.8rem; }
-.hand-container .card .card-value.action-symbol { font-size: 4.3rem; }
-.hand-container .card .corner-value { font-size: 2rem; }
+/* The hand's faces are the partner's faces exactly, since it is the same card: 6.5rem on
+   a 137px card. */
+.hand-container .card .card-value { font-size: 6.5rem; }
+.hand-container .card .card-value.action-symbol { font-size: 3.6rem; }
+.hand-container .card .corner-value { font-size: 1.7rem; }
 
 /* --------------------------------------------------------------------------
    CHAT — 100 x 100 circle, bottom-left, 40px in, clear of your avatar at X 170.
@@ -2635,7 +2653,8 @@ tail so they read as embers rather than confetti. */
 .opponent-left .player-pill-tag,
 .opponent-right .player-pill-tag { width: 176px; height: 53px; font-size: 1.65rem; }
 
-.local-user-slot .player-pill-tag { width: 188px; height: 55px; font-size: 1.75rem; }
+/* Champ's nameplate is the top seat's exact size — see the seat block that says why. */
+.local-user-slot .player-pill-tag { width: 205px; height: 58px; font-size: 1.9rem; }
 
 /* --- the hand counts ---------------------------------------------------- */
 .opponent-card-count-stack {

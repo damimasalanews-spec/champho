@@ -29,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=4">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=5">
 </head>
 <body>
 
@@ -422,13 +422,13 @@
                 // Arc layouts calculations
                 const offsetFromMiddle = i - midIndex;
                 // The spec's small fan with the centre card raised. The sideways spread
-                // is not here — it is --hand-step in the sheet (81px, which puts seven
-                // 163px cards at the spec's ~649px hand width). These two are the tilt and
-                // the lift that make it an arc rather than a row, at the same angle and
-                // dip per card relative to the bigger cards: 4deg/5px was written for
-                // 125px cards and reads as almost flat on 163px ones.
-                const rotationAngle = offsetFromMiddle * 5;
-                const verticalDip = Math.abs(offsetFromMiddle) * 6.5;
+                // is not here — it is --hand-step in the sheet (65px, which puts seven
+                // 137px cards at the spec's ~527px hand width). These two are the tilt and
+                // the lift that make it an arc rather than a row, and they are the top
+                // seat's own 4deg and 5px: your hand is the same object as the partner's,
+                // drawn on a different edge of the table.
+                const rotationAngle = offsetFromMiddle * 4;
+                const verticalDip = Math.abs(offsetFromMiddle) * 5;
 
                 cardEl.style.setProperty('--index-offset', offsetFromMiddle);
                 cardEl.style.setProperty('--arc-rotation', `${rotationAngle}deg`);
