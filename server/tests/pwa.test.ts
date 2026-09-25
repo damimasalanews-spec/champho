@@ -182,3 +182,53 @@ test("the worker and its registration script never open a socket", async () => {
     assert.ok(!/new WebSocket/.test(source), `${file} must not open a socket`);
   }
 });
+
+test("the install button is created lazily, never authored into the pages", async () => {
+  // The 1920x1080 board spec fixes every element's position, and an Install button is
+  // not in it. Building the button in script means it cannot add dead weight to that
+  // layout on a browser that cannot install, and keeps five pages from drifting apart.
+  for (const page of PAGES) {
+    const html = await readFile(resolve(ROOT, page), "utf8");
+    assert.ok(!/cw-install-btn/.test(html), `${page} hard-codes the install button into the markup`);
+    assert.ok(!/Install this game/.test(html), `${page} hard-codes install copy`);
+  }
+
+  const source = await readFile(resolve(ROOT, "game/pwa.js"), "utf8");
+  assert.ok(source.includes("createElement('button')"), "pwa.js builds the button itself");
+  assert.ok(source.includes("is-visible"), "it is shown by adding a class, not by being appended");
+});
+
+test("the install button's two placements are both defined", async () => {
+  const source = await readFile(resolve(ROOT, "game/pwa.js"), "utf8");
+
+  // In-board: positioned in the stage's own pixels, clear of the settings gear and of
+  // the timer. .arcade-settings-btn sits at left 1810 with width 70, so a right offset
+  // of 126px puts the button's right edge 16px clear of it.
+  assert.ok(/\.cw-install-btn\{[^}]*right:126px/.test(source), "the in-board placement is missing");
+  assert.ok(/\.cw-install-btn\{[^}]*top:35px/.test(source), "the in-board placement must match the gear's 35px");
+
+  // Off-board: the four pages with no stage get a viewport-pinned button.
+  assert.ok(/\.cw-install-btn\.cw-fixed\{[^}]*position:fixed/.test(source), "the viewport placement is missing");
+
+  // Hidden until offered, in both placements.
+  assert.ok(/\.cw-install-btn\{[^}]*display:none/.test(source), "the button must start hidden");
+  assert.ok(/\.cw-install-btn\.is-visible\{display:inline-flex\}/.test(source), "and only .is-visible may show it");
+
+  // A touch target, not a link: 56px tall in the pinned placement.
+  assert.ok(/\.cw-install-btn\.cw-fixed\{[^}]*height:56px/.test(source), "the pinned button is under 48px tall");
+});
+
+test("the install offer is suppressed for an already-installed app, and handled on iOS", async () => {
+  const source = await readFile(resolve(ROOT, "game/pwa.js"), "utf8");
+
+  // Someone who has already installed and launched from the home screen must never be
+  // asked again. Both the standard query and iOS's own flag are checked.
+  assert.ok(source.includes("(display-mode: standalone)"), "standalone is not detected");
+  assert.ok(source.includes("navigator.standalone === true"), "the iOS standalone flag is not checked");
+
+  // iOS never fires beforeinstallprompt — installing is a manual Share-sheet action —
+  // so it needs its own path or the button simply never appears on an iPhone.
+  assert.ok(/iP\(hone\|ad\|od\)/.test(source), "iOS is not detected");
+  assert.ok(source.includes("Add to Home Screen"), "iOS is given no instruction");
+  assert.ok(source.includes("maxTouchPoints"), "iPadOS reports itself as a Mac and needs the touch check");
+});
