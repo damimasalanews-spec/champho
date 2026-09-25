@@ -29,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=7">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=8">
 </head>
 <body>
 
@@ -1171,18 +1171,17 @@
                 // widening the seat and dragging its portrait away from the rim.
                 const direction = isLeft ? 1 : -1;
 
-                // The spec's side seats: 85x137 backs (65x105 x1.3), 29px apart across
-                // and 39px down, so the fan cascades diagonally inward and every card
-                // keeps a ~56px strip of its neighbour — the same fraction of the card as
-                // the 43px strip of a 65px back that the spec's band describes. The
-                // card's own size is --side-card-* in the sheet; these are the steps.
+                // Same card size as the rest of the table, cascaded tightly: 30px across
+                // and 23px down, so the group stays inside the band the last two rounds
+                // measured and clear of the local seat below it. The card's own size is
+                // --side-card-* in the sheet; these are the steps.
                 //
                 // The faces are SMALLER than the player's and the partner's, and that is
                 // the spec's visual hierarchy rather than the uniformity this used to
                 // have: your hand is the biggest thing on the table, the side seats are
                 // the smallest, the top seat sits between them.
-                backCard.style.top = `${i * 57}px`;
-                backCard.style.left = `calc(50% + ${direction * i * 32}px)`;
+                backCard.style.top = `${i * 23}px`;
+                backCard.style.left = `calc(50% + ${direction * i * 30}px)`;
                 backCard.style.transform =
                     `translate3d(-50%, 0, 0) rotate(${direction * (18 + i * 2)}deg)`;
                 backCard.style.zIndex = i;
@@ -1215,13 +1214,12 @@
 
                 // Fans cards sideways and slightly down at the edges, the same arc the
                 // local hand uses so a partner's hand reads as the same kind of object.
-                // The spec's top seat: 137x195 cards (105x150 x1.3) at a 65px spread —
-                // 50px x1.3, the same fraction of the card as before — so seven of them
-                // come to 527px, which is exactly what .opponent-top-hand is sized to. A
-                // wider spread would outgrow the rack and a tighter one would hide the
-                // corner indices.
+                // The partner's cards are the SAME SIZE as the player's own, so the fan is
+                // tighter instead: 47px of each 178px card stays visible, which is the same
+                // fraction the hand shows of its own, and seven of them come to 460px — what
+                // .opponent-top-hand is sized to.
                 const offsetFromMiddle = i - midIndex;
-                const horizontalSpread = offsetFromMiddle * 60;
+                const horizontalSpread = offsetFromMiddle * 47;
                 const rotationAngle = offsetFromMiddle * 4;
                 const verticalDip = Math.abs(offsetFromMiddle) * 5;
 

@@ -131,6 +131,29 @@ test("the card system is drawn by the sheet, at every size", async () => {
   assert.ok(/\.card \.card-glyph\s*{[^}]*width:\s*\d+%/.test(css), "the action glyphs should be a share of the card");
 });
 
+test("all four players' cards are one size", async () => {
+  const css = await rulesOnly();
+
+  // Asked for directly: the mockup drew the hand large and the other three seats small,
+  // and the player wanted one card size across the table. The size lives in the hand's
+  // pair, and the other two seats REFERENCE it rather than repeating a number — which is
+  // what stops this drifting back apart the next time a seat is adjusted.
+  assert.ok(/--top-card-w:\s*var\(--hand-card-w\)/.test(css),
+    "the partner's cards are sized independently again");
+  assert.ok(/--side-card-w:\s*var\(--hand-card-w\)/.test(css),
+    "the enemies' cards are sized independently again");
+  assert.ok(/--top-card-h:\s*var\(--hand-card-h\)/.test(css) && /--side-card-h:\s*var\(--hand-card-h\)/.test(css),
+    "a seat takes its width from the hand and its own height");
+
+  // …and no seat re-sizes the CARD itself in pixels. The containers keep their own
+  // widths on purpose — a rack has to be wide enough for the fan it holds — so this looks
+  // for a card rule, not for any pixel width in the block.
+  for (const seat of ["opponent-top-hand", "opponent-fan-tray", "hand-container"]) {
+    const cardRule = new RegExp(`\\.${seat}[^{]*\\.card\\s*\\{[^}]*width:\\s*\\d+px`);
+    assert.ok(!cardRule.test(css), `${seat} sets its own card width in pixels instead of the shared size`);
+  }
+});
+
 test("the type is served by the app, not by a font CDN", async () => {
   const css = await rulesOnly();
   assert.ok(/@font-face/.test(css), "no local @font-face: the type falls back offline");
