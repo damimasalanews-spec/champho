@@ -1433,19 +1433,21 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
    big dashed throw box with a crown, and the deck + Card Cascade in the top-left.
    ========================================================================== */
 
-/* The illustrated island. background-size:cover because the plate came back 3:2
-   and the table is 16:9 — so it crops a little off the top and bottom rim rather
-   than stretching the island out of shape. All the art that matters (the clean
-   centre the cards sit on) survives the crop. */
+/* The illustrated island has moved to .viewport-frame — see the comment there. It is on
+   the frame rather than the table so the scene reaches the edges of any screen, and the
+   board becomes a transparent window onto it instead of a picture with a border.
+   background-size:cover at 16:9 is unchanged by the move: cover over a 1920x1080 table
+   and cover over a 16:9 frame scale the 3:2 plate identically, so the board looks
+   exactly as it did. The green stays as the fallback if the plate ever fails to load. */
 .game-table {
-  background-color: #3ba311;
-  /* ../assets, not assets: this sheet lives in game/, so a bare assets/ would resolve
-     to game/assets/ and 404. The page itself is at the root, which is why the same
-     path written in HTML would have worked and this one would not. */
-  background-image: url('../assets/island-table-bg.webp');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  /* background: none, and NO background-color — not even the felt green that used to
+     sit here as an image-failure fallback. The table is the full size of the board and
+     sits on top of the frame, so any opaque colour on it hides the scene completely:
+     with `background: none` followed by `background-color: #3ba311` the first of those
+     clears the image and the second then paints a solid green wall over the whole
+     screen. It looked exactly like a blank game. The fallback belongs on the frame,
+     which is where the plate now is. */
+  background: none;
 }
 
 /* The crown watermark the island plate does not carry, sunk into the throw box. */
@@ -1875,12 +1877,37 @@ tail so they read as embers rather than confetti. */
    reverted. The arrangement above is the one, and it is the only one.)
    ========================================================================== */
 
-/* The letterbox: fixed, clipped, and nothing else. */
+/* The letterbox: fixed, clipped, and — this is the point — carrying the scene.
+
+   The board is 16:9 and phones are taller than that: 844x390 is 2.16:1, so fitting the
+   board by height leaves 75px of nothing down each side. That reads as the game not
+   filling the screen, which is exactly how it was reported.
+
+   The fix is not to crop the board to fill (that eats the timer and the hand), and not
+   to stretch it (that turns the cards into parallelograms), and not to paint the bars a
+   matching colour (the plate's edge pixels are water with a spread of ~180 across the
+   edge, so a flat colour would seam against them). It is to put the ILLUSTRATION on the
+   frame instead of on the table, at cover, so the scene runs edge to edge on any aspect
+   ratio while the board — and everything on it — stays a contained, uncropped 16:9.
+
+   At 16:9 the two are the same rendering: cover over this frame and cover over a
+   1920x1080 table both scale the 1536x1024 plate by 1.25, so the board is pixel for
+   pixel what it was. Off 16:9 the frame's copy is always the LARGER of the two (1.52x
+   the board's scale at 2.16:1, 1.25x at 1.5:1), so the island only ever appears larger
+   beneath the board, never smaller — the felt can never shrink out from under a seat. */
 .viewport-frame {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #0d3807;
+  /* The felt green, as the fallback if the plate fails to load: this element is what
+     the board is transparent over, so it is the last thing behind every card. */
+  background-color: #3ba311;
+  /* ../assets, not assets: this sheet lives in game/, so a bare assets/ would resolve
+     to game/assets/ and 404. */
+  background-image: url('../assets/island-table-bg.webp');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
 }
 
 /* The board, centred by the same declaration that scales it.
