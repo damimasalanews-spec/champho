@@ -1,0 +1,18 @@
+{
+  "appId": "com.champword.app",
+  "appName": "Champ Word",
+  "webDir": "mobile/www",
+
+  "server": {
+    "url": "https://champho-live.onrender.com",
+    "errorPath": "offline.html",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0d3807",
+    "webContentsDebuggingEnabled": false
+  }
+}
