@@ -29,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=5">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=6">
 </head>
 <body>
 
@@ -321,6 +321,9 @@
          Before sound.js and the page's own script, both of which are classic scripts, so
          it is defined by the time applyStageScale() runs. -->
     <script src="game/scene-fill.js"></script>
+    <!-- The card set's marks and the builder that draws a face. Before the page's own
+         script, which destructures cardFaceHtml off it — classic scripts run in order. -->
+    <script src="game/cards.js"></script>
     <script src="game/sound.js"></script>
     <script>
         'use strict';
@@ -380,6 +383,12 @@
             effectNode.classList.add(effectClass);
         }
 
+        // The card set's marks and the one builder that draws a face live in
+        // game/cards.js, shared with cards.html — the asset sheet is rendered by the same
+        // code over the same stylesheet, so a change here cannot leave the sheet showing
+        // a card the game no longer draws.
+        const { cardFaceHtml } = window.ChampCards;
+
         // Render Arched Player Hand UI dynamically with math variables
         function renderHand(cardsArray) {
             const handContainer = document.getElementById('local-player-hand');
@@ -394,30 +403,11 @@
                 cardEl.classList.add('card', card.color);
                 // The discard-all wears its own accent, so the face says what it does.
                 if (card.type === 'discard_all') cardEl.classList.add('discard-all');
-
-                // Add inner text nodes
-                const valueEl = document.createElement('span');
-                valueEl.classList.add('card-value');
-                // Action faces are longer than a digit — "+2", "ALL", "★" — and at the 5rem
-                // the numerals are set in they run past the card's border, so they take the
-                // smaller size. isAction is the card's own flag; the length test is the
-                // safety net for a card that turns up without one.
-                if (card.isAction || String(card.value ?? '').length > 1) {
-                    valueEl.classList.add('action-symbol');
-                }
-                valueEl.innerText = card.value;
-                cardEl.appendChild(valueEl);
-
-                // Add secondary design markers
-                const leftCorner = document.createElement('div');
-                leftCorner.classList.add('corner-value', 'corner-top-left');
-                leftCorner.innerText = card.value;
-                cardEl.appendChild(leftCorner);
-
-                const rightCorner = document.createElement('div');
-                rightCorner.classList.add('corner-value', 'corner-bottom-right');
-                rightCorner.innerText = card.value;
-                cardEl.appendChild(rightCorner);
+                // The face is one builder's business, for every card on the table — see
+                // cardFaceHtml. Before this, each of the four call sites assembled its own
+                // corners and value, which is how "+2" could be set at the digit size on
+                // one seat and the action size on another.
+                cardEl.innerHTML = cardFaceHtml(card);
 
                 // Arc layouts calculations
                 const offsetFromMiddle = i - midIndex;
@@ -899,11 +889,9 @@
             if (key !== paintedThrowKey) {
                 paintedThrowKey = key;
                 el.className = 'discarded-card ' + s.color;
-                el.textContent = '';
-                const v = document.createElement('span');
-                v.className = 'card-value';
-                v.textContent = s.letter;
-                el.appendChild(v);
+                // The same face builder the seats use, with the value the flight is carrying
+                // as its source of truth: a thrown card is a card, not a card-shaped div.
+                el.innerHTML = cardFaceHtml({ color: s.color, value: s.letter, type: s.type });
             }
             el.style.opacity = '1';
             el.style.filter = s.blur > 0.05 ? `blur(${s.blur.toFixed(2)}px)` : 'none';
@@ -1109,10 +1097,7 @@
             placedCard.style.setProperty('--discard-y', `${randomY}px`);
             placedCard.style.setProperty('--discard-z', `${discardPile.children.length * 2}px`);
 
-            const valueEl = document.createElement('span');
-            valueEl.classList.add('card-value');
-            valueEl.innerText = cardData.value;
-            placedCard.appendChild(valueEl);
+            placedCard.innerHTML = cardFaceHtml(cardData);
 
             const landOnPile = () => {
                 discardPile.appendChild(placedCard);
@@ -1244,14 +1229,7 @@
                 cardEl.style.transform = `translate3d(-50%, 0, 0) translateY(${verticalDip}px) rotate(${rotationAngle}deg)`;
                 cardEl.style.zIndex = i;
 
-                const valueClass = (card.isAction || String(card.value ?? '').length > 1)
-                    ? 'card-value action-symbol' : 'card-value';
-
-                cardEl.innerHTML = `
-                    <div class="corner-value corner-top-left">${card.value}</div>
-                    <div class="${valueClass}">${card.value}</div>
-                    <div class="corner-value corner-bottom-right">${card.value}</div>
-                `;
+                cardEl.innerHTML = cardFaceHtml(card);
 
                 container.appendChild(cardEl);
             });

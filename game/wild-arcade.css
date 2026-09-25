@@ -2,7 +2,19 @@
    CHAMP WORD - GO WILD PREMIUM ARCADE HUD & INTERFACE
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+/* Nunito, served from the app rather than from fonts.googleapis.com.
+   That @import was two problems in one: it blocked the first paint on a request to
+   another origin, and it does not work offline — so the installed app, whose whole
+   point is the table on a plane or in a tunnel, drew every card number, player name
+   and countdown in whatever the system font happened to be. One file: the variable
+   face, covering 400 to 900. */
+@font-face {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 400 900;
+    font-display: swap;
+    src: url('../assets/fonts/nunito-var.woff2') format('woff2');
+}
 
 * {
     box-sizing: border-box;
@@ -59,13 +71,17 @@ body {
     justify-content: center;
     align-items: center;
 }
+/* The packet's face is the card back's emblem — the same drawing a face-down card
+   wears, defined once and worn in both places. It used to be the wordmark, in 2.3rem,
+   tilted; that is the official logo, and this set has no claim to it. */
 .draw-deck-source::before {
-    content: 'UNO';
-    font-size: 2.3rem;
-    font-weight: 900;
-    color: #ffaa00;
-    transform: rotate(-25deg);
-    text-shadow: 2px 2px 0px #000;
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg transform='translate(50 70)' fill='none' stroke-linecap='round'%3E%3Cpath d='M-30 12 A32 32 0 0 1 2 -31' stroke='%23ff4646' stroke-width='7'/%3E%3Cpath d='M11 -30 A32 32 0 0 1 31 3' stroke='%23ffd42a' stroke-width='7'/%3E%3Cpath d='M30 -11 A32 32 0 0 1 -2 31' stroke='%2334d35f' stroke-width='7'/%3E%3Cpath d='M-11 30 A32 32 0 0 1 -31 -3' stroke='%233b8bff' stroke-width='7'/%3E%3Ccircle r='19' fill='%230b0e13' stroke='%23ffffff' stroke-opacity='.22' stroke-width='3'/%3E%3Cpath d='M0 -11 L11 0 L0 11 L-11 0 Z' fill='%23ffffff' fill-opacity='.92'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 64% 64%;
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 /* Discard Pile Stacking Field Box */
@@ -1277,36 +1293,6 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   cursor: default !important;
 }
 
-/* Renders the trademark dark logo pill inside the center of card backs.
-
-   Drawn on ::after, not ::before. The base .card::before is the diagonal sheen — a
-   translucent white ellipse across the card — so a badge hung on the same pseudo-element
-   had to fight it for its own fill. ::after is unused by a face-down card, so the badge
-   gets it to itself and the sheen is switched off rather than painted over.
-
-   The disc is centred the same way the old one was: .card is a centred flex box, and an
-   absolutely-positioned pseudo-element with no top/left takes its static position from
-   the container's alignment. */
-.card.card-back::after {
-  content: 'CW';
-  position: absolute;
-  width: 65px;
-  height: 65px;
-  background: #111111;
-  border: 3px solid #ffcc00;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: 'Nunito', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #ffcc00;
-  text-shadow: none;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-  transform: rotate(-10deg);
-  z-index: 5;
-}
 
 /* Strips out face values and the sheen from background-only enemy cards */
 .card.card-back .card-value,
@@ -1483,29 +1469,6 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
   cursor: default !important;
 }
 
-/* The mark is a wide dark oval on a tilt, with the wordmark inside it — the
-   branding on the mockup's card backs. ::after is free on a face-down card, and
-   the base ::before sheen is switched off below so nothing washes the oval. */
-.card.card-back::after {
-  content: 'UNO';
-  position: absolute;
-  width: 84%;
-  height: 40%;
-  background: #15110f;
-  border-radius: 50%;
-  transform: rotate(-20deg);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: 'Nunito', sans-serif;
-  font-size: 1.9rem;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-  color: #ffffff;
-  text-shadow: 2px 2px 0 #a30000, -1px -1px 0 #ffcc00, 1px -1px 0 #ffcc00, -1px 1px 0 #ffcc00;
-  box-shadow: 0 5px 12px rgba(0,0,0,0.45);
-  z-index: 5;
-}
 .card.card-back .card-value,
 .card.card-back .corner-value,
 .card.card-back::before {
@@ -2248,10 +2211,6 @@ tail so they read as embers rather than confetti. */
 }
 
 /* The UNO face scales with the packet, x1.3 with the card it is printed on. */
-#central-deck::before {
-  font-size: 3.3rem;
-  transform: rotate(-20deg);
-}
 
 /* --------------------------------------------------------------------------
    CENTRE DISCARD — 130 x 180, centred on (960, 480). The main focus of the centre
@@ -2691,3 +2650,234 @@ tail so they read as embers rather than confetti. */
 .victory-header-text { font-size: 3.4rem; letter-spacing: 1.2px; }
 .victory-winner-callout { font-size: 1.6rem; }
 .points-badge-pop { font-size: 2.4rem; }
+
+/* ==========================================================================
+   CARD SYSTEM — an original set, drawn in the sheet rather than painted in a
+   raster, so every card is the same object at every size.
+
+   NOTHING HERE IS UNO'S ARTWORK. The brief asked for an original system in the
+   energy of a modern card game, and the two places this table used to borrow the
+   real thing are gone with it: the face's translucent diagonal band was "the
+   classic UNO card face", and the card back carried the UNO wordmark inside a
+   tilted oval. The back is now a dark premium field with an original emblem, and
+   the faces carry an original ribbon emblem. No oval-with-a-slash skip, no
+   chasing-arrows reverse, no Mattel anything.
+
+   Everything scales with the card, because the card is the unit: the emblem is a
+   background image sized in %, the gloss is a gradient, the glyphs are inline SVG
+   with a viewBox and the type is in rem against a card that is itself a variable.
+   A 137px partner's card and the 189px draw packet carry the same design.
+
+   LAYERS, bottom to top:
+     1  .card            the colour field: a saturated two-stop diagonal
+     2  .card::before    the emblem — one curved ribbon across the face
+     3  .card::after     the gloss — a soft studio highlight, top-left to bottom-right
+     4  .card-glyph      the action symbol, inline SVG (see wild.html)
+     5  .card-value      the number or "+2", in Nunito 900
+     6  .corner-value    the same, small, in both reading corners
+   ========================================================================== */
+
+/* --- the four field colours, and the two specials ---------------------- */
+:root,
+.stage {
+  /* Saturated, clean, and far enough apart to read at 100px on a phone: the
+     previous red/green pair sat close enough under the gloss that a colour-blind
+     player had nothing but the number to go on. */
+  --face-red-1: #ff4646;   --face-red-2: #b60f22;   --face-red-rim: #7d0013;
+  --face-yellow-1: #ffd42a; --face-yellow-2: #ee9b00; --face-yellow-rim: #a15f00;
+  --face-green-1: #34d35f;  --face-green-2: #12873c;  --face-green-rim: #075c25;
+  --face-blue-1: #3b8bff;   --face-blue-2: #1240c4;   --face-blue-rim: #0a2a86;
+  --face-wild-1: #2b303c;   --face-wild-2: #0a0c11;   --face-wild-rim: #05070a;
+
+  /* One light direction for the whole set: the ribbon, the gloss and the card's
+     own drop shadow all agree that the studio key is upper-left. */
+  --card-lift: 0 3px 0 rgba(0, 0, 0, 0.22), 0 10px 18px rgba(0, 0, 0, 0.38);
+  --glyph-shadow: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.45));
+}
+
+.card.red, .discarded-card.red, .card-in-flight.red {
+  background: linear-gradient(146deg, var(--face-red-1) 0%, var(--face-red-2) 100%);
+}
+.card.yellow, .discarded-card.yellow, .card-in-flight.yellow {
+  background: linear-gradient(146deg, var(--face-yellow-1) 0%, var(--face-yellow-2) 100%);
+}
+.card.green, .discarded-card.green, .card-in-flight.green {
+  background: linear-gradient(146deg, var(--face-green-1) 0%, var(--face-green-2) 100%);
+}
+.card.blue, .discarded-card.blue, .card-in-flight.blue {
+  background: linear-gradient(146deg, var(--face-blue-1) 0%, var(--face-blue-2) 100%);
+}
+.card.wild, .discarded-card.wild, .card-in-flight.wild {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(146deg, var(--face-wild-1) 0%, var(--face-wild-2) 100%);
+}
+
+/* --- the card body: thick white border, bevel, 3D thickness ------------- */
+.card, .discarded-card, .card-in-flight {
+  border-radius: 20px;
+  border: 6px solid #ffffff;
+  box-shadow:
+    /* the slab under the card, then the shadow it casts */
+    var(--card-lift),
+    /* the hairline that separates the white border from the colour field, which is
+       what stops a bright yellow face bleeding into a white border */
+    inset 0 0 0 2px rgba(0, 0, 0, 0.13),
+    /* bevel: lit along the top edge, shadowed along the bottom one */
+    inset 0 4px 6px rgba(255, 255, 255, 0.42),
+    inset 0 -7px 10px rgba(0, 0, 0, 0.18);
+}
+
+/* --- 2. the emblem ------------------------------------------------------ */
+/* One curved ribbon, lower-left to upper-right, half off both edges so it reads
+   as a shape the card is cut from rather than a sticker on it. Drawn as a thick
+   round-capped stroke rather than a filled path: no self-intersection artefacts
+   at the ends, and it holds up at 100px. */
+.card::before, .discarded-card::before, .card-in-flight::before {
+  content: '';
+  position: absolute;
+  inset: -6%;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  transform: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140' preserveAspectRatio='none'%3E%3Cpath d='M2 120 C26 128 50 114 64 92 C76 72 86 58 104 50' fill='none' stroke='%23ffffff' stroke-opacity='.20' stroke-width='30' stroke-linecap='round'/%3E%3Cpath d='M-2 132 C28 138 56 122 70 98 C82 78 92 64 106 58' fill='none' stroke='%23ffffff' stroke-opacity='.10' stroke-width='16' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* --- 3. the gloss ------------------------------------------------------- */
+/* A single soft band, clipped by the card's own radius. Low opacity on purpose:
+   a hard highlight is what makes a cheap card look like plastic. */
+.card::after, .discarded-card::after, .card-in-flight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(104deg,
+    rgba(255, 255, 255, 0) 4%,
+    rgba(255, 255, 255, 0.34) 24%,
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0) 56%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* The discard-all's old ⚡ accent lived on ::after, which is the gloss now. It is
+   in the glyph instead — see the SVG in wild.html — so the layer is free. */
+.card.discard-all::after { content: none; }
+
+/* --- 4/5. the action glyph and the value -------------------------------- */
+.card .card-glyph {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  width: 68%;
+  height: 68%;
+  z-index: 2;
+  filter: var(--glyph-shadow);
+  pointer-events: none;
+}
+
+/* The number: large, rounded, tilted a few degrees off the axis so the face has
+   movement, with a rim rather than a blur so it stays crisp at 100px. */
+.card .card-value, .discarded-card .card-value, .card-in-flight .card-value {
+  transform: rotate(-6deg);
+  text-shadow:
+    -2.5px -2.5px 0 var(--face-rim, rgba(0, 0, 0, 0.9)),
+     2.5px -2.5px 0 var(--face-rim, rgba(0, 0, 0, 0.9)),
+    -2.5px  2.5px 0 var(--face-rim, rgba(0, 0, 0, 0.9)),
+     2.5px  2.5px 0 var(--face-rim, rgba(0, 0, 0, 0.9)),
+     0 5px 0 rgba(0, 0, 0, 0.30);
+}
+
+.card.red    { --face-rim: var(--face-red-rim); }
+.card.yellow { --face-rim: var(--face-yellow-rim); }
+.card.green  { --face-rim: var(--face-green-rim); }
+.card.blue   { --face-rim: var(--face-blue-rim); }
+.card.wild   { --face-rim: var(--face-wild-rim); }
+
+/* "+2" and "+4" are set in the numeral size, not the small action size: they are
+   the card's whole meaning and they are what a player reads from the far seat. */
+/* "+2" is two glyphs and can carry the numeral size; "ALL" is three and cannot —
+   measured at 2.2x it came to 169px of type inside a 137px card and was clipped by the
+   card's own overflow. So the count keeps the big size and words take their own. */
+.card .card-value.draw-count {
+  font-size: 5.4rem;
+  letter-spacing: -3px;
+}
+
+.card .card-value.action-symbol {
+  font-size: 3.6rem;
+  letter-spacing: -1px;
+}
+
+.card .corner-value { z-index: 4; }
+.card .corner-value .mini-glyph {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: block;
+}
+
+/* --- 6. the wild card's four accents ------------------------------------ */
+/* The colour is delivered by the symbol itself (four quadrant-coloured points) and
+   by this ring of arcs behind it, so the card is unmistakably the special one at a
+   glance without turning its face into a rainbow. */
+.card.wild::before, .discarded-card.wild::before, .card-in-flight.wild::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg transform='translate(50 70)' fill='none' stroke-width='7' stroke-linecap='round'%3E%3Cpath d='M-31 10 A32 32 0 0 1 3 -32' stroke='%23ff4646'/%3E%3Cpath d='M10 -31 A32 32 0 0 1 32 3' stroke='%23ffd42a'/%3E%3Cpath d='M31 -10 A32 32 0 0 1 -3 32' stroke='%2334d35f'/%3E%3Cpath d='M-10 31 A32 32 0 0 1 -32 -3' stroke='%233b8bff'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* --- the card back: original, dark, symmetrical ------------------------- */
+/* Replaces the old red back with the UNO wordmark in a tilted oval. Four concentric
+   arcs, one per colour, closed by a centred diamond — the same emblem the deck
+   wears, so a face-down card and the draw packet are obviously the same object. */
+.card.card-back {
+  background:
+    radial-gradient(120% 120% at 30% 10%, #2c3543 0%, #141a23 52%, #080a0f 100%) !important;
+  border-color: #ffffff !important;
+  cursor: default !important;
+}
+
+.card.card-back::before { display: none !important; }
+
+.card.card-back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border-radius: inherit;
+  transform: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg transform='translate(50 70)' fill='none' stroke-linecap='round'%3E%3Ccircle r='42' stroke='%23ffffff' stroke-opacity='.06' stroke-width='2'/%3E%3Cpath d='M-30 12 A32 32 0 0 1 2 -31' stroke='%23ff4646' stroke-width='7'/%3E%3Cpath d='M11 -30 A32 32 0 0 1 31 3' stroke='%23ffd42a' stroke-width='7'/%3E%3Cpath d='M30 -11 A32 32 0 0 1 -2 31' stroke='%2334d35f' stroke-width='7'/%3E%3Cpath d='M-11 30 A32 32 0 0 1 -31 -3' stroke='%233b8bff' stroke-width='7'/%3E%3Ccircle r='19' fill='%230b0e13' stroke='%23ffffff' stroke-opacity='.20' stroke-width='3'/%3E%3Cpath d='M0 -11 L11 0 L0 11 L-11 0 Z' fill='%23ffffff' fill-opacity='.92'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(104deg, rgba(255, 255, 255, 0) 6%, rgba(255, 255, 255, 0.16) 27%, rgba(255, 255, 255, 0.02) 42%, rgba(255, 255, 255, 0) 58%);
+  background-size: 74% 74%, 100% 100%;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+}
+
+.card.card-back .card-value,
+.card.card-back .corner-value,
+.card.card-back .card-glyph { display: none !important; }
+
+/* --- the draw packet wears the back, not a wordmark ---------------------- */
+/* Its ::before used to be the word "UNO" in 3.3rem. */
+#central-deck::before {
+  content: '' !important;
+  font-size: 0 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg transform='translate(50 70)' fill='none' stroke-linecap='round'%3E%3Cpath d='M-30 12 A32 32 0 0 1 2 -31' stroke='%23ff4646' stroke-width='7'/%3E%3Cpath d='M11 -30 A32 32 0 0 1 31 3' stroke='%23ffd42a' stroke-width='7'/%3E%3Cpath d='M30 -11 A32 32 0 0 1 -2 31' stroke='%2334d35f' stroke-width='7'/%3E%3Cpath d='M-11 30 A32 32 0 0 1 -31 -3' stroke='%233b8bff' stroke-width='7'/%3E%3Ccircle r='19' fill='%230b0e13' stroke='%23ffffff' stroke-opacity='.22' stroke-width='3'/%3E%3Cpath d='M0 -11 L11 0 L0 11 L-11 0 Z' fill='%23ffffff' fill-opacity='.92'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 64% 64%;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: none !important;
+}
+
+#central-deck {
+  background:
+    radial-gradient(120% 120% at 30% 10%, #2c3543 0%, #141a23 52%, #080a0f 100%) !important;
+}

@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v5';
+const VERSION = 'v6';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -58,6 +58,8 @@ const SHELL_ASSETS = [
   '/game/wild-arcade.css',
   '/game/styles.css',
   '/game/scene-fill.js',
+  '/game/cards.js',
+  '/assets/fonts/nunito-var.woff2',
   '/game/sound.js',
   '/game/pwa.js',
   '/assets/island-table-bg.webp',

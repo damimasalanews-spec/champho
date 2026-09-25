@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Champ Word — Card Set</title>
+    <!-- The game's own stylesheet and its own card builder. This page is not a copy of the
+         card design that has to be kept in step with the game: it IS the card design — same
+         sheet, same JS, same faces. Regenerate the asset sheet and you get whatever the game
+         is drawing today. -->
+    <link rel="stylesheet" href="game/wild-arcade.css?v=6">
+    <script src="game/cards.js"></script>
+    <style>
+        /* Transparent, so a capture of this page drops straight onto a store listing. */
+        html, body { margin: 0; padding: 0; background: transparent; }
+
+        body {
+            font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
+            padding: 46px 56px 56px;
+            display: inline-block;
+        }
+
+        .sheet-title {
+            font-size: 38px;
+            font-weight: 900;
+            letter-spacing: 0.4px;
+            color: #12161d;
+            margin: 0 0 6px;
+        }
+
+        .sheet-sub {
+            font-size: 16px;
+            font-weight: 700;
+            color: #6b7280;
+            margin: 0 0 30px;
+        }
+
+        .row {
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        /* flex: none — without it the row shrinks every cell to fit the window and the
+           cards come out quietly narrower than the sheet claims they are. */
+        .cell { flex: none; width: 216px; text-align: center; }
+        .cell-wide { flex: none; width: 312px; text-align: center; }
+
+        .cell .card, .cell-wide .card {
+            position: relative;
+            transform: none;
+            float: left;
+            /* zoom scales the element's own layout box AND its rem-based type together,
+               which is what a design sheet needs: the same card, bigger — not a bigger
+               box with the same small number in it. The margin compensates for the zoom
+               on the box so the card sits centred in its cell. */
+            zoom: 1.5;
+            margin-left: 6px;
+        }
+
+        .cell-wide .card { zoom: 2.2; margin-left: 6px; }
+
+        .caption {
+            display: block;
+            clear: both;
+            padding-top: 14px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #9aa1ad;
+        }
+
+        .row-label {
+            flex: none;
+            width: 96px;
+            padding-top: 116px;
+            font-size: 14px;
+            font-weight: 900;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="sheet-title" id="sheet-title">Champ Word — card set</h1>
+    <p class="sheet-sub" id="sheet-sub">Four colours to ten, four actions, two wilds, one original back. Drawn in CSS and SVG, so every card is the same object at every size.</p>
+    <div id="sheet"></div>
+
+    <script>
+        'use strict';
+        const { paintCardFace, COLOURS } = window.ChampCards;
+
+        const NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+        const ACTION_CARDS = [
+            { colour: 'red', value: '🚫', type: 'skip', caption: 'Skip' },
+            { colour: 'blue', value: '🔁', type: 'reverse', caption: 'Reverse' },
+            { colour: 'green', value: '+2', type: 'draw2', caption: 'Draw two' },
+            { colour: 'yellow', value: 'ALL', type: 'discard_all', caption: 'Discard all' },
+            { colour: 'wild', value: '★', type: 'wild', caption: 'Wild' },
+            { colour: 'wild', value: '+4', type: 'wild4', caption: 'Wild draw four' },
+            { colour: 'wild', value: '', type: 'back', caption: 'Card back' }
+        ];
+
+        const HERO_CARDS = [
+            { colour: 'red', value: '7', type: 'number', caption: 'Red 7' },
+            { colour: 'yellow', value: '3', type: 'number', caption: 'Yellow 3' },
+            { colour: 'green', value: '5', type: 'number', caption: 'Green 5' },
+            { colour: 'blue', value: '9', type: 'number', caption: 'Blue 9' },
+            ...ACTION_CARDS
+        ];
+
+        function makeCard(spec) {
+            const card = document.createElement('div');
+            card.className = 'card ' + (spec.type === 'back' ? 'card-back' : spec.colour);
+            if (spec.type !== 'back') paintCardFace(card, spec);
+            return card;
+        }
+
+        function buildRow(label, specs, wide) {
+            const row = document.createElement('div');
+            row.className = 'row';
+
+            if (label) {
+                const lab = document.createElement('div');
+                lab.className = 'row-label';
+                lab.textContent = label;
+                row.appendChild(lab);
+            }
+
+            specs.forEach((spec) => {
+                const cell = document.createElement('div');
+                cell.className = wide ? 'cell-wide' : 'cell';
+                cell.appendChild(makeCard(spec));
+                const cap = document.createElement('span');
+                cap.className = 'caption';
+                cap.textContent = spec.caption || spec.colour;
+                cell.appendChild(cap);
+                row.appendChild(cell);
+            });
+
+            return row;
+        }
+
+        const sheet = document.getElementById('sheet');
+        const hero = new URLSearchParams(location.search).has('hero');
+
+        if (hero) {
+            document.getElementById('sheet-title').textContent = 'Champ Word — card set, close up';
+            document.getElementById('sheet-sub').textContent =
+                'The same cards at 2.2x: border, bevel, gloss, emblem and type are one drawing, not a stretched bitmap.';
+            // Rows of five rather than one row of ten, so a close-up sheet stays a size
+            // that can be looked at.
+            // Six and five, and the back comes along: a sheet that shows the whole set is
+            // the point of a sheet.
+            sheet.appendChild(buildRow('', HERO_CARDS.slice(0, 6), true));
+            sheet.appendChild(buildRow('', HERO_CARDS.slice(6), true));
+        } else {
+            COLOURS.forEach((colour) => {
+                sheet.appendChild(buildRow(colour, NUMBERS.map((value) => ({ colour, value, type: 'number' })), false));
+            });
+            sheet.appendChild(buildRow('actions', ACTION_CARDS.slice(0, 4), false));
+            sheet.appendChild(buildRow('special', ACTION_CARDS.slice(4), false));
+        }
+    </script>
+</body>
+</html>
