@@ -3004,9 +3004,11 @@ tail so they read as embers rather than confetti. */
    left is half a card back from where its first card lands. */
 /* Half a card back from the first card's left edge, at every card size: the renderer
    puts each card's left edge at the tray's centre. */
+/* 53 was measured when the cascade held seven 89px cards. At the table's one card size
+   the run is 740px tall, so it starts higher and shows six — see the renderer. */
 .opponent-left .opponent-fan-tray {
   left: -65px;
-  top: 53px;
+  top: 35px;
   width: var(--side-card-w);
   height: var(--side-card-h);
   margin-top: 0;
@@ -3024,7 +3026,7 @@ tail so they read as embers rather than confetti. */
    mockup's 53 — the two sides are not symmetric on the mockup either. */
 .opponent-right .opponent-fan-tray {
   left: -97px;
-  top: 20px;
+  top: 2px;
   width: var(--side-card-w);
   height: var(--side-card-h);
   margin-top: 0;

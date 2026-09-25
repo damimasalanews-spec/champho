@@ -29,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=9">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=10">
 </head>
 <body>
 
@@ -1159,7 +1159,16 @@
             const count = Math.max(0, Math.min(20, Number(totalCardsInHand) || 0));
             const isLeft = slotKey === 'left';
 
-            for (let i = 0; i < count; i += 1) {
+            // Six cards drawn, however many are held. The mockup's cascade fits seven only
+            // because its side cards are half the size of its hand cards — the player asked
+            // for one size across all four seats, so a seven-card run of 178x260 cards is
+            // 740px tall and cannot sit above the local seat without either hanging off the
+            // bottom edge or running into the CALL disc. Six is the most that fits at the
+            // mockup's step, and the count strip beside the portrait still shows the real
+            // number, which is the part that is actually information.
+            const shown = Math.min(count, 6);
+
+            for (let i = 0; i < shown; i += 1) {
                 const backCard = document.createElement('div');
                 backCard.classList.add('card', 'card-back');
                 backCard.style.position = 'absolute';
@@ -1171,17 +1180,14 @@
                 // widening the seat and dragging its portrait away from the rim.
                 const direction = isLeft ? 1 : -1;
 
-                // Same card size as the rest of the table, cascaded tightly: 30px across
-                // and 23px down, so the group stays inside the band the last two rounds
-                // measured and clear of the local seat below it. The card's own size is
-                // --side-card-* in the sheet; these are the steps.
-                //
-                // The faces are SMALLER than the player's and the partner's, and that is
-                // the spec's visual hierarchy rather than the uniformity this used to
-                // have: your hand is the biggest thing on the table, the side seats are
-                // the smallest, the top seat sits between them.
+                // Same card size as the rest of the table, and the STEP is the mockup's:
+                // 13px across and 23px down, so the group is a steep column that falls
+                // down the table. It was 30 across for two rounds — a sideways fan, not a
+                // cascade — which is what the player picked out as "not in order as ss".
+                // Measured off their screenshot: the left cascade's group is 260 wide and
+                // 405 tall for seven 178x260 cards, which is 13.7 across and 24 down.
                 backCard.style.top = `${i * 23}px`;
-                backCard.style.left = `calc(50% + ${direction * i * 30}px)`;
+                backCard.style.left = `calc(50% + ${direction * i * 13}px)`;
                 backCard.style.transform =
                     `translate3d(-50%, 0, 0) rotate(${direction * (18 + i * 2)}deg)`;
                 backCard.style.zIndex = i;
