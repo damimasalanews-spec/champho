@@ -35,11 +35,14 @@
          THE 16:9 STAGE
 
          The table is no longer a free-flowing 100vw x 100vh page. It is a fixed
-         1920x1080 board scaled to fit whatever viewport it lands in, so the
-         composition is identical on a desktop at 1920x1080 and on a phone held
-         sideways — the same seats, the same two piles, the same share of the
-         screen given to the hand — just smaller. --stage-scale is that factor,
-         written by applyStageScale() on load and on every resize.
+         1920x1080 board scaled to fit whatever viewport it lands in, so the board
+         is identical on a desktop at 1920x1080 and on a phone held sideways — the
+         same seats, the same piles, the same hand — just smaller. --stage-scale is
+         that factor, written by applyStageScale() on load and on every resize.
+
+         Sizing only. The arrangement inside the board is the original one, untouched;
+         the sheet's positions resolve against the 1920x1080 stage instead of the
+         window, which is the whole of the change.
 
          .viewport-frame is the letterbox: it centres the stage and clips what
          overflows. The board's own HUD — seats, piles, hand, clock, action buttons,
@@ -68,31 +71,14 @@
             <div class="direction-arrow arrow-left" id="arrow-opponent-left"></div>
         </div>
 
-        <!-- THE TWO PILES, CENTRE BOARD.
+        <!-- Central Deck Field Space -->
+        <!-- The draw pile sits up in the top-left corner, beside the Card Cascade stack.
+             The deck keeps its id: the deal and the flight animations read its rect, so
+             they follow it wherever it sits. The middle keeps only the throw box.
 
-             Side by side on the table plane: the draw pile the deal feeds from, and
-             the play pile the throw lands on. Both keep their ids — the deal, the
-             flight and the penalty strike all read their rects, so they follow the
-             piles wherever the board puts them.
-
-             The UNO face on the draw pile is .draw-deck-source::before, already in
-             the sheet. The captions are the labels the layout spec draws in those
-             two boxes. -->
-        <div class="center-play-zone" id="center-board-zone">
-            <div class="pile-slot">
-                <div class="draw-deck-source draw-pile-3d" id="central-deck"></div>
-                <span class="pile-caption">Draw Pile</span>
-            </div>
-            <div class="pile-slot">
-                <div class="discard-pile" id="discard-deck-pile"></div>
-                <span class="pile-caption">Play Pile</span>
-            </div>
-        </div>
-
-        <!-- The Card Cascade panel. Kept in the markup, out of the layout: the new
-             board gives the top-left corner to OPPONENT 1, and the layout spec has no
-             cascade in it. One rule brings it back if you want it. -->
+             The UNO face on the deck is .draw-deck-source::before, already in the sheet. -->
         <div class="top-left-deck-group">
+            <div class="draw-deck-source draw-pile-3d" id="central-deck"></div>
             <div class="card-cascade-container">
                 <span class="cascade-title">Card Cascade</span>
                 <div class="cascade-stack-row">
@@ -102,6 +88,11 @@
                     <div class="mini-cascade-card" style="transform: rotate(12deg); margin-left: -8px;"></div>
                 </div>
             </div>
+        </div>
+
+        <!-- The throw box: the dashed surface the played cards land on. -->
+        <div class="center-play-zone" id="center-board-zone">
+            <div class="discard-pile" id="discard-deck-pile"></div>
         </div>
 
         <!-- Peripheral Seating Layout Slots.
@@ -184,9 +175,7 @@
              can reach it. The label stays "Champ" rather than the brief's "Cw": the
              UNO banner announces this seat as CHAMP, and two names for one player on
              the same screen is a worse bug than a mismatched pill. -->
-        <!-- Positioned by .local-user-slot in the sheet, not inline: the board layout
-             owns the seat positions now, and an inline style would have outranked it. -->
-        <div class="player-slot local-user-slot" id="slot-local-player">
+        <div class="player-slot local-user-slot" id="slot-local-player" style="bottom: 25px; left: 214px;">
             <div class="avatar-hud-wrapper">
                 <div class="avatar-frame" id="avatar-img-local">
                     <div class="avatar-container">🧑</div>
@@ -194,10 +183,6 @@
                 <div class="player-pill-tag">Champ</div>
             </div>
         </div>
-
-        <!-- YOUR HAND, bottom centre: a label band over a level row of cards, the way
-             the layout spec draws it. The band is decorative and carries no state. -->
-        <div class="hand-band-label"><span>Your Hand</span></div>
 
         <!-- Local Interactive Player Base Container -->
         <div class="hand-container" id="local-player-hand"></div>
