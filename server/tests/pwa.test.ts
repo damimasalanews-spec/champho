@@ -254,3 +254,61 @@ test("the install button reaches a phone held upright, not just a desktop", asyn
   assert.ok(/showInstallHint\(/.test(source), "iOS is given no instructions");
   assert.ok(source.includes("Safari"), "iOS instructions do not name Safari");
 });
+
+test("the worker's own cache writes are awaited", async () => {
+  const source = await readFile(resolve(ROOT, "sw.js"), "utf8");
+  const lines = source.replace(/\/\*[\s\S]*?\*\//g, "").split("\n");
+
+  // An un-awaited cache.put is not part of what respondWith waits on: the worker can be
+  // terminated the moment the response is handed over and the update is silently lost,
+  // leaving a superseded file cached indefinitely.
+  const unawaited = lines
+    .map((line, i) => ({ line: line.trim(), n: i + 1 }))
+    .filter(({ line }) => /\bcache\.put\(/.test(line) && !/await\s+cache\.put\(/.test(line) && !/return\s+cache\.put\(/.test(line));
+  assert.deepEqual(unawaited, [], `un-awaited cache.put at line(s) ${unawaited.map((l) => l.n).join(", ")}`);
+});
+
+test("the worker fetches past the HTTP cache", async () => {
+  const source = await readFile(resolve(ROOT, "sw.js"), "utf8");
+
+  // Without cache: 'reload' the browser's HTTP cache — Android's WebView especially —
+  // answers with a stale 200 that is indistinguishable from a fresh one, which the
+  // worker then stores as current. A fixed stylesheet was deployed, verified at the
+  // origin, and never reached a phone for exactly this reason.
+  const runtimeFetches = source.match(/fetch\(request[^)]*\)/g) ?? [];
+  assert.ok(runtimeFetches.length >= 2, `expected the runtime fetches, found ${runtimeFetches.length}`);
+  for (const call of runtimeFetches) {
+    assert.ok(/cache:\s*'reload'/.test(call), `a runtime fetch does not bypass the cache: ${call}`);
+  }
+});
+
+test("the worker is versioned, so a bump can evict what is on a device", async () => {
+  const source = await readFile(resolve(ROOT, "sw.js"), "utf8");
+  const version = source.match(/const VERSION = '([^']+)'/);
+  assert.ok(version, "sw.js has no VERSION constant");
+  assert.ok(/caches\.delete/.test(source), "activate never deletes the previous caches");
+  assert.ok(CACHES_ARE_VERSIONED(source), "the cache names must carry the version, or a bump evicts nothing");
+});
+
+function CACHES_ARE_VERSIONED(source: string): boolean {
+  const names = [...source.matchAll(/const (SHELL_CACHE|CODE_CACHE|ART_CACHE) = `([^`]+)`/g)];
+  return names.length >= 3 && names.every(([, , value]) => /\$\{VERSION\}/.test(value));
+}
+
+test("the page asks for a worker update rather than waiting for the browser", async () => {
+  const source = await readFile(resolve(ROOT, "game/pwa.js"), "utf8");
+
+  // The browser's own update schedule left a test device running the previous worker for
+  // three visits after a deploy. An explicit update() on load is what actually makes a
+  // fix land promptly.
+  assert.ok(/\.update\(\)/.test(source), "registration never asks for an update check");
+  assert.ok(/updateViaCache:\s*'none'/.test(source), "the update check itself may be answered from cache");
+});
+
+test("the stylesheet URL can be busted, so a stuck device is not stuck forever", async () => {
+  const html = await readFile(resolve(ROOT, "wild.html"), "utf8");
+  // Belt and braces alongside the worker: a changed URL is a cache miss at every layer,
+  // including the ones this project does not control.
+  assert.ok(/href="game\/wild-arcade\.css\?v=\d+"/.test(html),
+    "the stylesheet is referenced without a version, so every cache layer can pin it");
+});

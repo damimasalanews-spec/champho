@@ -31,7 +31,21 @@
         // After load, so registration never competes with the first paint. The
         // game's deal animation is already running by the time this fires.
         var register = function () {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {
+            navigator.serviceWorker.register('/sw.js', {
+                scope: '/',
+                // The update check must not be answered from cache either, or a worker
+                // that fixes a caching bug stays pinned behind the bug it fixes.
+                updateViaCache: 'none'
+            }).then(function (registration) {
+                // Ask for an update check on every load. The browser does this on its own
+                // schedule, and "its own schedule" left a test device running the previous
+                // worker for three visits after a deploy — serving a stale copy of a
+                // stylesheet that had already been fixed and shipped. update() forces the
+                // check; the browser still throttles it, so this is not a request per view.
+                if (registration && registration.update) {
+                    registration.update().catch(function () { /* offline, or throttled */ });
+                }
+            }).catch(function () {
                 /* Registration can still fail in private modes and behind some
                    proxies. The site works fine without it — it just is not installable
                    and not offline-capable — so this stays silent. */

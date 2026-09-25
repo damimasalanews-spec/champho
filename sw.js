@@ -12,7 +12,11 @@
    cache-first will hand a player the previous build long after a deploy, which is
    a far worse bug than a slow first paint. So navigations and scripts and
    stylesheets go to the network first and only fall back to the cache when the
-   network fails. Images — avatars, title plates, table art — never change once
+   network fails.
+
+   The deadline is 6s. It was 3.5s, which is fine on a desktop and not on a phone:
+   the fetch expired first, the cache won, and a deploy could not reach the device
+   at all. A worker is judged by whether a fix arrives, not by its first paint. Images — avatars, title plates, table art — never change once
    named, so they are served from cache immediately and refreshed in the
    background.
 
@@ -23,7 +27,11 @@
    server fault.
    ========================================================================== */
 
-const VERSION = 'v1';
+/* Bump this whenever a fix has to reach devices that already have the worker. Activate
+   deletes every cache whose name is not in CACHES, so a bump is what evicts the old
+   stylesheet from a phone that is otherwise perfectly happy serving it. v2 exists
+   because v1 kept a board fix off a device — see the fetch notes below. */
+const VERSION = 'v2';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -67,12 +75,30 @@ const ART_GLOBS = [
 const CODE_EXTENSIONS = ['.css', '.js', '.mjs', '.json', '.webmanifest'];
 const ART_EXTENSIONS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.mp4', '.webm'];
 
-/** Network-first with a deadline, so a dead network fails fast to the cache. */
+/**
+ * Network-first with a deadline, so a dead network fails fast to the cache.
+ *
+ * Two details here are not style, they are the difference between a fix reaching a
+ * phone and not:
+ *
+ * 1. `cache: 'reload'` on the fetch. Without it the request is answered by the HTTP
+ *    cache — and Android's WebView in particular is happy to return a stale 200 with no
+ *    way to tell it from a fresh one. That stale response was then stored by the line
+ *    below as the current copy, so the worker went on serving a superseded stylesheet
+ *    indefinitely. A board fix shipped, deployed, verified at the origin, and never
+ *    arrived, because every layer below agreed the old file was still valid.
+ *
+ * 2. `await cache.put(...)`. Un-awaited, the put is not part of what respondWith is
+ *    waiting on: the worker can be terminated as soon as the response is handed over,
+ *    and the update is silently lost. Awaiting it keeps the cache honest.
+ */
 async function networkFirst(request, cacheName, timeoutMs) {
   const cache = await caches.open(cacheName);
   try {
     const response = await fetchWithTimeout(request, timeoutMs);
-    if (response && response.ok && response.type === 'basic') cache.put(request, response.clone());
+    if (response && response.ok && response.type === 'basic') {
+      await cache.put(request, response.clone());
+    }
     return response;
   } catch {
     const cached = await cache.match(request);
@@ -83,7 +109,7 @@ async function networkFirst(request, cacheName, timeoutMs) {
 function fetchWithTimeout(request, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
-    fetch(request).then(
+    fetch(request, { cache: 'reload' }).then(
       (response) => { clearTimeout(timer); resolve(response); },
       (error) => { clearTimeout(timer); reject(error); }
     );
@@ -94,8 +120,10 @@ function fetchWithTimeout(request, timeoutMs) {
 async function staleWhileRevalidate(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
-  const network = fetch(request).then((response) => {
-    if (response && response.ok && response.type === 'basic') cache.put(request, response.clone());
+  const network = fetch(request, { cache: 'reload' }).then((response) => {
+    if (response && response.ok && response.type === 'basic') {
+      return cache.put(request, response.clone()).then(() => response);
+    }
     return response;
   }).catch(() => null);
   return cached ?? (await network) ?? Response.error();
@@ -203,7 +231,7 @@ self.addEventListener('fetch', (event) => {
   // cached copy is the safety net, and offline.html the last resort.
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
-      const fresh = await networkFirst(request, SHELL_CACHE, 3500);
+      const fresh = await networkFirst(request, SHELL_CACHE, 6000);
       if (fresh) return fresh;
       const cache = await caches.open(SHELL_CACHE);
       const shell = await cache.match(request);
@@ -220,7 +248,7 @@ self.addEventListener('fetch', (event) => {
       return;
     }
     event.respondWith((async () => {
-      const fresh = await networkFirst(request, CODE_CACHE, 3500);
+      const fresh = await networkFirst(request, CODE_CACHE, 6000);
       if (fresh) return fresh;
       const cache = await caches.open(CODE_CACHE);
       return (await cache.match(request)) ?? Response.error();
