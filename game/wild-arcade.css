@@ -1910,6 +1910,32 @@ tail so they read as embers rather than confetti. */
   background-repeat: no-repeat;
 }
 
+/* Wider than the board, and the plate needs pushing in.
+
+   `cover` fills the frame, but on anything wider than the plate's own 3:2 it fills by
+   WIDTH — so the plate's full width is on screen, water and all. The island reaches the
+   plate's edges at its widest row and not at its narrowest: measured, it is 1535px of
+   1536 at y=368 and 1255px at y=704. So the rows in between show a strip of flat water
+   down each side of the screen, which reads as a band in exactly the way the letterbox
+   did — the thing this whole change was meant to remove.
+
+   How much is not guesswork. For a frame of aspect A, cover shows the plate's full width
+   and a centred vertical slice; zooming by Z narrows that slice to 1536/Z of the plate's
+   width, and the island has to be at least that wide at EVERY row in the slice. Walked
+   row by row against the plate at aspect 2.164: at Z=1.28 one row near the island's
+   taper is still 152px short, and at Z=1.40 every row is covered. 142% takes that with a
+   margin, and holds across the 2.0-2.2 range that phones actually occupy.
+
+   The threshold is 181/100 rather than 16/9 so that a 16:9 screen — the size the layout
+   spec is written for — keeps plain cover and stays pixel for pixel what it was. Above
+   16:9 but below 1.81 there is barely a letterbox to speak of, so the plate's own water
+   showing there is the original design, not a regression.
+
+   A single step, not a ramp: background-size cannot interpolate. */
+@media (min-aspect-ratio: 181/100) {
+  .viewport-frame { background-size: 142% auto; }
+}
+
 /* The board, centred by the same declaration that scales it.
 
    Deliberately NOT grid/flex centring plus a bare scale(). A 1920px child in a

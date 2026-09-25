@@ -122,3 +122,37 @@ test("the board still fits by height, so nothing is ever cropped", async () => {
   assert.ok(!/scale\(max\(|calc\(max\(/.test(joined),
     "a cover-style scale here would crop the board");
 });
+
+test("the plate is zoomed on wide frames so its water cannot band the screen edges", async () => {
+  const css = await sheet();
+
+  // Filling the frame with `cover` is not enough on a wide screen: the plate is 3:2, so
+  // cover fills by WIDTH and puts the plate's full width on screen — water and all. The
+  // island reaches the plate's edges at its widest row (1535 of 1536) but not at its
+  // narrowest (1255), so the rows between show a strip of flat water down each side.
+  // Measured against the plate row by row: 1.28x still leaves a 152px shortfall near the
+  // island's taper, 1.40x covers every row. The rule below takes 142% for margin.
+  const wide = css.match(/@media\s*\(min-aspect-ratio:\s*181\/100\)\s*\{([\s\S]*?)\}/);
+  assert.ok(wide, "there is no wide-frame rule; the plate will band the edges on a phone");
+
+  const zoom = wide![1]!.match(/background-size:\s*(\d+)%\s*auto/);
+  assert.ok(zoom, "the wide-frame rule sets no percentage background-size");
+
+  const factor = Number(zoom![1]) / 100;
+  assert.ok(factor >= 1.40,
+    `zoom is ${factor}x; the plate needs at least 1.40x for the island to span every row of the visible band`);
+  // Past about 1.6x the visible slice of the plate shrinks below half its height and the
+  // landscape is gone — the scene becomes a wall of felt.
+  assert.ok(factor <= 1.6, `zoom is ${factor}x, which crops the scene down to under half the plate`);
+
+  // The threshold has to sit ABOVE 16/9, or the spec-size board would be zoomed too.
+  const threshold = 181 / 100;
+  assert.ok(threshold > 16 / 9, "the wide-frame rule would fire at 16:9 and change the spec-size board");
+});
+
+test("plain cover survives for 16:9 and narrower", async () => {
+  const css = await sheet();
+  const frame = ruleFor(css, ".viewport-frame");
+  assert.ok(/background-size:\s*cover/.test(frame),
+    "the base rule must stay cover, so a 16:9 screen is untouched by the wide-frame override");
+});
