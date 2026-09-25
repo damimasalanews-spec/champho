@@ -485,13 +485,18 @@
         const STAGE_W = 1920, STAGE_H = 1080;
 
         function applyStageScale() {
-            // Scale by height, always. The board is exactly as tall as the screen, so its
-            // height can never leave a band top or bottom, and everything on it is sized
-            // in board pixels against that one number.
-            const scale = window.innerHeight / STAGE_H;
+            // The scale is the SMALLER of the two fits, and that choice is what protects
+            // the board's 1920 width on a narrow screen. Taking the height alone and
+            // forcing the width up to at least 1920 made the board 1365px wide inside a
+            // 1024px iPad: the seats sit at the board's edges, so an over-wide board
+            // pushes both of them off the sides. Measured, not theorised.
+            const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
             const usable = scale > 0 ? scale : 1;
-            // Then widen it until it covers the screen's width too. 1920 is the floor, so
-            // a 16:9 or narrower display gets exactly the spec'd board.
+
+            // Then widen the board until it covers the screen's width too. On a screen
+            // wider than 16:9 that is wider than 1920 and the board itself reaches both
+            // sides, which is the 1536x709 case. On 16:9 and narrower it stays exactly
+            // 1920 and the scene behind it fills whatever is left over.
             const width = Math.max(STAGE_W, window.innerWidth / usable);
             document.documentElement.style.setProperty('--stage-scale', String(usable));
             document.documentElement.style.setProperty('--stage-w', Math.round(width) + 'px');
