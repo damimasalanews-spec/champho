@@ -1709,10 +1709,19 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 
 /* The flight layer. The ring uses the empty-div-at-viewport-origin trick: left/top
    0, and every effect is placed with its own left/top style, so positioning never
-   needs to subtract an anchor offset. */
+   needs to subtract an anchor offset.
+
+   perspective: 1400px is the whole reason the flyer's rotateX/rotateY read as a
+   lean instead of a flat squash. .game-table carries the same 1400px, so the pile's
+   cards are projected by one value and the card in the air by the same one — matching
+   the table's number here is what keeps the handoff at 0.50 invisible. Without it the
+   flyer's -12deg -> 24deg tilt is an orthographic vertical scale, which is exactly
+   what a card that is NOT in the air looks like. */
 #throw-flight-layer {
   position: absolute;
   inset: 0;
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
 }
 
 #throw-flight-card {
@@ -1794,6 +1803,32 @@ body.effect-draw { animation: draw-shake 0.35s ease-in-out forwards; }
 
 @media (prefers-reduced-motion: reduce) {
   .discarded-card.landed-settle { animation: none; }
+}
+
+/* The card UNDER the hit. The flyer snaps onto the pile through 0.42-0.50; while it
+   does, the top of the stack takes the shock — a few pixels of sink, a degree of
+   twist, a hair of scale — and is back to rest inside 0.18s. Small on purpose: the
+   story is the incoming card, and the card underneath is only confirming it landed.
+
+   The base transform has to be restated in full because a @keyframes on transform
+   replaces it outright, and every value comes from the card's own --discard-*
+   properties. The fallbacks are there so a pile child that never received those
+   properties stays where it is instead of snapping to the origin. */
+@keyframes pile-recoil-nudge {
+  0%, 100% {
+    transform: rotate(var(--discard-rot, 0deg)) translate3d(var(--discard-x, 0px), var(--discard-y, 0px), var(--discard-z, 0px)) scale(1);
+  }
+  32% {
+    transform: rotate(var(--discard-rot, 0deg)) translate3d(var(--discard-x, 0px), calc(var(--discard-y, 0px) + 4px), calc(var(--discard-z, 0px) - 2px)) rotate(1.4deg) scale(0.985);
+  }
+}
+
+.discarded-card.pile-recoil {
+  animation: pile-recoil-nudge .18s cubic-bezier(.22, 1, .36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discarded-card.pile-recoil { animation: none; }
 }
 
 #throw-impact-ring.go {

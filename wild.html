@@ -396,7 +396,21 @@
         // The easing curves the spec calls for: strong acceleration out of the
         // hand, smooth deceleration into the pile, spin that dies out before land.
         function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+        function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - 4 * Math.pow(1 - t, 3); }
         function easeInOutQuart(t) { return t < 0.5 ? 8 * t * t * t * t : 1 - 8 * Math.pow(1 - t, 4); }
+
+        // The timeline, in seconds, as one object rather than as magic numbers
+        // scattered through the phase branches: the boundaries the brief names, and
+        // the two constants the flight is built from.
+        const THROW = {
+            lift: 0.08,      // anticipation ends — the hand lets go
+            align: 0.30,     // the throw ends, the deceleration and alignment begin
+            land: 0.42,      // first contact with the pile
+            rest: 0.50,      // the flyer hands the card over and the sparks fly
+            spin: 720,       // ~2 rotations end to end
+            arcZ: 74,        // how far the card leaves the table plane at mid-flight
+            cameraLag: 14.4, // camera follow time constant (1/s); the old 0.224/frame
+        };
 
         function playCardLaunchWhoosh() {
             if (typeof whoosh === 'function') whoosh(0.22, 0.05, 0, 1400);
@@ -423,13 +437,25 @@
             const p0 = { x: from.left + from.width / 2, y: from.top + from.height / 2 };
             const p2 = { x: pile.left + pile.width / 2, y: pile.top + pile.height / 2 };
 
-            // The control point of the curve: above both ends, biased so the card
-            // sweeps toward the middle rather than flying dead straight.
+            // The control point of the curve: lifted above both ends, and bowed out
+            // to one side.
+            //
+            // The bow is not decoration. The local hand sits directly under the throw
+            // box, so on a centred card dx is ~0 and the arc above both ends would put
+            // the control point on the same vertical line as the two ends — a three-
+            // point quadratic with collinear points IS a straight line, and the throw
+            // measured 4px off its own chord. Bowing the control point sideways by a
+            // share of the travel distance gives every throw a real arc, and taking the
+            // side from spinDir means the card sweeps out in the direction it banks.
             const dx = p2.x - p0.x, dy = p2.y - p0.y;
-            const arc = Math.min(300, Math.max(90, Math.hypot(dx, dy) * 0.38));
-            const p1 = { x: (p0.x + p2.x) / 2 - dx * 0.10, y: Math.min(p0.y, p2.y) - arc };
-
+            const travel = Math.hypot(dx, dy);
+            const arc = Math.min(300, Math.max(90, travel * 0.38));
+            const bow = Math.min(150, Math.max(45, travel * 0.22));
             const spinDir = dx >= 0 ? -1 : 1;         // rolling toward the throw
+            const p1 = {
+                x: (p0.x + p2.x) / 2 - dx * 0.10 + spinDir * bow,
+                y: Math.min(p0.y, p2.y) - arc,
+            };
             const tilt0 = parseFloat(cardElement.style.getPropertyValue('--arc-rotation')) || 0;
             const k0 = from.width / 105;              // hand card scale relative to table card
 
@@ -437,17 +463,21 @@
             // The impact ring and the sparks are shared single nodes.
             const ghostA = document.createElement('div');
             const ghostB = document.createElement('div');
+            const ghostC = document.createElement('div');
             ghostA.className = 'throw-ghost';
             ghostB.className = 'throw-ghost';
+            ghostC.className = 'throw-ghost';
             flightLayer.appendChild(ghostA);
             flightLayer.appendChild(ghostB);
+            flightLayer.appendChild(ghostC);
 
             const trail = [];
+            paintedThrowKey = '';   // this throw repaints the flyer's face from scratch
             cardThrow = {
                 t0: 0, p0, p1, p2, spinDir, tilt0, k0,
                 letter: cardData.value, color: cardData.color,
                 sourceEl: cardElement, onLanded,
-                ghostA, ghostB, trail, impacted: false,
+                ghostA, ghostB, ghostC, trail, impacted: false,
             };
 
             // The hand copy is spent at the click — the flyer IS the card now.
@@ -459,48 +489,76 @@
         }
 
         // One visual frame of the throw. Returns true while it is still running.
+        //
+        // Every value below is a function of absolute time since the click, never of
+        // a frame count, so the throw is the same 0.50s on a 30, 60 or 144Hz panel.
+        // The phase boundaries are THROW's; the easings are the edges between them.
         function stepThrow(now) {
             const a = cardThrow;
             if (!a) return false;
             if (!a.t0) a.t0 = now;
 
             const t = (now - a.t0) / 1000;
-            const s = { x: a.p0.x, y: a.p0.y, rot: a.tilt0, rx: 0, ry: 0, sx: a.k0, sy: a.k0, dir: 0, blur: 0, color: a.color, letter: a.letter };
+            const s = { x: a.p0.x, y: a.p0.y, z: 0, rot: a.tilt0, rx: 0, ry: 0, sx: a.k0, sy: a.k0, dir: 0, blur: 0, speed: 0, color: a.color, letter: a.letter };
 
-            if (t <= 0.08) {
-                // anticipation: lift + slight scale, fast and small
-                const e = easeOutCubic(t / 0.08);
+            if (t <= THROW.lift) {
+                // 0.00-0.08 anticipation: lift + slight scale, fast and small
+                const e = easeOutCubic(t / THROW.lift);
                 s.x = a.p0.x;
                 s.y = a.p0.y - 16 * e;
                 s.rot = a.tilt0;
                 s.rx = -12 * e;
                 s.sx = s.sy = a.k0 * (1 + 0.06 * e);
-            } else if (t <= 0.42) {
-                // flight: quadratic curve with easeInOutQuart — hard accel into the
-                // middle of the leg, smooth decel on approach. The curve starts from
-                // the LIFTED position (where the anticipation left the card), not the
-                // raw hand slot, or the card would snap down 16px at t=0.08.
+            } else if (t <= THROW.land) {
+                // 0.08-0.30 the throw, 0.30-0.42 the alignment.
+                //
+                // The path is a quadratic through a control point lifted above both
+                // ends and bowed to one side, with easeInOutQuart: hard accel into the
+                // middle of the leg, smooth decel on approach. It starts from the
+                // LIFTED position (where the anticipation left the card), not the raw
+                // hand slot, or the card would snap down 16px at t=0.08.
                 const l0 = { x: a.p0.x, y: a.p0.y - 16 };
-                const u = (t - 0.08) / 0.34;
+                const u = (t - THROW.lift) / (THROW.land - THROW.lift);
                 const e = easeInOutQuart(u);
                 const om = 1 - e;
                 s.x = om * om * l0.x + 2 * om * e * a.p1.x + e * e * a.p2.x;
                 s.y = om * om * l0.y + 2 * om * e * a.p1.y + e * e * a.p2.y;
 
-                // spin: ~2 rotations easing out, so the card lands aligned
-                const spinE = easeOutCubic((t - 0.08) / 0.30);
-                s.rot = a.tilt0 * (1 - spinE) + a.spinDir * 720 * spinE;
+                // How far off the table plane the card currently is, 0..1: up through
+                // the throw, peaked while it is travelling fastest, and back down to 0
+                // exactly at the align boundary — so the card is on the table for the
+                // whole of 0.30-0.42 while it squares itself up to the pile. Because it
+                // reaches 0 before first contact the landing point stays exact: the
+                // perspective on the flight layer only ever foreshortens the card while
+                // it is genuinely in the air. The bank rides the same shape, so the lean
+                // squares up with the lift instead of snapping flat.
+                const uAlign = (THROW.align - THROW.lift) / (THROW.land - THROW.lift);
+                const air = Math.sin(Math.min(1, u / uAlign) * Math.PI);
+                s.z = air * THROW.arcZ;
+                s.ry = air * a.spinDir * 9;
+
+                // spin: ~2 rotations, and ONE continuous curve for them. The card
+                // accelerates out of the release, turns at its fastest through the
+                // middle of the throw and is at a dead stop exactly at first contact, so
+                // the whole of 0.30-0.42 is the card visibly braking into alignment.
+                //
+                // Deliberately not split at THROW.align into a fast leg and a slow leg:
+                // any two curves joined there step the angular velocity at the join
+                // (~10.4k°/s down to ~6k°/s is what the first attempt measured), and a
+                // step in spin rate at this speed reads as a stutter, not as braking.
+                const spinE = easeInOutCubic((t - THROW.lift) / (THROW.land - THROW.lift));
+                s.rot = a.tilt0 * (1 - spinE) + a.spinDir * THROW.spin * spinE;
+
                 // the 3D tilt: the card lifts presenting its face (-12°), then eases
                 // through the flight to the pile's own 24° table tilt, so the handoff
                 // to the placed card is invisible rather than a flat-to-tilted pop
                 s.rx = -12 + 36 * e;
-                s.ry = Math.sin(u * Math.PI) * a.spinDir * 9;  // banks into the curve
 
                 const k = a.k0 + (1 - a.k0) * e;          // grows to table-card size
 
                 // velocity for stretch + blur. Derivatives of the position above,
                 // so the stretch peaks exactly when the flight is fastest.
-                const dE = (u < 0.5 ? 32 * u * u * u : 32 * Math.pow(1 - u, 3)) / 0.34;
+                const dE = (u < 0.5 ? 32 * u * u * u : 32 * Math.pow(1 - u, 3)) / (THROW.land - THROW.lift);
                 const vx = 2 * om * (a.p1.x - l0.x) + 2 * e * (a.p2.x - a.p1.x);
                 const vy = 2 * om * (a.p1.y - l0.y) + 2 * e * (a.p2.y - a.p1.y);
                 const speed = Math.hypot(vx * dE, vy * dE);
@@ -508,14 +566,19 @@
                 s.sx = k * (1 + stretch);
                 s.sy = k * (1 - stretch * 0.55);
                 s.dir = Math.atan2(vy, vx) * 180 / Math.PI;
-                s.blur = Math.min(1, Math.max(0, (speed - 700) / 900)) * 2.6;
-            } else if (t <= 0.50) {
-                // impact: one sharp vertical squash-bounce
+                s.speed = speed;
+                // A thin blur only. The directional smear is the ghost trail's job; the
+                // filter is just the last edge off the fastest frames, kept small enough
+                // that the face is still readable while the card is moving.
+                s.blur = Math.min(1, Math.max(0, (speed - 700) / 900)) * 1.1;
+            } else if (t <= THROW.rest) {
+                // 0.42-0.50 impact: one sharp vertical squash-bounce
                 if (!a.impacted) { a.impacted = true; throwImpact(a); }
-                const u = (t - 0.42) / 0.08;
+                const u = (t - THROW.land) / (THROW.rest - THROW.land);
                 const w = Math.sin(Math.PI * Math.min(1, u));
                 s.x = a.p2.x;
                 s.y = a.p2.y - 12 * w;
+                s.z = 0;
                 s.rot = 0;
                 s.rx = 24;   // still matched to the pile's table tilt through the bounce
                 // squash flat along the hit axis: vertical compress, horizontal spread
@@ -528,24 +591,27 @@
                 return false;   // done — the caller hands the card to the pile
             }
 
-            // Land true: through the last stretch of the flight the painted position
-            // eases off the camera pan, so the card meets the pile exactly even while
-            // the camera is still drifting home behind it.
+            // Land true: from 0.34 (the last eighth of a second before THROW.land) the
+            // painted position eases off the camera pan, so the card meets the pile
+            // exactly even while the camera is still drifting home behind it.
             const comp = t < 0.34 ? 0 : Math.min(1, (t - 0.34) / 0.08);
             s.x -= throwCameraX * comp;
             s.y -= throwCameraY * comp;
             paintThrowCard(s);
 
-            // ghost trail during the fast middle of the flight
-            a.trail.push({ x: s.x, y: s.y, rot: s.rot, on: t > 0.10 && t < 0.38 && s.blur > 0.5 });
+            // Ghost trail during the fast middle of the flight. Gated on SPEED rather
+            // than on the filter's blur radius, so the two can be tuned separately:
+            // the smear is what sells the speed now, and the filter is only a hint.
+            a.trail.push({ x: s.x, y: s.y, z: s.z, rot: s.rot, rx: s.rx, ry: s.ry, on: t > THROW.lift && t < THROW.land && s.speed > 900 });
             if (a.trail.length > 64) a.trail.shift();
             const n = a.trail.length;
-            paintThrowGhost(a.ghostA, a.trail[Math.max(0, n - 4)], a.color, a.letter, 0.22);
-            paintThrowGhost(a.ghostB, a.trail[Math.max(0, n - 8)], a.color, a.letter, 0.10);
+            paintThrowGhost(a.ghostA, a.trail[Math.max(0, n - 3)], a.color, a.letter, 0.26);
+            paintThrowGhost(a.ghostB, a.trail[Math.max(0, n - 6)], a.color, a.letter, 0.15);
+            paintThrowGhost(a.ghostC, a.trail[Math.max(0, n - 9)], a.color, a.letter, 0.07);
 
             // camera: ease toward the midpoint of the travel, never toward the card
             // itself, then back to rest on impact
-            if (t > 0.08 && t <= 0.42) {
+            if (t > THROW.lift && t <= THROW.land) {
                 const lookX = (s.x + a.p2.x) / 2 - innerWidth / 2;
                 const lookY = (s.y + a.p2.y) / 2 - innerHeight * 0.55;
                 throwCameraTX = Math.min(9, Math.max(-9, -lookX * 0.07));
@@ -557,40 +623,63 @@
             return true;
         }
 
+        // What the flyer's face is currently painted with. The card only changes
+        // colour and letter at the click, so the class and the span are written once
+        // per throw rather than rebuilt every frame — one less reflow inside the
+        // frame that has to stay clean.
+        let paintedThrowKey = '';
+
         function paintThrowCard(s) {
             const el = document.getElementById('throw-flight-card');
             if (!el) return;
-            el.className = 'discarded-card ' + s.color;
-            el.textContent = '';
-            const v = document.createElement('span');
-            v.className = 'card-value';
-            v.textContent = s.letter;
-            el.appendChild(v);
+            const key = s.color + '|' + s.letter;
+            if (key !== paintedThrowKey) {
+                paintedThrowKey = key;
+                el.className = 'discarded-card ' + s.color;
+                el.textContent = '';
+                const v = document.createElement('span');
+                v.className = 'card-value';
+                v.textContent = s.letter;
+                el.appendChild(v);
+            }
             el.style.opacity = '1';
             el.style.filter = s.blur > 0.05 ? `blur(${s.blur.toFixed(2)}px)` : 'none';
+            // z carries the card off the table plane and back. rotateX/rotateY are
+            // applied last, so they tilt the card in its own frame and are then
+            // projected by the flight layer's perspective — a real lean rather than
+            // the flat squash the same angles give without one.
             el.style.transform =
-                `translate3d(${(s.x - 52.5).toFixed(1)}px, ${(s.y - 79).toFixed(1)}px, 0)` +
+                `translate3d(${(s.x - 52.5).toFixed(1)}px, ${(s.y - 79).toFixed(1)}px, ${s.z.toFixed(1)}px)` +
                 ` rotate(${s.dir.toFixed(2)}deg) scale(${s.sx.toFixed(4)}, ${s.sy.toFixed(4)}) rotate(${(-s.dir).toFixed(2)}deg)` +
                 ` rotate(${s.rot.toFixed(2)}deg) rotateX(${s.rx.toFixed(2)}deg) rotateY(${s.ry.toFixed(2)}deg)`;
         }
 
+        // The echoes inherit the sample's z and its tilt, so the smear lies in the
+        // same plane the card is in instead of reading as flat stickers dragged
+        // behind it. Faces are only rewritten when they actually change.
         function paintThrowGhost(ghost, sample, color, letter, opacity) {
             if (!ghost) return;
             if (!sample || !sample.on) { ghost.style.opacity = '0'; return; }
-            ghost.className = 'throw-ghost ' + color;
-            ghost.textContent = letter;
+            if (ghost.dataset.paint !== color) {
+                ghost.dataset.paint = color;
+                ghost.className = 'throw-ghost ' + color;
+                ghost.textContent = letter;
+            }
             ghost.style.opacity = String(opacity);
             ghost.style.transform =
-                `translate3d(${(sample.x - 52.5).toFixed(1)}px, ${(sample.y - 79).toFixed(1)}px, 0) rotate(${sample.rot.toFixed(1)}deg)`;
+                `translate3d(${(sample.x - 52.5).toFixed(1)}px, ${(sample.y - 79).toFixed(1)}px, ${sample.z.toFixed(1)}px)` +
+                ` rotate(${sample.rot.toFixed(1)}deg) rotateX(${sample.rx.toFixed(1)}deg) rotateY(${sample.ry.toFixed(1)}deg)`;
         }
 
         // ONE loop drives the whole system — card, sparks, camera — so a throw
         // fired while the previous one's sparks are still airborne cannot fork the
         // frame callbacks and double-step the particles.
         let throwLoopRunning = false;
+        let throwLastFrame = 0;
         function ensureThrowLoop() {
             if (throwLoopRunning) return;
             throwLoopRunning = true;
+            throwLastFrame = 0;
             requestAnimationFrame(throwLoop);
         }
 
@@ -600,14 +689,22 @@
             // keeps running past this point for the sparks and the camera return.
             if (!running && cardThrow) finishThrow();
 
+            // Real frame time, clamped. The card is already a pure function of the
+            // clock; the sparks and the camera pan now are too, so the burst falls at
+            // the same speed on a 144Hz panel as on a 60Hz one, and a tab that was
+            // backgrounded mid-throw does not teleport them through the floor.
+            let dt = throwLastFrame ? (now - throwLastFrame) / 1000 : 1 / 60;
+            throwLastFrame = now;
+            dt = Math.min(0.05, Math.max(0.001, dt));
+
             // sparks and the camera run on the same loop, even after the card stops
             for (let i = throwSparks.length - 1; i >= 0; i--) {
                 const sp = throwSparks[i];
-                sp.t += 1 / 60;
+                sp.t += dt;
                 if (sp.t >= sp.life) { sp.el.remove(); throwSparks.splice(i, 1); continue; }
-                sp.vy += 620 / 60;
-                sp.x += sp.vx / 60;
-                sp.y += sp.vy / 60;
+                sp.vy += 620 * dt;
+                sp.x += sp.vx * dt;
+                sp.y += sp.vy * dt;
                 const k = 1 - sp.t / sp.life;
                 sp.el.style.opacity = String(k * k);
                 // rendered in world space minus the live camera pan, so the burst stays
@@ -616,7 +713,11 @@
                 sp.el.style.transform = `translate3d(${(sp.x - throwCameraX).toFixed(1)}px, ${(sp.y - throwCameraY).toFixed(1)}px, 0) scale(${(0.5 + k * 0.8).toFixed(3)})`;
             }
 
-            const kp = Math.min(1, 0.016 * 14);
+            // The follow lerp as an exponential in seconds. The old per-frame 0.224
+            // was tuned at 60Hz and ran twice as fast at 120; this is the same feel
+            // at every refresh rate, and it is why the camera settles rather than
+            // snapping back when the card stops.
+            const kp = 1 - Math.exp(-THROW.cameraLag * dt);
             throwCameraX += (throwCameraTX - throwCameraX) * kp;
             throwCameraY += (throwCameraTY - throwCameraY) * kp;
             const rig = document.getElementById('throw-camera-rig');
@@ -627,6 +728,17 @@
             if (running || throwSparks.length || Math.abs(throwCameraX - throwCameraTX) > 0.02 || Math.abs(throwCameraY - throwCameraTY) > 0.02) {
                 requestAnimationFrame(throwLoop);
             } else {
+                // Park it EXACTLY, rather than a hundredth of a pixel short. An
+                // exponential approach never reaches its target, so the loop above stops
+                // while the rig is still holding a transform — and a rig left a fraction
+                // of a pixel off rest is one thrown card away from a visible twitch at
+                // the start of the next one. Snapping here costs one write and leaves the
+                // camera provably at the normal gameplay position.
+                throwCameraX = throwCameraTX;
+                throwCameraY = throwCameraTY;
+                if (rig) {
+                    rig.style.transform = `translate3d(${throwCameraX.toFixed(2)}px, ${throwCameraY.toFixed(2)}px, 0)`;
+                }
                 throwLoopRunning = false;
             }
         }
@@ -642,6 +754,18 @@
                 void centerZone.offsetWidth;
                 centerZone.classList.add('impact');
                 setTimeout(() => centerZone.classList.remove('impact'), 130);
+            }
+
+            // ...and the card UNDER the hit shrugs it off: a couple of pixels of sink
+            // and a degree of twist, gone in under a fifth of a second. The flyer is
+            // still in the air at this point in the timeline — it is only appended to
+            // the pile at 0.50 — so the last child is still the previous top card.
+            const pileNode = document.getElementById('discard-deck-pile');
+            const underCard = pileNode ? pileNode.lastElementChild : null;
+            if (underCard) {
+                underCard.classList.remove('pile-recoil');
+                void underCard.offsetWidth;
+                underCard.classList.add('pile-recoil');
             }
 
             // ring + sparks at the landing point. The ring is placed through the
@@ -683,6 +807,7 @@
             if (!a) return;
             a.ghostA.remove();
             a.ghostB.remove();
+            a.ghostC.remove();
             const flightCard = document.getElementById('throw-flight-card');
             if (flightCard) { flightCard.style.opacity = '0'; flightCard.style.filter = 'none'; }
             a.onLanded();   // the original pile-append + effects run here, unchanged
