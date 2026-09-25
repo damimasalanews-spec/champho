@@ -1949,7 +1949,11 @@ tail so they read as embers rather than confetti. */
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 1920px;
+  /* The height is the fixed one — 1080, always, so the board is exactly as tall as the
+     screen and can never leave a band top or bottom. The WIDTH flexes to whatever the
+     screen needs: 1920 on a 16:9 display, wider on a phone, set by applyStageScale().
+     A fixed 1920 here is what left bands down the sides of every phone. */
+  width: var(--stage-w, 1920px);
   height: 1080px;
   transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
   transform-origin: center center;
@@ -2113,7 +2117,10 @@ tail so they read as embers rather than confetti. */
 .arcade-settings-btn {
   position: absolute;
   top: 35px;
-  left: 1810px;
+  /* Right-anchored, not left: 1810 from the left is 40 from the right on a 1920 board,
+     and on a wider one the gear has to travel with the edge. */
+  right: 40px;
+  left: auto;
   width: 70px;
   height: 70px;
   z-index: 320;
@@ -2285,8 +2292,13 @@ tail so they read as embers rather than confetti. */
 }
 
 /* --- side seats: left-middle and right-middle ----------------------------- */
-.opponent-left  { left: 50px;   top: 210px; right: auto; transform: none; }
-.opponent-right { left: 1735px; top: 210px; right: auto; transform: none; }
+/* The left seat is pinned to the board's left edge and the right seat to its right edge,
+   rather than to the spec's 50 / 1735. On a 16:9 board those are the same pixels; on a
+   phone, where the board is wider, anchoring by edge is what carries the opponents out to
+   the sides of the screen instead of leaving them stranded in the middle with empty felt
+   beyond them. 50px is the spec's inset from the edge either way. */
+.opponent-left  { left: 50px;  top: 210px; right: auto; transform: none; }
+.opponent-right { right: 50px; top: 210px; left: auto;  transform: none; }
 
 .opponent-left .avatar-frame,
 .opponent-right .avatar-frame { width: var(--avatar-side); height: var(--avatar-side); }

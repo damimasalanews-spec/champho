@@ -108,51 +108,58 @@ test("the plate itself is checked in", async () => {
   assert.ok(existsSync(onDisk), `${path} does not resolve to a file (looked in ${onDisk})`);
 });
 
-test("the board still fits by height, so nothing is ever cropped", async () => {
+test("the board is as tall as the screen and as wide as it needs to be", async () => {
   const css = await sheet();
-  const rules = rulesFor(css, ".stage");
-  const joined = rules.join("\n");
+  const stage = rulesFor(css, ".stage").join("\n");
 
-  // Cover-scaling the BOARD to fill the screen would crop the timer off the top and the
-  // hand off the bottom. The stage keeps a fixed 1920x1080 scaled to fit, and the scene
-  // is what does the filling.
-  assert.ok(/width:\s*1920px/.test(joined) && /height:\s*1080px/.test(joined),
-    "the board must stay a fixed 1920x1080 so fitting by height leaves the UI uncropped");
-  assert.ok(/scale\(var\(--stage-scale/.test(joined), "the board must scale to fit, not to cover");
-  assert.ok(!/scale\(max\(|calc\(max\(/.test(joined),
-    "a cover-style scale here would crop the board");
+  // The board used to be a fixed 1920x1080 fitted inside the screen, which is what left
+  // bands down the sides of every phone: a phone in landscape is about 2.16:1 and the
+  // board is 16:9, so fitting by height can only ever fill 82% of the width. Cropping to
+  // fill instead would eat the timer off the top and the hand off the bottom.
+  //
+  // So the height is the fixed one and the width flexes. 1080 must stay a constant.
+  assert.ok(/height:\s*1080px/.test(stage), "the board's height must be the fixed 1080");
+  assert.ok(/width:\s*var\(--stage-w,\s*1920px\)/.test(stage),
+    "the board's width must come from --stage-w, falling back to the spec's 1920");
+  assert.ok(/scale\(var\(--stage-scale/.test(stage), "the board must scale to fit the screen's height");
 });
 
-test("the plate is zoomed on wide frames so its water cannot band the screen edges", async () => {
-  const css = await sheet();
+test("the board's scale and width are computed from the screen, not fixed", async () => {
+  const html = await readFile(resolve(ROOT, "wild.html"), "utf8");
 
-  // Filling the frame with `cover` is not enough on a wide screen: the plate is 3:2, so
-  // cover fills by WIDTH and puts the plate's full width on screen — water and all. The
-  // island reaches the plate's edges at its widest row (1535 of 1536) but not at its
-  // narrowest (1255), so the rows between show a strip of flat water down each side.
-  // Measured against the plate row by row: 1.28x still leaves a 152px shortfall near the
-  // island's taper, 1.40x covers every row. The rule below takes 142% for margin.
-  const wide = css.match(/@media\s*\(min-aspect-ratio:\s*181\/100\)\s*\{([\s\S]*?)\}/);
-  assert.ok(wide, "there is no wide-frame rule; the plate will band the edges on a phone");
+  // Scale by HEIGHT, so the board can never leave a band top or bottom.
+  assert.ok(/window\.innerHeight\s*\/\s*STAGE_H/.test(html),
+    "the scale must come from the screen height over the board height");
+  assert.ok(/Math\.max\(STAGE_W,\s*window\.innerWidth\s*\/\s*usable\)/.test(html),
+    "the width must be at least 1920 and otherwise as wide as the screen needs");
+  assert.ok(/setProperty\('--stage-w'/.test(html), "the computed width must reach the stylesheet");
 
-  const zoom = wide![1]!.match(/background-size:\s*(\d+)%\s*auto/);
-  assert.ok(zoom, "the wide-frame rule sets no percentage background-size");
-
-  const factor = Number(zoom![1]) / 100;
-  assert.ok(factor >= 1.40,
-    `zoom is ${factor}x; the plate needs at least 1.40x for the island to span every row of the visible band`);
-  // Past about 1.6x the visible slice of the plate shrinks below half its height and the
-  // landscape is gone — the scene becomes a wall of felt.
-  assert.ok(factor <= 1.6, `zoom is ${factor}x, which crops the scene down to under half the plate`);
-
-  // The threshold has to sit ABOVE 16/9, or the spec-size board would be zoomed too.
-  const threshold = 181 / 100;
-  assert.ok(threshold > 16 / 9, "the wide-frame rule would fire at 16:9 and change the spec-size board");
+  // The throw aims in board pixels, and the board's width now varies, so the conversion
+  // has to come off the height — dividing by the fixed 1920 would mis-scale it by
+  // however much wider the board had become.
+  assert.ok(/scale:\s*r\.height\s*\/\s*STAGE_H/.test(html),
+    "the aim conversion must derive the scale from the board's height");
+  assert.ok(/stageW:\s*stage\.width/.test(html) && /a\.stageW/.test(html),
+    "the throw's camera must pan across the board's live width, not the spec's 1920");
 });
 
-test("plain cover survives for 16:9 and narrower", async () => {
+test("the corners are anchored to the board's edges, so they reach the screen", async () => {
   const css = await sheet();
-  const frame = ruleFor(css, ".viewport-frame");
-  assert.ok(/background-size:\s*cover/.test(frame),
-    "the base rule must stay cover, so a 16:9 screen is untouched by the wide-frame override");
+
+  // On a 16:9 board "left: 1735" and "right: 50" are the same pixel. On a phone, where
+  // the board is wider, only the edge anchor carries the seat out to the side instead of
+  // stranding it in the middle with empty felt beyond it.
+  const rightSeat = rulesFor(css, ".opponent-right").join("\n");
+  assert.ok(/right:\s*50px/.test(rightSeat), ".opponent-right must anchor to the right edge");
+  assert.ok(/left:\s*auto/.test(rightSeat), ".opponent-right must not also be pinned from the left");
+
+  const gear = rulesFor(css, ".arcade-settings-btn").join("\n");
+  assert.ok(/right:\s*40px/.test(gear), ".arcade-settings-btn must anchor to the right edge");
+  assert.ok(/left:\s*auto/.test(gear), ".arcade-settings-btn must not also be pinned from the left");
+
+  // And nothing may be pinned to a right-hand absolute x any more — that is exactly the
+  // pattern that produced the bands.
+  const pins = [...css.matchAll(/^\s*left:\s*(1[0-9]{3}|[2-9][0-9]{3})px;\s*$/gm)];
+  assert.deepEqual(pins.map((m) => m[0].trim()), [],
+    "a right-hand element is still pinned to an absolute x instead of an edge");
 });

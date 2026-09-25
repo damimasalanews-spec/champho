@@ -460,30 +460,56 @@
         const throwSparks = [];               // impact particles, pooled and removed
 
         // ==================================================================
-        // THE STAGE SCALE
+        // THE STAGE — fixed height, flexible width
         //
-        // The board is a fixed 1920x1080 scaled to fit the viewport. Everything the
-        // board draws is already in stage pixels — only two things need this: the
-        // stylesheet's --stage-scale, and the throw, whose aim comes out of
-        // getBoundingClientRect and therefore arrives in device pixels.
+        // The board used to be a fixed 1920x1080 scaled to FIT the screen. That is what
+        // left bands down the sides of every phone: a phone in landscape is about 2.16:1
+        // and the board is 16:9, so fitting it by height could only ever fill 82% of the
+        // width. Filling it by WIDTH instead would have cropped the timer off the top and
+        // the hand off the bottom.
+        //
+        // So neither. The board keeps its 1080 height and its scale is always
+        // viewportHeight/1080, and the WIDTH becomes whatever the screen needs — 1920 on a
+        // 16:9 display, 2337 on a 2.16:1 phone. The play area is centred either way, and
+        // the things that belong in the corners (the opponents, the clock, the buttons)
+        // are anchored to the board's left and right edges rather than to fixed
+        // coordinates, so they follow those edges out to the screen.
+        //
+        // At 16:9 this is arithmetically identical to what it was: scale 1, width 1920.
         //
         // stageRect() reads the conversion back off the element's own box instead of
-        // trusting a cached number. A resize that lands between two frames can then
-        // never leave the flyer aimed at where the pile used to be: to do that, the
-        // stage would have to lie about its own bounding box.
+        // trusting a cached number. A resize that lands between two frames can then never
+        // leave the flyer aimed at where the pile used to be: to do that, the stage would
+        // have to lie about its own bounding box.
         // ==================================================================
         const STAGE_W = 1920, STAGE_H = 1080;
 
         function applyStageScale() {
-            const fit = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
-            document.documentElement.style.setProperty('--stage-scale', String(fit > 0 ? fit : 1));
+            // Scale by height, always. The board is exactly as tall as the screen, so its
+            // height can never leave a band top or bottom, and everything on it is sized
+            // in board pixels against that one number.
+            const scale = window.innerHeight / STAGE_H;
+            const usable = scale > 0 ? scale : 1;
+            // Then widen it until it covers the screen's width too. 1920 is the floor, so
+            // a 16:9 or narrower display gets exactly the spec'd board.
+            const width = Math.max(STAGE_W, window.innerWidth / usable);
+            document.documentElement.style.setProperty('--stage-scale', String(usable));
+            document.documentElement.style.setProperty('--stage-w', Math.round(width) + 'px');
         }
 
         function stageRect() {
             const el = document.getElementById('game-stage');
-            if (!el) return { left: 0, top: 0, scale: 1 };
+            if (!el) return { left: 0, top: 0, scale: 1, width: STAGE_W };
             const r = el.getBoundingClientRect();
-            return { left: r.left, top: r.top, scale: r.width / STAGE_W || 1 };
+            return {
+                left: r.left,
+                top: r.top,
+                // From the HEIGHT, not the width. The board's height is always 1080;
+                // its width now varies with the screen, so dividing by the constant
+                // width would scale the conversion by however much wider the board got.
+                scale: r.height / STAGE_H || 1,
+                width: r.width,
+            };
         }
 
         // The flyer's own box, in stage pixels: the size of the card it becomes when it
@@ -607,7 +633,7 @@
             const trail = [];
             paintedThrowKey = '';   // this throw repaints the flyer's face from scratch
             cardThrow = {
-                t0: 0, p0, p1, p2, spinDir, tilt0, k0, box,
+                t0: 0, p0, p1, p2, spinDir, tilt0, k0, box, stageW: stage.width,
                 letter: cardData.value, color: cardData.color,
                 sourceEl: cardElement, onLanded,
                 ghostA, ghostB, ghostC, trail, impacted: false,
@@ -745,10 +771,10 @@
             // camera: ease toward the midpoint of the travel, never toward the card
             // itself, then back to rest on impact
             if (t > THROW.lift && t <= THROW.land) {
-                // Stage dimensions, not innerWidth/innerHeight: the camera is panning
-                // across the board, not across the viewport, now that the board is a
-                // scaled 1920x1080 object inside it.
-                const lookX = (s.x + a.p2.x) / 2 - STAGE_W / 2;
+                // The board's OWN dimensions, not the viewport's and not the spec's
+                // 1920: on a phone the board is wider than 1920 so that it can reach the
+                // sides, and the camera pans across the board it is drawn on.
+                const lookX = (s.x + a.p2.x) / 2 - a.stageW / 2;
                 const lookY = (s.y + a.p2.y) / 2 - STAGE_H * 0.55;
                 throwCameraTX = Math.min(9, Math.max(-9, -lookX * 0.07));
                 throwCameraTY = Math.min(7, Math.max(-7, -lookY * 0.07));
@@ -944,7 +970,7 @@
 
             // a tiny camera recoil impulse — the follow lerp absorbs it into the
             // return-to-rest, so it reads as weight and not as shake
-            throwCameraX += Math.min(4, Math.max(-4, (a.p2.x - STAGE_W / 2) * 0.02));
+            throwCameraX += Math.min(4, Math.max(-4, (a.p2.x - a.stageW / 2) * 0.02));
             throwCameraY += 3.5;
         }
 
