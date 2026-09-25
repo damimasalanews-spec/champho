@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;

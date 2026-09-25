@@ -29,7 +29,7 @@
          page's sheet would strip Classic of its styling. game/sound.js stays
          shared as-is — the one function this page needs that it lacked,
          playTimerTickSound, was added to it instead. -->
-    <link rel="stylesheet" href="game/wild-arcade.css?v=6">
+    <link rel="stylesheet" href="game/wild-arcade.css?v=7">
 </head>
 <body>
 
@@ -1181,8 +1181,8 @@
                 // the spec's visual hierarchy rather than the uniformity this used to
                 // have: your hand is the biggest thing on the table, the side seats are
                 // the smallest, the top seat sits between them.
-                backCard.style.top = `${i * 39}px`;
-                backCard.style.left = `calc(50% + ${direction * i * 29}px)`;
+                backCard.style.top = `${i * 57}px`;
+                backCard.style.left = `calc(50% + ${direction * i * 32}px)`;
                 backCard.style.transform =
                     `translate3d(-50%, 0, 0) rotate(${direction * (18 + i * 2)}deg)`;
                 backCard.style.zIndex = i;
@@ -1221,7 +1221,7 @@
                 // wider spread would outgrow the rack and a tighter one would hide the
                 // corner indices.
                 const offsetFromMiddle = i - midIndex;
-                const horizontalSpread = offsetFromMiddle * 65;
+                const horizontalSpread = offsetFromMiddle * 60;
                 const rotationAngle = offsetFromMiddle * 4;
                 const verticalDip = Math.abs(offsetFromMiddle) * 5;
 

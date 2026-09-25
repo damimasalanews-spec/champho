@@ -2881,3 +2881,238 @@ tail so they read as embers rather than confetti. */
   background:
     radial-gradient(120% 120% at 30% 10%, #2c3543 0%, #141a23 52%, #080a0f 100%) !important;
 }
+
+/* ==========================================================================
+   REFERENCE LAYOUT — sizes and positions taken off the mockup
+
+   The player sent a screenshot of the table they want this one to sit like, at
+   1441x666, and asked for the same sizes and positions. Everything below is
+   MEASURED off it rather than eyeballed: the mockup's pixels x1.622 land on this
+   board's 1080 height, which is the same scale its 1441x666 frame has against the
+   2340x1080 this board becomes at 2.164:1 — the mockup's own aspect.
+
+   How each number was read: the four nameplates and the CALL disc as solid
+   colour runs; the card groups as their white borders along scan lines (a
+   fan's visible strips give its step, its outer cards give its span); the
+   portraits and buttons as their frames and blobs. Where a row was ambiguous the
+   two ends decided it — a fan's first and last card are what a fan's span means.
+
+   Positions are anchored the way the mockup anchors them: side seats and buttons
+   to their nearest edge, the top seat and the hand as offsets from the centre,
+   the discard on the centre line. So the arrangement holds on a 16:9 board as
+   well as on the mockup's 2.164:1, rather than being true at one width only.
+
+   Measured (mockup -> this board):
+     hand cards        110x160 -> 178x260, step 52 -> 84, bottoms ON the bottom edge
+     partner's cards    62x 95 -> 100x155, step 60
+     enemy backs        55x 80 ->  89x130, step 20/35 -> 32/57
+     discard           125x150 -> 203x243
+     draw packet       110x160 -> 178x260
+     nameplates        159x 34 -> 258x55
+     portraits             130 -> 211
+     CALL disc              r63 -> r102 (204 across)
+     timer badge       170x 56 -> 276x91
+     gear                   30 ->  49
+     chat                   56 ->  73
+   ========================================================================== */
+
+.stage {
+  /* Cards, by seat. */
+  --hand-card-w: 178px;   --hand-card-h: 260px;   --hand-step: 84px;
+  --top-card-w: 100px;    --top-card-h: 155px;
+  --side-card-w: 89px;    --side-card-h: 130px;
+  --discard-w: 203px;     --discard-h: 243px;
+  --draw-w: 178px;        --draw-h: 260px;
+
+  /* Portraits: the mockup has all four the same size, so the seat hierarchy is
+     the cards' job, not the portraits'. */
+  --avatar-top: 211px;    --avatar-you: 211px;    --avatar-side: 211px;
+}
+
+/* --- the faces scale with their cards ---------------------------------- */
+/* A card size is a ratio: 6.5rem is right for a 137px card, so a 178px one wants
+   8.4 and a 100px one wants 4.7. Without this the hand would carry small numbers
+   on big cards and the partner the opposite. */
+.hand-container .card .card-value { font-size: 8.4rem; }
+.hand-container .card .card-value.action-symbol { font-size: 4.7rem; }
+.hand-container .card .corner-value { font-size: 2.2rem; }
+.hand-container .card .card-value.draw-count { font-size: 7rem; }
+
+.opponent-top-hand .card .card-value { font-size: 4.7rem; }
+.opponent-top-hand .card .card-value.action-symbol { font-size: 2.6rem; }
+.opponent-top-hand .card .corner-value { font-size: 1.3rem; }
+
+.center-play-zone .discarded-card .card-value { font-size: 9.7rem; }
+.center-play-zone .discarded-card .card-value.action-symbol { font-size: 5.2rem; }
+.center-play-zone .discarded-card .corner-value { font-size: 2.5rem; }
+
+.card .mini-glyph { width: 2.1rem; height: 2.1rem; }
+.opponent-top-hand .card .mini-glyph { width: 1.3rem; height: 1.3rem; }
+
+/* The thrown card is a hand card: same size as the ones it leaves. */
+#throw-flight-card { width: var(--hand-card-w); height: var(--hand-card-h); }
+
+/* --- portraits and nameplates ----------------------------------------- */
+.opponent-top .avatar-container, .opponent-left .avatar-container,
+.opponent-right .avatar-container, .local-user-slot .avatar-container { font-size: 7rem; }
+
+.avatar-hud-wrapper::before { width: 132px; height: 132px; top: -10px; left: -10px; }
+.avatar-hud-wrapper::after { font-size: 1.9rem; }
+
+/* One plate for all four: the mockup's is 258x55 on every seat. */
+.player-pill-tag,
+.opponent-top .player-pill-tag,
+.opponent-left .player-pill-tag,
+.opponent-right .player-pill-tag,
+.local-user-slot .player-pill-tag {
+  width: 258px;
+  height: 55px;
+  border-radius: 28px;
+  font-size: 1.9rem;
+}
+
+/* --- seats, measured --------------------------------------------------- */
+/* The top seat is LEFT of centre on the mockup — not centred with its hand
+   beside it, which is what this table did. The hand sits to its right, so the
+   pair reads as one player, and the seat is placed by its own left edge. */
+.opponent-top {
+  left: calc(50% - 365px);
+  top: 25px;
+  transform: none;
+  gap: 121px;
+}
+.opponent-top .player-pill-tag { margin-top: 14px; }
+.opponent-top-hand { margin-top: 97px; }
+
+.opponent-left {
+  left: 276px;
+  top: 320px;
+  right: auto;
+  transform: none;
+}
+.opponent-left .player-pill-tag { margin-top: 2px; }
+/* The cascade hangs from the seat's inner edge, first card where the mockup's is.
+   The renderer places each card's LEFT EDGE at the tray's centre, so the tray's own
+   left is half a card back from where its first card lands. */
+.opponent-left .opponent-fan-tray {
+  left: -21px;
+  top: 53px;
+  width: var(--side-card-w);
+  height: var(--side-card-h);
+  margin-top: 0;
+}
+
+.opponent-right {
+  right: 262px;
+  top: 320px;
+  left: auto;
+  transform: none;
+}
+.opponent-right .player-pill-tag { margin-top: 7px; }
+.opponent-right .opponent-fan-tray {
+  left: -53px;
+  top: 45px;
+  width: var(--side-card-w);
+  height: var(--side-card-h);
+  margin-top: 0;
+}
+
+.local-user-slot {
+  left: 399px;
+  top: 791px;
+}
+.local-user-slot .player-pill-tag { margin-top: 11px; }
+
+/* --- the local hand ---------------------------------------------------- */
+/* Offset from the centre rather than centred: the mockup's fan sits 81px right of
+   the middle, clear of the discard. Bottoms land ON the bottom edge — the mockup's
+   cards are not lifted off it. */
+.hand-container {
+  left: calc(50% + 81px);
+  /* 812 put the fan's tilted outer corners at 1106, 26px past the board's bottom edge
+     and clipped by it — measured, not estimated. 786 lands them at 1080. */
+  top: 786px;
+  width: 900px;
+  height: var(--hand-card-h);
+}
+
+/* --- the table --------------------------------------------------------- */
+/* The packet is inside .top-left-deck-group, so the group is what carries the
+   position and the packet stays at its own origin inside it. Left offset rather
+   than a right one, matching the mockup: on the wide board the packet sits left of
+   the timer's column, not hard against anything. */
+.top-left-deck-group { left: 544px; top: 40px; }
+#central-deck { left: 0; top: 0; }
+
+/* The GAP belongs to the row, not to the seat: `.opponent-top-row` is what lays the
+   portrait column and the rack out side by side, so a gap set on the seat above it
+   does nothing and the fan lands 82px short of the mockup's. 122 puts the rack at
+   1137: portrait column ends at 1015, mockup's rack starts at 1137. */
+.opponent-top-row { gap: 122px; }
+
+/* The rack's own margin is set by `.opponent-top-row .opponent-top-hand` at a higher
+   specificity than a bare class, so the offset has to match that selector to land:
+   written as `.opponent-top-hand` alone it was silently dropped and the fan sat on the
+   seat's top edge instead of 97px below it. */
+.opponent-top-row .opponent-top-hand {
+  margin-top: 97px;
+  width: calc(var(--top-card-w) + 6 * 60px);
+}
+
+.center-play-zone {
+  left: calc(50% + 9px);
+  top: 47.8%;
+}
+
+/* --- buttons and the HUD ----------------------------------------------- */
+.arcade-timer-badge {
+  left: 162px;
+  top: 19px;
+  width: 276px;
+  height: 91px;
+  font-size: 2.4rem;
+}
+
+.arcade-settings-btn {
+  right: 188px;
+  top: 24px;
+  width: 49px;
+  height: 49px;
+  font-size: 1.5rem;
+}
+
+/* The install button follows the gear rather than sitting where it used to: on the
+   mockup the gear is further in from the edge than this table had it. */
+.cw-install-btn { right: 253px; top: 26px; }
+
+.chat-bubble-trigger {
+  left: 300px;
+  top: 811px;
+  bottom: auto;
+  width: 73px;
+  height: 73px;
+  font-size: 1.9rem;
+}
+
+/* A disc, and the mockup's disc: 204 across, sitting inboard of the right edge and
+   above the hand's right end rather than tucked into the corner.
+   The button lives inside .controls-panel, which is the positioned element, so the
+   panel is what moves — anchoring the button itself moved it inside the panel's own
+   box and landed it 260px out. Right-anchored, so it holds on a wider board. */
+.controls-panel {
+  right: 303px;
+  top: 741px;
+  bottom: auto;
+  left: auto;
+}
+
+#btn-uno-call {
+  position: relative;
+  right: 0;
+  top: 0;
+  bottom: auto;
+  width: 204px;
+  height: 204px;
+  border-radius: 50%;
+  font-size: 2.4rem;
+}
