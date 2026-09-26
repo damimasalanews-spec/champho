@@ -36,3 +36,17 @@
 @media(prefers-reduced-motion:reduce){
  .gwx-hand-card.playable,.gwx-table.dealing .gwx-deck,.gwx-seat.active .gwx-avatar{animation:none}
 }
+
+/* FINAL 2v2 POLISH: dealing cards, penalty state, richer seat depth */
+.gwx-deal-flyer{position:fixed;z-index:9998;pointer-events:none;border-radius:8px;background:linear-gradient(145deg,#31547e,#0a1422);border:1px solid #ffffff66;box-shadow:0 12px 24px #0009,inset 0 0 0 3px #07101b;transform-origin:center;}
+.gwx-deal-flyer:after{content:"";position:absolute;inset:6px;border:1px solid #ffffff22;border-radius:5px;background:radial-gradient(circle,#29486e,#0b1523 70%);}
+.gwx-table:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,#0005 100%);z-index:2;}
+.gwx-center,.gwx-seat,.gwx-fx{isolation:isolate}
+.gwx-seat.active .gwx-player-card{box-shadow:0 15px 35px #0008,0 0 0 1px #ffffff18,0 0 35px #4adfff22}
+.gwx-seat[data-player="champ"] .gwx-local-meta{padding:6px 10px;border-radius:15px;background:#07131ddd;border:1px solid #ffffff18;box-shadow:0 8px 20px #0007}
+.gwx-stack-badge.show{animation:stackPulse .9s ease-in-out infinite alternate}
+@keyframes stackPulse{to{transform:translateX(-50%) scale(1.05);box-shadow:0 0 22px #ff405455}}
+.draw4-actions button{transition:transform .16s,filter .16s,box-shadow .16s}
+.draw4-actions button:hover{transform:translateY(-2px);filter:brightness(1.12);box-shadow:0 8px 18px #0006}
+.gwx-modal-card .danger-pill{box-shadow:0 0 22px #ff405433}
+@media(max-width:760px){.gwx-deal-flyer{border-radius:6px}.gwx-modal-card{padding:24px}.gwx-modal-card h2{font-size:28px}.draw4-actions{flex-direction:column}.draw4-actions button{min-height:46px}}
