@@ -166,7 +166,7 @@
 .mini-back:before{width:27px;height:38px;font-size:18px}
 .mini-back:after,.opponent-back:after{content:'';position:absolute;inset:7px;border:1px solid rgba(255,255,255,.18);border-radius:7px;transform:rotate(8deg)}
 .gwx-opponent-hand{display:flex;align-items:center;margin-left:auto;max-width:140px;height:62px;padding-left:10px;overflow:hidden}
-.opponent-back{width:43px;height:63px;border-radius:10px;margin-left:-22px;transform:translateY(calc(abs(var(--i) - (var(--n) - 1)/2) * 1px)) rotate(calc((var(--i) - (var(--n) - 1)/2) * 4deg));z-index:calc(var(--i) + 1)}
+.opponent-back{width:43px;height:63px;border-radius:10px;margin-left:-22px;transform:rotate(calc((var(--i) - (var(--n) - 1)/2) * 4deg));z-index:calc(var(--i) + 1)}
 .opponent-back:before{width:26px;height:37px;font-size:17px}
 .left .gwx-player-card,.right .gwx-player-card{width:330px}
 .left .gwx-opponent-hand{order:-1;margin-left:0;margin-right:auto;transform:scale(.9)}
