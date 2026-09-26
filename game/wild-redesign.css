@@ -1493,3 +1493,281 @@ html,body{
     transition:none!important;
   }
 }
+
+
+
+/* ==========================================================================
+   FINAL PLACEMENT LOCK — one coordinate system for the whole table.
+   This is intentionally the last layout block: it neutralizes earlier
+   composition experiments while leaving gameplay and animation code untouched.
+   ========================================================================== */
+
+:root{
+  --gw-stage-w:1920;
+  --gw-stage-h:1080;
+  --gw-center-y:53%;
+  --gw-card-gap:16px;
+}
+
+/* TABLE / STAGE */
+.stage,
+.game-table{
+  width:1920px!important;
+  height:1080px!important;
+  max-width:none!important;
+  max-height:none!important;
+}
+.game-table{
+  left:0!important;
+  top:0!important;
+}
+
+/* TOP OPPONENT: centered as a proper opposite seat, with cards directly below. */
+.opponent-top{
+  position:absolute!important;
+  left:50%!important;
+  top:30px!important;
+  width:720px!important;
+  height:210px!important;
+  margin:0!important;
+  transform:translateX(-50%)!important;
+  z-index:220!important;
+}
+.opponent-top-row{
+  width:720px!important;
+  height:210px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:12px!important;
+}
+.opponent-top .opponent-profile-wrapper{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  flex:0 0 auto!important;
+}
+.opponent-top-row .opponent-top-hand{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:600px!important;
+  height:112px!important;
+  margin:0!important;
+  flex:0 0 600px!important;
+}
+.opponent-top-hand .opponent-open-card{
+  left:50%!important;
+  top:4px!important;
+  width:68px!important;
+  height:100px!important;
+  transform:
+    translateX(calc(-50% + var(--fan-x,0px)))
+    translateY(var(--fan-y,0px))
+    rotate(var(--fan-rot,0deg))!important;
+  transform-origin:50% 100%!important;
+}
+
+/* SIDE OPPONENTS: portraits stay at the table edge; hands point toward the
+   centre and never occupy the central discard/deck zone. */
+.opponent-left,
+.opponent-right{
+  position:absolute!important;
+  top:390px!important;
+  width:190px!important;
+  height:300px!important;
+  margin:0!important;
+  z-index:205!important;
+}
+.opponent-left{left:48px!important;right:auto!important}
+.opponent-right{right:48px!important;left:auto!important}
+
+.opponent-left .opponent-profile-wrapper,
+.opponent-right .opponent-profile-wrapper{
+  position:relative!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  width:190px!important;
+}
+
+.opponent-left .opponent-fan-tray,
+.opponent-right .opponent-fan-tray{
+  position:absolute!important;
+  top:92px!important;
+  width:330px!important;
+  height:145px!important;
+  margin:0!important;
+  overflow:visible!important;
+}
+.opponent-left .opponent-fan-tray{left:115px!important}
+.opponent-right .opponent-fan-tray{right:115px!important;left:auto!important}
+
+.opponent-fan-tray .ai-card-back{
+  left:50%!important;
+  top:20px!important;
+  width:70px!important;
+  height:102px!important;
+  transform:
+    translateX(calc(-50% + var(--fan-x,0px)))
+    translateY(var(--fan-y,0px))
+    rotate(var(--fan-rot,0deg))!important;
+  transform-origin:50% 100%!important;
+}
+
+/* The side fans mirror each other around the centre of the table. */
+.opponent-left .opponent-fan-tray .ai-card-back{
+  --side-dir:1;
+}
+.opponent-right .opponent-fan-tray .ai-card-back{
+  --side-dir:-1;
+}
+
+/* CENTRAL HERO: deck and discard share one horizontal baseline. */
+.top-left-deck-group{
+  position:absolute!important;
+  left:calc(50% - 210px)!important;
+  top:calc(var(--gw-center-y) - 91px)!important;
+  width:124px!important;
+  height:182px!important;
+  margin:0!important;
+  z-index:310!important;
+}
+#central-deck{
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+}
+.center-play-zone{
+  position:absolute!important;
+  left:50%!important;
+  top:var(--gw-center-y)!important;
+  width:330px!important;
+  height:250px!important;
+  transform:translate(-50%,-50%)!important;
+  margin:0!important;
+  z-index:300!important;
+}
+.center-play-zone .discard-pile{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  width:124px!important;
+  height:182px!important;
+  transform:translate(-50%,-50%)!important;
+}
+.center-play-zone .discarded-card{
+  left:50%!important;
+  top:50%!important;
+}
+
+/* LOCAL PLAYER: portrait and controls live in the foreground corners;
+   the hand owns the bottom centre. */
+.local-user-slot{
+  position:absolute!important;
+  left:54px!important;
+  bottom:52px!important;
+  top:auto!important;
+  width:190px!important;
+  height:145px!important;
+  margin:0!important;
+  z-index:420!important;
+}
+.local-user-slot .avatar-hud-wrapper{
+  width:max-content!important;
+}
+.hand-container{
+  position:absolute!important;
+  left:50%!important;
+  bottom:18px!important;
+  top:auto!important;
+  width:1120px!important;
+  height:235px!important;
+  margin:0!important;
+  transform:translateX(-50%)!important;
+  z-index:400!important;
+}
+.hand-container .card{
+  left:50%!important;
+  bottom:0!important;
+  width:112px!important;
+  height:166px!important;
+  transform:
+    translateX(calc(var(--index-offset) * var(--hand-step,32px)))
+    translateY(var(--arc-y,0px))
+    rotate(var(--arc-rotation,0deg))!important;
+  transform-origin:50% 100%!important;
+}
+.hand-container .card:hover{
+  transform:
+    translateX(calc(var(--index-offset) * var(--hand-step,32px)))
+    translateY(calc(var(--arc-y,0px) - 32px))
+    translateZ(55px)
+    rotateX(-5deg)
+    rotateY(var(--arc-rotation,0deg))
+    scale(1.045)!important;
+}
+
+/* ACTIONS: visually subordinate to the hand. */
+.controls-panel{
+  position:absolute!important;
+  right:54px!important;
+  bottom:52px!important;
+  top:auto!important;
+  z-index:430!important;
+}
+.chat-bubble-trigger{
+  position:absolute!important;
+  right:216px!important;
+  bottom:52px!important;
+  top:auto!important;
+  left:auto!important;
+  z-index:430!important;
+}
+
+/* Hide the old side count-stack containers; counts are already rendered as
+   the compact hand-count badge on the portrait. */
+.opponent-card-count-stack{
+  display:none!important;
+}
+
+/* Keep the playable cards readable and stop animation from changing layout. */
+.hand-container .card.playable-hint,
+.hand-container .card.playable{
+  will-change:transform,filter!important;
+}
+
+/* LANDSCAPE SCALING: the 1920x1080 composition scales as one complete scene,
+   so every relationship above remains intact on smaller screens. */
+@media (max-width:1919px){
+  .stage{
+    transform-origin:top left!important;
+    transform:scale(min(calc(100vw / 1920), calc(100vh / 1080)))!important;
+  }
+}
+@media (max-height:820px){
+  .stage{
+    transform-origin:top left!important;
+    transform:scale(min(calc(100vw / 1920), calc(100vh / 1080)))!important;
+  }
+  .arcade-timer-badge,.arcade-settings-btn{
+    top:24px!important;
+  }
+}
+@media (max-width:900px){
+  .stage{
+    transform-origin:top left!important;
+    transform:scale(min(calc(100vw / 1920), calc(100vh / 1080)))!important;
+  }
+}
+
+/* Never let responsive rules reintroduce a second coordinate system. */
+@media (max-width:1200px){
+  .opponent-left{left:48px!important}
+  .opponent-right{right:48px!important}
+  .local-user-slot{left:54px!important}
+  .controls-panel{right:54px!important}
+  .arcade-timer-badge{left:58px!important}
+  .arcade-settings-btn{right:58px!important}
+}
