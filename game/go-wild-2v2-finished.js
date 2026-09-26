@@ -35,5 +35,21 @@ $('soundBtn').onclick=()=>{sound=!sound;$('app').classList.toggle('muted',!sound
 $('restartBtn').onclick=reset;$('nextBtn').onclick=()=>{$('winModal').classList.remove('open');reset()};
 document.querySelectorAll('#colorModal [data-color]').forEach(b=>b.onclick=()=>{let id=$('colorModal').dataset.id,c=s.players.champ.find(x=>x.id===id);if(c){$('colorModal').classList.remove('open');commit('champ',c,b.dataset.color)}});
 $('challengeBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('challenge')};$('stackBtn').onclick=()=>resolve4('stack');$('acceptBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('accept')};
-window.__goWild2v2Finished={state:()=>s,reset,play:id=>playLocal(id)};reset();
+window.__goWild2v2Finished={state:()=>s,reset,play:id=>playLocal(id)};reset();dealIntro();
 })();
+// Premium round-start choreography + opponent card-flight feedback
+function dealIntro(){
+  const table=$('table');
+  table.classList.add('dealing');
+  const all=['champ','poker','kalkal','jess'];
+  let n=0;
+  all.forEach((pid,pi)=>{
+    for(let j=0;j<7;j++){
+      setTimeout(()=>{
+        const seat=document.querySelector('.gwx-seat[data-player="'+pid+'"]');
+        if(seat){seat.animate([{transform:getComputedStyle(seat).transform+' translateY(8px)',opacity:.55},{transform:getComputedStyle(seat).transform,opacity:1}],220)}
+      },n++*38);
+    }
+  });
+  setTimeout(()=>table.classList.remove('dealing'),n*38+300);
+}
