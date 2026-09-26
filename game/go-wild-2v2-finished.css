@@ -167,3 +167,34 @@
 .gwx-table.dealing .gwx-deal-flyer{will-change:transform,opacity;filter:drop-shadow(0 0 16px #7ac7ff66)}
 .gwx-table.dealing .gwx-deck:before{content:"";position:absolute;inset:-10px;border-radius:24px;box-shadow:0 0 32px #71c7ff66;animation:dealDeckGlow .5s ease-in-out infinite alternate;pointer-events:none;}
 @keyframes dealDeckGlow{to{opacity:.45;transform:scale(1.08)}}
+
+/* ROUND-ROBIN DEAL: land the real slot without destroying the Champ fan rotation */
+.gwx-hand-card.deal-target{
+  opacity:0!important;
+  pointer-events:none!important;
+  transform:rotate(var(--rot)) translateY(10px) scale(.9)!important;
+}
+.gwx-hand-card.deal-land{
+  animation:dealLandLocal .38s cubic-bezier(.12,.9,.18,1) both!important;
+}
+@keyframes dealLandLocal{
+  0%{opacity:0;transform:rotate(var(--rot)) translateY(9px) scale(.88)}
+  62%{opacity:1;transform:rotate(var(--rot)) translateY(-3px) scale(1.035)}
+  100%{opacity:1;transform:rotate(var(--rot)) translateY(0) scale(1)}
+}
+.mini-back.deal-target,.opponent-back.deal-target{
+  opacity:0!important;
+  pointer-events:none!important;
+  transform:translateY(8px) scale(.86)!important;
+}
+.mini-back.deal-land,.opponent-back.deal-land{
+  animation:dealLandHidden .38s cubic-bezier(.12,.9,.18,1) both!important;
+}
+@keyframes dealLandHidden{
+  0%{opacity:0;transform:translateY(8px) scale(.86)}
+  62%{opacity:1;transform:translateY(-3px) scale(1.04)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+.gwx-table.dealing .gwx-hand-card,
+.gwx-table.dealing .mini-back,
+.gwx-table.dealing .opponent-back{will-change:transform,opacity}
