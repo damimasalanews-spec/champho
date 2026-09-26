@@ -2121,6 +2121,14 @@ function drawCards(pid,count){
   wild.hands[pid].push(...got);
   pid==='p_local' ? renderLocalHand() : updateOpponentHand(pid);
   paintDeckCount();
+  // Visual-only draw acknowledgement. The engine state above remains authoritative.
+  const deckEl=$id('central-deck');
+  if(deckEl){
+    deckEl.classList.remove('champ-deck-active');
+    void deckEl.offsetWidth;
+    deckEl.classList.add('champ-deck-active');
+    setTimeout(()=>deckEl.classList.remove('champ-deck-active'),520);
+  }
   return got;
 }
 
@@ -2216,6 +2224,13 @@ function paintDeckCount(){
 
 function updateArrows(){
   for(const pid of SEATS){ const a=arrows[pid]; if(a) a.classList.toggle('active', wild.players[wild.turn]===pid); }
+  const table=$id('center-board-zone')?.closest('.game-table');
+  if(table){
+    table.dataset.activeSeat=wild.players[wild.turn];
+    table.classList.remove('gw-turn-pulse');
+    void table.offsetWidth;
+    table.classList.add('gw-turn-pulse');
+  }
   // The page's own turn rig — the neon ring around the active portrait — is driven from
   // here, so the arrows and the ring can never disagree about whose turn it is.
   if(typeof window.highlightTurnIndicator==='function'){
@@ -2393,10 +2408,19 @@ function commitPlay(pid,card,chosenColor){
     if(pile && typeof window.ChampCards!=='undefined'){
       const pc=document.createElement('div');
       pc.className='discarded-card '+(card.color==='black'?'wild':card.color);
-      pc.style.setProperty('--discard-rot', ((Math.random()*24)-12)+'deg');
-      pc.style.setProperty('--discard-x', ((Math.random()*10)-5)+'px');
-      pc.style.setProperty('--discard-y', ((Math.random()*10)-5)+'px');
-      pc.style.setProperty('--discard-z', (pile.children.length*2)+'px');
+      const stackIndex=pile.children.length;
+      const stackPattern=[
+        {rot:-2,x:-2,y:1},
+        {rot: 2,x: 1,y:-1},
+        {rot:-1,x: 2,y:0},
+        {rot: 1,x:-1,y:1}
+      ];
+      const stack=stackPattern[stackIndex%stackPattern.length];
+      pc.style.setProperty('--discard-rot', stack.rot+'deg');
+      pc.style.setProperty('--discard-x', stack.x+'px');
+      pc.style.setProperty('--discard-y', stack.y+'px');
+      pc.style.setProperty('--discard-z', (stackIndex*1.5)+'px');
+      pc.style.zIndex=String(20+stackIndex);
       pc.innerHTML=window.ChampCards.cardFaceHtml(card);
       pc.classList.add('landed-settle');
       pile.appendChild(pc);
