@@ -27,13 +27,14 @@ function playLocal(id){if(busy||s.dealing||s.phase!=='playing'||current()!=='cha
 function aiChoose(pid){let h=s.players[pid].filter(playable);if(!h.length)return null;let score=c=>({wild4:10,draw2:9,skip:8,reverse:7,wild:6}[c.type]||1);return h.sort((a,b)=>score(b)-score(a))[0]}
 function scheduleAI(){clearTimeout(aiTimer);aiTimer=setTimeout(aiTurn,700+Math.random()*700)}
 function aiTurn(){let pid=current();if(s.phase!=='playing'||pid==='champ')return;if(s.pending){let c=s.players[pid].find(x=>x.type==='wild4');if(c){commit(pid,c,C[Math.floor(Math.random()*4)]);return}let penalty=s.pending;draw(pid,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent=NAME[pid]+' drew '+penalty+' cards and was skipped.';setTimeout(advance,500);return}let c=aiChoose(pid);if(!c){let g=draw(pid,1);c=g[0]&&playable(g[0])?g[0]:null}if(!c){setTimeout(advance,450);return}if(c.type==='wild4'||c.type==='wild'){let counts=C.map(col=>[col,s.players[pid].filter(x=>x.color===col).length]).sort((a,b)=>b[1]-a[1]);commit(pid,c,counts[0]?.[0]||C[0])}else commit(pid,c)}
-function resolve4(action){if(!s.pending)return;let challenger=current(),offender=s.pendingBy;if(action==='challenge'){let guilty=s.lastDraw4Legal===false;if(guilty){let penalty=s.pending;draw(offender,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent=NAME[offender]+' was challenged — +'+penalty+' returned to '+NAME[offender]+'. Your turn continues.';if(current()!=='champ')scheduleAI()}else{let penalty=s.pending+2;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='Challenge failed. You drew '+penalty+' cards and lost your turn.';advance()}}else if(action==='stack'){let c=s.players.champ.find(x=>x.type==='wild4');if(c){$('draw4Modal').classList.remove('open');commit('champ',c,C[Math.floor(Math.random()*4)]);return}}else{let penalty=s.pending;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='You drew '+penalty+' cards. Your turn is skipped.';advance()}}
+function resolve4(action){if(!s.pending)return;let challenger=current(),offender=s.pendingBy;if(action==='challenge'){let guilty=s.lastDraw4Legal===false;if(guilty){let penalty=s.pending;draw(offender,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent=NAME[offender]+' was challenged — +'+penalty+' returned to '+NAME[offender]+'. Your turn continues.';if(current()!=='champ'&&!s.dealing)scheduleAI()}else{let penalty=s.pending+2;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='Challenge failed. You drew '+penalty+' cards and lost your turn.';advance()}}else if(action==='stack'){let c=s.players.champ.find(x=>x.type==='wild4');if(c){$('draw4Modal').classList.remove('open');commit('champ',c,C[Math.floor(Math.random()*4)]);return}}else{let penalty=s.pending;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='You drew '+penalty+' cards. Your turn is skipped.';advance()}}
 function win(team,reason){if(!s||s.phase==='ended')return;s.phase='ended';clearTimeout(aiTimer);clearInterval(clock);busy=false;scores[team]=(scores[team]||0)+1;s.scores=scores;$('teamScoreA').textContent=scores.A;$('teamScoreB').textContent=scores.B;$('winTitle').textContent=team==='A'?'TEAM A WINS':'TEAM B WINS';$('winText').textContent=reason+' · '+(team==='A'?'Team A':'Team B')+' score '+scores[team];$('winModal').classList.add('open')}
 function dealIntro(){
   const table=$('table'),pile=$('drawPile');
   if(!table||!pile||!s)return;
   const token=roundToken;
   table.classList.add('dealing');
+  const ps=$('previewState'); if(ps) ps.textContent='DEALING';
   s.dealing=true;
 
   const motion=document.createElement('div');
@@ -127,6 +128,7 @@ function dealIntro(){
     motion.remove();
     table.classList.remove('dealing');
     s.dealing=false;
+    const ps=$('previewState'); if(ps) ps.textContent='READY';
     render();
     if(current()!=='champ')scheduleAI();
   }
@@ -141,5 +143,9 @@ $('soundBtn').onclick=()=>{sound=!sound;$('app').classList.toggle('muted',!sound
 $('restartBtn').onclick=reset;$('nextBtn').onclick=()=>{$('winModal').classList.remove('open');reset()};
 document.querySelectorAll('#colorModal [data-color]').forEach(b=>b.onclick=()=>{let id=$('colorModal').dataset.id,c=s.players.champ.find(x=>x.id===id);if(c){$('colorModal').classList.remove('open');commit('champ',c,b.dataset.color)}});
 $('challengeBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('challenge')};$('stackBtn').onclick=()=>resolve4('stack');$('acceptBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('accept')};
-window.__goWild2v2Finished={state:()=>s,reset,play:id=>playLocal(id)};reset();
+window.__goWild2v2Finished={state:()=>s,reset,play:id=>playLocal(id),replayDeal:()=>{roundToken++;clearTimeout(aiTimer);if(s) s.dealing=true;requestAnimationFrame(()=>dealIntro())}};
+const previewDeal=$('previewDeal'),previewReset=$('previewReset');
+if(previewDeal) previewDeal.onclick=()=>{roundToken++;clearTimeout(aiTimer);if(s){s.dealing=true;s.phase='playing';}dealIntro()};
+if(previewReset) previewReset.onclick=()=>reset();
+reset();
 })();
