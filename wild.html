@@ -2094,7 +2094,7 @@ function clearSameColor(pid,card){
   const keep=hand.filter(c=>c.color!==card.color);
   const gone=hand.filter(c=>c.color===card.color);
   wild.hands[pid]=keep;
-  if(gone.length) wild.discard.push(...gone);
+  if(gone.length){ wild.discard.pop(); wild.discard.push(...gone,card); }
 }
 function commitPlay(pid,card,chosenColor){
   const hand=wild.hands[pid];
