@@ -23,15 +23,58 @@ function commit(pid,c,chosen){
 let token=roundToken;let p=s.players[pid],i=p.findIndex(x=>x.id===c.id);if(i<0)return;let srcEl=host(pid)?.querySelector('[data-id="'+c.id+'"]');let srcRect=srcEl?.getBoundingClientRect()||document.querySelector('.gwx-seat[data-player="'+pid+'"] .gwx-player-card')?.getBoundingClientRect()||$('drawPile').getBoundingClientRect();let prior=s.color;if(c.type==='wild4'){s.lastDraw4Legal=!p.some(x=>x.color===prior&&x.type!=='wild4');s.pending=(s.pending||0)+4;s.pendingBy=pid;s.pendingColor=prior}p.splice(i,1);s.discard.push(c);s.color=c.color==='wild'?(chosen||C[Math.floor(Math.random()*4)]):c.color;render(pid);renderDiscard();if(!p.length){win(TEAM[pid],NAME[pid]+' went out');return}if(p.length===1&&pid==='champ'){$('message').textContent='UNO! One card left!';$('unoBtn').animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],420)}busy=true;fly(pid,c,()=>{if(token!==roundToken)return;busy=false;resolve(pid,c)},srcRect)}
 function resolve(pid,c){if(c.type==='wild4'){advance();return}let steps=c.type==='skip'?2:1;if(c.type==='reverse')s.dir*=-1;if(c.type==='draw2'){let t=next(pid);draw(t,2);steps=2}advance(steps)}
 function advance(steps=1){s.current=idx(next(current(),steps));renderTurn();if(current()==='champ'&&s.pending)setTimeout(()=>{render();$('draw4Modal').classList.add('open')},160);else if(current()!=='champ')setTimeout(scheduleAI,7000)}
-function playLocal(id){if(busy||s.phase!=='playing'||current()!=='champ')return;let c=s.players.champ.find(x=>x.id===id);if(!c||!playable(c))return;if(c.type==='wild'||c.type==='wild4'){$('colorModal').dataset.id=id;$('colorModal').classList.add('open');return}commit('champ',c)}
+function playLocal(id){if(busy||s.dealing||s.phase!=='playing'||current()!=='champ')return;let c=s.players.champ.find(x=>x.id===id);if(!c||!playable(c))return;if(c.type==='wild'||c.type==='wild4'){$('colorModal').dataset.id=id;$('colorModal').classList.add('open');return}commit('champ',c)}
 function aiChoose(pid){let h=s.players[pid].filter(playable);if(!h.length)return null;let score=c=>({wild4:10,draw2:9,skip:8,reverse:7,wild:6}[c.type]||1);return h.sort((a,b)=>score(b)-score(a))[0]}
 function scheduleAI(){clearTimeout(aiTimer);aiTimer=setTimeout(aiTurn,700+Math.random()*700)}
 function aiTurn(){let pid=current();if(s.phase!=='playing'||pid==='champ')return;if(s.pending){let c=s.players[pid].find(x=>x.type==='wild4');if(c){commit(pid,c,C[Math.floor(Math.random()*4)]);return}let penalty=s.pending;draw(pid,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent=NAME[pid]+' drew '+penalty+' cards and was skipped.';setTimeout(advance,500);return}let c=aiChoose(pid);if(!c){let g=draw(pid,1);c=g[0]&&playable(g[0])?g[0]:null}if(!c){setTimeout(advance,450);return}if(c.type==='wild4'||c.type==='wild'){let counts=C.map(col=>[col,s.players[pid].filter(x=>x.color===col).length]).sort((a,b)=>b[1]-a[1]);commit(pid,c,counts[0]?.[0]||C[0])}else commit(pid,c)}
 function resolve4(action){if(!s.pending)return;let challenger=current(),offender=s.pendingBy;if(action==='challenge'){let guilty=s.lastDraw4Legal===false;if(guilty){let penalty=s.pending;draw(offender,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent=NAME[offender]+' was challenged — +'+penalty+' returned to '+NAME[offender]+'. Your turn continues.';if(current()!=='champ')scheduleAI()}else{let penalty=s.pending+2;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='Challenge failed. You drew '+penalty+' cards and lost your turn.';advance()}}else if(action==='stack'){let c=s.players.champ.find(x=>x.type==='wild4');if(c){$('draw4Modal').classList.remove('open');commit('champ',c,C[Math.floor(Math.random()*4)]);return}}else{let penalty=s.pending;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='You drew '+penalty+' cards. Your turn is skipped.';advance()}}
 function win(team,reason){if(!s||s.phase==='ended')return;s.phase='ended';clearTimeout(aiTimer);clearInterval(clock);busy=false;scores[team]=(scores[team]||0)+1;s.scores=scores;$('teamScoreA').textContent=scores.A;$('teamScoreB').textContent=scores.B;$('winTitle').textContent=team==='A'?'TEAM A WINS':'TEAM B WINS';$('winText').textContent=reason+' · '+(team==='A'?'Team A':'Team B')+' score '+scores[team];$('winModal').classList.add('open')}
-function dealIntro(){const table=$('table'),pile=$('drawPile');if(!table||!pile)return;table.classList.add('dealing');const from=pile.getBoundingClientRect();const seats={poker:document.querySelector('.gwx-seat.top'),kalkal:document.querySelector('.gwx-seat.left'),jess:document.querySelector('.gwx-seat.right'),champ:document.querySelector('.gwx-seat.bottom')};const targetFor=(pid,i)=>{let h=pid==='champ'?$('hand-local'):pid==='poker'?$('hand-top'):seats[pid]?.querySelector('.gwx-opponent-hand');return h?.children[i]||null};const targets=[];ORDER.forEach((pid,pi)=>{for(let i=0;i<7;i++){const target=targetFor(pid,i);if(target){target.classList.add('deal-target');targets.push(target)}setTimeout(()=>{const t=targetFor(pid,i),r=t?.getBoundingClientRect();if(!r)return;const f=document.createElement('div');f.className='gwx-deal-flyer';document.body.appendChild(f);f.style.width=Math.max(54,Math.min(92,r.width))+'px';f.style.height=Math.max(78,Math.min(138,r.height))+'px';const sx=from.left+from.width/2-f.offsetWidth/2,sy=from.top+from.height/2-f.offsetHeight/2;f.style.left=sx+'px';f.style.top=sy+'px';const tx=r.left-sx,ty=r.top-sy;const arc=pid==='champ'?-125:pid==='poker'?-95:-110;f.animate([{transform:'translate(0,0) rotate(-20deg) scale(.45)',opacity:0},{transform:'translate('+tx*.28+'px,'+(ty*.28+arc)+'px) rotate('+(i%2?18:-18)+'deg) scale(1.08)',opacity:1,offset:.28},{transform:'translate('+tx*.7+'px,'+(ty*.7+arc*.3)+'px) rotate('+(i%2?-10:10)+'deg) scale(1)',opacity:1,offset:.7},{transform:'translate('+tx+'px,'+ty+'px) rotate(0deg) scale(1)',opacity:1}],{duration:760,easing:'cubic-bezier(.12,.78,.18,1)'}).finished.then(()=>{f.remove();t?.classList.remove('deal-target');t?.classList.add('deal-land');setTimeout(()=>t?.classList.remove('deal-land'),360)}).catch(()=>{f.remove();t?.classList.remove('deal-target')})},pi*300+i*170)}});setTimeout(()=>{table.classList.remove('dealing');targets.forEach(t=>t.classList.remove('deal-target'))},7000)}
+function dealIntro(){
+  const table=$('table'),pile=$('drawPile');
+  if(!table||!pile||!s)return;
+  const token=roundToken;
+  table.classList.add('dealing');
+  s.dealing=true;
+  const from=pile.getBoundingClientRect();
+  const seats={poker:document.querySelector('.gwx-seat.top'),kalkal:document.querySelector('.gwx-seat.left'),jess:document.querySelector('.gwx-seat.right'),champ:document.querySelector('.gwx-seat.bottom')};
+  const targetFor=(pid,i)=>{
+    const h=pid==='champ'?$('hand-local'):pid==='poker'?$('hand-top'):seats[pid]?.querySelector('.gwx-opponent-hand');
+    return h?.children[i]||null;
+  };
+  const allTargets=[];
+  ORDER.forEach(pid=>{for(let i=0;i<7;i++){const t=targetFor(pid,i);if(t){t.classList.add('deal-target');allTargets.push(t)}}});
+  const total=28,step=155,startDelay=650;
+  for(let round=0;round<7;round++) ORDER.forEach((pid,pi)=>{
+    const i=round,t=targetFor(pid,i);if(!t)return;
+    const delay=startDelay+(round*4+pi)*step;
+    setTimeout(()=>{
+      if(token!==roundToken)return;
+      const target=targetFor(pid,i),r=target?.getBoundingClientRect();if(!r)return;
+      const f=document.createElement('div');f.className='gwx-deal-flyer';document.body.appendChild(f);
+      const fw=Math.max(54,Math.min(92,r.width)),fh=Math.max(78,Math.min(138,r.height));
+      f.style.width=fw+'px';f.style.height=fh+'px';
+      const sx=from.left+from.width/2-fw/2,sy=from.top+from.height/2-fh/2;
+      f.style.left=sx+'px';f.style.top=sy+'px';
+      const tx=r.left-sx,ty=r.top-sy,arc=pid==='champ'?-120:pid==='poker'?-100:-115,spin=pi%2?-14:14;
+      const anim=f.animate([
+        {transform:'translate(0,0) rotate('+(-spin)+'deg) scale(.35)',opacity:0},
+        {transform:'translate('+tx*.32+'px,'+(ty*.32+arc)+'px) rotate('+spin+'deg) scale(1.08)',opacity:1,offset:.3},
+        {transform:'translate('+tx*.72+'px,'+(ty*.72+arc*.28)+'px) rotate('+(-spin*.45)+'deg) scale(1.02)',opacity:1,offset:.72},
+        {transform:'translate('+tx+'px,'+ty+'px) rotate(0deg) scale(1)',opacity:1}
+      ],{duration:620,easing:'cubic-bezier(.12,.8,.18,1)'});
+      anim.finished.then(()=>{f.remove();if(token!==roundToken)return;target.classList.remove('deal-target');target.classList.add('deal-land');setTimeout(()=>target.classList.remove('deal-land'),380)}).catch(()=>f.remove());
+    },delay);
+  });
+  const finish=startDelay+(total-1)*step+750;
+  setTimeout(()=>{
+    if(token!==roundToken)return;
+    allTargets.forEach(t=>t.classList.remove('deal-target'));
+    table.classList.remove('dealing');s.dealing=false;render();
+    if(current()!=='champ')scheduleAI();
+  },finish);
+}
 function reset(){roundToken++;clearTimeout(aiTimer);clearInterval(clock);busy=false;$('colorModal').classList.remove('open');$('draw4Modal').classList.remove('open');$('winModal').classList.remove('open');let d=deck(),players={};ORDER.forEach(p=>players[p]=[]);for(let i=0;i<7;i++)ORDER.forEach(p=>players[p].push(d.pop()));let top=d.pop();while(top.color==='wild'||top.type!=='number'){d.unshift(top);shuffle(d);top=d.pop()}s={deck:d,discard:[top],players,current:0,dir:1,color:top.color,pending:0,pendingBy:null,lastDraw4Legal:null,phase:'playing',round:s?.round?s.round+1:1,scores,seconds:150};render();requestAnimationFrame(()=>setTimeout(dealIntro,120));$('timer').textContent='02:30';clock=setInterval(()=>{if(s.phase==='playing'){s.seconds--;let m=Math.max(0,Math.floor(s.seconds/60)),sec=Math.max(0,s.seconds%60);$('timer').textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');if(s.seconds<=0)win('B','Time expired')}},1000);if(current()!=='champ')scheduleAI()}
-$('drawBtn').onclick=()=>{if(current()!=='champ'||busy)return;if(s.pending){$('draw4Modal').classList.add('open');return}let g=draw('champ',1);if(!g[0]||!playable(g[0]))setTimeout(advance,450)};
+$('drawBtn').onclick=()=>{if(current()!=='champ'||busy||s?.dealing)return;if(s.pending){$('draw4Modal').classList.add('open');return}let g=draw('champ',1);if(!g[0]||!playable(g[0]))setTimeout(advance,450)};
 $('drawPile').onclick=()=>$('drawBtn').click();
 $('unoBtn').onclick=()=>{$('message').textContent='UNO called!';$('unoBtn').animate([{transform:'scale(1)'},{transform:'scale(1.1)'},{transform:'scale(1)'}],350)};
 $('chatBtn').onclick=()=>$('chatPanel').classList.toggle('open');$('chatPanel').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('message').textContent=b.dataset.msg;$('chatPanel').classList.remove('open')});
