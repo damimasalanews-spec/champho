@@ -139,3 +139,16 @@
 /* TEAMMATE HAND PRIVACY: cards are represented as premium backs, never revealed faces. */
 .mini-back{position:relative;inset:auto;flex:none;width:39px;height:57px;margin-left:-13px;border-radius:8px;background:radial-gradient(circle at 50% 35%,#3f6b9e 0,#162a45 46%,#09121f 100%);border:1px solid #a9c5e866;box-shadow:inset 0 0 0 2px #07101b,inset 0 0 0 4px #dbe9ff16,0 7px 12px #0008;overflow:hidden}.mini-back:before{content:'W';position:absolute;left:50%;top:50%;width:23px;height:32px;transform:translate(-50%,-50%) rotate(-9deg);display:grid;place-items:center;border-radius:7px;background:linear-gradient(145deg,#eef6ff,#9fb8d6);color:#102033;font-size:15px;font-weight:1000;font-style:italic;box-shadow:0 3px 7px #0007}.mini-back:after{content:'';position:absolute;inset:6px;border:1px solid #ffffff22;border-radius:5px;transform:rotate(8deg)}
 @media(max-width:760px){.mini-back{width:25px;height:37px;margin-left:-9px;border-radius:6px}.mini-back:before{width:15px;height:22px;font-size:10px;border-radius:4px}.mini-back:after{inset:4px;border-radius:4px}}
+
+/* REAL CARD MOTION PASS */
+.gwx-deal-flyer,.gwx-draw-flight{position:fixed;width:54px;height:78px;border-radius:10px;z-index:10000;pointer-events:none;background:linear-gradient(145deg,#294d78,#0b1524);border:2px solid #ffffff88;box-shadow:0 16px 28px #000b,inset 0 0 0 3px #0a1522,inset 0 0 24px #5fa9ff22;transform-origin:center;overflow:hidden}
+.gwx-deal-flyer:before,.gwx-draw-flight:before{content:"";position:absolute;inset:9px;border:1px solid #ffffff55;border-radius:7px;background:radial-gradient(ellipse at center,#345d8d 0 24%,transparent 25%),linear-gradient(45deg,transparent 47%,#ffffff18 48% 52%,transparent 53%)}
+.gwx-deal-flyer:after,.gwx-draw-flight:after{content:"GO WILD";position:absolute;inset:auto 0 9px;text-align:center;font-size:6px;font-weight:1000;letter-spacing:2px;color:#b8d8ff}
+.gwx-draw-flight{width:56px;height:82px;border-radius:11px}
+.hands-arriving{opacity:.08!important;filter:blur(2px);transform:translateY(12px) scale(.985);transition:opacity .2s,filter .2s,transform .2s}
+.gwx-opponent-hand.hands-arriving{opacity:.08!important}
+.card-arriving{animation:cardLand .48s cubic-bezier(.2,.85,.25,1) both;}
+@keyframes cardLand{0%{opacity:0;transform:translateY(14px) scale(.78)}55%{opacity:1;transform:translateY(-5px) scale(1.06)}100%{opacity:1;transform:translateY(0) scale(1)}}
+.gwx-table.dealing:after{content:"DEALING";position:absolute;left:50%;top:calc(50% + 130px);transform:translateX(-50%);padding:6px 12px;border-radius:999px;background:#031a12cc;border:1px solid #ffffff22;color:#d8fff0;font-size:8px;font-weight:1000;letter-spacing:3px;z-index:25;animation:dealLabel .8s ease-in-out infinite alternate}
+@keyframes dealLabel{to{opacity:.55;transform:translateX(-50%) translateY(-3px)}}
+.gwx-seat.active .gwx-opponent-hand,.gwx-seat.active .gwx-partner-hand,.gwx-seat.active #hand-local{filter:drop-shadow(0 0 14px #63e8ff55)}
