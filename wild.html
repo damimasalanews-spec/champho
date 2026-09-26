@@ -2034,5 +2034,270 @@
     </script>
 
     <script src="game/pwa.js" defer></script>
+    <style>
+.ai-card-back{width:34px;height:50px;margin:0 -8px;border-radius:6px;
+  background:linear-gradient(145deg,#24304d,#141a2e);border:2px solid rgba(255,255,255,.25);
+  transform:rotate(calc(var(--i)*4deg - 8deg));box-shadow:0 4px 10px rgba(0,0,0,.4)}
+.ai-fly-card{position:fixed;z-index:999;width:60px;height:88px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;border-radius:8px;color:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.wild-fallback-card{width:56px;height:82px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;color:#fff;font-weight:800;font-size:26px;margin:0 -10px;
+  box-shadow:0 4px 10px rgba(0,0,0,.35);border:3px solid rgba(255,255,255,.6)}
+</style>
+<script>
+(() => {
+'use strict';
+const SEATS = ['p_local','p_left','p_top','p_right'];
+const AI_DELAY = () => 900 + Math.random()*900;
+const $id = id => document.getElementById(id);
+const COLORS = ['red','yellow','green','blue'];
+const seatBoxes = { p_left:$id('fan-hand-left'), p_top:$id('teammate-hand-container'), p_right:$id('fan-hand-right') };
+const arrows = { p_local:$id('arrow-local-player'), p_left:$id('arrow-opponent-left'), p_top:$id('arrow-opponent-top'), p_right:$id('arrow-opponent-right') };
+
+const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], currentColor:null, turn:0, dir:1, busy:false, over:false, pendingWildColor:null, warned:false };
+
+function buildDeck(){
+  const d=[]; let n=0;
+  const push=(color,value,type,isAction=false)=>d.push({id:'g'+(n++),color,value,type,isAction});
+  for(const c of COLORS){
+    push(c,'0','number');
+    for(let v=1;v<=9;v++){push(c,String(v),'number');push(c,String(v),'number');}
+    for(const [t,val] of [['skip','skip'],['reverse','reverse'],['draw2','+2']]){push(c,val,t,true);push(c,val,t,true);}
+  }
+  for(let i=0;i<4;i++){push('black','wild','wild',true);push('black','+4','wild_draw4',true);}
+  for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
+  return d;
+}
+const topCard = () => wild.discard[wild.discard.length-1] || null;
+function isLegal(card){
+  const t = topCard(); if(!t) return true;
+  if(card.type==='wild'||card.type==='wild_draw4') return true;
+  return card.color===wild.currentColor || card.value===t.value;
+}
+const nextIndex = (s=1) => (wild.turn + wild.dir*s + wild.players.length*8) % wild.players.length;
+
+function drawCards(pid,count){
+  const got=[];
+  for(let i=0;i<count;i++){
+    if(!wild.drawPile.length){
+      if(wild.discard.length<=1) break;
+      const top=wild.discard.pop();
+      wild.drawPile=wild.discard.splice(0).map(c=>({...c,id:c.id+'r'+Math.random().toString(36).slice(2,6)}));
+      wild.discard=[top];
+    }
+    got.push(wild.drawPile.pop());
+  }
+  wild.hands[pid].push(...got);
+  pid==='p_local' ? renderLocalHand() : updateOpponentHand(pid);
+  return got;
+}
+
+function updateOpponentHand(pid){
+  const box=seatBoxes[pid]; if(!box) return;
+  box.innerHTML='';
+  wild.hands[pid].forEach((_,i)=>{
+    const b=document.createElement('div');
+    b.className='ai-card-back'; b.style.setProperty('--i',i);
+    box.appendChild(b);
+  });
+  const badge=box.querySelector('.hand-count-badge');
+  if(badge) badge.textContent=wild.hands[pid].length;
+}
+
+function renderLocalHand(){
+  if(typeof window.renderHand==='function'){ window.renderHand(wild.hands.p_local); return; }
+  if(typeof window.cardFaceHtml==='function'){
+    const box=$id('local-player-hand'); if(!box) return;
+    box.innerHTML='';
+    wild.hands.p_local.forEach((card,i)=>{
+      const w=document.createElement('div');
+      w.innerHTML=window.cardFaceHtml(card); const el=w.firstElementChild;
+      if(el){ el.style.setProperty('--index-offset', i-Math.floor(wild.hands.p_local.length/2)); box.appendChild(el); }
+    });
+    return;
+  }
+  const box=$id('local-player-hand'); if(!box) return;
+  box.innerHTML='';
+  wild.hands.p_local.forEach((card,i)=>{
+    const el=document.createElement('div');
+    el.className='wild-fallback-card '+(card.color==='black'?'wild':card.color);
+    el.textContent=card.value; box.appendChild(el);
+  });
+  if(!wild.warned){ console.warn('[WILD] Add  window.renderHand = renderHand;  inside your script for perfect hand rendering.'); wild.warned=true; }
+}
+
+function updateArrows(){
+  for(const pid of SEATS){ const a=arrows[pid]; if(a) a.classList.toggle('active', wild.players[wild.turn]===pid); }
+}
+function showUnoBanner(){
+  const o=$id('uno-callout-overlay');
+  if(o){ o.classList.remove('hidden'); o.classList.add('active');
+    setTimeout(()=>{ o.classList.add('hidden'); o.classList.remove('active'); },1800); }
+  if(typeof window.triggerScreenFlash==='function') try{ window.triggerScreenFlash('uno-flash'); }catch(e){}
+}
+
+function commitPlay(pid,card,chosenColor){
+  const hand=wild.hands[pid];
+  const i=hand.findIndex(c=>c.id===card.id);
+  if(i>=0) hand.splice(i,1);
+  wild.discard.push(card);
+  wild.currentColor=(card.type==='wild'||card.type==='wild_draw4') ? (chosenColor||wild.pendingWildColor||'red') : card.color;
+  wild.pendingWildColor=null;
+  const topEl=$id('discard-deck-pile');
+  if(topEl){ topEl.dataset.color=wild.currentColor; topEl.dataset.value=card.value; }
+  pid==='p_local' ? renderLocalHand() : updateOpponentHand(pid);
+  if(typeof window.playSound==='function') try{ window.playSound('slam'); }catch(e){}
+  if(!hand.length) return endRound(pid);
+  if(hand.length===1) showUnoBanner();
+  if(card.type==='draw2'){ drawCards(wild.players[nextIndex(1)],2); return advance(2); }
+  if(card.type==='wild_draw4'){ drawCards(wild.players[nextIndex(1)],4); return advance(2); }
+  if(card.type==='skip') return advance(2);
+  if(card.type==='reverse'){ wild.dir*=-1; return advance(1); }
+  advance(1);
+}
+
+function advance(steps=1){
+  if(wild.over) return;
+  wild.turn=nextIndex(steps);
+  updateArrows();
+  const cur=wild.players[wild.turn];
+  if(cur==='p_local'){ wild.busy=false; }
+  else{ wild.busy=true; const who=cur; setTimeout(()=>runAiTurn(who), AI_DELAY()); }
+}
+
+function pickAiCard(pid){
+  const hand=wild.hands[pid];
+  const moves=hand.filter(isLegal);
+  if(!moves.length) return null;
+  const nextDanger = wild.hands[wild.players[nextIndex(1)]].length<=1;
+  const score=c=>{
+    let s=0;
+    if(c.type==='number') s+=40;
+    if(nextDanger && (c.type==='draw2'||c.type==='skip'||c.type==='wild_draw4')) s+=100;
+    if(c.type==='draw2'||c.type==='skip') s+=30;
+    if(c.type==='wild') s+=10;
+    if(c.type==='wild_draw4'&&!nextDanger) s-=50;
+    return s+Math.random()*8;
+  };
+  return moves.sort((a,b)=>score(b)-score(a))[0];
+}
+function aiChooseColor(pid){
+  const counts={};
+  wild.hands[pid].forEach(c=>{ if(c.color!=='black') counts[c.color]=(counts[c.color]||0)+1; });
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || COLORS[Math.floor(Math.random()*4)];
+}
+function runAiTurn(pid){
+  if(wild.over || wild.players[wild.turn]!==pid) return;
+  const card=pickAiCard(pid);
+  if(card) return flyAiCard(pid,card);
+  drawCards(pid,1);
+  const drawn=wild.hands[pid][wild.hands[pid].length-1];
+  setTimeout(()=>{
+    if(wild.over || wild.players[wild.turn]!==pid) return;
+    if(drawn && isLegal(drawn)) flyAiCard(pid,drawn); else advance(1);
+  },650);
+}
+function flyAiCard(pid,card){
+  const el=document.createElement('div');
+  el.className='ai-fly-card '+(card.color==='black'?'wild':card.color);
+  el.style.background = card.color==='black' ? '#111' : '';
+  el.textContent=card.value;
+  (seatBoxes[pid]||document.body).appendChild(el);
+  const done=()=>{ el.remove(); commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined); };
+  if(typeof window.throwCardVisual==='function'){
+    try{ window.throwCardVisual(card,el,done); return; }catch(e){}
+  }
+  setTimeout(done,450);
+}
+
+function endRound(winnerPid){
+  wild.over=true;
+  const modal=$id('victory-screen-modal'); if(modal) modal.classList.remove('hidden');
+  const rows=$id('leaderboard-rows-box');
+  if(rows){
+    const name={p_local:'Champ (You)',p_left:'Kalkal',p_top:'Poker',p_right:'Jess'};
+    rows.innerHTML=wild.players.slice()
+      .sort((a,b)=>(a===winnerPid?-1:b===winnerPid?1:0))
+      .map((p,i)=>`<div class="leader-row"><span>#${i+1}</span><span>${name[p]}</span><span>${wild.hands[p].length} cards</span></div>`).join('');
+  }
+  if(typeof window.triggerScreenFlash==='function') try{ window.triggerScreenFlash('victory-flash'); }catch(e){}
+}
+
+/* ---- public API ---- */
+window.wildCanPlay = () => !wild.over && !wild.busy && wild.players[wild.turn]==='p_local';
+window.wildOnLocalPlayed = (card,chosenColor) => commitPlay('p_local',card,chosenColor);
+window.wildLocalDraw = () => {
+  if(!window.wildCanPlay()) return;
+  drawCards('p_local',1);
+  wild.busy=true;
+  setTimeout(()=>{ if(!wild.over) advance(1); },500);
+};
+window.wildEngineState = () => wild;
+
+/* ---- AUTO-WIRING (no edits to your code needed) ---- */
+// 1) Block clicks on your hand when it's not your turn (capture phase, runs first)
+const handEl=$id('local-player-hand');
+if(handEl) handEl.addEventListener('click',e=>{
+  if(!window.wildCanPlay()){ e.stopImmediatePropagation(); e.preventDefault(); }
+},true);
+
+// 2) Deck click = draw
+$id('central-deck')?.addEventListener('click',()=>window.wildLocalDraw());
+
+// 3) Wild color picker → remember chosen color for the pending wild
+const picker=$id('wild-color-picker');
+if(picker) picker.addEventListener('click',e=>{
+  const el=e.target.closest('[data-color],.red,.yellow,.green,.blue');
+  if(!el) return;
+  const c=COLORS.find(x=>el.dataset.color===x||el.classList.contains(x));
+  if(c) wild.pendingWildColor=c;
+},true);
+
+// 4) Detect YOUR play: watch the discard pile; when a new card face appears
+//    while it's your turn, find the matching card in your hand and commit it.
+const discardEl=$id('discard-deck-pile');
+if(discardEl){
+  const faceOf=()=>{
+    const el=discardEl.querySelector('.card')||discardEl;
+    const color=COLORS.find(c=>el.classList.contains(c)) || (el.classList.contains('wild')?'black':null) || el.dataset.color;
+    const value=(el.textContent||'').trim() || el.dataset.value;
+    return {color,value};
+  };
+  let last=null;
+  new MutationObserver(()=>{
+    if(!window.wildCanPlay()) return;                    // only your own plays
+    const f=faceOf(); if(!f.color&&!f.value) return;
+    const sig=f.color+'|'+f.value;
+    if(sig===last) return; last=sig;
+    if(f.color==='black'||f.value==='wild'||f.value==='+4'){
+      // wait a tick for the color picker choice to land
+      setTimeout(()=>{
+        const match=wild.hands.p_local.find(c=>c.type==='wild'||c.type==='wild_draw4');
+        if(match) window.wildOnLocalPlayed(match, wild.pendingWildColor);
+      },300);
+      return;
+    }
+    const match=wild.hands.p_local.find(c=>c.color===f.color&&c.value===f.value);
+    if(match) window.wildOnLocalPlayed(match);
+  }).observe(discardEl,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','data-color','data-value']});
+}
+
+// 5) Boot
+function init(){
+  const deck=buildDeck();
+  SEATS.forEach(p=>wild.hands[p]=deck.splice(0,7));
+  let first=deck.pop();
+  while(first.type!=='number'){ deck.unshift(first); first=deck.pop(); }
+  wild.discard=[first]; wild.drawPile=deck; wild.currentColor=first.color;
+  wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false;
+  SEATS.forEach(p=>p==='p_local'?renderLocalHand():updateOpponentHand(p));
+  updateArrows();
+  console.log('[WILD] AI engine ready — opponents will play after your turn.');
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+
 </body>
 </html>
