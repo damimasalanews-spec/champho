@@ -115,7 +115,7 @@
         var kind = glyphKind(card);
         var value = escapeCardText(card && card.value != null ? card.value : '');
         var centre = '';
-        if (!kind) centre = '<div class="card-value">' + value + '</div>';
+        if (!kind) centre = '<div class="card-value number-value">' + value + '</div>';
         else if (kind === 'draw2') centre = '<div class="card-value action-symbol draw-count">+2</div>';
         else if (kind === 'discard_all') centre = '<div class="card-value action-symbol">ALL</div>';
 
@@ -126,7 +126,7 @@
         else if (kind === 'discard_all') corner = 'ALL';
         else corner = value;
 
-        var glyphClass = 'card-glyph' + (kind === 'wild' || kind === 'wild4' ? ' is-wild' : '');
+        var glyphClass = 'card-glyph' + (kind === 'wild' || kind === 'wild4' ? ' is-wild' : '') + (kind ? ' mark-' + kind : '');
         return centre
             + glyphSvg(kind, glyphClass)
             + '<div class="corner-value corner-top-left">' + corner + '</div>'
