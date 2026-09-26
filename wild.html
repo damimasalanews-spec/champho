@@ -2473,14 +2473,28 @@ function flyAiCard(pid,card,actionSeq=wild.actionSeq){
     if(wild.players[wild.pendingDraw4.responder]!==pid) return;
     if(card.type!=='wild_draw4') return aiRespondToDraw4(pid);
   }
+
+  // AI game state is deliberately independent of the shared cinematic throw.
+  // The old path used the global cardThrow animation as the state transition;
+  // when that animation was interrupted, the next AI seat could remain stuck.
+  // The engine now owns the timing: show a short source-card animation, then
+  // ALWAYS commit exactly once. The cinematic system remains available for the
+  // human player's throw, but AI turns can never depend on it.
   const cardEl=document.createElement('div');
   cardEl.className='ai-throw-source '+(card.color==='black'?'wild':card.color);
   cardEl.style.transform='translate(-50%,-50%) scale(.35)';
+  cardEl.style.transition='transform .38s cubic-bezier(.2,.8,.2,1),opacity .18s ease';
   cardEl.innerHTML=window.ChampCards.cardFaceHtml(card);
   (seatBoxes[pid]||document.body).appendChild(cardEl);
   wild.aiThrowEls.add(cardEl);
+
   let settled=false;
-  const cleanup=()=>{wild.aiThrowEls.delete(cardEl);try{cardEl.remove();}catch(e){}};
+  const timerIds=[];
+  const cleanup=()=>{
+    wild.aiThrowEls.delete(cardEl);
+    try{cardEl.remove();}catch(e){}
+    timerIds.forEach(t=>wild.aiThrowTimers.delete(t));
+  };
   const done=()=>{
     if(settled) return;
     settled=true;
@@ -2492,39 +2506,24 @@ function flyAiCard(pid,card,actionSeq=wild.actionSeq){
     }
     commitPlay(pid,card,card.color==='black'?aiChooseColor(pid):undefined);
   };
-  // Safety net: the shared cinematic throw must never be able to freeze the game.
-  // If its animation loop is interrupted, commit the AI play anyway.
-  const fallbackTimer=setTimeout(()=>{
-    if(settled) return;
-    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid){settled=true;cleanup();return;}
-    try{ if(typeof cardThrow!=='undefined' && cardThrow && cardThrow.aiActionSeq===actionSeq){cardThrow=null; const f=document.getElementById('throw-flight-card'); if(f) f.style.opacity='0';} }catch(e){}
-    done();
-  },1400);
-  wild.aiThrowTimers.add(fallbackTimer);
-  const startThrow=()=>{
-    if(typeof startTimer!=='undefined') wild.aiThrowTimers.delete(startTimer);
-    if(!cardEl.isConnected) return;
-    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid){cleanup();return;}
-    if(wild.pendingDraw4){
-      if(wild.players[wild.pendingDraw4.responder]!==pid){cleanup();return;}
-      if(card.type!=='wild_draw4'){cleanup();return aiRespondToDraw4(pid);}
-    }
-    if(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight()){
-      const t=setTimeout(startThrow,160); wild.aiThrowTimers.add(t); return;
-    }
-    try{
-      window.throwCardVisual(card,cardEl,done);
-      if(typeof cardThrow!=='undefined' && cardThrow) cardThrow.aiActionSeq=actionSeq;
-      wild.aiThrowEls.delete(cardEl);
-    }catch(e){setTimeout(done,450);}
-  };
-  const delay=(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight())?380:0;
+
+  // Decorative movement only. It has no authority over the turn engine.
   requestAnimationFrame(()=>{
-    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid){cleanup();return;}
+    if(settled || wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid){
+      cleanup(); return;
+    }
     cardEl.style.transform='translate(-50%,-50%) scale(.85)';
   });
-  const startTimer=setTimeout(startThrow,delay+240);
-  wild.aiThrowTimers.add(startTimer);
+
+  const landTimer=setTimeout(done,650);
+  timerIds.push(landTimer);
+  wild.aiThrowTimers.add(landTimer);
+
+  // Absolute last-resort watchdog: even if the browser throttles the first
+  // timer, the AI turn gets resolved and cannot leave the table permanently stuck.
+  const watchdog=setTimeout(done,1800);
+  timerIds.push(watchdog);
+  wild.aiThrowTimers.add(watchdog);
 }
 
 function endRound(winnerPid){
