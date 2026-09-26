@@ -403,8 +403,10 @@
                 // the lift that make it an arc rather than a row, and they are the top
                 // seat's own 4deg and 5px: your hand is the same object as the partner's,
                 // drawn on a different edge of the table.
-                const rotationAngle = offsetFromMiddle * 4;
-                const verticalDip = Math.abs(offsetFromMiddle) * 5;
+                // Controlled fan: cards remain aligned and readable instead of
+                // looking like individually scattered pieces.
+                const rotationAngle = offsetFromMiddle * 2.2;
+                const verticalDip = Math.abs(offsetFromMiddle) * 3;
 
                 cardEl.style.setProperty('--index-offset', offsetFromMiddle);
                 cardEl.style.setProperty('--arc-rotation', `${rotationAngle}deg`);
@@ -1141,17 +1143,25 @@
             // so the pile can never receive two cards for one click.
             if (cardThrow) finishThrow();
 
-            // Generate realistic chaotic positioning values for table messiness
-            const randomRot = (Math.random() * 24) - 12;
-            const randomX = (Math.random() * 10) - 5;
-            const randomY = (Math.random() * 10) - 5;
+            // Keep the discard pile ordered and deliberate. Cards should read as a
+            // physical stack, not as randomly scattered objects. The top card gets a
+            // restrained alternating rotation and tiny deterministic offsets.
+            const stackIndex = discardPile.children.length;
+            const stackPattern = [
+                { rot: -3, x: -2, y: 2 },
+                { rot:  2, x:  1, y: -1 },
+                { rot: -1, x:  2, y:  0 },
+                { rot:  1, x: -1, y:  1 }
+            ];
+            const stack = stackPattern[stackIndex % stackPattern.length];
 
             const placedCard = document.createElement('div');
             placedCard.classList.add('discarded-card', cardData.color === 'black' ? 'wild' : cardData.color);
-            placedCard.style.setProperty('--discard-rot', `${randomRot}deg`);
-            placedCard.style.setProperty('--discard-x', `${randomX}px`);
-            placedCard.style.setProperty('--discard-y', `${randomY}px`);
-            placedCard.style.setProperty('--discard-z', `${discardPile.children.length * 2}px`);
+            placedCard.style.setProperty('--discard-rot', stack.rot + 'deg');
+            placedCard.style.setProperty('--discard-x', stack.x + 'px');
+            placedCard.style.setProperty('--discard-y', stack.y + 'px');
+            placedCard.style.setProperty('--discard-z', (stackIndex * 1.5) + 'px');
+            placedCard.style.zIndex = String(20 + stackIndex);
 
             placedCard.innerHTML = cardFaceHtml(cardData);
 
