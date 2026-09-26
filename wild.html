@@ -1022,10 +1022,38 @@
             // the pile reacts: the same tiny physical hit the zone used to give itself
             const centerZone = document.getElementById('center-board-zone');
             if (centerZone) {
-                centerZone.classList.remove('impact');
+                const impactColor = String(a.color || 'wild').toLowerCase();
+                centerZone.classList.remove(
+                    'impact',
+                    'impact-red',
+                    'impact-yellow',
+                    'impact-green',
+                    'impact-blue',
+                    'impact-wild'
+                );
                 void centerZone.offsetWidth;
-                centerZone.classList.add('impact');
-                setTimeout(() => centerZone.classList.remove('impact'), 130);
+                centerZone.classList.add('impact', 'impact-' + (
+                    ['red', 'yellow', 'green', 'blue'].includes(impactColor) ? impactColor : 'wild'
+                ));
+                setTimeout(() => centerZone.classList.remove(
+                    'impact',
+                    'impact-red',
+                    'impact-yellow',
+                    'impact-green',
+                    'impact-blue',
+                    'impact-wild'
+                ), 520);
+            }
+
+            // Synchronise the local HUD with the exact impact frame. This is presentation
+            // only: the engine has already accepted the play; this pulse never changes
+            // turn state, legality, or hand contents.
+            const gameTable = document.querySelector('.game-table');
+            if (gameTable) {
+                gameTable.classList.remove('gw-card-hit');
+                void gameTable.offsetWidth;
+                gameTable.classList.add('gw-card-hit');
+                setTimeout(() => gameTable.classList.remove('gw-card-hit'), 520);
             }
 
             // ...and the card UNDER the hit shrugs it off: a couple of pixels of sink
