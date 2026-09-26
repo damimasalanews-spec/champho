@@ -83,6 +83,27 @@
     }, { passive: true });
   }
 
+
+
+  function watchTurnState() {
+    const root = document.querySelector(".game-table");
+    if (!root) return;
+
+    const sync = () => {
+      root.classList.toggle("champ-turn-live",
+        !!root.querySelector(".avatar-hud-wrapper.active-turn, .direction-arrow.active-turn"));
+    };
+
+    sync();
+
+    const observer = new MutationObserver(sync);
+    observer.observe(root, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"]
+    });
+  }
+
   function enhance() {
     watch(document.getElementById("local-player-hand"));
     watch(document.getElementById("teammate-hand-container"));
@@ -90,6 +111,7 @@
     watch(document.getElementById("fan-hand-right"));
     watch(document.getElementById("discard-deck-pile"), true);
     deckFeedback();
+    watchTurnState();
 
     // The existing engine may replace the whole pile node during a round reset.
     // Re-scan the page cheaply whenever the board mutates, without touching game state.
