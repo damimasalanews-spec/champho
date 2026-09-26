@@ -1363,3 +1363,235 @@ body{background:var(--cw-bg)!important;color:var(--cw-text)!important;}
     animation:none!important;
   }
 }
+
+
+/* ==========================================================================
+   GO WILD SIGNATURE HUD — "CONSOLE TOY" FINISH
+   --------------------------------------------------------------------------
+   The board now has a consistent physical language: glass HUD plates,
+   illuminated seat pedestals and a dedicated hero lane for the cards.
+   ========================================================================== */
+
+/* Vignette the board edges so the eye naturally lands on the cards. */
+.game-table::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:1;
+  background:
+    radial-gradient(ellipse at 50% 49%,
+      transparent 0 44%,
+      rgba(0,0,0,.06) 61%,
+      rgba(0,0,0,.30) 100%);
+  box-shadow:
+    inset 0 0 120px rgba(0,0,0,.38),
+    inset 0 0 0 1px rgba(255,255,255,.025);
+}
+
+/* Seat glass: the portrait remains the hero, but each player now has a subtle
+   "console station" underneath rather than floating independently. */
+.opponent-profile-wrapper,
+.opponent-top-row .avatar-hud-wrapper,
+.local-user-slot .avatar-hud-wrapper{
+  position:relative;
+  filter:drop-shadow(0 14px 24px rgba(0,0,0,.28));
+}
+.opponent-profile-wrapper::after,
+.opponent-top-row .avatar-hud-wrapper::after,
+.local-user-slot .avatar-hud-wrapper::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-16px;
+  width:132%;
+  height:28px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  pointer-events:none;
+  background:radial-gradient(ellipse,rgba(0,0,0,.40),transparent 70%);
+  opacity:.8;
+  z-index:-1;
+}
+
+/* Names become premium glass nameplates. */
+.player-pill-tag{
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.26)!important;
+  box-shadow:
+    0 8px 16px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.28),
+    inset 0 -8px 14px rgba(0,0,0,.14)!important;
+  backdrop-filter:blur(8px);
+}
+.player-pill-tag::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(110deg,
+    rgba(255,255,255,.18),
+    transparent 25% 70%,
+    rgba(255,255,255,.06));
+  transform:translateX(-110%);
+  animation:gwNameplateSheen 6s ease-in-out infinite;
+}
+@keyframes gwNameplateSheen{
+  0%,55%,100%{transform:translateX(-110%)}
+  70%{transform:translateX(110%)}
+}
+
+/* Card counters read like live telemetry. */
+.opponent-card-count-stack{
+  position:relative;
+  border:1px solid rgba(255,255,255,.28);
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(15,23,38,.92),rgba(4,8,15,.92));
+  box-shadow:
+    0 7px 14px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 0 14px rgba(81,231,255,.08);
+  color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.7);
+}
+.opponent-card-count-stack::before{
+  content:"CARDS";
+  position:absolute;
+  left:50%;
+  bottom:-14px;
+  transform:translateX(-50%);
+  font:800 8px/1 'Nunito',sans-serif;
+  letter-spacing:.16em;
+  opacity:.42;
+  white-space:nowrap;
+}
+
+/* Timer gets a real instrument-panel treatment. */
+.arcade-timer-badge{
+  border:1px solid rgba(255,255,255,.18)!important;
+  border-radius:22px!important;
+  background:
+    radial-gradient(circle at 18% 20%,rgba(81,231,255,.13),transparent 38%),
+    linear-gradient(145deg,rgba(22,31,48,.88),rgba(6,10,18,.94))!important;
+  box-shadow:
+    0 14px 26px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -10px 18px rgba(0,0,0,.22),
+    0 0 20px rgba(81,231,255,.06)!important;
+  backdrop-filter:blur(10px);
+}
+.arcade-timer-badge #game-countdown-string{
+  text-shadow:
+    0 2px 0 rgba(0,0,0,.42),
+    0 0 14px rgba(81,231,255,.25);
+}
+
+/* Gear: tiny glass hardware instead of a plain icon. */
+.arcade-settings-btn{
+  border:1px solid rgba(255,255,255,.20)!important;
+  border-radius:15px!important;
+  background:linear-gradient(145deg,rgba(34,46,66,.88),rgba(7,11,19,.94))!important;
+  box-shadow:
+    0 9px 18px rgba(0,0,0,.32),
+    inset 0 1px 0 rgba(255,255,255,.20)!important;
+  transition:transform .18s ease,filter .18s ease,box-shadow .18s ease;
+}
+.arcade-settings-btn:hover{
+  transform:translateY(-2px) rotate(8deg);
+  filter:brightness(1.12);
+  box-shadow:
+    0 12px 22px rgba(0,0,0,.36),
+    0 0 18px rgba(81,231,255,.14),
+    inset 0 1px 0 rgba(255,255,255,.24);
+}
+
+/* The play zone gets a "landing pad" identity. */
+.center-play-zone{
+  border-color:rgba(81,231,255,.18)!important;
+  background:
+    radial-gradient(ellipse at center,rgba(81,231,255,.035),transparent 68%),
+    linear-gradient(180deg,rgba(255,255,255,.012),rgba(0,0,0,.08))!important;
+  box-shadow:
+    inset 0 0 38px rgba(81,231,255,.035),
+    0 14px 30px rgba(0,0,0,.16)!important;
+}
+.center-play-zone::after{
+  opacity:.9!important;
+}
+
+/* Draw pile receives a tiny "energy seam". */
+.top-left-deck-group::after{
+  content:"";
+  position:absolute;
+  left:8%;
+  right:8%;
+  bottom:-12px;
+  height:20px;
+  border-radius:50%;
+  background:radial-gradient(ellipse,rgba(81,231,255,.16),transparent 70%);
+  filter:blur(4px);
+  pointer-events:none;
+  animation:gwDeckShadow 4.8s ease-in-out infinite;
+}
+@keyframes gwDeckShadow{
+  0%,100%{transform:scaleX(.9);opacity:.45}
+  50%{transform:scaleX(1.05);opacity:.8}
+}
+
+/* UNO control becomes a physical "panic button" with a dormant halo. */
+#btn-uno-call{
+  border:7px solid rgba(255,255,255,.92)!important;
+  background:
+    radial-gradient(circle at 34% 25%,rgba(255,255,255,.34),transparent 22%),
+    radial-gradient(circle at 60% 72%,rgba(255,65,115,.18),transparent 48%),
+    linear-gradient(145deg,#2b3550,#0b101b)!important;
+  color:#fff!important;
+  text-shadow:0 3px 5px rgba(0,0,0,.5);
+  box-shadow:
+    0 18px 30px rgba(0,0,0,.38),
+    0 0 0 2px rgba(255,255,255,.12),
+    0 0 30px rgba(255,75,130,.12),
+    inset 0 2px 0 rgba(255,255,255,.72),
+    inset 0 -14px 18px rgba(0,0,0,.26)!important;
+}
+#btn-uno-call::before{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  pointer-events:none;
+}
+#btn-uno-call:hover{
+  box-shadow:
+    0 22px 34px rgba(0,0,0,.42),
+    0 0 0 2px rgba(255,255,255,.16),
+    0 0 42px rgba(255,75,130,.24),
+    inset 0 2px 0 rgba(255,255,255,.8),
+    inset 0 -14px 18px rgba(0,0,0,.22)!important;
+}
+
+/* Local hand receives a grounded shadow so it feels attached to the table. */
+.hand-container::after{
+  content:"";
+  position:absolute;
+  left:5%;
+  right:5%;
+  bottom:-18px;
+  height:42px;
+  border-radius:50%;
+  background:radial-gradient(ellipse,rgba(0,0,0,.48),transparent 70%);
+  filter:blur(7px);
+  pointer-events:none;
+  z-index:-1;
+}
+
+/* Keep the new decorative layers silent for reduced-motion users. */
+@media (prefers-reduced-motion:reduce){
+  .player-pill-tag::before,
+  .top-left-deck-group::after{
+    animation:none!important;
+  }
+  .arcade-settings-btn:hover{transform:none}
+}
