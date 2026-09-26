@@ -274,6 +274,20 @@
         </div>
     </div>
 
+    <!-- Wild Draw 4 response: the next player must resolve the +4 before play continues. -->
+    <div id="wild-draw4-decision" class="draw4-decision-overlay" aria-hidden="true">
+        <div class="draw4-decision-card" role="dialog" aria-modal="true" aria-labelledby="draw4-decision-title">
+            <div class="draw4-decision-badge">WILD +4</div>
+            <h2 id="draw4-decision-title">DRAW 4!</h2>
+            <p id="draw4-decision-text">Choose to challenge the +4 or stack another +4.</p>
+            <div class="draw4-decision-actions">
+                <button id="draw4-challenge-btn" type="button">CHALLENGE</button>
+                <button id="draw4-stack-btn" type="button">PLAY +4</button>
+                <button id="draw4-accept-btn" type="button">DRAW 4</button>
+            </div>
+        </div>
+    </div>
+
     <!-- The "UNO!" callout. Always present, never clickable (the overlay is
          pointer-events:none), and empty of geometry until it is given a class.
          Outside .game-table for the same reason as the wheel: the table's
@@ -1523,6 +1537,46 @@
             });
         }
 
+        // ---- Wild Draw 4 response --------------------------------------------
+        function presentWildDraw4Decision(canStack, previousColor) {
+            const overlay = document.getElementById('wild-draw4-decision');
+            const textNode = document.getElementById('draw4-decision-text');
+            const stackBtn = document.getElementById('draw4-stack-btn');
+            if (!overlay) return;
+            if (textNode) {
+                const colour = String(previousColor || '').toUpperCase();
+                textNode.textContent = canStack
+                    ? `The +4 changed the color to ${colour}. Challenge it or stack another +4.`
+                    : `The +4 changed the color to ${colour}. Challenge it or take 4 cards.`;
+            }
+            if (stackBtn) {
+                stackBtn.hidden = !canStack;
+                stackBtn.disabled = !canStack;
+            }
+            overlay.classList.add('visible');
+            overlay.setAttribute('aria-hidden','false');
+            if (typeof playColorWheelOpenSound === 'function') playColorWheelOpenSound();
+        }
+        function hideWildDraw4Decision() {
+            const overlay = document.getElementById('wild-draw4-decision');
+            if (!overlay) return;
+            overlay.classList.remove('visible');
+            overlay.setAttribute('aria-hidden','true');
+        }
+        window.presentWildDraw4Decision = presentWildDraw4Decision;
+        window.hideWildDraw4Decision = hideWildDraw4Decision;
+
+        function wireWildDraw4Decision() {
+            const overlay=document.getElementById('wild-draw4-decision');
+            if(!overlay) return;
+            const challenge=document.getElementById('draw4-challenge-btn');
+            const stack=document.getElementById('draw4-stack-btn');
+            const accept=document.getElementById('draw4-accept-btn');
+            if(challenge) challenge.addEventListener('click',()=>{ hideWildDraw4Decision(); if(window.wildDraw4Action) window.wildDraw4Action('challenge'); });
+            if(stack) stack.addEventListener('click',()=>{ if(stack.disabled) return; hideWildDraw4Decision(); if(window.wildDraw4Action) window.wildDraw4Action('stack'); });
+            if(accept) accept.addEventListener('click',()=>{ hideWildDraw4Decision(); if(window.wildDraw4Action) window.wildDraw4Action('accept'); });
+        }
+
         // ---- calling UNO ------------------------------------------------------
         // The UNO button has been in this page's controls panel since it was written
         // and nothing has ever listened to it. Now it does: the banner bursts in, the
@@ -1814,6 +1868,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             wireChat();
             wireColorWheel();
+            wireWildDraw4Decision();
             wireVictoryScreen();
             // Dress the portraits before the mask lifts, so the seats are never seen bare.
             applyRosterCosmetics(playersMock);
@@ -1945,7 +2000,7 @@ const COLORS = ['red','yellow','green','blue'];
 const seatBoxes = { p_left:$id('fan-hand-left'), p_top:$id('teammate-hand-container'), p_right:$id('fan-hand-right') };
 const arrows = { p_local:$id('arrow-local-player'), p_left:$id('arrow-opponent-left'), p_top:$id('arrow-opponent-top'), p_right:$id('arrow-opponent-right') };
 
-const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], currentColor:null, turn:0, dir:1, busy:false, over:false, pendingWildColor:null, warned:false, drawStack:0, stackTopType:null, winnerTeam:null };
+const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], currentColor:null, turn:0, dir:1, busy:false, over:false, pendingWildColor:null, warned:false, drawStack:0, stackTopType:null, pendingDraw4:null, winnerTeam:null };
 
 function buildDeck(){
   const d=[]; let n=0;
@@ -1965,7 +2020,7 @@ function buildDeck(){
 const topCard = () => wild.discard[wild.discard.length-1] || null;
 function isDrawCard(card){ return card && (card.type==='draw2'||card.type==='wild_draw4'); }
 function isLegal(card){ return goWildLegal(card); }
-function goWildLegal(card){ const t=topCard(); if(!t)return true; if(wild.drawStack>0)return card.type==='wild_draw4'||(card.type==='draw2'&&wild.stackTopType==='draw2'); if(card.type==='wild'||card.type==='wild_draw4')return true; if(card.type==='discard_all')return card.color===wild.currentColor||t.type==='discard_all'; return card.color===wild.currentColor||card.value===t.value; }
+function goWildLegal(card){ const t=topCard(); if(!t)return true; if(wild.drawStack>0)return card.type==='wild_draw4'||(card.type==='draw2'&&wild.stackTopType==='draw2'); if(card.type==='wild'||card.type==='wild_draw4')return true; if(card.type==='discard_all')return card.color===wild.currentColor; return card.color===wild.currentColor||card.value===t.value; }
 const nextIndex = (s=1) => (wild.turn + wild.dir*s + wild.players.length*8) % wild.players.length;
 
 function drawCards(pid,count){
@@ -2090,23 +2145,103 @@ function showUnoBanner(){
 }
 
 function clearSameColor(pid,card){
-  const hand=wild.hands[pid];
+  const hand=wild.hands[pid] || [];
   const keep=hand.filter(c=>c.color!==card.color);
   const gone=hand.filter(c=>c.color===card.color);
   wild.hands[pid]=keep;
-  if(gone.length){ wild.discard.pop(); wild.discard.push(...gone,card); }
+  // Go Wild's official Discard All rule: every card of the played card's color
+  // leaves the hand together. Any action cards removed this way are ordinary
+  // discarded cards and do NOT trigger their actions.
+  if(gone.length){
+    wild.discard.pop();
+    wild.discard.push(...gone,card);
+  }
+  return gone.length;
 }
+
+function hasColoredCard(pid,color){
+  return !!color && (wild.hands[pid]||[]).some(c=>c.color===color);
+}
+
+function setDraw4Pending(pid,previousColor,chosenColor){
+  wild.pendingDraw4={
+    player:pid,
+    previousColor:previousColor,
+    chosenColor:chosenColor,
+    cardId:topCard() ? topCard().id : null
+  };
+}
+
+function presentDraw4ResponseForCurrentPlayer(){
+  const pending=wild.pendingDraw4;
+  if(!pending || wild.over) return;
+  const cur=wild.players[wild.turn];
+  if(cur==='p_local'){
+    wild.busy=true;
+    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4');
+    if(typeof window.presentWildDraw4Decision==='function'){
+      window.presentWildDraw4Decision(canStack,pending.previousColor);
+    }
+    return;
+  }
+  setTimeout(()=>aiRespondToDraw4(cur),650);
+}
+
+function resolveDraw4Challenge(challengerPid){
+  const pending=wild.pendingDraw4;
+  if(!pending) return;
+  const challengedPid=pending.player;
+  const guilty=hasColoredCard(challengedPid,pending.previousColor);
+  wild.pendingDraw4=null;
+  wild.drawStack=0;
+  wild.stackTopType=null;
+  if(guilty){
+    // Successful challenge: the +4 player takes 4. The challenger keeps the turn.
+    drawCards(challengedPid,4);
+    wild.busy=(challengerPid==='p_local');
+    updateArrows();
+    return;
+  }
+  // Failed challenge: the challenger takes 6 and loses the turn.
+  drawCards(challengerPid,6);
+  wild.busy=(challengerPid==='p_local');
+  advance(1);
+}
+
+function acceptDraw4(pid){
+  if(!wild.pendingDraw4) return;
+  wild.pendingDraw4=null;
+  wild.drawStack=0;
+  wild.stackTopType=null;
+  drawCards(pid,4);
+  advance(1);
+}
+
+function aiRespondToDraw4(pid){
+  if(wild.over || wild.players[wild.turn]!==pid || !wild.pendingDraw4) return;
+  const pending=wild.pendingDraw4;
+  const hasPlus4=(wild.hands[pid]||[]).some(c=>c.type==='wild_draw4');
+  if(hasPlus4){
+    wild.busy=true;
+    const card=wild.hands[pid].find(c=>c.type==='wild_draw4');
+    return flyAiCard(pid,card);
+  }
+  if(hasColoredCard(pending.player,pending.previousColor)) return resolveDraw4Challenge(pid);
+  return acceptDraw4(pid);
+}
+
 function commitPlay(pid,card,chosenColor){
-  const hand=wild.hands[pid];
+  const hand=wild.hands[pid] || [];
   const i=hand.findIndex(c=>c.id===card.id);
   if(i>=0) hand.splice(i,1);
+
+  const previousColor=wild.currentColor;
   wild.discard.push(card);
   if(card.type==='discard_all') clearSameColor(pid,card);
+
   wild.currentColor=(card.type==='wild'||card.type==='wild_draw4') ? (chosenColor||wild.pendingWildColor||'red') : card.color;
   wild.pendingWildColor=null;
-  // The pile is the table's shared truth: EVERY played card lands on it, AI or local.
-  // Local plays are appended by the throw itself, so only AI plays are painted here —
-  // without this the engine's pile and the visible pile drift apart within one round.
+
   if(pid!=='p_local'){
     const pile=$id('discard-deck-pile');
     if(pile && typeof window.ChampCards!=='undefined'){
@@ -2124,13 +2259,23 @@ function commitPlay(pid,card,chosenColor){
   const topEl=$id('discard-deck-pile');
   if(topEl){ topEl.dataset.color=wild.currentColor; topEl.dataset.value=card.value; }
   pid==='p_local' ? renderLocalHand() : updateOpponentHand(pid);
-  // The slam lives in the throw's impact frame for local plays; for AI plays this is
-  // the moment the card lands, which is where the sound belongs.
   if(pid!=='p_local' && typeof window.playCardSlamSound==='function') try{ window.playCardSlamSound(); }catch(e){}
-  if(!hand.length) return endRound(pid);
-  if(hand.length===1) showUnoBanner();
-  if(card.type==='draw2'){ wild.drawStack += 2; wild.stackTopType='draw2'; return advance(1); }
-  if(card.type==='wild_draw4'){ wild.drawStack += 4; wild.stackTopType='wild_draw4'; return advance(1); }
+
+  const currentHand=wild.hands[pid] || [];
+  if(!currentHand.length) return endRound(pid);
+  if(currentHand.length===1) showUnoBanner();
+
+  if(card.type==='draw2'){
+    wild.drawStack += 2;
+    wild.stackTopType='draw2';
+    return advance(1);
+  }
+  if(card.type==='wild_draw4'){
+    wild.drawStack += 4;
+    wild.stackTopType='wild_draw4';
+    setDraw4Pending(pid,previousColor,wild.currentColor);
+    return advance(1);
+  }
   if(card.type==='skip') return advance(2);
   if(card.type==='reverse'){ wild.dir*=-1; return advance(1); }
   advance(1);
@@ -2141,6 +2286,10 @@ function advance(steps=1){
   wild.turn=nextIndex(steps);
   updateArrows();
   const cur=wild.players[wild.turn];
+  if(wild.pendingDraw4 && steps===1){
+    presentDraw4ResponseForCurrentPlayer();
+    return;
+  }
   if(cur==='p_local'){ wild.busy=false; }
   else{ wild.busy=true; const who=cur; setTimeout(()=>runAiTurn(who), AI_DELAY()); }
 }
@@ -2246,8 +2395,21 @@ window.wildHandSize = (pid) => (wild.hands[pid] || []).length;
 window.wildCurrentPlayer = () => wild.players[wild.turn];
 window.wildIsLegal = (card) => isLegal(card);
 window.wildYourTurn = () => !wild.over && wild.players[wild.turn]==='p_local';
+window.wildDraw4Action = (action) => {
+  if(!wild.pendingDraw4 || wild.players[wild.turn]!=='p_local') return;
+  if(action==='challenge') return resolveDraw4Challenge('p_local');
+  if(action==='accept') return acceptDraw4('p_local');
+  if(action==='stack'){
+    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4');
+    if(!canStack) return;
+    wild.busy=false;
+    if(typeof window.hideWildDraw4Decision==='function') window.hideWildDraw4Decision();
+    markPlayableHints();
+  }
+};
 window.wildLocalDraw = () => {
   if(!window.wildCanPlay()) return;
+  if(wild.pendingDraw4){ presentDraw4ResponseForCurrentPlayer(); return; }
   if(wild.drawStack>0){
     drawCards('p_local',wild.drawStack);
     wild.drawStack=0; wild.stackTopType=null; wild.busy=true;
@@ -2274,7 +2436,8 @@ window.wildStartNextRound = () => {
   // state, never a second copy of it.
   wild.hands={}; wild.drawPile=[]; wild.discard=[]; wild.currentColor=null;
   wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false; wild.winnerPid=null;
-  wild.pendingWildColor=null;
+  wild.pendingWildColor=null; wild.drawStack=0; wild.stackTopType=null; wild.pendingDraw4=null;
+  if(typeof window.hideWildDraw4Decision==='function') window.hideWildDraw4Decision();
   const deck=buildDeck();
   SEATS.forEach(p=>wild.hands[p]=deck.splice(0,7));
   let first=deck.pop();
@@ -2290,21 +2453,35 @@ window.wildStartNextRound = () => {
 // thrown card has already landed on the pile visually, so the commit must not
 // repaint the pile — only the state, the effects and the next turn.
 window.__commitLocalPlay = (card, chosenColor, pileCardNode) => {
-  const hand=wild.hands.p_local;
+  const hand=wild.hands.p_local || [];
   const i=hand.findIndex(c=>c.id===card.id);
   if(i>=0) hand.splice(i,1);
+  const previousColor=wild.currentColor;
   wild.discard.push(card);
+  if(card.type==='discard_all') clearSameColor('p_local',card);
   wild.currentColor=(card.type==='wild'||card.type==='wild_draw4') ? (chosenColor||wild.pendingWildColor||'red') : card.color;
   wild.pendingWildColor=null;
   wild.busy=true;
-  if(!hand.length) return endRound('p_local');
-  if(hand.length===1) showUnoBanner();
-  if(card.type==='draw2'){ drawCards(wild.players[nextIndex(1)],2); return advance(2); }
-  if(card.type==='wild_draw4'){ drawCards(wild.players[nextIndex(1)],4); return advance(2); }
+  const currentHand=wild.hands.p_local || [];
+  renderLocalHand();
+  if(!currentHand.length) return endRound('p_local');
+  if(currentHand.length===1) showUnoBanner();
+  if(card.type==='draw2'){
+    wild.drawStack += 2;
+    wild.stackTopType='draw2';
+    return advance(1);
+  }
+  if(card.type==='wild_draw4'){
+    wild.drawStack += 4;
+    wild.stackTopType='wild_draw4';
+    setDraw4Pending('p_local',previousColor,wild.currentColor);
+    return advance(1);
+  }
   if(card.type==='skip') return advance(2);
   if(card.type==='reverse'){ wild.dir*=-1; return advance(1); }
   advance(1);
 };
+
 
 /* ---- AUTO-WIRING (no edits to your code needed) ---- */
 // 1) Block clicks on your hand when it's not your turn (capture phase, runs first)
@@ -2338,7 +2515,7 @@ function init(){
   let first=deck.pop();
   while(first.type!=='number'){ deck.unshift(first); first=deck.pop(); }
   wild.discard=[first]; wild.drawPile=deck; wild.currentColor=first.color;
-  wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false;
+  wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false; wild.drawStack=0; wild.stackTopType=null; wild.pendingDraw4=null;
   paintDeckCount();
   // The page paints this state from its own DOMContentLoaded hook — see the comment
   // there. Nothing renders here: this script's own re-render would fight the page's
@@ -2425,6 +2602,22 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 .controls-panel{right:100px!important;top:690px!important}
 #btn-uno-call{width:190px!important;height:190px!important;border-radius:50%!important;font-size:2.2rem!important}
 .chat-bubble-trigger{left:150px!important;top:735px!important;width:70px!important;height:70px!important;font-size:1.8rem!important}
+</style>
+
+<style id="wild-draw4-decision-style">
+.draw4-decision-overlay{position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(5,8,16,.72);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .18s ease}
+.draw4-decision-overlay.visible{opacity:1;pointer-events:auto}
+.draw4-decision-card{width:min(560px,92vw);padding:34px 32px 30px;border:4px solid rgba(255,255,255,.92);border-radius:28px;background:linear-gradient(145deg,#17213b,#080d18);box-shadow:0 24px 80px rgba(0,0,0,.6),0 0 36px rgba(255,70,70,.24);text-align:center;color:#fff;font-family:Nunito,Arial,sans-serif}
+.draw4-decision-badge{display:inline-flex;padding:7px 16px;border-radius:999px;background:#e21d2e;color:#fff;font-weight:1000;letter-spacing:.08em;font-size:14px;box-shadow:0 0 18px rgba(226,29,46,.55)}
+.draw4-decision-card h2{margin:12px 0 8px;font-size:42px;line-height:1;font-weight:1000;letter-spacing:.04em}
+.draw4-decision-card p{margin:0 auto 24px;max-width:440px;font-size:18px;line-height:1.4;color:#dce5ff}
+.draw4-decision-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.draw4-decision-actions button{min-width:145px;height:54px;border:0;border-radius:15px;padding:0 18px;font:900 16px Nunito,Arial,sans-serif;letter-spacing:.03em;cursor:pointer;color:#fff;background:linear-gradient(180deg,#e52a3c,#a70f20);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.draw4-decision-actions button:nth-child(2){background:linear-gradient(180deg,#216dff,#1642b4)}
+.draw4-decision-actions button:nth-child(3){background:linear-gradient(180deg,#39435a,#252c3d)}
+.draw4-decision-actions button:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px)}
+.draw4-decision-actions button:disabled,.draw4-decision-actions button[hidden]{display:none}
+@media(max-width:700px){.draw4-decision-card{padding:26px 20px}.draw4-decision-card h2{font-size:32px}.draw4-decision-card p{font-size:15px}.draw4-decision-actions button{min-width:125px}}
 </style>
 </body>
 </html>
