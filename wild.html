@@ -2089,6 +2089,13 @@ function showUnoBanner(){
     setTimeout(()=>{ o.classList.add('hidden'); o.classList.remove('active'); },1800); }
 }
 
+function clearSameColor(pid,card){
+  const hand=wild.hands[pid];
+  const keep=hand.filter(c=>c.color!==card.color);
+  const gone=hand.filter(c=>c.color===card.color);
+  wild.hands[pid]=keep;
+  if(gone.length) wild.discard.push(...gone);
+}
 function commitPlay(pid,card,chosenColor){
   const hand=wild.hands[pid];
   const i=hand.findIndex(c=>c.id===card.id);
