@@ -424,15 +424,19 @@
                 cardEl.addEventListener('click', () => {
                     // Not your turn: the card shakes its refusal instead of just doing
                     // nothing, which reads as a broken page.
-                    if (!window.wildCanPlay || !window.wildCanPlay()) {
+                    const canTakeTurn = !!window.wildCanPlay && window.wildCanPlay();
+                    const legalCard = canTakeTurn && !!window.wildIsLegal && window.wildIsLegal(card);
+                    if (!legalCard) {
                         cardEl.classList.remove('turn-denied');
                         void cardEl.offsetWidth;
                         cardEl.classList.add('turn-denied');
                         note(220, 0.09, 'triangle', 0.04, 0, 160);
                         return;
                     }
-                    // The slam moved into the throw's impact frame — the sound belongs
-                    // to the moment the card hits the pile, not the moment of the click.
+                    // Only a legal UNO move can enter the throw animation.
+                    // Legal means matching the active color, matching the top number/symbol,
+                    // or using a Wild/Wild Draw 4 (with the pending +4 rules enforced by
+                    // the engine). The visual hint and this click gate use the same checker.
                     executeLocalCardPlay(card, cardEl);
                 });
 
