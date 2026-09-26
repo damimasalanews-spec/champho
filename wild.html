@@ -2415,7 +2415,11 @@ function advance(steps=1){
 }
 
 function pickAiCard(pid){
-  const hand=wild.hands[pid];
+  const hand=wild.hands[pid]||[];
+  // Game rule: if an AI player has a Wild +4 in hand, it MUST play the
+  // Wild +4. A matching-colour card is never allowed to override it.
+  const wild4=hand.find(c=>c.type==='wild_draw4');
+  if(wild4) return wild4;
   const moves=hand.filter(isLegal);
   if(!moves.length) return null;
   const nextDanger = wild.hands[wild.players[nextIndex(1)]].length<=1;
