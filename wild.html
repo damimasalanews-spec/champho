@@ -1092,6 +1092,18 @@
         // The local play: one throw, one landing, and the ENGINE told exactly once.
         // The placed card is presentation — the state of the round lives in the engine.
         function executeLocalCardPlay(cardData, cardElement) {
+            // The engine is authoritative. During a +4 response the ONLY legal play
+            // is another Wild Draw 4; normal cards and ordinary Wilds must never enter
+            // the throw animation.
+            if (typeof window.wildIsLegal === 'function' && !window.wildIsLegal(cardData)) {
+                const rejected = cardElement;
+                if (rejected) {
+                    rejected.classList.remove('turn-denied');
+                    void rejected.offsetWidth;
+                    rejected.classList.add('turn-denied');
+                }
+                return;
+            }
             const discardPile = document.getElementById('discard-deck-pile');
             const centerZone = document.getElementById('center-board-zone');
             if (!discardPile || !centerZone) return;
@@ -1546,16 +1558,27 @@
             const overlay = document.getElementById('wild-draw4-decision');
             const textNode = document.getElementById('draw4-decision-text');
             const stackBtn = document.getElementById('draw4-stack-btn');
+            const acceptBtn = document.getElementById('draw4-accept-btn');
+            const challengeBtn = document.getElementById('draw4-challenge-btn');
             if (!overlay) return;
+            const pending = (typeof window.wildEngineState === 'function') ? window.wildEngineState().drawStack : 4;
+            const penalty = Math.max(4, pending || 4);
+            const colour = String(previousColor || '').toUpperCase();
             if (textNode) {
-                const colour = String(previousColor || '').toUpperCase();
                 textNode.textContent = canStack
-                    ? `The +4 changed the color to ${colour}. Challenge it or stack another +4.`
-                    : `The +4 changed the color to ${colour}. Challenge it or take 4 cards.`;
+                    ? `+4 attack: ${penalty} cards. Choose Challenge, Draw, or Wild+.`
+                    : `+4 attack: draw ${penalty} cards, or Challenge.`;
+            }
+            if (challengeBtn) challengeBtn.textContent = 'CHALLENGE';
+            if (acceptBtn) {
+                acceptBtn.textContent = `DRAW ${penalty}`;
+                acceptBtn.hidden = false;
             }
             if (stackBtn) {
-                stackBtn.hidden = !canStack;
+                stackBtn.textContent = 'WILD+';
+                stackBtn.hidden = false;
                 stackBtn.disabled = !canStack;
+                stackBtn.title = canStack ? 'Play another Wild Draw 4' : 'You do not have a Wild Draw 4';
             }
             overlay.classList.add('visible');
             overlay.setAttribute('aria-hidden','false');
@@ -2220,10 +2243,11 @@ function resolveDraw4Challenge(challengerPid){
 
 function acceptDraw4(pid){
   if(!wild.pendingDraw4) return;
+  const penalty = Math.max(4, wild.drawStack || 4);
   wild.pendingDraw4=null;
   wild.drawStack=0;
   wild.stackTopType=null;
-  drawCards(pid,4);
+  drawCards(pid,penalty);
   advance(1);
 }
 
