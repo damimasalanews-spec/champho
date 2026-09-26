@@ -37,19 +37,3 @@ document.querySelectorAll('#colorModal [data-color]').forEach(b=>b.onclick=()=>{
 $('challengeBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('challenge')};$('stackBtn').onclick=()=>resolve4('stack');$('acceptBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('accept')};
 window.__goWild2v2Finished={state:()=>s,reset,play:id=>playLocal(id)};reset();dealIntro();
 })();
-/* legacy choreography removed: dealIntro now lives inside the game closure */
-function __legacyDealIntro(){
-  const table=$('table');
-  table.classList.add('dealing');
-  const all=['champ','poker','kalkal','jess'];
-  let n=0;
-  all.forEach((pid,pi)=>{
-    for(let j=0;j<7;j++){
-      setTimeout(()=>{
-        const seat=document.querySelector('.gwx-seat[data-player="'+pid+'"]');
-        if(seat){seat.animate([{transform:getComputedStyle(seat).transform+' translateY(8px)',opacity:.55},{transform:getComputedStyle(seat).transform,opacity:1}],220)}
-      },n++*38);
-    }
-  });
-  setTimeout(()=>table.classList.remove('dealing'),n*38+300);
-}
