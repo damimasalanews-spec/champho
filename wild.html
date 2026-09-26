@@ -2242,29 +2242,44 @@ function resolveDraw4Challenge(challengerPid){
 }
 
 function acceptDraw4(pid){
-  if(!wild.pendingDraw4) return;
+  if(!wild.pendingDraw4 || wild.players[wild.turn]!==pid) return;
   const penalty = Math.max(4, wild.drawStack || 4);
   wild.pendingDraw4=null;
   wild.drawStack=0;
   wild.stackTopType=null;
   drawCards(pid,penalty);
+  // Drawing the accumulated +4 penalty always consumes this turn.
+  // The next player gets the turn immediately; the penalized player cannot
+  // play a card after taking the 8/12/16... cards.
   advance(1);
 }
 
 function aiRespondToDraw4(pid){
   if(wild.over || wild.players[wild.turn]!==pid || !wild.pendingDraw4) return;
-  const pending=wild.pendingDraw4;
+  // During a +4 response the ONLY legal continuation is another Wild Draw 4.
+  // If the AI does not have one, it must take the entire accumulated penalty
+  // immediately. Do not run normal card-selection or normal draw logic here.
   const hasPlus4=(wild.hands[pid]||[]).some(c=>c.type==='wild_draw4');
   if(hasPlus4){
     wild.busy=true;
     const card=wild.hands[pid].find(c=>c.type==='wild_draw4');
     return flyAiCard(pid,card);
   }
-  if(hasColoredCard(pending.player,pending.previousColor)) return resolveDraw4Challenge(pid);
   return acceptDraw4(pid);
 }
 
 function commitPlay(pid,card,chosenColor){
+  // Engine-level defense: a card can never enter the discard pile unless it is
+  // legal for the exact state in which it is being committed. This is especially
+  // important for queued AI animations: a stale/random card must not land after
+  // a +4 response has changed the turn into a mandatory penalty resolution.
+  if(!wild.over && !isLegal(card)){
+    if(pid==='p_local'){
+      wild.busy=false;
+      markPlayableHints();
+    }
+    return;
+  }
   const hand=wild.hands[pid] || [];
   const i=hand.findIndex(c=>c.id===card.id);
   if(i>=0) hand.splice(i,1);
