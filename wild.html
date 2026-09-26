@@ -2029,7 +2029,7 @@ const COLORS = ['red','yellow','green','blue'];
 const seatBoxes = { p_left:$id('fan-hand-left'), p_top:$id('teammate-hand-container'), p_right:$id('fan-hand-right') };
 const arrows = { p_local:$id('arrow-local-player'), p_left:$id('arrow-opponent-left'), p_top:$id('arrow-opponent-top'), p_right:$id('arrow-opponent-right') };
 
-const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], currentColor:null, turn:0, dir:1, busy:false, over:false, pendingWildColor:null, warned:false, drawStack:0, stackTopType:null, pendingDraw4:null, winnerTeam:null };
+const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], currentColor:null, turn:0, dir:1, busy:false, over:false, pendingWildColor:null, warned:false, drawStack:0, stackTopType:null, pendingDraw4:null, winnerTeam:null, actionSeq:0 };
 
 function buildDeck(){
   const d=[]; let n=0;
@@ -2379,6 +2379,10 @@ function commitPlay(pid,card,chosenColor){
 
 function advance(steps=1){
   if(wild.over) return;
+  // Every turn transition invalidates every previously queued AI action/animation.
+  // A card selected on an older turn can never land on the new turn.
+  wild.actionSeq++;
+  const actionSeq=wild.actionSeq;
   wild.turn=nextIndex(steps);
   updateArrows();
   const cur=wild.players[wild.turn];
@@ -2387,7 +2391,14 @@ function advance(steps=1){
     return;
   }
   if(cur==='p_local'){ wild.busy=false; }
-  else{ wild.busy=true; const who=cur; setTimeout(()=>runAiTurn(who), AI_DELAY()); }
+  else{
+    wild.busy=true;
+    const who=cur;
+    setTimeout(()=>{
+      if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==who) return;
+      runAiTurn(who,actionSeq);
+    }, AI_DELAY());
+  }
 }
 
 function pickAiCard(pid){
@@ -2411,8 +2422,8 @@ function aiChooseColor(pid){
   wild.hands[pid].forEach(c=>{ if(c.color!=='black') counts[c.color]=(counts[c.color]||0)+1; });
   return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0] || COLORS[Math.floor(Math.random()*4)];
 }
-function runAiTurn(pid){
-  if(wild.over || wild.players[wild.turn]!==pid) return;
+function runAiTurn(pid,actionSeq=wild.actionSeq){
+  if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
   // A pending Wild +4 is a hard response state for EVERY seat. Never let a
   // previously queued normal AI turn continue into card selection.
   if(wild.pendingDraw4){
@@ -2420,24 +2431,29 @@ function runAiTurn(pid){
     return aiRespondToDraw4(pid);
   }
   const card=pickAiCard(pid);
-  if(card) return flyAiCard(pid,card);
+  if(card) return flyAiCard(pid,card,actionSeq);
   if(wild.drawStack>0){
     drawCards(pid,wild.drawStack);
     wild.drawStack=0; wild.stackTopType=null;
-    return setTimeout(()=>{ if(!wild.over) advance(1); },500);
+    return setTimeout(()=>{
+      if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
+      advance(1);
+    },500);
   }
   drawCards(pid,1);
   const drawn=wild.hands[pid][wild.hands[pid].length-1];
   setTimeout(()=>{
-    if(wild.over || wild.players[wild.turn]!==pid) return;
-    if(drawn && isLegal(drawn)) flyAiCard(pid,drawn); else advance(1);
+    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
+    if(drawn && isLegal(drawn)) flyAiCard(pid,drawn,actionSeq); else advance(1);
   },650);
 }
-function flyAiCard(pid,card){
+function flyAiCard(pid,card,actionSeq=wild.actionSeq){
   // A pending Wild +4 is a mandatory response state for all four seats. A stale
   // animation can never be allowed to visually throw or commit a normal card.
-  if(wild.pendingDraw4 && wild.players[wild.turn]===pid && card.type!=='wild_draw4'){
-    return aiRespondToDraw4(pid);
+  if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
+  if(wild.pendingDraw4){
+    if(wild.players[wild.pendingDraw4.responder]!==pid) return;
+    if(card.type!=='wild_draw4') return aiRespondToDraw4(pid);
   }
   // A seat-origin card: a REAL card face (same builder as every other card on the
   // table) that starts small at the seat and grows to table size mid-flight — the
@@ -2449,11 +2465,13 @@ function flyAiCard(pid,card){
   (seatBoxes[pid]||document.body).appendChild(cardEl);
   const done=()=>{
     cardEl.remove();
-    // Re-check the authoritative state at landing time. A +4 may have become
-    // pending while this card was in flight; in that case the card is discarded
-    // from the animation and the AI resolves the +4 instead of committing it.
-    if(wild.pendingDraw4 && wild.players[wild.turn]===pid && card.type!=='wild_draw4'){
-      return aiRespondToDraw4(pid);
+    // The turn/action token is checked BEFORE anything reaches the discard pile.
+    // This is the critical stale-animation protection: even if a card was selected
+    // before a Wild +4 became pending, it cannot land after the turn changed.
+    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
+    if(wild.pendingDraw4){
+      if(wild.players[wild.pendingDraw4.responder]!==pid) return;
+      if(card.type!=='wild_draw4') return aiRespondToDraw4(pid);
     }
     commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined);
   };
@@ -2465,8 +2483,18 @@ function flyAiCard(pid,card){
   // two cards never cross the table at the same moment.
   const startThrow=()=>{
     if(!cardEl.isConnected) return;
-    // Still busy? Wait a beat rather than replacing the throw in flight — replacing
-    // it would orphan the previous throw's pile-append.
+    // Re-check immediately before the visual throw starts. The old implementation
+    // only checked when the card was selected, leaving a 240ms wind-up window where
+    // a stale card could still be launched after the turn had changed.
+    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) {
+      cardEl.remove();
+      return;
+    }
+    if(wild.pendingDraw4){
+      if(wild.players[wild.pendingDraw4.responder]!==pid) { cardEl.remove(); return; }
+      if(card.type!=='wild_draw4') { cardEl.remove(); return aiRespondToDraw4(pid); }
+    }
+    // Still busy? Wait a beat rather than replacing the throw in flight.
     if(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight()){
       setTimeout(startThrow,160);
       return;
@@ -2474,7 +2502,6 @@ function flyAiCard(pid,card){
     try{
       window.throwCardVisual(card,cardEl,done);
     }catch(e){
-      // If the rig is unavailable, land it honestly instead of losing the play.
       setTimeout(done,450);
     }
   };
@@ -2552,7 +2579,7 @@ window.wildStartNextRound = () => {
   // state, never a second copy of it.
   wild.hands={}; wild.drawPile=[]; wild.discard=[]; wild.currentColor=null;
   wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false; wild.winnerPid=null;
-  wild.pendingWildColor=null; wild.drawStack=0; wild.stackTopType=null; wild.pendingDraw4=null;
+  wild.pendingWildColor=null; wild.drawStack=0; wild.stackTopType=null; wild.pendingDraw4=null; wild.actionSeq=0;
   if(typeof window.hideWildDraw4Decision==='function') window.hideWildDraw4Decision();
   const deck=buildDeck();
   SEATS.forEach(p=>wild.hands[p]=deck.splice(0,7));
@@ -2639,7 +2666,7 @@ function init(){
   let first=deck.pop();
   while(first.type!=='number'){ deck.unshift(first); first=deck.pop(); }
   wild.discard=[first]; wild.drawPile=deck; wild.currentColor=first.color;
-  wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false; wild.drawStack=0; wild.stackTopType=null; wild.pendingDraw4=null;
+  wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false; wild.drawStack=0; wild.stackTopType=null; wild.pendingDraw4=null; wild.actionSeq=0;
   paintDeckCount();
   // The page paints this state from its own DOMContentLoaded hook — see the comment
   // there. Nothing renders here: this script's own re-render would fight the page's
