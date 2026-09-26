@@ -2377,11 +2377,24 @@ function commitPlay(pid,card,chosenColor){
   advance(1);
 }
 
+function cancelStaleAiThrows(){
+  if(wild.aiThrowTimers){ for(const t of wild.aiThrowTimers) clearTimeout(t); wild.aiThrowTimers.clear(); }
+  if(wild.aiThrowEls){ for(const e of wild.aiThrowEls){ try{e.remove();}catch(x){} } wild.aiThrowEls.clear(); }
+  if(typeof cardThrow!=='undefined' && cardThrow && cardThrow.aiActionSeq!==undefined){
+    const a=cardThrow; cardThrow=null;
+    try{a.ghostA&&a.ghostA.remove();}catch(x){}
+    try{a.ghostB&&a.ghostB.remove();}catch(x){}
+    try{a.ghostC&&a.ghostC.remove();}catch(x){}
+    const f=document.getElementById('throw-flight-card'); if(f) f.style.opacity='0';
+  }
+}
+
 function advance(steps=1){
   if(wild.over) return;
   // Every turn transition invalidates every previously queued AI action/animation.
   // A card selected on an older turn can never land on the new turn.
   wild.actionSeq++;
+  cancelStaleAiThrows();
   const actionSeq=wild.actionSeq;
   wild.turn=nextIndex(steps);
   updateArrows();
@@ -2448,68 +2461,51 @@ function runAiTurn(pid,actionSeq=wild.actionSeq){
   },650);
 }
 function flyAiCard(pid,card,actionSeq=wild.actionSeq){
-  // A pending Wild +4 is a mandatory response state for all four seats. A stale
-  // animation can never be allowed to visually throw or commit a normal card.
   if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
   if(wild.pendingDraw4){
     if(wild.players[wild.pendingDraw4.responder]!==pid) return;
     if(card.type!=='wild_draw4') return aiRespondToDraw4(pid);
   }
-  // A seat-origin card: a REAL card face (same builder as every other card on the
-  // table) that starts small at the seat and grows to table size mid-flight — the
-  // card leaving the hand, exactly as Champ's does.
   const cardEl=document.createElement('div');
   cardEl.className='ai-throw-source '+(card.color==='black'?'wild':card.color);
   cardEl.style.transform='translate(-50%,-50%) scale(.35)';
   cardEl.innerHTML=window.ChampCards.cardFaceHtml(card);
   (seatBoxes[pid]||document.body).appendChild(cardEl);
+  wild.aiThrowEls.add(cardEl);
+  const cleanup=()=>{wild.aiThrowEls.delete(cardEl);try{cardEl.remove();}catch(e){}};
   const done=()=>{
-    cardEl.remove();
-    // The turn/action token is checked BEFORE anything reaches the discard pile.
-    // This is the critical stale-animation protection: even if a card was selected
-    // before a Wild +4 became pending, it cannot land after the turn changed.
+    cleanup();
     if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
     if(wild.pendingDraw4){
       if(wild.players[wild.pendingDraw4.responder]!==pid) return;
       if(card.type!=='wild_draw4') return aiRespondToDraw4(pid);
     }
-    commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined);
+    commitPlay(pid,card,card.color==='black'?aiChooseColor(pid):undefined);
   };
-  // SAME RIG AS CHAMP: throwCardVisual is the local player's own throw — the same
-  // anticipation, arc, spin, ghost trail, impact ring, sparks and camera recoil.
-  // The only difference is the starting rect: the flyer launches from wherever this
-  // element sits, so an AI card sweeps in from its seat like Champ's sweeps up from
-  // the bottom edge. AI throws queue a beat behind a throw already in flight, so
-  // two cards never cross the table at the same moment.
   const startThrow=()=>{
+    if(typeof startTimer!=='undefined') wild.aiThrowTimers.delete(startTimer);
     if(!cardEl.isConnected) return;
-    // Re-check immediately before the visual throw starts. The old implementation
-    // only checked when the card was selected, leaving a 240ms wind-up window where
-    // a stale card could still be launched after the turn had changed.
-    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) {
-      cardEl.remove();
-      return;
-    }
+    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid){cleanup();return;}
     if(wild.pendingDraw4){
-      if(wild.players[wild.pendingDraw4.responder]!==pid) { cardEl.remove(); return; }
-      if(card.type!=='wild_draw4') { cardEl.remove(); return aiRespondToDraw4(pid); }
+      if(wild.players[wild.pendingDraw4.responder]!==pid){cleanup();return;}
+      if(card.type!=='wild_draw4'){cleanup();return aiRespondToDraw4(pid);}
     }
-    // Still busy? Wait a beat rather than replacing the throw in flight.
     if(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight()){
-      setTimeout(startThrow,160);
-      return;
+      const t=setTimeout(startThrow,160); wild.aiThrowTimers.add(t); return;
     }
     try{
       window.throwCardVisual(card,cardEl,done);
-    }catch(e){
-      setTimeout(done,450);
-    }
+      if(typeof cardThrow!=='undefined' && cardThrow) cardThrow.aiActionSeq=actionSeq;
+      wild.aiThrowEls.delete(cardEl);
+    }catch(e){setTimeout(done,450);}
   };
-  // The wind-up: the seat's card leans out of the fan and grows, then the rig takes
-  // it — the same beat Champ's anticipation phase gives the bottom seat.
-  const queueDelay=(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight()) ? 380 : 0;
-  requestAnimationFrame(()=>{ cardEl.style.transform='translate(-50%,-50%) scale(.85)'; });
-  setTimeout(startThrow, queueDelay+240);
+  const delay=(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight())?380:0;
+  requestAnimationFrame(()=>{
+    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid){cleanup();return;}
+    cardEl.style.transform='translate(-50%,-50%) scale(.85)';
+  });
+  const startTimer=setTimeout(startThrow,delay+240);
+  wild.aiThrowTimers.add(startTimer);
 }
 
 function endRound(winnerPid){
