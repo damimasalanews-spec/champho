@@ -198,3 +198,9 @@
 .gwx-table.dealing .gwx-hand-card,
 .gwx-table.dealing .mini-back,
 .gwx-table.dealing .opponent-back{will-change:transform,opacity}
+
+
+/* EXACT CARD DEAL MOTION: the real rendered card clone travels from deck to its seat */
+.gwx-motion-layer{position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:visible}
+.gwx-deal-clone{box-sizing:border-box;pointer-events:none!important;will-change:transform,opacity;filter:drop-shadow(0 18px 28px #000b) drop-shadow(0 0 14px #7ac7ff44)}
+.gwx-table.dealing{cursor:wait}
