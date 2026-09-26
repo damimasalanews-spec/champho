@@ -2050,8 +2050,9 @@ const topCard = () => wild.discard[wild.discard.length-1] || null;
 function isDrawCard(card){ return card && (card.type==='draw2'||card.type==='wild_draw4'); }
 function isLegal(card){ return goWildLegal(card); }
 function canPlayWildDraw4(pid){
-  const color=wild.currentColor;
-  return !color || !(wild.hands[pid]||[]).some(c=>c.color===color);
+  // In this game a Wild +4 is always playable. Having the current colour
+  // does NOT block it; if a player has one, it is the required +4 response.
+  return (wild.hands[pid]||[]).some(c=>c.type==='wild_draw4');
 }
 function goWildLegal(card){
   const t=topCard();
@@ -2228,7 +2229,7 @@ function presentDraw4ResponseForCurrentPlayer(){
   if(cur!==wild.players[pending.responder]) return;
   if(cur==='p_local'){
     wild.busy=true;
-    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4' && canPlayWildDraw4('p_local'));
+    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4');
     if(typeof window.presentWildDraw4Decision==='function'){
       window.presentWildDraw4Decision(canStack,pending.previousColor);
     }
@@ -2291,10 +2292,10 @@ function aiRespondToDraw4(pid){
   const pending=wild.pendingDraw4;
   if(wild.over || !pending || wild.players[wild.turn]!==pid) return;
   if(wild.players[pending.responder]!==pid) return;
-  const card=(wild.hands[pid]||[]).find(c=>c.type==='wild_draw4' && canPlayWildDraw4(pid));
+  const card=(wild.hands[pid]||[]).find(c=>c.type==='wild_draw4');
   if(card){
     wild.busy=true;
-    return flyAiCard(pid,card);
+    return flyAiCard(pid,card,wild.actionSeq);
   }
   return acceptDraw4(pid);
 }
