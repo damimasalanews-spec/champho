@@ -2479,8 +2479,11 @@ function flyAiCard(pid,card,actionSeq=wild.actionSeq){
   cardEl.innerHTML=window.ChampCards.cardFaceHtml(card);
   (seatBoxes[pid]||document.body).appendChild(cardEl);
   wild.aiThrowEls.add(cardEl);
+  let settled=false;
   const cleanup=()=>{wild.aiThrowEls.delete(cardEl);try{cardEl.remove();}catch(e){}};
   const done=()=>{
+    if(settled) return;
+    settled=true;
     cleanup();
     if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid) return;
     if(wild.pendingDraw4){
@@ -2489,6 +2492,15 @@ function flyAiCard(pid,card,actionSeq=wild.actionSeq){
     }
     commitPlay(pid,card,card.color==='black'?aiChooseColor(pid):undefined);
   };
+  // Safety net: the shared cinematic throw must never be able to freeze the game.
+  // If its animation loop is interrupted, commit the AI play anyway.
+  const fallbackTimer=setTimeout(()=>{
+    if(settled) return;
+    if(wild.over || wild.actionSeq!==actionSeq || wild.players[wild.turn]!==pid){settled=true;cleanup();return;}
+    try{ if(typeof cardThrow!=='undefined' && cardThrow && cardThrow.aiActionSeq===actionSeq){cardThrow=null; const f=document.getElementById('throw-flight-card'); if(f) f.style.opacity='0';} }catch(e){}
+    done();
+  },1400);
+  wild.aiThrowTimers.add(fallbackTimer);
   const startThrow=()=>{
     if(typeof startTimer!=='undefined') wild.aiThrowTimers.delete(startTimer);
     if(!cardEl.isConnected) return;
