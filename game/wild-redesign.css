@@ -349,8 +349,8 @@ body{background:var(--cw-bg)!important;color:var(--cw-text)!important;}
   border:2px solid rgba(255,255,255,.52)!important;
   box-shadow:0 12px 24px rgba(0,0,0,.42)!important;
   left:calc(var(--i)*62px - 186px)!important;
-  top:calc(abs(var(--i) - 3)*5px)!important;
-  transform:rotate(calc((var(--i) - 3)*2.2deg))!important;
+  top:0!important;
+  transform:translateY(calc(abs(var(--i) - 3)*5px)) rotate(calc((var(--i) - 3)*2.2deg))!important;
 }
 
 /* ---------- SIDE OPPONENTS: cards point toward the arena, not across the UI ---------- */
