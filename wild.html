@@ -2269,6 +2269,19 @@ function aiRespondToDraw4(pid){
 }
 
 function commitPlay(pid,card,chosenColor){
+  // HARD +4 RESPONSE LOCK: while a Wild +4 is pending, the current player may
+  // ONLY stack another Wild +4. Challenge and Draw 4 are resolved by their own
+  // handlers. This guard is deliberately inside the authoritative commit path so
+  // stale AI animations or UI callbacks can never sneak a normal card onto the pile.
+  if(wild.pendingDraw4 && wild.players[wild.turn]===pid){
+    if(card.type!=='wild_draw4'){
+      if(pid==='p_local'){
+        wild.busy=true;
+        presentDraw4ResponseForCurrentPlayer();
+      }
+      return;
+    }
+  }
   // Engine-level defense: a card can never enter the discard pile unless it is
   // legal for the exact state in which it is being committed. This is especially
   // important for queued AI animations: a stale/random card must not land after
@@ -2502,6 +2515,14 @@ window.wildStartNextRound = () => {
 // thrown card has already landed on the pile visually, so the commit must not
 // repaint the pile — only the state, the effects and the next turn.
 window.__commitLocalPlay = (card, chosenColor, pileCardNode) => {
+  // The presentation layer must obey the same +4 response lock as the engine.
+  // A Wild +4 leaves the next player in a forced response state: normal cards
+  // (blue/red/yellow/green, action cards, etc.) cannot be committed here.
+  if(wild.pendingDraw4 && wild.players[wild.turn]==='p_local' && card.type!=='wild_draw4'){
+    wild.busy=true;
+    presentDraw4ResponseForCurrentPlayer();
+    return;
+  }
   const hand=wild.hands.p_local || [];
   const i=hand.findIndex(c=>c.id===card.id);
   if(i>=0) hand.splice(i,1);
