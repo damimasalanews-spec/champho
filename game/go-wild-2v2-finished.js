@@ -35,44 +35,103 @@ function dealIntro(){
   const token=roundToken;
   table.classList.add('dealing');
   s.dealing=true;
-  const from=pile.getBoundingClientRect();
-  const seats={poker:document.querySelector('.gwx-seat.top'),kalkal:document.querySelector('.gwx-seat.left'),jess:document.querySelector('.gwx-seat.right'),champ:document.querySelector('.gwx-seat.bottom')};
+
+  const motion=document.createElement('div');
+  motion.className='gwx-motion-layer';
+  document.body.appendChild(motion);
+
+  const seats={
+    poker:document.querySelector('.gwx-seat.top'),
+    kalkal:document.querySelector('.gwx-seat.left'),
+    jess:document.querySelector('.gwx-seat.right'),
+    champ:document.querySelector('.gwx-seat.bottom')
+  };
   const targetFor=(pid,i)=>{
     const h=pid==='champ'?$('hand-local'):pid==='poker'?$('hand-top'):seats[pid]?.querySelector('.gwx-opponent-hand');
     return h?.children[i]||null;
   };
-  const allTargets=[];
-  ORDER.forEach(pid=>{for(let i=0;i<7;i++){const t=targetFor(pid,i);if(t){t.classList.add('deal-target');allTargets.push(t)}}});
-  const total=28,step=220,startDelay=900;
-  for(let round=0;round<7;round++) ORDER.forEach((pid,pi)=>{
-    const i=round,t=targetFor(pid,i);if(!t)return;
-    const delay=startDelay+(round*4+pi)*step;
+
+  const jobs=[];
+  ORDER.forEach(pid=>{
+    for(let i=0;i<7;i++){
+      const target=targetFor(pid,i);
+      if(target) jobs.push({pid,i,target});
+    }
+  });
+
+  const from=pile.getBoundingClientRect();
+  const total=jobs.length;
+  let completed=0;
+  const step=190,startDelay=700,duration=760;
+
+  jobs.forEach((job,index)=>{
+    const delay=startDelay+index*step;
+    job.target.style.visibility='hidden';
+
     setTimeout(()=>{
-      if(token!==roundToken)return;
-      const target=targetFor(pid,i),r=target?.getBoundingClientRect();if(!r)return;
-      const f=document.createElement('div');f.className='gwx-deal-flyer';document.body.appendChild(f);
-      const fw=Math.max(54,Math.min(92,r.width)),fh=Math.max(78,Math.min(138,r.height));
-      f.style.width=fw+'px';f.style.height=fh+'px';
-      const sx=from.left+from.width/2-fw/2,sy=from.top+from.height/2-fh/2;
-      f.style.left=sx+'px';f.style.top=sy+'px';
-      const tx=r.left-sx,ty=r.top-sy,arc=pid==='champ'?-120:pid==='poker'?-100:-115,spin=pi%2?-14:14;
-      const anim=f.animate([
-        {transform:'translate(0,0) rotate('+(-spin)+'deg) scale(.35)',opacity:0},
-        {transform:'translate('+tx*.32+'px,'+(ty*.32+arc)+'px) rotate('+spin+'deg) scale(1.08)',opacity:1,offset:.3},
-        {transform:'translate('+tx*.72+'px,'+(ty*.72+arc*.28)+'px) rotate('+(-spin*.45)+'deg) scale(1.02)',opacity:1,offset:.72},
-        {transform:'translate('+tx+'px,'+ty+'px) rotate(0deg) scale(1)',opacity:1}
-      ],{duration:900,easing:'cubic-bezier(.12,.8,.18,1)'});
-      anim.finished.then(()=>{f.remove();if(token!==roundToken)return;target.classList.remove('deal-target');target.classList.add('deal-land');setTimeout(()=>target.classList.remove('deal-land'),380)}).catch(()=>f.remove());
+      if(token!==roundToken){return;}
+      const target=targetFor(job.pid,job.i);
+      if(!target){completed++;return finalizeIfDone();}
+      const r=target.getBoundingClientRect();
+      if(!r.width||!r.height){completed++;target.style.visibility='visible';return finalizeIfDone();}
+
+      const clone=target.cloneNode(true);
+      clone.classList.remove('deal-target','deal-land');
+      clone.classList.add('gwx-deal-clone');
+      clone.style.position='fixed';
+      clone.style.left=(from.left+from.width/2-r.width/2)+'px';
+      clone.style.top=(from.top+from.height/2-r.height/2)+'px';
+      clone.style.width=r.width+'px';
+      clone.style.height=r.height+'px';
+      clone.style.margin='0';
+      clone.style.zIndex='100000';
+      clone.style.opacity='0';
+      clone.style.pointerEvents='none';
+      clone.style.transform='rotate('+(index%2?-7:7)+'deg) scale(.62)';
+      motion.appendChild(clone);
+
+      const tx=r.left-(from.left+from.width/2-r.width/2);
+      const ty=r.top-(from.top+from.height/2-r.height/2);
+      const arc=job.pid==='champ'?-90:(job.pid==='poker'?-75:-95);
+      const spin=index%2?-7:7;
+
+      requestAnimationFrame(()=>{
+        const anim=clone.animate([
+          {transform:'translate(0,0) rotate('+(-spin)+'deg) scale(.62)',opacity:0},
+          {transform:'translate('+tx*.28+'px,'+(ty*.28+arc)+'px) rotate('+spin+'deg) scale(1.08)',opacity:1,offset:.28},
+          {transform:'translate('+tx*.72+'px,'+(ty*.72+arc*.24)+'px) rotate('+(-spin*.35)+'deg) scale(1.02)',opacity:1,offset:.72},
+          {transform:'translate('+tx+'px,'+ty+'px) rotate(0deg) scale(1)',opacity:1}
+        ],{duration,easing:'cubic-bezier(.12,.82,.16,1)',fill:'forwards'});
+
+        anim.finished.then(()=>{
+          clone.remove();
+          if(token!==roundToken)return;
+          target.style.visibility='visible';
+          target.classList.add('deal-land');
+          setTimeout(()=>target.classList.remove('deal-land'),380);
+          completed++;
+          finalizeIfDone();
+        }).catch(()=>{
+          clone.remove();
+          if(token!==roundToken)return;
+          target.style.visibility='visible';
+          completed++;
+          finalizeIfDone();
+        });
+      });
     },delay);
   });
-  const finish=startDelay+(total-1)*step+750;
-  setTimeout(()=>{
-    if(token!==roundToken)return;
-    allTargets.forEach(t=>t.classList.remove('deal-target'));
-    table.classList.remove('dealing');s.dealing=false;render();
+
+  function finalizeIfDone(){
+    if(completed<total)return;
+    motion.remove();
+    table.classList.remove('dealing');
+    s.dealing=false;
+    render();
     if(current()!=='champ')scheduleAI();
-  },finish);
+  }
 }
+
 function reset(){roundToken++;clearTimeout(aiTimer);clearInterval(clock);busy=false;$('colorModal').classList.remove('open');$('draw4Modal').classList.remove('open');$('winModal').classList.remove('open');let d=deck(),players={};ORDER.forEach(p=>players[p]=[]);for(let i=0;i<7;i++)ORDER.forEach(p=>players[p].push(d.pop()));let top=d.pop();while(top.color==='wild'||top.type!=='number'){d.unshift(top);shuffle(d);top=d.pop()}s={deck:d,discard:[top],players,current:0,dir:1,color:top.color,pending:0,pendingBy:null,lastDraw4Legal:null,phase:'playing',dealing:true,round:s?.round?s.round+1:1,scores,seconds:150};render();requestAnimationFrame(()=>setTimeout(dealIntro,120));$('timer').textContent='02:30';clock=setInterval(()=>{if(s.phase==='playing'){s.seconds--;let m=Math.max(0,Math.floor(s.seconds/60)),sec=Math.max(0,s.seconds%60);$('timer').textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');if(s.seconds<=0)win('B','Time expired')}},1000);if(current()!=='champ')scheduleAI()}
 $('drawBtn').onclick=()=>{if(current()!=='champ'||busy||s?.dealing)return;if(s.pending){$('draw4Modal').classList.add('open');return}let g=draw('champ',1);if(!g[0]||!playable(g[0]))setTimeout(advance,450)};
 $('drawPile').onclick=()=>$('drawBtn').click();
