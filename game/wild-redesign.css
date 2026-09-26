@@ -952,3 +952,185 @@ body{background:var(--cw-bg)!important;color:var(--cw-text)!important;}
     inset 0 1px 0 rgba(255,255,255,.95),
     inset 0 -8px 14px rgba(0,0,0,.20)!important;
 }
+
+
+/* ==========================================================================
+   INDIVIDUAL CARD ART — GO WILD SIGNATURE MARKS
+   --------------------------------------------------------------------------
+   Each action now has its own visual language while sharing the same physical
+   card construction. These are presentation-only selectors.
+   ========================================================================== */
+
+/* Number cards: a restrained inner glow keeps the digit dominant and readable. */
+.card .number-value,
+.discarded-card .number-value,
+.card-in-flight .number-value{
+  font-variant-numeric:tabular-nums;
+  transform:translateY(1px);
+  letter-spacing:-.08em;
+}
+
+/* A soft printed halo behind every action mark. */
+.card .mark-skip,
+.card .mark-reverse,
+.card .mark-draw2,
+.card .mark-discard_all,
+.card .mark-wild,
+.card .mark-wild4{
+  position:relative;
+  z-index:4!important;
+}
+
+/* SKIP — two vertical pause bars + a moving baseline. */
+.card .mark-skip,
+.discarded-card .mark-skip{
+  transform:scale(1.04);
+  filter:
+    drop-shadow(0 5px 2px rgba(0,0,0,.34))
+    drop-shadow(0 0 12px rgba(255,255,255,.16))!important;
+}
+.card .mark-skip:before{
+  content:"";
+  position:absolute;
+  inset:16% 21%;
+  border:2px solid rgba(255,255,255,.18);
+  border-radius:28px;
+  transform:rotate(-8deg);
+  pointer-events:none;
+}
+
+/* REVERSE — a bold U-turn gets an illuminated tail, not a generic two-arrow icon. */
+.card .mark-reverse,
+.discarded-card .mark-reverse{
+  transform:scale(1.08);
+  filter:
+    drop-shadow(0 5px 2px rgba(0,0,0,.38))
+    drop-shadow(0 0 14px rgba(255,255,255,.17))!important;
+}
+.card .mark-reverse:before{
+  content:"";
+  position:absolute;
+  inset:18%;
+  border:3px solid rgba(255,255,255,.12);
+  border-right-color:rgba(255,255,255,.34);
+  border-radius:50%;
+  transform:rotate(-18deg);
+  pointer-events:none;
+}
+
+/* +2 — impact badge and sliding-card echo. */
+.card .draw-count,
+.discarded-card .draw-count{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:76px;
+  height:54px;
+  margin:auto;
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(232,238,247,.80));
+  color:var(--gw-ink)!important;
+  -webkit-text-stroke:0!important;
+  text-shadow:0 2px 0 rgba(255,255,255,.55)!important;
+  box-shadow:
+    0 8px 15px rgba(0,0,0,.22),
+    inset 0 2px 0 #fff,
+    0 0 0 2px rgba(255,255,255,.22);
+  transform:rotate(-4deg);
+  letter-spacing:-.05em!important;
+}
+.card .mark-draw2{
+  transform:scale(1.04);
+}
+.card .mark-draw2 + .corner-value{
+  color:#fff;
+}
+
+/* ALL — a compact collector-style badge with a spark accent. */
+.card .action-symbol:not(.draw-count){
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:72px;
+  height:48px;
+  margin:auto;
+  border-radius:15px;
+  background:rgba(255,255,255,.94);
+  color:var(--gw-ink)!important;
+  font-size:28px!important;
+  letter-spacing:.02em!important;
+  text-shadow:none!important;
+  box-shadow:0 7px 14px rgba(0,0,0,.22),inset 0 2px 0 #fff;
+}
+.card.discard-all .card-glyph{
+  transform:scale(1.03);
+}
+
+/* WILD — make the four-petal pinwheel feel like a premium emblem. */
+.card .mark-wild,
+.discarded-card .mark-wild{
+  transform:scale(1.08);
+  filter:
+    drop-shadow(0 5px 3px rgba(0,0,0,.48))
+    drop-shadow(0 0 18px rgba(255,255,255,.20))!important;
+}
+.card.wild .mark-wild:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:72%;
+  height:72%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.16);
+  box-shadow:0 0 20px rgba(255,255,255,.08);
+  pointer-events:none;
+}
+
+/* WILD +4 — the most dramatic action mark, but still unmistakably Go Wild. */
+.card .mark-wild4,
+.discarded-card .mark-wild4{
+  transform:scale(1.12);
+  filter:
+    drop-shadow(0 5px 3px rgba(0,0,0,.52))
+    drop-shadow(0 0 20px rgba(255,255,255,.22))!important;
+}
+.card.wild .mark-wild4:before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:82%;
+  height:82%;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  border:3px solid rgba(255,255,255,.18);
+  box-shadow:
+    0 0 0 5px rgba(0,0,0,.10),
+    0 0 24px rgba(81,231,255,.10);
+  pointer-events:none;
+}
+.card.wild .mark-wild4 + .corner-value{
+  font-size:19px!important;
+}
+
+/* Action cards get a subtle top-edge highlight so their marks read at a distance. */
+.card:has(.mark-skip):before,
+.card:has(.mark-reverse):before,
+.card:has(.mark-draw2):before,
+.card:has(.mark-discard_all):before,
+.card:has(.mark-wild):before,
+.card:has(.mark-wild4):before{
+  opacity:.72!important;
+}
+
+/* Hover lighting is specific to the action family. */
+.hand-container .card:has(.mark-wild),
+.hand-container .card:has(.mark-wild4){
+  --action-glow:rgba(155,124,255,.20);
+}
+.hand-container .card:has(.mark-draw2),
+.hand-container .card:has(.mark-discard_all){
+  --action-glow:rgba(255,255,255,.16);
+}
