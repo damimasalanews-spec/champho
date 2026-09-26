@@ -1987,10 +1987,21 @@ function drawCards(pid,count){
 function updateOpponentHand(pid){
   const box=seatBoxes[pid]; if(!box) return;
   box.innerHTML='';
-  wild.hands[pid].forEach((_,i)=>{
-    const b=document.createElement('div');
-    b.className='ai-card-back'; b.style.setProperty('--i',i);
-    box.appendChild(b);
+  wild.hands[pid].forEach((card,i)=>{
+    if(pid==='p_top'){
+      const b=document.createElement('div');
+      const displayCard = { ...card, color: card.color === 'black' ? 'wild' : card.color };
+      b.className='card opponent-open-card '+displayCard.color;
+      b.style.setProperty('--i',i);
+      b.style.setProperty('--index-offset',i);
+      b.innerHTML=window.ChampCards.cardFaceHtml(displayCard);
+      box.appendChild(b);
+    } else {
+      const b=document.createElement('div');
+      b.className='ai-card-back';
+      b.style.setProperty('--i',i);
+      box.appendChild(b);
+    }
   });
   // The seat's count lives on a badge over its portrait — the number the old
   // count-stack carried, filled straight from the engine's hand.
@@ -2318,5 +2329,80 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
 })();
 </script>
 
+
+<style id="wild-reference-layout-overrides">
+/* ================================================================
+   Reference-game visual pass
+   - illustrated island scene
+   - uniform UNO-style red backs for hidden hands
+   - face-up partner hand
+   - matching rounded-square avatar frames
+   - compact 16:9 composition matching the supplied reference
+   ================================================================ */
+.viewport-frame{background-color:#1ec8e6!important;background-image:url('../assets/island-table-bg.webp')!important;background-size:cover!important;background-position:center!important}
+.game-table{background:transparent!important}
+.stage{
+  --hand-card-w:92px;--hand-card-h:136px;--hand-step:48px;
+  --top-card-w:68px;--top-card-h:101px;
+  --side-card-w:92px;--side-card-h:136px;
+  --discard-w:140px;--discard-h:198px;
+  --draw-w:190px;--draw-h:250px;
+  --avatar-top:190px;--avatar-you:190px;--avatar-side:190px;
+}
+.avatar-container,
+.opponent-top .avatar-container,.opponent-left .avatar-container,.opponent-right .avatar-container,.local-user-slot .avatar-container{
+  width:190px!important;height:190px!important;border-radius:34px!important;border:8px solid #fff!important;
+  font-size:6.2rem!important;display:flex!important;align-items:center!important;justify-content:center!important;
+}
+.avatar-hud-wrapper::before{width:210px!important;height:210px!important;top:-10px!important;left:-10px!important;border-radius:40px!important}
+.player-pill-tag,.opponent-top .player-pill-tag,.opponent-left .player-pill-tag,.opponent-right .player-pill-tag,.local-user-slot .player-pill-tag{
+  width:300px!important;height:56px!important;border-radius:30px!important;font-size:2rem!important;
+}
+.opponent-top{left:calc(50% - 410px)!important;top:62px!important;transform:none!important}
+.opponent-top-row{position:relative!important;width:560px!important;height:260px!important;gap:0!important}
+.opponent-top .opponent-profile-wrapper{position:relative!important;width:300px!important;z-index:5}
+.opponent-top-row .opponent-top-hand{position:absolute!important;left:238px!important;top:48px!important;margin:0!important;width:420px!important;height:155px!important;z-index:4}
+.opponent-top-hand .opponent-open-card{width:68px!important;height:101px!important;margin:0 -5px!important;position:relative!important;display:inline-flex!important;transform:translateY(calc(abs(var(--i) - 3) * 4px)) rotate(calc((var(--i) - 3) * 2deg))!important}
+.opponent-left{left:88px!important;top:330px!important;transform:none!important}
+.opponent-right{right:230px!important;top:330px!important;transform:none!important}
+.opponent-left .opponent-profile-wrapper,.opponent-right .opponent-profile-wrapper{position:relative!important}
+.opponent-fan-tray{position:absolute!important;left:180px!important;top:150px!important;width:480px!important;height:330px!important;margin:0!important;z-index:1}
+.opponent-right .opponent-fan-tray{left:-290px!important}
+.ai-card-back{
+  position:absolute!important;width:92px!important;height:136px!important;margin:0!important;
+  left:calc(var(--i)*48px)!important;top:calc(var(--i)*35px)!important;
+  border:8px solid #fff!important;border-radius:14px!important;
+  background:linear-gradient(150deg,#ff4a42 0%,#d81722 55%,#a90d18 100%)!important;
+  box-shadow:0 7px 14px rgba(0,0,0,.38),inset 0 2px 5px rgba(255,255,255,.3)!important;
+  overflow:hidden!important;
+}
+.ai-card-back::before{
+  content:'UNO'!important;position:absolute!important;inset:14% 5%!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  background:radial-gradient(ellipse at center,#111 0 48%,transparent 50%)!important;
+  color:#ffd72f!important;font-family:Arial,sans-serif!important;font-size:25px!important;font-weight:1000!important;font-style:italic!important;
+  text-shadow:2px 2px 0 #a40000,-1px -1px 0 #fff!important;
+}
+.opponent-left .ai-card-back{transform:rotate(-32deg)}
+.opponent-right .ai-card-back{transform:rotate(32deg)}
+.hand-container{left:calc(50% + 100px)!important;top:846px!important;width:760px!important;height:136px!important}
+.hand-container .card{width:92px!important;height:136px!important;border-width:7px!important;border-radius:14px!important}
+.hand-container .card .card-value{font-size:4.4rem!important}
+.hand-container .card .card-value.action-symbol{font-size:2.8rem!important}
+.hand-container .card .corner-value{font-size:1.25rem!important}
+.center-play-zone{left:calc(50% + 10px)!important;top:47%!important;width:150px!important;height:205px!important;border:0!important;background:transparent!important}
+.center-play-zone .discard-pile{width:140px!important;height:198px!important;border:0!important;background:transparent!important}
+.center-play-zone .discarded-card{width:140px!important;height:198px!important;border-width:8px!important;border-radius:16px!important}
+.center-play-zone .discarded-card .card-value{font-size:6.2rem!important}
+.top-left-deck-group{left:300px!important;top:42px!important}
+#central-deck{width:190px!important;height:250px!important;border-width:8px!important;border-radius:20px!important;transform:rotate(-17deg)!important;background:linear-gradient(145deg,#ff4b42,#b70f1a)!important}
+#central-deck::before{content:'UNO'!important;position:absolute!important;inset:20% 8%!important;display:flex!important;align-items:center!important;justify-content:center!important;background:radial-gradient(ellipse at center,#111 0 48%,transparent 50%)!important;color:#ffd72f!important;font-family:Arial,sans-serif!important;font-size:58px!important;font-weight:1000!important;font-style:italic!important;text-shadow:3px 3px 0 #a40000,-2px -2px 0 #fff!important;background-image:none!important;transform:none!important}
+.arcade-timer-badge{left:140px!important;top:22px!important;width:240px!important;height:74px!important;font-size:2.1rem!important}
+.arcade-settings-btn{right:82px!important;top:20px!important;width:44px!important;height:44px!important;font-size:1.35rem!important}
+.local-user-slot{left:270px!important;top:690px!important}
+.controls-panel{right:100px!important;top:690px!important}
+#btn-uno-call{width:190px!important;height:190px!important;border-radius:50%!important;font-size:2.2rem!important}
+.chat-bubble-trigger{left:150px!important;top:735px!important;width:70px!important;height:70px!important;font-size:1.8rem!important}
+</style>
 </body>
 </html>
