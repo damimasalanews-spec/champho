@@ -716,7 +716,8 @@
             paintedThrowKey = '';   // this throw repaints the flyer's face from scratch
             cardThrow = {
                 t0: 0, p0, p1, p2, spinDir, tilt0, k0, box, stageW: stage.width,
-                letter: cardData.value, color: cardData.color,
+                letter: cardData.value, color: (cardData.color === 'black' ? 'wild' : cardData.color),
+                type: cardData.type,
                 sourceEl: cardElement, onLanded,
                 ghostA, ghostB, ghostC, trail, impacted: false,
             };
@@ -740,7 +741,7 @@
             if (!a.t0) a.t0 = now;
 
             const t = (now - a.t0) / 1000;
-            const s = { x: a.p0.x, y: a.p0.y, z: 0, rot: a.tilt0, rx: 0, ry: 0, sx: a.k0, sy: a.k0, dir: 0, blur: 0, speed: 0, color: a.color, letter: a.letter };
+            const s = { x: a.p0.x, y: a.p0.y, z: 0, rot: a.tilt0, rx: 0, ry: 0, sx: a.k0, sy: a.k0, dir: 0, blur: 0, speed: 0, color: a.color, letter: a.letter, type: a.type };
 
             if (t <= THROW.lift) {
                 // 0.00-0.08 anticipation: lift + slight scale, fast and small
@@ -1065,6 +1066,10 @@
             if (flightCard) { flightCard.style.opacity = '0'; flightCard.style.filter = 'none'; }
             a.onLanded();   // the original pile-append + effects run here, unchanged
         }
+
+        // The AI seats ask this before launching their own throw, so two cards never
+        // cross the table at the same moment — the AI waits a beat instead.
+        window.cardThrowInFlight = function () { return !!cardThrow; };
 
         // The local play: one throw, one landing, and the ENGINE told exactly once.
         // The placed card is presentation — the state of the round lives in the engine.
@@ -1854,6 +1859,72 @@
 .ai-fly-card.yellow{background:linear-gradient(135deg,#ffcc00 0%,#cc9900 100%);color:#fff}
 .ai-fly-card.green{background:linear-gradient(135deg,#00cc44 0%,#007722 100%)}
 .ai-fly-card.wild{background:linear-gradient(135deg,#222222 0%,#050505 100%)}
+/* The AI seats' throw-origin card: a real card face that grows out of the seat and
+   is then taken by the same flight rig Champ's cards use. Styled here rather than
+   in the sheet because it is this page's choreography, not shared table furniture. */
+.ai-throw-source {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 125px;
+    height: 175px;
+    border-radius: 14px;
+    border: 4px solid #ffffff;
+    overflow: hidden;
+    z-index: 60;
+    pointer-events: none;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+    transition: transform .24s cubic-bezier(.34, 1.2, .64, 1);
+    will-change: transform;
+}
+.ai-throw-source.red    { background: linear-gradient(135deg, #ff1744 0%, #b3001e 100%); }
+.ai-throw-source.blue   { background: linear-gradient(135deg, #0066ff 0%, #0033aa 100%); }
+.ai-throw-source.yellow { background: linear-gradient(135deg, #ffcc00 0%, #cc9900 100%); }
+.ai-throw-source.green  { background: linear-gradient(135deg, #00cc44 0%, #007722 100%); }
+.ai-throw-source.wild   { background: linear-gradient(135deg, #222222 0%, #050505 100%); }
+.ai-throw-source::before {
+    content: '';
+    position: absolute;
+    width: 140%;
+    height: 85%;
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    transform: rotate(-26deg);
+    z-index: 1;
+}
+/* The face builder's markup, dressed for this size — same hierarchy as .card. */
+.ai-throw-source .card-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nunito', sans-serif;
+    font-size: 3.6rem;
+    font-weight: 900;
+    color: #ffffff;
+    z-index: 2;
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+}
+.ai-throw-source .corner-value {
+    position: absolute;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+    z-index: 2;
+}
+.ai-throw-source .corner-top-left { top: 2px; left: 6px; }
+.ai-throw-source .corner-bottom-right { bottom: 2px; right: 6px; transform: rotate(180deg); }
+.ai-throw-source svg.card-glyph {
+    position: absolute;
+    width: 62%;
+    height: 62%;
+    left: 19%;
+    top: 19%;
+    z-index: 1;
+}
+.ai-throw-source svg.mini-glyph { display: none; }
 .wild-fallback-card{width:56px;height:82px;border-radius:8px;display:flex;align-items:center;
   justify-content:center;color:#fff;font-weight:800;font-size:26px;margin:0 -10px;
   box-shadow:0 4px 10px rgba(0,0,0,.35);border:3px solid rgba(255,255,255,.6)}
@@ -2087,22 +2158,41 @@ function runAiTurn(pid){
   },650);
 }
 function flyAiCard(pid,card){
-  const el=document.createElement('div');
-  el.className='ai-fly-card '+(card.color==='black'?'wild':card.color);
-  el.style.background = card.color==='black' ? '#111' : '';
-  el.textContent=card.value;
-  (seatBoxes[pid]||document.body).appendChild(el);
-  const done=()=>{ el.remove(); commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined); };
-  // The real throw only works on a card already styled and positioned in the table's
-  // own coordinate space. An AI card is a temp element appended to a seat, so the
-  // fallback flight is the honest route — the card hops to the pile, then commits.
-  const dx = window.innerWidth/2 - 30, dy = window.innerHeight/2 - 44;
-  el.style.transition = 'transform .45s cubic-bezier(.5,0,.3,1), opacity .45s ease';
-  requestAnimationFrame(()=>{
-    el.style.transform = `translate(${dx}px, ${dy}px) rotate(${(Math.random()*40)-20}deg) scale(.9)`;
-    el.style.opacity = '0.9';
-  });
-  setTimeout(done,460);
+  // A seat-origin card: a REAL card face (same builder as every other card on the
+  // table) that starts small at the seat and grows to table size mid-flight — the
+  // card leaving the hand, exactly as Champ's does.
+  const cardEl=document.createElement('div');
+  cardEl.className='ai-throw-source '+(card.color==='black'?'wild':card.color);
+  cardEl.style.transform='translate(-50%,-50%) scale(.35)';
+  cardEl.innerHTML=window.ChampCards.cardFaceHtml(card);
+  (seatBoxes[pid]||document.body).appendChild(cardEl);
+  const done=()=>{ cardEl.remove(); commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined); };
+  // SAME RIG AS CHAMP: throwCardVisual is the local player's own throw — the same
+  // anticipation, arc, spin, ghost trail, impact ring, sparks and camera recoil.
+  // The only difference is the starting rect: the flyer launches from wherever this
+  // element sits, so an AI card sweeps in from its seat like Champ's sweeps up from
+  // the bottom edge. AI throws queue a beat behind a throw already in flight, so
+  // two cards never cross the table at the same moment.
+  const startThrow=()=>{
+    if(!cardEl.isConnected) return;
+    // Still busy? Wait a beat rather than replacing the throw in flight — replacing
+    // it would orphan the previous throw's pile-append.
+    if(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight()){
+      setTimeout(startThrow,160);
+      return;
+    }
+    try{
+      window.throwCardVisual(card,cardEl,done);
+    }catch(e){
+      // If the rig is unavailable, land it honestly instead of losing the play.
+      setTimeout(done,450);
+    }
+  };
+  // The wind-up: the seat's card leans out of the fan and grows, then the rig takes
+  // it — the same beat Champ's anticipation phase gives the bottom seat.
+  const queueDelay=(typeof window.cardThrowInFlight==='function' && window.cardThrowInFlight()) ? 380 : 0;
+  requestAnimationFrame(()=>{ cardEl.style.transform='translate(-50%,-50%) scale(.85)'; });
+  setTimeout(startThrow, queueDelay+240);
 }
 
 function endRound(winnerPid){
