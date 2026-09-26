@@ -1092,6 +1092,7 @@
         // The local play: one throw, one landing, and the ENGINE told exactly once.
         // The placed card is presentation — the state of the round lives in the engine.
         function executeLocalCardPlay(cardData, cardElement) {
+            if (pendingLocalWild || awaitingWildCard) return;
             // The engine is authoritative. During a +4 response the ONLY legal play
             // is another Wild Draw 4; normal cards and ordinary Wilds must never enter
             // the throw animation.
@@ -1500,6 +1501,7 @@
         }
 
         function declareWildColor(chosenColour) {
+            if (!pendingLocalWild || !awaitingWildCard) return;
             // Only the four known colours may become a class name on the card.
             const picked = String(chosenColour || '').toLowerCase();
             if (WILD_COLOURS.indexOf(picked) === -1) return;
@@ -1546,10 +1548,10 @@
             // A modal that cannot be left is a trap: the backdrop and Escape both
             // dismiss it without declaring anything.
             wheel.addEventListener('click', (event) => {
-                if (event.target === wheel) concealColorPickerWheel();
+                if (event.target === wheel && !pendingLocalWild) concealColorPickerWheel();
             });
             document.addEventListener('keydown', (event) => {
-                if (event.key === 'Escape' && wheel.classList.contains('visible')) concealColorPickerWheel();
+                if (event.key === 'Escape' && wheel.classList.contains('visible') && !pendingLocalWild) concealColorPickerWheel();
             });
         }
 
@@ -2047,7 +2049,21 @@ function buildDeck(){
 const topCard = () => wild.discard[wild.discard.length-1] || null;
 function isDrawCard(card){ return card && (card.type==='draw2'||card.type==='wild_draw4'); }
 function isLegal(card){ return goWildLegal(card); }
-function goWildLegal(card){ const t=topCard(); if(!t)return true; if(wild.drawStack>0)return card.type==='wild_draw4'||(card.type==='draw2'&&wild.stackTopType==='draw2'); if(card.type==='wild'||card.type==='wild_draw4')return true; if(card.type==='discard_all')return card.color===wild.currentColor; return card.color===wild.currentColor||card.value===t.value; }
+function canPlayWildDraw4(pid){
+  const color=wild.currentColor;
+  return !color || !(wild.hands[pid]||[]).some(c=>c.color===color);
+}
+function goWildLegal(card){
+  const t=topCard();
+  if(!t)return true;
+  if(wild.pendingDraw4 || wild.drawStack>0){
+    return card.type==='wild_draw4' && canPlayWildDraw4(wild.players[wild.turn]);
+  }
+  if(card.type==='wild')return true;
+  if(card.type==='wild_draw4')return canPlayWildDraw4(wild.players[wild.turn]);
+  if(card.type==='discard_all')return card.color===wild.currentColor;
+  return card.color===wild.currentColor||card.value===t.value;
+}
 const nextIndex = (s=1) => (wild.turn + wild.dir*s + wild.players.length*8) % wild.players.length;
 
 function drawCards(pid,count){
@@ -2187,15 +2203,19 @@ function clearSameColor(pid,card){
 }
 
 function hasColoredCard(pid,color){
-  return !!color && (wild.hands[pid]||[]).some(c=>c.color===color);
+  if(!color) return false;
+  return (wild.hands[pid]||[]).some(c=>c.color===color||c.type==='wild'||c.type==='wild_draw4');
 }
 
 function setDraw4Pending(pid,previousColor,chosenColor){
+  const responder=nextIndex(1);
   wild.pendingDraw4={
     player:pid,
+    responder:responder,
     previousColor:previousColor,
     chosenColor:chosenColor,
-    cardId:topCard() ? topCard().id : null
+    cardId:topCard() ? topCard().id : null,
+    responseScheduled:false
   };
 }
 
@@ -2203,20 +2223,29 @@ function presentDraw4ResponseForCurrentPlayer(){
   const pending=wild.pendingDraw4;
   if(!pending || wild.over) return;
   const cur=wild.players[wild.turn];
+  if(cur!==wild.players[pending.responder]) return;
   if(cur==='p_local'){
     wild.busy=true;
-    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4');
+    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4' && canPlayWildDraw4('p_local'));
     if(typeof window.presentWildDraw4Decision==='function'){
       window.presentWildDraw4Decision(canStack,pending.previousColor);
     }
     return;
   }
-  setTimeout(()=>aiRespondToDraw4(cur),650);
+  if(pending.responseScheduled) return;
+  pending.responseScheduled=true;
+  setTimeout(()=>{
+    if(wild.over || !wild.pendingDraw4) return;
+    if(wild.players[wild.turn]!==cur) return;
+    aiRespondToDraw4(cur);
+  },650);
 }
 
 function resolveDraw4Challenge(challengerPid){
   const pending=wild.pendingDraw4;
   if(!pending) return;
+  if(wild.players[wild.turn]!==challengerPid) return;
+  if(wild.players[pending.responder]!==challengerPid) return;
   const challengedPid=pending.player;
   const guilty=hasColoredCard(challengedPid,pending.previousColor);
   wild.pendingDraw4=null;
@@ -2242,7 +2271,9 @@ function resolveDraw4Challenge(challengerPid){
 }
 
 function acceptDraw4(pid){
-  if(!wild.pendingDraw4 || wild.players[wild.turn]!==pid) return;
+  const pending=wild.pendingDraw4;
+  if(!pending || wild.players[wild.turn]!==pid) return;
+  if(wild.players[pending.responder]!==pid) return;
   const penalty = Math.max(4, wild.drawStack || 4);
   wild.pendingDraw4=null;
   wild.drawStack=0;
@@ -2255,14 +2286,12 @@ function acceptDraw4(pid){
 }
 
 function aiRespondToDraw4(pid){
-  if(wild.over || wild.players[wild.turn]!==pid || !wild.pendingDraw4) return;
-  // During a +4 response the ONLY legal continuation is another Wild Draw 4.
-  // If the AI does not have one, it must take the entire accumulated penalty
-  // immediately. Do not run normal card-selection or normal draw logic here.
-  const hasPlus4=(wild.hands[pid]||[]).some(c=>c.type==='wild_draw4');
-  if(hasPlus4){
+  const pending=wild.pendingDraw4;
+  if(wild.over || !pending || wild.players[wild.turn]!==pid) return;
+  if(wild.players[pending.responder]!==pid) return;
+  const card=(wild.hands[pid]||[]).find(c=>c.type==='wild_draw4' && canPlayWildDraw4(pid));
+  if(card){
     wild.busy=true;
-    const card=wild.hands[pid].find(c=>c.type==='wild_draw4');
     return flyAiCard(pid,card);
   }
   return acceptDraw4(pid);
@@ -2443,7 +2472,7 @@ function endRound(winnerPid){
 }
 
 /* ---- public API ---- */
-window.wildCanPlay = () => !wild.over && !wild.busy && wild.players[wild.turn]==='p_local';
+window.wildCanPlay = () => !wild.over && !wild.busy && !wild.pendingDraw4 && wild.players[wild.turn]==='p_local';
 window.wildOnLocalPlayed = (card,chosenColor) => commitPlay('p_local',card,chosenColor);
 window.wildEngineState = () => wild;
 // The page's boot and round-start hooks paint the seats through here: these painters
@@ -2462,7 +2491,7 @@ window.wildDraw4Action = (action) => {
   if(action==='challenge') return resolveDraw4Challenge('p_local');
   if(action==='accept') return acceptDraw4('p_local');
   if(action==='stack'){
-    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4');
+    const canStack=(wild.hands.p_local||[]).some(c=>c.type==='wild_draw4' && canPlayWildDraw4('p_local'));
     if(!canStack) return;
     wild.busy=false;
     if(typeof window.hideWildDraw4Decision==='function') window.hideWildDraw4Decision();
