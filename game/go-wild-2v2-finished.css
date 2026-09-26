@@ -152,3 +152,10 @@
 .gwx-table.dealing:after{content:"DEALING";position:absolute;left:50%;top:calc(50% + 130px);transform:translateX(-50%);padding:6px 12px;border-radius:999px;background:#031a12cc;border:1px solid #ffffff22;color:#d8fff0;font-size:8px;font-weight:1000;letter-spacing:3px;z-index:25;animation:dealLabel .8s ease-in-out infinite alternate}
 @keyframes dealLabel{to{opacity:.55;transform:translateX(-50%) translateY(-3px)}}
 .gwx-seat.active .gwx-opponent-hand,.gwx-seat.active .gwx-partner-hand,.gwx-seat.active #hand-local{filter:drop-shadow(0 0 14px #63e8ff55)}
+
+/* VISIBLE MOTION HOTFIX */
+.gwx-deal-flyer{width:82px;height:124px;border-radius:13px;border:2px solid #fff;box-shadow:0 22px 42px #000c,0 0 28px #63b8ff55,inset 0 0 0 4px #07101b;}
+.gwx-deal-flyer:before{inset:11px;border:2px solid #ffffff66;border-radius:9px;background:radial-gradient(ellipse at center,#4c83bd 0 24%,transparent 25%),linear-gradient(45deg,transparent 47%,#ffffff22 48% 52%,transparent 53%);}
+.gwx-deal-flyer:after{inset:auto 0 12px;font-size:8px;letter-spacing:3px;color:#d8edff;}
+.gwx-table.dealing{box-shadow:inset 0 0 0 2px #ffffff20,inset 0 0 140px #00170b88,0 30px 90px #000a,0 0 45px #4de8a955;}
+@media(max-width:760px){.gwx-deal-flyer{width:64px;height:96px;border-radius:10px}.gwx-deal-flyer:before{inset:8px}.gwx-deal-flyer:after{bottom:9px;font-size:6px}}
