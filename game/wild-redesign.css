@@ -315,3 +315,249 @@ body{min-height:100vh!important}
   #central-deck,.opponent-fan-tray .ai-card-back,.opponent-top-hand .opponent-open-card,.hand-container .card.playable{animation:none!important}
   .arcade-settings-btn:hover,#btn-uno-call:hover{transform:none!important}
 }
+
+/* ==========================================================================
+   CINEMATIC MASTER PASS — landscape casino-grade presentation
+   This intentionally overrides earlier visual passes without touching gameplay.
+   ========================================================================== */
+
+:root{
+  --gw-felt:#07180f;
+  --gw-felt-deep:#030b07;
+  --gw-glass:rgba(7,15,12,.78);
+  --gw-edge:rgba(255,255,255,.15);
+  --gw-cyan:#71e7ff;
+  --gw-gold:#ffd65a;
+}
+
+html,body{
+  background:#020403!important;
+  overflow:hidden!important;
+}
+.viewport-frame{
+  background:
+    radial-gradient(ellipse at 50% 48%,rgba(47,116,72,.20),transparent 43%),
+    radial-gradient(circle at 8% 20%,rgba(113,231,255,.06),transparent 26%),
+    #020403!important;
+}
+.game-table{
+  background:
+    radial-gradient(ellipse at 50% 48%,#18452d 0%,#0c2b1a 34%,#07190f 67%,#020a06 100%)!important;
+  perspective:1800px!important;
+}
+.game-table::before{
+  inset:34px 42px 34px!important;
+  border-radius:62px!important;
+  border:9px solid #10161b!important;
+  background:
+    radial-gradient(ellipse at 50% 44%,rgba(31,110,66,.72),rgba(7,26,16,.97) 74%),
+    repeating-linear-gradient(118deg,rgba(255,255,255,.012) 0 2px,transparent 2px 9px)!important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.15),
+    0 38px 100px rgba(0,0,0,.78),
+    inset 0 0 100px rgba(0,0,0,.55),
+    inset 0 2px rgba(255,255,255,.11)!important;
+}
+.game-table::after{
+  inset:48px 56px 48px!important;
+  border-radius:52px!important;
+  background:
+    radial-gradient(ellipse at 50% 45%,rgba(91,235,143,.08),transparent 35%),
+    radial-gradient(ellipse at 50% 50%,transparent 42%,rgba(0,0,0,.48) 100%)!important;
+}
+
+/* Top rail: quiet, premium, readable. */
+.arcade-timer-badge{
+  left:58px!important;top:34px!important;width:178px!important;height:56px!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(17,31,25,.92),rgba(4,11,7,.88))!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:0 18px 38px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.11)!important;
+}
+.arcade-settings-btn{
+  right:58px!important;top:34px!important;width:56px!important;height:56px!important;border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(17,31,25,.92),rgba(4,11,7,.88))!important;
+}
+
+/* Player stations become physical glass pedestals. */
+.avatar-hud-wrapper{
+  border-radius:25px!important;
+  background:linear-gradient(145deg,rgba(28,47,39,.90),rgba(5,12,8,.82))!important;
+  border:1px solid rgba(255,255,255,.16)!important;
+  box-shadow:0 24px 48px rgba(0,0,0,.50),inset 0 1px rgba(255,255,255,.13)!important;
+}
+.avatar-frame{
+  border-radius:20px!important;
+  border-color:rgba(255,255,255,.27)!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.18),0 12px 24px rgba(0,0,0,.38)!important;
+}
+.player-pill-tag{
+  border-radius:999px!important;
+  background:linear-gradient(180deg,rgba(19,31,25,.95),rgba(4,10,7,.95))!important;
+  border-color:rgba(255,255,255,.17)!important;
+}
+
+/* Top opponent and open hand. */
+.opponent-top{
+  top:40px!important;width:650px!important;height:218px!important;
+}
+.opponent-top-row{
+  width:650px!important;height:218px!important;gap:11px!important;
+}
+.opponent-top-row .opponent-top-hand{width:570px!important;height:108px!important}
+.opponent-top-hand .opponent-open-card{
+  width:72px!important;height:105px!important;
+  left:calc(var(--i)*59px - 177px)!important;
+  border-radius:14px!important;
+  box-shadow:0 16px 30px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.15)!important;
+}
+
+/* Side hands form mirrored fans around the center. */
+.opponent-left{left:48px!important;top:350px!important}
+.opponent-right{right:48px!important;top:350px!important}
+.opponent-fan-tray{
+  width:470px!important;height:245px!important;top:145px!important;
+}
+.opponent-left .opponent-fan-tray{left:128px!important}
+.opponent-right .opponent-fan-tray{left:-328px!important}
+.ai-card-back{
+  width:84px!important;height:123px!important;
+  left:calc(var(--i)*47px)!important;top:calc(var(--i)*28px)!important;
+  border-radius:14px!important;
+  box-shadow:0 16px 28px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.14)!important;
+}
+
+/* Central stage is a deliberate "hero" zone. */
+.top-left-deck-group{
+  left:calc(50% - 184px)!important;
+  top:calc(48% - 91px)!important;
+}
+#central-deck{
+  width:124px!important;height:182px!important;border-radius:20px!important;
+  transform:rotate(-7deg) translateZ(0)!important;
+  box-shadow:
+    0 30px 56px rgba(0,0,0,.62),
+    0 0 0 5px rgba(113,231,255,.025),
+    inset 0 1px rgba(255,255,255,.16)!important;
+}
+.center-play-zone{
+  left:50%!important;top:48%!important;width:320px!important;height:236px!important;
+  border-radius:42px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.018),rgba(0,0,0,.10))!important;
+  border:1px solid rgba(230,255,239,.10)!important;
+  box-shadow:inset 0 0 60px rgba(0,0,0,.28),0 24px 55px rgba(0,0,0,.18)!important;
+}
+.center-play-zone::before{
+  content:"GO WILD"!important;
+  top:-30px!important;
+  color:rgba(223,255,235,.23)!important;
+  letter-spacing:.42em!important;
+  font-size:10px!important;
+}
+.center-play-zone .discard-pile,.center-play-zone .discarded-card{
+  width:124px!important;height:182px!important;
+}
+.center-play-zone .discarded-card{
+  border-radius:20px!important;
+  box-shadow:0 30px 55px rgba(0,0,0,.58),inset 0 1px rgba(255,255,255,.20)!important;
+}
+
+/* Local hand: strongest visual object on the foreground plane. */
+.local-user-slot{left:58px!important;bottom:48px!important}
+.hand-container{
+  left:50%!important;bottom:7px!important;width:1000px!important;height:228px!important;
+  transform:translateX(-50%)!important;
+}
+.hand-container .card{
+  width:114px!important;height:168px!important;border-radius:18px!important;border-width:3px!important;
+  transform:
+    translateX(calc(var(--index-offset)*68px))
+    translateY(var(--arc-y))
+    rotate(var(--arc-rotation))!important;
+  box-shadow:
+    0 20px 34px rgba(0,0,0,.52),
+    0 1px 0 rgba(255,255,255,.70) inset!important;
+}
+.hand-container .card:hover{
+  transform:
+    translateX(calc(var(--index-offset)*68px))
+    translateY(calc(var(--arc-y) - 38px))
+    translateZ(65px)
+    rotateX(-8deg)
+    rotateY(var(--arc-rotation))
+    scale(1.065)!important;
+  filter:brightness(1.10) saturate(1.10)!important;
+}
+
+/* foreground controls */
+.local-user-slot .avatar-frame{width:84px!important;height:84px!important}
+.controls-panel{right:60px!important;bottom:54px!important}
+#btn-uno-call{
+  width:142px!important;height:52px!important;border-radius:16px!important;
+  background:linear-gradient(145deg,#1c3327,#08140d)!important;
+  border:1px solid rgba(255,255,255,.19)!important;
+  box-shadow:0 18px 34px rgba(0,0,0,.45),inset 0 1px rgba(255,255,255,.12)!important;
+}
+.chat-bubble-trigger{right:222px!important;bottom:54px!important;width:52px!important;height:52px!important;border-radius:16px!important}
+
+/* 3D card lighting */
+.card,.opponent-open-card,.ai-card-back,.discarded-card{
+  transform-style:preserve-3d!important;
+  backface-visibility:hidden!important;
+  will-change:transform,filter,box-shadow!important;
+}
+.card::after,.opponent-open-card::after,.discarded-card::after{
+  pointer-events:none!important;
+}
+
+/* wild cards feel like glass/energy rather than a flat sticker */
+.card.champ-wild-card,.opponent-open-card.champ-wild-card,.discarded-card.champ-wild-card{
+  box-shadow:
+    0 18px 34px rgba(0,0,0,.52),
+    0 0 0 2px rgba(255,255,255,.92),
+    0 0 28px rgba(255,85,85,.24),
+    0 0 42px rgba(79,155,255,.18)!important;
+}
+
+/* impact */
+.center-play-zone.impact{
+  animation:gwHeroImpact .56s cubic-bezier(.16,.9,.2,1) both!important;
+}
+@keyframes gwHeroImpact{
+  0%{filter:brightness(1);transform:translate(-50%,-50%) scale(1)}
+  18%{filter:brightness(1.22);transform:translate(-50%,-50%) scale(1.024)}
+  100%{filter:brightness(1);transform:translate(-50%,-50%) scale(1)}
+}
+
+/* cinematic entrance for seats */
+.opponent-top,.opponent-left,.opponent-right,.local-user-slot{
+  animation:gwSeatRise .7s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes gwSeatRise{
+  from{opacity:0;filter:blur(5px);transform:translateY(12px)}
+  to{opacity:1;filter:none}
+}
+.opponent-top{animation-name:gwTopRise}
+@keyframes gwTopRise{
+  from{opacity:0;filter:blur(5px);transform:translate(-50%,-10px) scale(.97)}
+  to{opacity:1;filter:none;transform:translate(-50%,0) scale(1)}
+}
+
+/* compact landscape: scale groups, never squeeze the stage horizontally */
+@media (max-height:820px){
+  .opponent-top{transform:translateX(-50%) scale(.84)!important;transform-origin:top center!important}
+  .opponent-left,.opponent-right{transform:scale(.82)!important;transform-origin:top center!important}
+  .hand-container{transform:translateX(-50%) scale(.84)!important;transform-origin:bottom center!important}
+  .local-user-slot{transform:scale(.82)!important;transform-origin:bottom left!important}
+  .center-play-zone{transform:translate(-50%,-50%) scale(.86)!important}
+}
+@media (max-width:1200px){
+  .opponent-left{left:28px!important}.opponent-right{right:28px!important}
+  .local-user-slot{left:28px!important}.controls-panel{right:28px!important}
+  .arcade-timer-badge{left:28px!important}.arcade-settings-btn{right:28px!important}
+}
+@media (prefers-reduced-motion:reduce){
+  .opponent-top,.opponent-left,.opponent-right,.local-user-slot,#central-deck,
+  .opponent-fan-tray .ai-card-back,.opponent-top-hand .opponent-open-card,
+  .hand-container .card.playable{animation:none!important}
+}
