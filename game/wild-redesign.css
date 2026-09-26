@@ -1359,3 +1359,75 @@ html,body{
     animation:none!important;
   }
 }
+
+
+/* ==========================================================================
+   FINAL CARD ORDER / STACK CLEANUP
+   The game state already has a deterministic card order. This layer makes the
+   presentation respect that order: one controlled fan, stable overlap, and a
+   compact physical discard stack. No game logic is changed.
+   ========================================================================== */
+
+.hand-container{
+  display:block!important;
+  overflow:visible!important;
+}
+
+.hand-container .card{
+  left:50%!important;
+  top:auto!important;
+  bottom:0!important;
+  /* renderHand writes this dynamically (14-32px) as the hand grows. */
+  transform:
+    translateX(calc(var(--index-offset) * var(--hand-step, 32px)))
+    translateY(var(--arc-y, 0px))
+    rotate(var(--arc-rotation, 0deg))!important;
+  z-index:calc(500 + var(--card-index, 0))!important;
+  transform-origin:50% 100%!important;
+}
+
+.hand-container .card:hover{
+  transform:
+    translateX(calc(var(--index-offset) * var(--hand-step, 32px)))
+    translateY(calc(var(--arc-y, 0px) - 30px))
+    translateZ(55px)
+    rotateX(-5deg)
+    rotateY(var(--arc-rotation, 0deg))
+    scale(1.045)!important;
+  z-index:1200!important;
+}
+
+/* Keep the fan visually ordered even when cards overlap heavily. */
+.hand-container .card:nth-child(n){
+  position:absolute!important;
+}
+
+/* The discard pile is a stack, not a pile of randomly thrown cards. */
+#discard-deck-pile{
+  position:relative!important;
+  width:var(--discard-w, 203px)!important;
+  height:var(--discard-h, 243px)!important;
+}
+
+#discard-deck-pile .discarded-card{
+  left:50%!important;
+  top:50%!important;
+  margin:0!important;
+  transform:
+    translate(-50%,-50%)
+    translate3d(var(--discard-x, 0px),var(--discard-y, 0px),var(--discard-z, 0px))
+    rotate(var(--discard-rot, 0deg))!important;
+  transform-origin:center center!important;
+}
+
+/* Once settled, every card stays in the exact stack position assigned by JS. */
+#discard-deck-pile .discarded-card.landed-settle{
+  animation:none!important;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hand-container .card,
+  .hand-container .card:hover{
+    transition:none!important;
+  }
+}
