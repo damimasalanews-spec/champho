@@ -43,7 +43,7 @@ function dealIntro(){
   };
   const allTargets=[];
   ORDER.forEach(pid=>{for(let i=0;i<7;i++){const t=targetFor(pid,i);if(t){t.classList.add('deal-target');allTargets.push(t)}}});
-  const total=28,step=155,startDelay=650;
+  const total=28,step=220,startDelay=900;
   for(let round=0;round<7;round++) ORDER.forEach((pid,pi)=>{
     const i=round,t=targetFor(pid,i);if(!t)return;
     const delay=startDelay+(round*4+pi)*step;
@@ -61,7 +61,7 @@ function dealIntro(){
         {transform:'translate('+tx*.32+'px,'+(ty*.32+arc)+'px) rotate('+spin+'deg) scale(1.08)',opacity:1,offset:.3},
         {transform:'translate('+tx*.72+'px,'+(ty*.72+arc*.28)+'px) rotate('+(-spin*.45)+'deg) scale(1.02)',opacity:1,offset:.72},
         {transform:'translate('+tx+'px,'+ty+'px) rotate(0deg) scale(1)',opacity:1}
-      ],{duration:620,easing:'cubic-bezier(.12,.8,.18,1)'});
+      ],{duration:900,easing:'cubic-bezier(.12,.8,.18,1)'});
       anim.finished.then(()=>{f.remove();if(token!==roundToken)return;target.classList.remove('deal-target');target.classList.add('deal-land');setTimeout(()=>target.classList.remove('deal-land'),380)}).catch(()=>f.remove());
     },delay);
   });
