@@ -2121,8 +2121,8 @@ function commitPlay(pid,card,chosenColor){
   if(pid!=='p_local' && typeof window.playCardSlamSound==='function') try{ window.playCardSlamSound(); }catch(e){}
   if(!hand.length) return endRound(pid);
   if(hand.length===1) showUnoBanner();
-  if(card.type==='draw2'){ drawCards(wild.players[nextIndex(1)],2); return advance(2); }
-  if(card.type==='wild_draw4'){ drawCards(wild.players[nextIndex(1)],4); return advance(2); }
+  if(card.type==='draw2'){ wild.drawStack += 2; wild.stackTopType='draw2'; return advance(1); }
+  if(card.type==='wild_draw4'){ wild.drawStack += 4; wild.stackTopType='wild_draw4'; return advance(1); }
   if(card.type==='skip') return advance(2);
   if(card.type==='reverse'){ wild.dir*=-1; return advance(1); }
   advance(1);
