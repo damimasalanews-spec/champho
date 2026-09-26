@@ -2127,19 +2127,28 @@ function drawCards(pid,count){
 function updateOpponentHand(pid){
   const box=seatBoxes[pid]; if(!box) return;
   box.innerHTML='';
+  const handLength = wild.hands[pid].length;
+  const center = (handLength - 1) / 2;
   wild.hands[pid].forEach((card,i)=>{
+    const centered = i - center;
     if(pid==='p_top'){
       const b=document.createElement('div');
       const displayCard = { ...card, color: card.color === 'black' ? 'wild' : card.color };
       b.className='card opponent-open-card '+displayCard.color;
       b.style.setProperty('--i',i);
-      b.style.setProperty('--index-offset',i);
+      b.style.setProperty('--fan-offset', centered.toFixed(2));
+      b.style.setProperty('--fan-x', (centered * 42).toFixed(1) + 'px');
+      b.style.setProperty('--fan-rot', (centered * 2.2).toFixed(2) + 'deg');
       b.innerHTML=window.ChampCards.cardFaceHtml(displayCard);
       box.appendChild(b);
     } else {
       const b=document.createElement('div');
       b.className='ai-card-back';
       b.style.setProperty('--i',i);
+      b.style.setProperty('--fan-offset', centered.toFixed(2));
+      b.style.setProperty('--fan-x', (centered * 25).toFixed(1) + 'px');
+      b.style.setProperty('--fan-y', (Math.abs(centered) * 3).toFixed(1) + 'px');
+      b.style.setProperty('--fan-rot', (centered * (pid==='p_left' ? 3.5 : -3.5)).toFixed(2) + 'deg');
       box.appendChild(b);
     }
   });
