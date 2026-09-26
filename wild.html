@@ -1950,12 +1950,15 @@ const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], current
 function buildDeck(){
   const d=[]; let n=0;
   const push=(color,value,type,isAction=false)=>d.push({id:'g'+(n++),color,value,type,isAction});
-  for(const c of COLORS){
-    push(c,'0','number');
-    for(let v=1;v<=9;v++){push(c,String(v),'number');push(c,String(v),'number');}
-    for(const [t,val] of [['skip','skip'],['reverse','reverse'],['draw2','+2']]){push(c,val,t,true);push(c,val,t,true);}
+  for(let deckNo=0;deckNo<2;deckNo++){
+    for(const c of COLORS){
+      push(c,'0','number');
+      for(let v=1;v<=9;v++){push(c,String(v),'number');push(c,String(v),'number');}
+      for(const [t,val] of [['skip','skip'],['reverse','reverse'],['draw2','+2']]){push(c,val,t,true);push(c,val,t,true);}
+      push(c,'ALL','discard_all',true);
+    }
+    for(let i=0;i<4;i++){push('black','wild','wild',true);push('black','+4','wild_draw4',true);}
   }
-  for(let i=0;i<4;i++){push('black','wild','wild',true);push('black','+4','wild_draw4',true);}
   for(let i=d.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[d[i],d[j]]=[d[j],d[i]];}
   return d;
 }
