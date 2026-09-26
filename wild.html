@@ -2198,8 +2198,14 @@ function resolveDraw4Challenge(challengerPid){
   if(guilty){
     // Successful challenge: the +4 player takes 4. The challenger keeps the turn.
     drawCards(challengedPid,4);
-    wild.busy=(challengerPid==='p_local');
     updateArrows();
+    if(challengerPid==='p_local'){
+      wild.busy=false;
+      markPlayableHints();
+    }else{
+      wild.busy=true;
+      setTimeout(()=>runAiTurn(challengerPid),AI_DELAY());
+    }
     return;
   }
   // Failed challenge: the challenger takes 6 and loses the turn.
