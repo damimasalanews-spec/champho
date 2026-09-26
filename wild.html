@@ -1969,6 +1969,16 @@ function isLegal(card){
   if(card.type==='wild'||card.type==='wild_draw4') return true;
   return card.color===wild.currentColor || card.value===t.value;
 }
+function goWildLegal(card){
+  const t=topCard(); if(!t) return true;
+  if(wild.drawStack>0){
+    if(card.type==='wild_draw4') return true;
+    return card.type==='draw2' && wild.stackTopType==='draw2';
+  }
+  if(card.type==='wild'||card.type==='wild_draw4') return true;
+  if(card.type==='discard_all') return card.color===wild.currentColor || t.type==='discard_all';
+  return card.color===wild.currentColor || card.value===t.value;
+}
 const nextIndex = (s=1) => (wild.turn + wild.dir*s + wild.players.length*8) % wild.players.length;
 
 function drawCards(pid,count){
