@@ -204,3 +204,17 @@
 .gwx-motion-layer{position:fixed;inset:0;z-index:99999;pointer-events:none;overflow:visible}
 .gwx-deal-clone{box-sizing:border-box;pointer-events:none!important;will-change:transform,opacity;filter:drop-shadow(0 18px 28px #000b) drop-shadow(0 0 14px #7ac7ff44)}
 .gwx-table.dealing{cursor:wait}
+
+/* LIVE PREVIEW TOOLBAR */
+.gwx-preview-toolbar{position:fixed;right:14px;top:76px;z-index:200000;display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #ffffff22;border-radius:12px;background:#07111ddd;backdrop-filter:blur(12px);box-shadow:0 12px 30px #0009;color:#dff7ff;font:700 10px/1 Arial,sans-serif}
+.gwx-preview-toolbar b{font-size:9px;letter-spacing:2px;color:#7ee7ff}
+.gwx-preview-toolbar span{min-width:48px;text-align:center;color:#9db1c2;font-size:8px}
+.gwx-preview-toolbar button{border:1px solid #ffffff22;background:#13283a;color:#eaf7ff;border-radius:8px;padding:7px 9px;font-size:8px;font-weight:900;cursor:pointer}
+.gwx-preview-toolbar button:hover{background:#1d3d55}
+@media(max-width:760px){.gwx-preview-toolbar{top:68px;right:7px;padding:6px;gap:4px}.gwx-preview-toolbar b{display:none}.gwx-preview-toolbar span{display:none}.gwx-preview-toolbar button{padding:7px 8px}}
+/* REAL OPPONENT HAND LAYOUT */
+.gwx-opponent-hand{display:flex;align-items:center;justify-content:center;height:64px;min-width:155px;margin-top:5px;overflow:visible}
+.gwx-opponent-hand .opponent-back{position:relative;flex:none;width:39px;height:57px;margin-left:-13px;border-radius:8px;background:radial-gradient(circle at 50% 35%,#3f6b9e 0,#162a45 46%,#09121f 100%);border:1px solid #a9c5e866;box-shadow:inset 0 0 0 2px #07101b,inset 0 0 0 4px #dbe9ff16,0 7px 12px #0008;overflow:hidden}
+.gwx-opponent-hand .opponent-back:before{content:'W';position:absolute;left:50%;top:50%;width:23px;height:32px;transform:translate(-50%,-50%) rotate(-9deg);display:grid;place-items:center;border-radius:7px;background:linear-gradient(145deg,#eef6ff,#9fb8d6);color:#102033;font-size:15px;font-weight:1000;font-style:italic;box-shadow:0 3px 7px #0007}
+.gwx-opponent-hand .opponent-back:after{content:'';position:absolute;inset:6px;border:1px solid #ffffff22;border-radius:5px;transform:rotate(8deg)}
+@media(max-width:760px){.gwx-opponent-hand{height:45px;min-width:115px}.gwx-opponent-hand .opponent-back{width:25px;height:37px;margin-left:-9px;border-radius:6px}.gwx-opponent-hand .opponent-back:before{width:15px;height:22px;font-size:10px;border-radius:4px}.gwx-opponent-hand .opponent-back:after{inset:4px;border-radius:4px}}
