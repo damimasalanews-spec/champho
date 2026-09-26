@@ -1945,7 +1945,7 @@ const COLORS = ['red','yellow','green','blue'];
 const seatBoxes = { p_left:$id('fan-hand-left'), p_top:$id('teammate-hand-container'), p_right:$id('fan-hand-right') };
 const arrows = { p_local:$id('arrow-local-player'), p_left:$id('arrow-opponent-left'), p_top:$id('arrow-opponent-top'), p_right:$id('arrow-opponent-right') };
 
-const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], currentColor:null, turn:0, dir:1, busy:false, over:false, pendingWildColor:null, warned:false };
+const wild = { players:SEATS.slice(), hands:{}, drawPile:[], discard:[], currentColor:null, turn:0, dir:1, busy:false, over:false, pendingWildColor:null, warned:false, drawStack:0, stackTopType:null, winnerTeam:null };
 
 function buildDeck(){
   const d=[]; let n=0;
