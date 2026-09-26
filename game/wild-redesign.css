@@ -280,3 +280,260 @@ body{background:var(--cw-bg)!important;color:var(--cw-text)!important;}
 @media (prefers-reduced-motion:reduce){
   *,*:before,*:after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
 }
+
+
+/* ==========================================================================
+   COMPOSITION PASS — screenshot-driven layout correction
+   ========================================================================== */
+
+/* Give the board a clear three-tier hierarchy: top opponent / center arena / local hand. */
+.game-table:before{
+  inset:5% 7% 8%!important;
+  border-radius:54px!important;
+  background:
+    radial-gradient(ellipse at 50% 43%,rgba(42,62,96,.58),rgba(8,12,22,.96) 67%),
+    linear-gradient(145deg,rgba(255,255,255,.045),transparent 42%)!important;
+  box-shadow:inset 0 0 120px rgba(0,0,0,.78),0 30px 100px rgba(0,0,0,.5)!important;
+}
+.game-table:after{
+  background:
+    radial-gradient(ellipse at 50% 48%,rgba(81,231,255,.055),transparent 28%),
+    linear-gradient(90deg,transparent 49.92%,rgba(81,231,255,.025) 50%,transparent 50.08%),
+    linear-gradient(0deg,transparent 49.92%,rgba(155,124,255,.02) 50%,transparent 50.08%)!important;
+}
+
+/* ---------- TOP OPPONENT: portrait above a deliberate open-hand rack ---------- */
+.opponent-top{
+  left:50%!important;
+  top:18px!important;
+  transform:translateX(-50%)!important;
+  width:720px!important;
+  height:250px!important;
+}
+.opponent-top-row{
+  position:relative!important;
+  width:720px!important;
+  height:250px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  gap:10px!important;
+}
+.opponent-top .opponent-profile-wrapper{
+  position:relative!important;
+  width:auto!important;
+  z-index:20!important;
+}
+.opponent-top .avatar-hud-wrapper{
+  padding:7px!important;
+  border-radius:20px!important;
+}
+.opponent-top .avatar-frame{
+  width:76px!important;height:76px!important;border-radius:20px!important;
+}
+.opponent-top .avatar-container{font-size:39px!important;}
+.opponent-top .player-pill-tag{min-width:104px!important;height:28px!important;font-size:12px!important;margin-top:5px!important;}
+.opponent-top-row .opponent-top-hand{
+  position:relative!important;
+  left:auto!important;
+  top:auto!important;
+  width:600px!important;
+  height:122px!important;
+  margin:0!important;
+  z-index:10!important;
+}
+.opponent-top-hand .opponent-open-card{
+  width:76px!important;
+  height:112px!important;
+  border-radius:15px!important;
+  border:2px solid rgba(255,255,255,.52)!important;
+  box-shadow:0 12px 24px rgba(0,0,0,.42)!important;
+  left:calc(var(--i)*62px - 186px)!important;
+  top:calc(abs(var(--i) - 3)*5px)!important;
+  transform:rotate(calc((var(--i) - 3)*2.2deg))!important;
+}
+
+/* ---------- SIDE OPPONENTS: cards point toward the arena, not across the UI ---------- */
+.opponent-left{
+  left:38px!important;top:330px!important;
+}
+.opponent-right{
+  right:38px!important;top:330px!important;
+}
+.opponent-left .opponent-profile-wrapper,
+.opponent-right .opponent-profile-wrapper{
+  transform:scale(1.02)!important;
+}
+.opponent-fan-tray{
+  width:520px!important;height:330px!important;
+}
+.opponent-left .opponent-fan-tray{
+  left:150px!important;top:150px!important;
+}
+.opponent-right .opponent-fan-tray{
+  left:-310px!important;top:150px!important;
+}
+.ai-card-back{
+  width:88px!important;height:130px!important;
+  left:calc(var(--i)*52px)!important;
+  top:calc(var(--i)*32px)!important;
+  border:5px solid rgba(255,255,255,.92)!important;
+  border-radius:15px!important;
+  box-shadow:0 12px 22px rgba(0,0,0,.42),inset 0 2px 5px rgba(255,255,255,.25)!important;
+}
+.opponent-left .ai-card-back{transform:rotate(-29deg)!important;}
+.opponent-right .ai-card-back{transform:rotate(29deg)!important;}
+
+/* ---------- CENTER ARENA: cards are the hero, not a giant empty circle ---------- */
+.center-play-zone{
+  left:50%!important;
+  top:48%!important;
+  width:360px!important;
+  height:260px!important;
+  gap:30px!important;
+  transform:translate3d(-50%,-50%,0) rotateX(10deg)!important;
+  z-index:100!important;
+}
+.center-play-zone:after{
+  content:"";
+  position:absolute;
+  left:50%;top:50%;
+  width:330px;height:210px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  border:1px solid rgba(81,231,255,.13);
+  box-shadow:
+    0 0 45px rgba(81,231,255,.08),
+    inset 0 0 55px rgba(81,231,255,.035);
+  pointer-events:none;
+  z-index:-1;
+}
+.center-play-zone:before{
+  top:-48px!important;
+  color:#8290ab!important;
+  letter-spacing:.34em!important;
+  font-size:10px!important;
+}
+
+/* The draw pile sits beside the discard pile with breathing room. */
+.top-left-deck-group{
+  left:calc(50% - 175px)!important;
+  top:calc(48% - 101px)!important;
+}
+#central-deck{
+  width:128px!important;height:188px!important;
+  border-width:5px!important;border-radius:19px!important;
+  transform:rotate(-9deg)!important;
+  box-shadow:0 22px 45px rgba(0,0,0,.52),0 0 34px rgba(255,70,70,.10)!important;
+}
+#central-deck::before{
+  inset:15% 8%!important;
+  font-size:48px!important;
+}
+.center-play-zone .discard-pile,
+.discard-pile{
+  width:128px!important;height:188px!important;
+}
+.center-play-zone .discarded-card,
+.discarded-card{
+  width:128px!important;height:188px!important;
+  border-width:5px!important;border-radius:19px!important;
+}
+.center-play-zone .discarded-card .card-value,
+.discarded-card .card-value{
+  font-size:5.3rem!important;
+}
+
+/* ---------- LOCAL PLAYER: large readable hand with a proper fan ---------- */
+.local-user-slot{
+  left:42px!important;
+  bottom:46px!important;
+  top:auto!important;
+}
+.hand-container{
+  left:50%!important;
+  bottom:14px!important;
+  top:auto!important;
+  width:1120px!important;
+  height:260px!important;
+  transform:translateX(-50%)!important;
+  z-index:180!important;
+}
+.hand-container .card{
+  width:118px!important;
+  height:174px!important;
+  border-width:5px!important;
+  border-radius:18px!important;
+  transform:
+    translateX(calc(var(--index-offset) * 72px))
+    translateY(var(--arc-y))
+    rotate(var(--arc-rotation))!important;
+}
+.hand-container .card .card-value{
+  font-size:5rem!important;
+}
+.hand-container .card .corner-value{
+  font-size:1.05rem!important;
+}
+.hand-container .card:hover{
+  transform:
+    translateX(calc(var(--index-offset) * 72px))
+    translateY(calc(var(--arc-y) - 58px))
+    translateZ(120px)
+    rotateX(-10deg)
+    rotateY(var(--arc-rotation))
+    scale(1.13)!important;
+}
+.hand-container .card.playable-hint{
+  animation:cw-card-breathe 1.8s ease-in-out infinite!important;
+}
+@keyframes cw-card-breathe{
+  0%,100%{filter:brightness(1);box-shadow:0 18px 35px rgba(0,0,0,.46),0 0 0 1px rgba(81,231,255,.18),0 0 15px rgba(81,231,255,.10)!important}
+  50%{filter:brightness(1.08);box-shadow:0 22px 42px rgba(0,0,0,.5),0 0 0 2px rgba(81,231,255,.55),0 0 30px rgba(81,231,255,.24)!important}
+}
+
+/* ---------- LOCAL HUD / ACTIONS: compact so they don't compete with the hand ---------- */
+.local-user-slot .avatar-hud-wrapper{
+  padding:7px!important;
+  border-radius:20px!important;
+}
+.local-user-slot .avatar-frame{
+  width:76px!important;height:76px!important;border-radius:20px!important;
+}
+.local-user-slot .avatar-container{font-size:39px!important;}
+.local-user-slot .player-pill-tag{min-width:104px!important;height:28px!important;font-size:12px!important;}
+.controls-panel{
+  right:42px!important;
+  bottom:48px!important;
+  top:auto!important;
+}
+.btn-arcade{
+  width:112px!important;height:48px!important;
+  border-radius:15px!important;
+  font-size:13px!important;
+}
+.chat-bubble-trigger{
+  right:168px!important;
+  bottom:48px!important;
+  width:48px!important;height:48px!important;
+}
+
+/* ---------- REMOVE THE OLD VISUAL "TRAY" FEEL UNDER SIDE PLAYERS ---------- */
+.opponent-left .avatar-hud-wrapper,
+.opponent-right .avatar-hud-wrapper,
+.local-user-slot .avatar-hud-wrapper{
+  box-shadow:0 16px 38px rgba(0,0,0,.42)!important;
+}
+.opponent-left .opponent-card-count-stack,
+.opponent-right .opponent-card-count-stack{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+
+/* ---------- TABLE LABELS ARE SUBTLE, NOT UI NOISE ---------- */
+.draw-deck-source:after,.discard-pile:before{
+  font-size:9px!important;
+  letter-spacing:.32em!important;
+  opacity:.75;
+}
