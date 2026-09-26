@@ -1965,7 +1965,7 @@ function buildDeck(){
 const topCard = () => wild.discard[wild.discard.length-1] || null;
 function isDrawCard(card){ return card && (card.type==='draw2'||card.type==='wild_draw4'); }
 function isLegal(card){ return goWildLegal(card); }
-function goWildLegal(card){ return true; }
+function goWildLegal(card){ const t=topCard(); if(!t)return true; if(card.type==='wild'||card.type==='wild_draw4')return true; if(card.type==='discard_all')return card.color===wild.currentColor||t.type==='discard_all'; return card.color===wild.currentColor||card.value===t.value; }
 const nextIndex = (s=1) => (wild.turn + wild.dir*s + wild.players.length*8) % wild.players.length;
 
 function drawCards(pid,count){
