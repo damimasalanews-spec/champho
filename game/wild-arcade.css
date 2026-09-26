@@ -136,12 +136,15 @@ body {
         inset 0 -8px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Smooth physics bezier curve for selection hover tracking */
+/* Smooth physics bezier curve for selection hover tracking.
+   The sideways step is --hand-step, written by renderHand() so the fan tightens as
+   the hand grows — a 20-card hand fits the table instead of spilling over the
+   opponents' seats. The 32px fallback is the seven-card spec spacing. */
 .card {
     position: absolute;
     transform-origin: bottom center;
     transform: 
-        translateX(calc(var(--index-offset) * 32px)) 
+        translateX(calc(var(--index-offset) * var(--hand-step, 32px))) 
         translateY(var(--arc-y)) 
         rotate(var(--arc-rotation))
         scale(var(--card-scale, 1));
@@ -202,7 +205,7 @@ body {
 .card:hover {
     --card-scale: 1.25;
     transform: 
-        translateX(calc(var(--index-offset) * 30px)) 
+        translateX(calc(var(--index-offset) * var(--hand-step, 32px))) 
         translateY(calc(var(--arc-y) - 60px)) 
         translateZ(100px) 
         rotateX(-12deg) 
@@ -210,6 +213,93 @@ body {
         scale(1.25) !important;
     box-shadow: 0 35px 60px rgba(0, 0, 0, 0.65);
     z-index: 99999 !important;
+}
+
+/* ==========================================================================
+   TURN FEEDBACK: WHAT'S PLAYABLE, WHAT ISN'T, WHAT JUST ARRIVED
+   ========================================================================== */
+
+/* A card you can legally play glows softly while it is your turn. Written once per
+   repaint from the engine's own legality check, so the hint can never disagree with
+   what a click will actually do. */
+.card.playable-hint {
+    cursor: pointer;
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.4),
+        inset 0 4px 6px rgba(255, 255, 255, 0.4),
+        inset 0 -8px 12px rgba(0, 0, 0, 0.15),
+        0 0 18px 2px rgba(255, 255, 255, 0.38);
+    animation: playable-breathe 2.2s ease-in-out infinite;
+}
+@keyframes playable-breathe {
+    0%, 100% { box-shadow: 0 12px 24px rgba(0,0,0,.4), inset 0 4px 6px rgba(255,255,255,.4), inset 0 -8px 12px rgba(0,0,0,.15), 0 0 14px 1px rgba(255,255,255,.28); }
+    50%      { box-shadow: 0 12px 24px rgba(0,0,0,.4), inset 0 4px 6px rgba(255,255,255,.4), inset 0 -8px 12px rgba(0,0,0,.15), 0 0 24px 4px rgba(255,255,255,.5); }
+}
+
+/* A card clicked out of turn shakes its refusal and settles back into the fan. */
+.card.turn-denied {
+    animation: turn-denied-shake .3s ease;
+}
+@keyframes turn-denied-shake {
+    0%, 100% { margin-left: 0; }
+    25%      { margin-left: -7px; }
+    55%      { margin-left: 6px; }
+    80%      { margin-left: -3px; }
+}
+
+/* The deal: each card pops into the fan a beat after the one before it, so the
+   freshly painted hand reads as the cards the deal animation just flew out. */
+.card.dealt-pop {
+    animation: dealt-pop-in .34s cubic-bezier(.34, 1.56, .64, 1) backwards;
+    animation-delay: calc(var(--card-index, 0) * 45ms);
+}
+@keyframes dealt-pop-in {
+    from { opacity: 0; transform: translateY(90px) scale(.6); }
+    to   { opacity: 1; }
+}
+
+/* The pile's empty invitation: a breathing shimmer so the table reads as waiting
+   for the first card rather than as broken. */
+.discard-pile.is-empty {
+    animation: empty-pile-breathe 2.6s ease-in-out infinite;
+}
+@keyframes empty-pile-breathe {
+    0%, 100% { border-color: rgba(255,255,255,.3); box-shadow: none; }
+    50%      { border-color: rgba(255,255,255,.62); box-shadow: 0 0 22px rgba(255,255,255,.14), inset 0 0 18px rgba(255,255,255,.06); }
+}
+
+/* The wild's declared colour: a glow in the chosen colour plus a small corner pip,
+   so everyone at the table can read what is led until the next card covers it. */
+.discarded-card.pile-declared::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 20px;
+    box-shadow: 0 0 26px 6px var(--declared-glow, rgba(255,255,255,.55));
+    pointer-events: none;
+    animation: declared-fade-in .3s ease;
+}
+@keyframes declared-fade-in { from { opacity: 0; } }
+.discarded-card.pile-declared[data-declared="red"]    { --declared-glow: rgba(255,23,68,.75); }
+.discarded-card.pile-declared[data-declared="blue"]   { --declared-glow: rgba(0,102,255,.75); }
+.discarded-card.pile-declared[data-declared="yellow"] { --declared-glow: rgba(255,204,0,.75); }
+.discarded-card.pile-declared[data-declared="green"]  { --declared-glow: rgba(0,204,68,.75); }
+
+/* An unplayable card sits a shade darker while it is your turn — the glow marks the
+   moves you have, the dim confirms the ones you don't. Kept on hover too, so the
+   lift never lies about what a click will do. */
+.card.not-playable,
+.card.not-playable:hover {
+    filter: brightness(.62) saturate(.75);
+}
+
+/* The draw packet's stock chip. Shared badge chrome with the seats' count, anchored
+   to the deck's corner and coloured like the card backs so the two packets read as
+   a pair rather than as two unrelated widgets. */
+.hand-count-badge.deck-count {
+    top: -13px;
+    right: -13px;
+    background: linear-gradient(180deg, #2a3648, #0b0e13);
 }
 
 /* ==========================================================================

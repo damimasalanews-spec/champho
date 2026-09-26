@@ -118,7 +118,7 @@
 
         <!-- The throw box: the dashed surface the played cards land on. -->
         <div class="center-play-zone" id="center-board-zone">
-            <div class="discard-pile" id="discard-deck-pile"></div>
+            <div class="discard-pile is-empty" id="discard-deck-pile"></div>
         </div>
 
         <!-- Peripheral Seating Layout Slots.
@@ -330,43 +330,9 @@
 
         // Mock WebSocket structural engine variables for runtime simulation testing
         let activeTimerInterval = null;
-        // Seven cards, carrying the action kinds the table needs: the +2, the skip, the
-        // reverse, the discard-all and the wild.
-        //
-        // `type` is what the effect branch keys off and `isAction` is what the typography
-        // keys off. Note the wild's face is '★' and the skip's is '🚫': the face is display
-        // only, so nothing may decide what a card DOES by reading it. See the effect branch
-        // in executeLocalCardPlay.
-        const localHandMock = [
-            { id: 'c1', color: 'red', value: '3', type: 'number' },
-            { id: 'c2', color: 'yellow', value: '+2', type: 'draw2', isAction: true },
-            { id: 'c3', color: 'green', value: '🚫', type: 'skip', isAction: true },
-            { id: 'c4', color: 'blue', value: '🔁', type: 'reverse', isAction: true },
-            { id: 'c5', color: 'red', value: 'ALL', type: 'discard_all', isAction: true },
-            { id: 'c6', color: 'wild', value: '★', type: 'wild', isAction: true },
-            { id: 'c7', color: 'green', value: '6', type: 'number' }
-        ];
-
-        // The partner's hand, dealt face up at the top seat. On a networked client this
-        // arrives as packet.teammateCards; here it rides on the mock like every other seat.
-        const teammateHandMock = [
-            { id: 't1', color: 'blue', value: '4', type: 'number' },
-            { id: 't2', color: 'blue', value: '8', type: 'number' },
-            { id: 't3', color: 'red', value: '1', type: 'number' },
-            { id: 't4', color: 'yellow', value: '9', type: 'number' },
-            { id: 't5', color: 'green', value: '5', type: 'number' },
-            { id: 't6', color: 'wild', value: '★', type: 'wild', isAction: true },
-            { id: 't7', color: 'blue', value: '6', type: 'number' }
-        ];
-
-        // The victory screen needs two numbers per seat that the deal did not: what the
-        // seat has scored so far, and what the cards still in its hand are worth. The
-        // second is the one the server computes with scoreHand() — the winner of a round
-        // is paid the value of everybody else's remaining hand — so the mock carries the
-        // same two facts rather than a formula of its own.
-        // activeFrameSkin is the cosmetic each seat is wearing. On a networked client the
-        // server pushes this per player; here it rides on the mock roster so all three
-        // states — cyber, sheriff and the default fallback — are visible at once.
+        // The hands are the engine's now — see the AI engine script near the end of the
+        // page. Nothing here is mocked any more: the cinematic deal deals the engine's
+        // REAL hands, and every seat is painted from the same state.
         const playersMock = [
             { id: 'p_left', name: 'Kalkal', tableSlotPosition: 'opponent-left', score: 320, handPoints: 34, activeFrameSkin: 'cyber' },
             { id: 'p_top', name: 'Poker', tableSlotPosition: 'opponent-top', score: 245, handPoints: 21, activeFrameSkin: 'sheriff' },
@@ -390,24 +356,30 @@
         const { cardFaceHtml } = window.ChampCards;
 
         // Render Arched Player Hand UI dynamically with math variables
-        function renderHand(cardsArray) {
+        function renderHand(cardsArray, isDealAnim) {
             const handContainer = document.getElementById('local-player-hand');
             if (!handContainer) return;
             handContainer.innerHTML = '';
 
             const totalCards = cardsArray.length;
             const midIndex = (totalCards - 1) / 2;
+            // The fan tightens as the hand grows, so a 20-card hand still fits the table
+            // instead of spilling across the opponents' seats. --hand-step is read by the
+            // sheet's base transform and its hover transform alike.
+            const step = Math.min(32, Math.max(14, Math.round(560 / Math.max(1, totalCards - 1))));
+            handContainer.style.setProperty('--hand-step', step + 'px');
 
             cardsArray.forEach((card, i) => {
                 const cardEl = document.createElement('div');
-                cardEl.classList.add('card', card.color);
+                // Engine cards keep 'black' as a wild's colour; the table's colour classes
+                // are the display set, so black presents as wild.
+                const displayCard = { ...card, color: card.color === 'black' ? 'wild' : card.color };
+                cardEl.classList.add('card', displayCard.color);
                 // The discard-all wears its own accent, so the face says what it does.
                 if (card.type === 'discard_all') cardEl.classList.add('discard-all');
                 // The face is one builder's business, for every card on the table — see
-                // cardFaceHtml. Before this, each of the four call sites assembled its own
-                // corners and value, which is how "+2" could be set at the digit size on
-                // one seat and the action size on another.
-                cardEl.innerHTML = cardFaceHtml(card);
+                // cardFaceHtml.
+                cardEl.innerHTML = cardFaceHtml(displayCard);
 
                 // Arc layouts calculations
                 const offsetFromMiddle = i - midIndex;
@@ -425,12 +397,26 @@
                 cardEl.style.setProperty('--arc-y', `${verticalDip}px`);
                 cardEl.style.setProperty('--card-index', i);
 
+                // The deal is the one time the whole hand arrives at once — that is when
+                // the pop-in cascade plays. Later repaints (after each play) are silent,
+                // or every play would re-pop the whole fan.
+                if (isDealAnim) cardEl.classList.add('dealt-pop');
+
                 // Add audio triggers natively
                 cardEl.addEventListener('mouseenter', () => {
                     playCardRuffleSound();
                 });
 
                 cardEl.addEventListener('click', () => {
+                    // Not your turn: the card shakes its refusal instead of just doing
+                    // nothing, which reads as a broken page.
+                    if (!window.wildCanPlay || !window.wildCanPlay()) {
+                        cardEl.classList.remove('turn-denied');
+                        void cardEl.offsetWidth;
+                        cardEl.classList.add('turn-denied');
+                        note(220, 0.09, 'triangle', 0.04, 0, 160);
+                        return;
+                    }
                     // The slam moved into the throw's impact frame — the sound belongs
                     // to the moment the card hits the pile, not the moment of the click.
                     executeLocalCardPlay(card, cardEl);
@@ -438,6 +424,11 @@
 
                 handContainer.appendChild(cardEl);
             });
+
+            // The playable glow is a property of the HAND, so it follows every repaint
+            // of the hand — deal, play, draw — from whichever caller painted it. Guarded
+            // because the engine (which owns the legality check) loads after this script.
+            if (typeof window.wildMarkPlayable === 'function') window.wildMarkPlayable();
         }
 
         // ==================================================================
@@ -1075,7 +1066,8 @@
             a.onLanded();   // the original pile-append + effects run here, unchanged
         }
 
-        // Simulates localized card play animations moving toward discard pile
+        // The local play: one throw, one landing, and the ENGINE told exactly once.
+        // The placed card is presentation — the state of the round lives in the engine.
         function executeLocalCardPlay(cardData, cardElement) {
             const discardPile = document.getElementById('discard-deck-pile');
             const centerZone = document.getElementById('center-board-zone');
@@ -1091,7 +1083,7 @@
             const randomY = (Math.random() * 10) - 5;
 
             const placedCard = document.createElement('div');
-            placedCard.classList.add('discarded-card', cardData.color);
+            placedCard.classList.add('discarded-card', cardData.color === 'black' ? 'wild' : cardData.color);
             placedCard.style.setProperty('--discard-rot', `${randomRot}deg`);
             placedCard.style.setProperty('--discard-x', `${randomX}px`);
             placedCard.style.setProperty('--discard-y', `${randomY}px`);
@@ -1104,19 +1096,19 @@
                 // the 0.50-0.65 settle: the card drops the last few pixels into the
                 // stack while the camera drifts home behind it
                 placedCard.classList.add('landed-settle');
-                const cardEffect = cardData.type
-                    || (cardData.value === 'W' ? 'wild' : cardData.value === 'S' ? 'skip' : 'other');
-                if (cardEffect === 'wild') {
+                const cardEffect = cardData.type || 'other';
+                if (cardEffect === 'wild' || cardEffect === 'wild_draw4') {
                     playWildCardSound();
                     triggerScreenFlash('effect-wild');
+                    // A wild waits for its colour: the wheel opens now and the engine is
+                    // told the whole play — card AND colour — in one commit when the
+                    // player picks. The throw already happened, so the commit is silent.
                     awaitingWildCard = placedCard;
+                    pendingLocalWild = { card: cardData, pileCard: placedCard };
                     presentColorPickerWheel();
-                } else if (cardEffect === 'skip') {
-                    playSkipCardSound();
-                    triggerScreenFlash('effect-skip');
-                }
-                if (!document.querySelectorAll('.hand-container .card').length) {
-                    finishRoundLocally();
+                } else {
+                    // The engine takes the play here: state, effects, next turn.
+                    window.__commitLocalPlay(cardData, null, placedCard);
                 }
             };
 
@@ -1127,115 +1119,10 @@
             }
         }
 
-        // Updates red stack counter widgets for opponent seating boundaries
-        function updateOpponentCounters(slotKey, countNumber) {
-            const targetStack = document.getElementById(`count-stack-${slotKey}`);
-            if (!targetStack) return;
-            targetStack.innerHTML = '';
 
-            // A plain number on the green strip. It used to build one little card per
-            // digit; the mockup shows a number, which reads faster and cannot be mistaken
-            // for a playable card. Same input and same seat lookup, so the deal, the
-            // penalty and the round reset all keep working without changes.
-            targetStack.textContent = String(Math.max(0, Number(countNumber) || 0));
-        }
-
-        /**
-         * ENEMY MECHANIC: Generates masked card backs for an enemy seat.
-         *
-         * A fan of face-down cards, one per card the seat is holding, so a seat shows a
-         * hand rather than a bare digit. The count is the only thing it is given — which
-         * is the whole point of a card back: the page knows how many cards are there and
-         * nothing about what they are.
-         *
-         * @param {string} slotKey - Seating key suffix: 'left' or 'right'
-         * @param {number} totalCardsInHand - How many backs to fan out
-         */
-        function renderHiddenEnemyFanStack(slotKey, totalCardsInHand) {
-            const fanTray = document.getElementById(`fan-hand-${slotKey}`);
-            if (!fanTray) return;
-            fanTray.innerHTML = '';
-
-            const count = Math.max(0, Math.min(20, Number(totalCardsInHand) || 0));
-            const isLeft = slotKey === 'left';
-
-            for (let i = 0; i < count; i += 1) {
-                const backCard = document.createElement('div');
-                backCard.classList.add('card', 'card-back');
-                backCard.style.position = 'absolute';
-
-                // A diagonal cascade running down and inward, tilting a little further with
-                // every card, so the two enemy tracks bracket the table the way the target
-                // mockup has them instead of sitting in flat rows. The tray is deliberately
-                // narrower and shorter than the cascade: the backs overflow it rather than
-                // widening the seat and dragging its portrait away from the rim.
-                const direction = isLeft ? 1 : -1;
-
-                // The mockup's cascade, card for card: its left group is 260x405 for seven
-                // 89x130 backs at about 30deg, which is 19 across and 41 down per card. The
-                // tilt grows 2deg a card so the far end of the run opens out, the way the
-                // mockup's does.
-                backCard.style.top = `${i * 41}px`;
-                backCard.style.left = `calc(50% + ${direction * i * 19}px)`;
-                backCard.style.transform =
-                    `translate3d(-50%, 0, 0) rotate(${direction * (38 + i * 2)}deg)`;
-                backCard.style.zIndex = i;
-
-                fanTray.appendChild(backCard);
-            }
-        }
-
-        /**
-         * TEAM MECHANIC: Renders the partner's hand face up across the top seat.
-         *
-         * Same card, same size, same fan as the local hand — the only difference is which
-         * seat it is drawn on. Seven cards at a 32px spread come to 297px, which is what
-         * the 380px rack on that seat is for.
-         *
-         * @param {Array} cardsArray - The partner's cards, faces and all
-         */
-        function renderTeammateHandFaceUp(cardsArray) {
-            const container = document.getElementById('teammate-hand-container');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const cards = Array.isArray(cardsArray) ? cardsArray : [];
-            const midIndex = (cards.length - 1) / 2;
-
-            cards.forEach((card, i) => {
-                const cardEl = document.createElement('div');
-                cardEl.className = `card ${card.color || 'blue'}`;
-                cardEl.style.position = 'absolute';
-
-                // Fans cards sideways and slightly down at the edges, the same arc the
-                // local hand uses so a partner's hand reads as the same kind of object.
-                // The partner's cards are the SAME SIZE as the player's own, so the fan is
-                // tighter instead: 47px of each 178px card stays visible, which is the same
-                // fraction the hand shows of its own, and seven of them come to 460px — what
-                // .opponent-top-hand is sized to.
-                const offsetFromMiddle = i - midIndex;
-                const horizontalSpread = offsetFromMiddle * 47;
-                const rotationAngle = offsetFromMiddle * 4;
-                const verticalDip = Math.abs(offsetFromMiddle) * 5;
-
-                cardEl.style.left = `calc(50% + ${horizontalSpread}px)`;
-                cardEl.style.transform = `translate3d(-50%, 0, 0) translateY(${verticalDip}px) rotate(${rotationAngle}deg)`;
-                cardEl.style.zIndex = i;
-
-                cardEl.innerHTML = cardFaceHtml(card);
-
-                container.appendChild(cardEl);
-            });
-        }
-
-        /** Draws both enemy fans and their counts from one source of truth. */
+        /** Paints every seat from the engine's hands, through the engine's own painters. */
         function paintSeatHands() {
-            ['left', 'right'].forEach((slotKey) => {
-                const counterKey = `opponent-${slotKey}`;
-                const held = opponentHandSize[counterKey] ?? 7;
-                updateOpponentCounters(counterKey, held);
-                renderHiddenEnemyFanStack(slotKey, held);
-            });
+            if (typeof window.wildPaintSeats === 'function') window.wildPaintSeats();
         }
 
         // Activates the neon direction arrow tracing system around game board
@@ -1264,7 +1151,8 @@
             }
         }
 
-        // Cinematic 3D Round Deal Animation matrix sequence loops
+        // Cinematic 3D Round Deal Animation matrix sequence loops.
+        // The hands it deals are the ENGINE's real hands — nothing is invented here.
         function initializeCinematic3DDeal(playersList, finalHandData) {
             const tableCanvas = document.querySelector('.game-table');
             const deckAnchor = document.getElementById('central-deck');
@@ -1335,18 +1223,28 @@
 
             // Cleanly paint active interactions upon deal compilation conclusion
             setTimeout(() => {
-                renderHand(finalHandData);
-                // Initialize default counters, and the hidden-hand fans beside them.
-                // The two side seats share one source of truth via paintSeatHands, so a
-                // seat's digit and its card backs can never drift apart.
+                // Opponents first, the local hand LAST: paintSeatHands repaints every
+                // seat from the engine, so the hand must be painted after it or the
+                // pop-in cascade would be wiped the same tick it was added.
                 paintSeatHands();
-                // The top seat is the partner, so its hand is dealt open instead of being
-                // counted. It has no count stack to fill any more — seven readable cards
-                // are their own number.
-                renderTeammateHandFaceUp(teammateHandMock);
+                renderHand(finalHandData, true);
                 highlightTurnIndicator('local-player');
                 startTurnClockSimulation();
             }, (fullDealPipeline.length * frameIntervalRate) + 300);
+        }
+
+        // Opens the round on the engine's terms: one starting card on the pile, hands
+        // as dealt, and the turn arrow on whoever actually starts.
+        function renderOpeningPile() {
+            const top = window.wildTopCard ? window.wildTopCard() : null;
+            const pile = document.getElementById('discard-deck-pile');
+            if (!top || !pile) return;
+            const opening = document.createElement('div');
+            opening.className = 'discarded-card ' + (top.color === 'black' ? 'wild' : top.color);
+            opening.innerHTML = cardFaceHtml(top);
+            pile.appendChild(opening);
+            // The waiting shimmer has done its job — a real card leads the round now.
+            pile.classList.remove('is-empty');
         }
 
         // Simulated local game round countdown sound ticker clock loop
@@ -1536,111 +1434,11 @@
         }
 
         // ---- a draw penalty landing -------------------------------------------
-        // The rattle, the sub-bass hit, and the cards going out one at a time to the
-        // seat that has to take them. The seat's counter stack goes up by the same
-        // number when the last card lands, so the penalty leaves the table changed and
-        // not just shaken.
+        // (The old penalty strike has been retired.) It fired a fake four-card "+4"
+        // at the left seat after every wild — theatre with no engine behind it, and it
+        // fought the engine's real draw effects. The engine's own +2/+4 now fly the
+        // drawn cards to the seat that actually has to take them.
         const opponentHandSize = { 'opponent-left': 7, 'opponent-top': 7, 'opponent-right': 7 };
-
-        const PENALTY_SLOT_TO_COUNTER = {
-            left_enemy: 'opponent-left',
-            top_enemy: 'opponent-top',
-            right_enemy: 'opponent-right'
-        };
-
-        // A plain wild draws nothing in the real rules. This page has no server to send a
-        // PLAYER_PENALTY_HIT, so the local wild stands in as the demo's trigger: it is the
-        // one place to change when a real penalty packet arrives, and the function itself
-        // takes the seat and the count so a packet can call it as it is.
-        const DEMO_PENALTY_ON_WILD = { seat: 'left_enemy', cards: 4 };
-
-        function triggerProfessionalPenaltyStrike(targetPlayerSlotKey, totalCardsToDraw = 4) {
-            const tableCanvasNode = document.querySelector('.game-table');
-            const deckSourceNode = document.getElementById('central-deck');
-            if (!tableCanvasNode || !deckSourceNode) return;
-
-            // The rim blooms on the same frame as the strike, so the hit is not confined to
-            // the table's own edges.
-            const vignette = document.getElementById('screen-shockwave-layer');
-            if (vignette) {
-                vignette.classList.add('active-flash');
-                setTimeout(() => vignette.classList.remove('active-flash'), 250);
-            }
-
-            // Restart from the top if a strike is already running: the forced reflow is what
-            // lets the same animation fire twice in a row.
-            tableCanvasNode.classList.remove('penalty-strike-active');
-            void tableCanvasNode.offsetWidth;
-            tableCanvasNode.classList.add('penalty-strike-active');
-
-            if (typeof playDraw4ImpactDamageSound === 'function') playDraw4ImpactDamageSound();
-
-            const deckBounds = deckSourceNode.getBoundingClientRect();
-            const deckX = deckBounds.left + deckBounds.width / 2;
-            const deckY = deckBounds.top + deckBounds.height / 2;
-
-            const slotNodeLookups = {
-                left_enemy: document.getElementById('slot-opponent-left'),
-                top_enemy: document.getElementById('slot-opponent-top'),
-                right_enemy: document.getElementById('slot-opponent-right'),
-                local_player: document.getElementById('local-player-hand')
-            };
-
-            const destinationNode = slotNodeLookups[targetPlayerSlotKey];
-            if (!destinationNode) return;
-
-            const destBounds = destinationNode.getBoundingClientRect();
-            const targetX = destBounds.left + destBounds.width / 2;
-            const targetY = destBounds.top + destBounds.height / 2;
-
-            // The stagger tightens as it goes — 0ms, 106ms, 168ms, 219ms rather than a flat
-            // 110ms apart — so the cards arrive the way a hand is cut into, not like a
-            // metronome.
-            for (let cardIdx = 0; cardIdx < totalCardsToDraw; cardIdx += 1) {
-                const staggeredDelayTime = Math.pow(cardIdx, 0.85) * 110;
-
-                setTimeout(() => {
-                    const flightCardNode = document.createElement('div');
-                    flightCardNode.classList.add('card-in-flight');
-
-                    flightCardNode.style.setProperty('--deck-x', `${deckX}px`);
-                    flightCardNode.style.setProperty('--deck-y', `${deckY}px`);
-                    flightCardNode.style.setProperty('--target-x', `${targetX}px`);
-                    flightCardNode.style.setProperty('--target-y', `${targetY}px`);
-                    flightCardNode.style.setProperty('--target-rot', `${(Math.random() * 34) - 17}deg`);
-                    // .card-in-flight.thrown reads this, so the card comes at the camera
-                    // rather than sliding flat across the table
-                    flightCardNode.style.setProperty('--target-z', '180px');
-
-                    tableCanvasNode.appendChild(flightCardNode);
-                    requestAnimationFrame(() => flightCardNode.classList.add('thrown'));
-
-                    if (typeof playCardRuffleSound === 'function') playCardRuffleSound();
-
-                    setTimeout(() => {
-                        flightCardNode.remove();
-                        // the seat takes its own small hit as each card lands
-                        destinationNode.classList.add('impact');
-                        setTimeout(() => destinationNode.classList.remove('impact'), 100);
-                    }, 580);
-                }, staggeredDelayTime);
-            }
-
-            // The seat holds them now. Timed to the LAST card landing rather than to the
-            // click, which the exponential stagger puts at 219 + 580ms.
-            const counterKey = PENALTY_SLOT_TO_COUNTER[targetPlayerSlotKey];
-            if (counterKey) {
-                setTimeout(() => {
-                    opponentHandSize[counterKey] += totalCardsToDraw;
-                    updateOpponentCounters(counterKey, opponentHandSize[counterKey]);
-                    // The fan takes the penalty cards too, so the backs and the digit
-                    // never tell different stories about the same seat.
-                    renderHiddenEnemyFanStack(counterKey.replace('opponent-', ''), opponentHandSize[counterKey]);
-                }, Math.pow(totalCardsToDraw - 1, 0.85) * 110 + 620);
-            }
-
-            setTimeout(() => tableCanvasNode.classList.remove('penalty-strike-active'), 700);
-        }
 
         // ---- the wild colour wheel --------------------------------------------
         // Four quadrants, one choice, and the choice does not travel anywhere: this
@@ -1648,6 +1446,9 @@
         // already on the pile, which is what a declared colour looks like on the
         // table. The networked client is the one that sends the intent.
         let awaitingWildCard = null;
+        // The local wild in flight: thrown and landed, waiting for its colour so the
+        // engine can be told card AND colour as one play.
+        let pendingLocalWild = null;
 
         const WILD_COLOURS = ['red', 'blue', 'yellow', 'green'];
 
@@ -1673,13 +1474,23 @@
             if (awaitingWildCard) {
                 WILD_COLOURS.forEach((colour) => awaitingWildCard.classList.remove(colour));
                 awaitingWildCard.classList.add(picked);
+                // The declared colour is table information: the pile card glows in the
+                // chosen colour until the next card covers it.
+                awaitingWildCard.classList.add('pile-declared');
+                awaitingWildCard.dataset.declared = picked;
                 awaitingWildCard = null;
             }
 
             concealColorPickerWheel();
 
-            // The colour is declared, so the penalty that follows a wild is applied.
-            triggerProfessionalPenaltyStrike(DEMO_PENALTY_ON_WILD.seat, DEMO_PENALTY_ON_WILD.cards);
+            // The wild play commits as ONE play — card and colour together, through the
+            // same bridge every other play uses. The thrown card already landed, so the
+            // commit only moves state and hands the turn on.
+            if (pendingLocalWild) {
+                const play = pendingLocalWild;
+                pendingLocalWild = null;
+                window.__commitLocalPlay(play.card, picked, play.pileCard);
+            }
         }
 
         function wireColorWheel() {
@@ -1802,45 +1613,28 @@
         }
 
         function finishRoundLocally() {
-            const winner = playersMock.find((p) => p.id === 'p_local');
-            if (!winner) return;
+            // The engine knows the real winner and the real hands. The points follow the
+            // server's rule — the winner is paid what the others still hold.
+            const winnerPid = window.wildLastWinner ? window.wildLastWinner() : 'p_local';
+            const winnerRow = playersMock.find((p) => p.id === winnerPid) || playersMock.find((p) => p.id === 'p_local');
 
-            const pointsWon = playersMock.reduce((sum, p) => (p.id === winner.id ? sum : sum + (p.handPoints || 0)), 0);
+            const pointsWon = playersMock.reduce((sum, p) => (p.id === winnerRow.id ? sum : sum + ((window.wildHandSize ? window.wildHandSize(p.id) : 0) * 5)), 0);
+            winnerRow.score += pointsWon;
 
-            // Banked, so a second round in this demo starts from these totals instead of
-            // scoring the same round twice.
-            winner.score += pointsWon;
-
-            // A wild as the last card opens the colour wheel AND ends the round. The
-            // round being over makes the colour moot, so the wheel goes first rather
-            // than sitting under the victory screen waiting for an answer.
             concealColorPickerWheel();
 
-            const leaderboardRows = playersMock.map((p) => ({ name: p.name, totalScore: p.score, isYou: p.id === winner.id }));
-            presentVictoryScoreboardScreen(winner.name, pointsWon, leaderboardRows);
+            const leaderboardRows = playersMock.map((p) => ({
+                name: p.name,
+                totalScore: p.score,
+                isYou: p.id === winnerRow.id
+            }));
+            presentVictoryScoreboardScreen(winnerRow.name, pointsWon, leaderboardRows);
         }
 
         function prepareClientTableForNewRound() {
-            // The pile empties. The brief clears #central-discard, which does not exist on
-            // this page — the pile is #discard-deck-pile, so clearing the brief's id would
-            // have left every card of the last round lying on the table.
+            // The pile empties.
             const discardPileNode = document.getElementById('discard-deck-pile');
             if (discardPileNode) discardPileNode.innerHTML = '';
-
-            // The counters empty and go back to a fresh deal's seven. The brief's ids are
-            // count-stack-left/top/right; these are count-stack-opponent-*, and without the
-            // reset a seat that took a penalty still shows eleven in the next round.
-            ['opponent-left', 'opponent-top', 'opponent-right'].forEach((slotKey) => {
-                const counterStackNode = document.getElementById(`count-stack-${slotKey}`);
-                if (counterStackNode) counterStackNode.innerHTML = '';
-                opponentHandSize[slotKey] = 7;
-                // The fans empty with the counters, so a new round never opens showing
-                // last round's hand. The deal repaints them at seven.
-                renderHiddenEnemyFanStack(slotKey.replace('opponent-', ''), 0);
-            });
-
-            // The partner's open hand empties with everyone else's. The deal repaints it.
-            renderTeammateHandFaceUp([]);
 
             concealVictoryScoreboard();
 
@@ -1853,10 +1647,12 @@
             // Debris off the table BEFORE the deal, so the new cards do not land on the old
             prepareClientTableForNewRound();
             document.getElementById('local-player-hand').innerHTML = '';
-            // There is no socket in this page, so nobody is told we are ready and no
-            // server deals again. The page deals again itself, because a demo that
-            // cannot start a second round cannot show its own loop.
-            setTimeout(() => initializeCinematic3DDeal(playersMock, localHandMock), 250);
+            // The engine deals the next round itself, then the page paints it. The deal
+            // animation is presentation on top of real state, never a second state.
+            setTimeout(() => {
+                const hands = window.wildStartNextRound();
+                initializeCinematic3DDeal(playersMock, hands.p_local);
+            }, 250);
         }
 
         function wireVictoryScreen() {
@@ -2022,29 +1818,52 @@
             // The table is wired and the clock is running, so the connect phase is over:
             // this is the same beat a real client would call the join a success on.
             setLoaderStatusMessage("Synchronizing Game Room Lobby State...");
-            // Initiates full simulated arcade dealing engine sequence matching layout blueprints
+            // The FIRST round is dealt exactly like every later one: the engine deals
+            // fresh, the cinematic deal flies the real cards, and the hands pop in
+            // when the flights land. Painting seats directly here instead would skip
+            // the theatre — and was the bug where load showed an instant, dead fan.
             setTimeout(() => {
-                // Dismissed BEFORE the deal rather than after it, so the cinematic deal is
-                // watched rather than played out behind an opaque mask. The deal takes
-                // 28 cards x 220ms + 300ms, and hiding all of it would waste it.
                 dismissAppLoadingScreen();
-                initializeCinematic3DDeal(playersMock, localHandMock);
+                const hands = window.wildStartNextRound ? window.wildStartNextRound() : null;
+                initializeCinematic3DDeal(playersMock, hands ? hands.p_local : []);
             }, 800);
         });
     </script>
 
     <script src="game/pwa.js" defer></script>
     <style>
-.ai-card-back{width:34px;height:50px;margin:0 -8px;border-radius:6px;
-  background:linear-gradient(145deg,#24304d,#141a2e);border:2px solid rgba(255,255,255,.25);
-  transform:rotate(calc(var(--i)*4deg - 8deg));box-shadow:0 4px 10px rgba(0,0,0,.4)}
-.ai-fly-card{position:fixed;z-index:999;width:60px;height:88px;font-weight:700;
-  display:flex;align-items:center;justify-content:center;border-radius:8px;color:#fff;
-  box-shadow:0 8px 20px rgba(0,0,0,.5)}
+/* ---- the AI seats' card backs ---- */
+.ai-card-back{width:56px;height:82px;margin:0 -8px;border-radius:9px;
+  background:linear-gradient(145deg,#24304d,#141a2e);border:3px solid rgba(255,255,255,.55);
+  box-shadow:0 4px 10px rgba(0,0,0,.4), inset 0 2px 4px rgba(255,255,255,.18);
+  position:relative;flex:0 0 auto}
+/* The card back's emblem — the same four-petal pinwheel the draw deck wears, so the
+   backs read as this game's cards and not as generic rectangles. Drawn inline: it is
+   two lines of background, not a component. */
+.ai-card-back::before{content:'';position:absolute;inset:5px;border-radius:5px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Cg transform='translate(50 70)' fill='none' stroke-linecap='round'%3E%3Cpath d='M-30 12 A32 32 0 0 1 2 -31' stroke='%23ff4646' stroke-width='7'/%3E%3Cpath d='M11 -30 A32 32 0 0 1 31 3' stroke='%23ffd42a' stroke-width='7'/%3E%3Cpath d='M30 -11 A32 32 0 0 1 -2 31' stroke='%2334d35f' stroke-width='7'/%3E%3Cpath d='M-11 30 A32 32 0 0 1 -31 -3' stroke='%233b8bff' stroke-width='7'/%3E%3Ccircle r='19' fill='%230b0e13' stroke='%23ffffff' stroke-opacity='.22' stroke-width='3'/%3E%3Cpath d='M0 -11 L11 0 L0 11 L-11 0 Z' fill='%23ffffff' fill-opacity='.92'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:70% 70%;background-position:center;background-repeat:no-repeat}
+.ai-fly-card{position:fixed;z-index:999;width:64px;height:94px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;border-radius:9px;color:#fff;
+  font-size:1.9rem;font-family:'Nunito',sans-serif;
+  text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000;
+  border:4px solid #fff;box-shadow:0 8px 20px rgba(0,0,0,.5);
+  pointer-events:none;will-change:transform,opacity}
+.ai-fly-card.red{background:linear-gradient(135deg,#ff1744 0%,#b3001e 100%)}
+.ai-fly-card.blue{background:linear-gradient(135deg,#0066ff 0%,#0033aa 100%)}
+.ai-fly-card.yellow{background:linear-gradient(135deg,#ffcc00 0%,#cc9900 100%);color:#fff}
+.ai-fly-card.green{background:linear-gradient(135deg,#00cc44 0%,#007722 100%)}
+.ai-fly-card.wild{background:linear-gradient(135deg,#222222 0%,#050505 100%)}
 .wild-fallback-card{width:56px;height:82px;border-radius:8px;display:flex;align-items:center;
   justify-content:center;color:#fff;font-weight:800;font-size:26px;margin:0 -10px;
   box-shadow:0 4px 10px rgba(0,0,0,.35);border:3px solid rgba(255,255,255,.6)}
-</style>
+/* ---- the opponent hand-count badge, filled by the engine ---- */
+.hand-count-badge{position:absolute;top:-14px;right:-14px;min-width:34px;height:34px;
+  padding:0 8px;border-radius:17px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#ff3300,#cc0000);border:3px solid #fff;
+  color:#fff;font-weight:900;font-size:1.15rem;font-family:'Nunito',sans-serif;
+  box-shadow:0 4px 10px rgba(0,0,0,.45);z-index:5}
+    </style>
 <script>
 (() => {
 'use strict';
@@ -2090,6 +1909,7 @@ function drawCards(pid,count){
   }
   wild.hands[pid].push(...got);
   pid==='p_local' ? renderLocalHand() : updateOpponentHand(pid);
+  paintDeckCount();
   return got;
 }
 
@@ -2101,12 +1921,21 @@ function updateOpponentHand(pid){
     b.className='ai-card-back'; b.style.setProperty('--i',i);
     box.appendChild(b);
   });
-  const badge=box.querySelector('.hand-count-badge');
-  if(badge) badge.textContent=wild.hands[pid].length;
+  // The seat's count lives on a badge over its portrait — the number the old
+  // count-stack carried, filled straight from the engine's hand.
+  if(pid!=='p_top'){
+    const slot=$id(pid==='p_left'?'slot-opponent-left':'slot-opponent-right');
+    const wrapper=slot?slot.querySelector('.avatar-hud-wrapper'):null;
+    if(wrapper){
+      let badge=wrapper.querySelector('.hand-count-badge');
+      if(!badge){ badge=document.createElement('div'); badge.className='hand-count-badge'; wrapper.appendChild(badge); }
+      badge.textContent=wild.hands[pid].length;
+    }
+  }
 }
 
 function renderLocalHand(){
-  if(typeof window.renderHand==='function'){ window.renderHand(wild.hands.p_local); return; }
+  if(typeof window.renderHand==='function'){ window.renderHand(wild.hands.p_local); markPlayableHints(); return; }
   if(typeof window.cardFaceHtml==='function'){
     const box=$id('local-player-hand'); if(!box) return;
     box.innerHTML='';
@@ -2127,14 +1956,54 @@ function renderLocalHand(){
   if(!wild.warned){ console.warn('[WILD] Add  window.renderHand = renderHand;  inside your script for perfect hand rendering.'); wild.warned=true; }
 }
 
+// The playable glow: written from the engine's own legality check after every local
+// repaint, so the hint and the click handler can never disagree.
+function markPlayableHints(){
+  const handEl=$id('local-player-hand'); if(!handEl) return;
+  const yourTurn = !wild.over && wild.players[wild.turn]==='p_local';
+  handEl.querySelectorAll('.card').forEach((el,i)=>{
+    const card=wild.hands.p_local[i];
+    const legal=!!card && isLegal(card);
+    // The glow points, the dim confirms: playable cards breathe, unplayable ones
+    // sit a shade darker so the legal moves are readable at a glance.
+    el.classList.toggle('playable-hint', !!yourTurn && legal);
+    el.classList.toggle('not-playable', !!yourTurn && !legal);
+  });
+}
+
+// The deck's stock, as a small chip on the draw packet — redraws and +2/+4 penalties
+// all come out of it, so the number is the round's pulse.
+function paintDeckCount(){
+  let chip=$id('deck-count-badge');
+  const deck=$id('central-deck');
+  if(!chip && deck){
+    chip=document.createElement('div'); chip.className='hand-count-badge deck-count'; chip.id='deck-count-badge';
+    deck.appendChild(chip);
+  }
+  if(chip) chip.textContent=wild.drawPile.length;
+}
+
 function updateArrows(){
   for(const pid of SEATS){ const a=arrows[pid]; if(a) a.classList.toggle('active', wild.players[wild.turn]===pid); }
+  // The page's own turn rig — the neon ring around the active portrait — is driven from
+  // here, so the arrows and the ring can never disagree about whose turn it is.
+  if(typeof window.highlightTurnIndicator==='function'){
+    const slotKey={p_local:'local-player',p_left:'opponent-left',p_top:'opponent-top',p_right:'opponent-right'}[wild.players[wild.turn]];
+    try{ window.highlightTurnIndicator(slotKey); }catch(e){}
+  }
+  // The playable glow follows the turn: it lights only while it is actually yours.
+  if(typeof window.renderHand==='function') try{ markPlayableHints(); }catch(e){}
 }
 function showUnoBanner(){
+  // The page's own banner — the burst-in pill, the fanfare and the confetti — instead
+  // of a bare overlay toggle nothing styles.
+  const seat={p_local:'Champ',p_left:'Kalkal',p_top:'Poker',p_right:'Jess'}[wild.players[wild.turn]];
+  if(typeof window.triggerUnoDeclarationBanner==='function'){
+    try{ window.triggerUnoDeclarationBanner(seat); return; }catch(e){}
+  }
   const o=$id('uno-callout-overlay');
   if(o){ o.classList.remove('hidden'); o.classList.add('active');
     setTimeout(()=>{ o.classList.add('hidden'); o.classList.remove('active'); },1800); }
-  if(typeof window.triggerScreenFlash==='function') try{ window.triggerScreenFlash('uno-flash'); }catch(e){}
 }
 
 function commitPlay(pid,card,chosenColor){
@@ -2144,10 +2013,29 @@ function commitPlay(pid,card,chosenColor){
   wild.discard.push(card);
   wild.currentColor=(card.type==='wild'||card.type==='wild_draw4') ? (chosenColor||wild.pendingWildColor||'red') : card.color;
   wild.pendingWildColor=null;
+  // The pile is the table's shared truth: EVERY played card lands on it, AI or local.
+  // Local plays are appended by the throw itself, so only AI plays are painted here —
+  // without this the engine's pile and the visible pile drift apart within one round.
+  if(pid!=='p_local'){
+    const pile=$id('discard-deck-pile');
+    if(pile && typeof window.ChampCards!=='undefined'){
+      const pc=document.createElement('div');
+      pc.className='discarded-card '+(card.color==='black'?'wild':card.color);
+      pc.style.setProperty('--discard-rot', ((Math.random()*24)-12)+'deg');
+      pc.style.setProperty('--discard-x', ((Math.random()*10)-5)+'px');
+      pc.style.setProperty('--discard-y', ((Math.random()*10)-5)+'px');
+      pc.style.setProperty('--discard-z', (pile.children.length*2)+'px');
+      pc.innerHTML=window.ChampCards.cardFaceHtml(card);
+      pc.classList.add('landed-settle');
+      pile.appendChild(pc);
+    }
+  }
   const topEl=$id('discard-deck-pile');
   if(topEl){ topEl.dataset.color=wild.currentColor; topEl.dataset.value=card.value; }
   pid==='p_local' ? renderLocalHand() : updateOpponentHand(pid);
-  if(typeof window.playSound==='function') try{ window.playSound('slam'); }catch(e){}
+  // The slam lives in the throw's impact frame for local plays; for AI plays this is
+  // the moment the card lands, which is where the sound belongs.
+  if(pid!=='p_local' && typeof window.playCardSlamSound==='function') try{ window.playCardSlamSound(); }catch(e){}
   if(!hand.length) return endRound(pid);
   if(hand.length===1) showUnoBanner();
   if(card.type==='draw2'){ drawCards(wild.players[nextIndex(1)],2); return advance(2); }
@@ -2205,21 +2093,25 @@ function flyAiCard(pid,card){
   el.textContent=card.value;
   (seatBoxes[pid]||document.body).appendChild(el);
   const done=()=>{ el.remove(); commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined); };
-  if(typeof window.throwCardVisual==='function'){
-    try{ window.throwCardVisual(card,el,done); return; }catch(e){}
-  }
-  setTimeout(done,450);
+  // The real throw only works on a card already styled and positioned in the table's
+  // own coordinate space. An AI card is a temp element appended to a seat, so the
+  // fallback flight is the honest route — the card hops to the pile, then commits.
+  const dx = window.innerWidth/2 - 30, dy = window.innerHeight/2 - 44;
+  el.style.transition = 'transform .45s cubic-bezier(.5,0,.3,1), opacity .45s ease';
+  requestAnimationFrame(()=>{
+    el.style.transform = `translate(${dx}px, ${dy}px) rotate(${(Math.random()*40)-20}deg) scale(.9)`;
+    el.style.opacity = '0.9';
+  });
+  setTimeout(done,460);
 }
 
 function endRound(winnerPid){
   wild.over=true;
-  const modal=$id('victory-screen-modal'); if(modal) modal.classList.remove('hidden');
-  const rows=$id('leaderboard-rows-box');
-  if(rows){
-    const name={p_local:'Champ (You)',p_left:'Kalkal',p_top:'Poker',p_right:'Jess'};
-    rows.innerHTML=wild.players.slice()
-      .sort((a,b)=>(a===winnerPid?-1:b===winnerPid?1:0))
-      .map((p,i)=>`<div class="leader-row"><span>#${i+1}</span><span>${name[p]}</span><span>${wild.hands[p].length} cards</span></div>`).join('');
+  wild.winnerPid=winnerPid;
+  // The page's own victory screen, driven by the engine's real winner. The page owns
+  // the look, the engine owns the truth.
+  if(typeof window.finishRoundLocally==='function'){
+    try{ window.finishRoundLocally(); }catch(e){}
   }
   if(typeof window.triggerScreenFlash==='function') try{ window.triggerScreenFlash('victory-flash'); }catch(e){}
 }
@@ -2227,13 +2119,71 @@ function endRound(winnerPid){
 /* ---- public API ---- */
 window.wildCanPlay = () => !wild.over && !wild.busy && wild.players[wild.turn]==='p_local';
 window.wildOnLocalPlayed = (card,chosenColor) => commitPlay('p_local',card,chosenColor);
+window.wildEngineState = () => wild;
+// The page's boot and round-start hooks paint the seats through here: these painters
+// live inside this closure, so without the exposure the page's paint call throws and
+// the table never renders its hands.
+window.wildPaintSeats = () => { SEATS.forEach(p=>p==='p_local'?renderLocalHand():updateOpponentHand(p)); };
+window.wildMarkPlayable = () => markPlayableHints();
+window.wildTopCard = () => topCard();
+window.wildLastWinner = () => wild.winnerPid || 'p_local';
+window.wildHandSize = (pid) => (wild.hands[pid] || []).length;
+window.wildCurrentPlayer = () => wild.players[wild.turn];
+window.wildIsLegal = (card) => isLegal(card);
+window.wildYourTurn = () => !wild.over && wild.players[wild.turn]==='p_local';
 window.wildLocalDraw = () => {
   if(!window.wildCanPlay()) return;
-  drawCards('p_local',1);
+  const got=drawCards('p_local',1);
+  const drawn=got[0];
+  // The friendly draw rule: a drawn card you can play stays playable — the turn
+  // stays with you and the new card glows. One you cannot ends your turn.
+  if(drawn && isLegal(drawn)){
+    wild.busy=false;
+    renderLocalHand();
+    const handEl=$id('local-player-hand');
+    const els=handEl?handEl.querySelectorAll('.card'):[];
+    if(els.length) els[els.length-1].classList.add('playable-hint');
+    return;
+  }
   wild.busy=true;
   setTimeout(()=>{ if(!wild.over) advance(1); },500);
 };
-window.wildEngineState = () => wild;
+window.wildStartNextRound = () => {
+  // A fresh deck and deal from the SAME engine — the demo loop is a re-paint of real
+  // state, never a second copy of it.
+  wild.hands={}; wild.drawPile=[]; wild.discard=[]; wild.currentColor=null;
+  wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false; wild.winnerPid=null;
+  wild.pendingWildColor=null;
+  const deck=buildDeck();
+  SEATS.forEach(p=>wild.hands[p]=deck.splice(0,7));
+  let first=deck.pop();
+  while(first.type!=='number'){ deck.unshift(first); first=deck.pop(); }
+  wild.discard=[first]; wild.drawPile=deck; wild.currentColor=first.color;
+  paintDeckCount();
+  if(typeof window.renderOpeningPile==='function') try{ window.renderOpeningPile(); }catch(e){}
+  SEATS.forEach(p=>p==='p_local'?renderLocalHand():updateOpponentHand(p));
+  updateArrows();
+  return { p_local: wild.hands.p_local.slice() };
+};
+// The one bridge the page's presentation layer commits a real play through. The
+// thrown card has already landed on the pile visually, so the commit must not
+// repaint the pile — only the state, the effects and the next turn.
+window.__commitLocalPlay = (card, chosenColor, pileCardNode) => {
+  const hand=wild.hands.p_local;
+  const i=hand.findIndex(c=>c.id===card.id);
+  if(i>=0) hand.splice(i,1);
+  wild.discard.push(card);
+  wild.currentColor=(card.type==='wild'||card.type==='wild_draw4') ? (chosenColor||wild.pendingWildColor||'red') : card.color;
+  wild.pendingWildColor=null;
+  wild.busy=true;
+  if(!hand.length) return endRound('p_local');
+  if(hand.length===1) showUnoBanner();
+  if(card.type==='draw2'){ drawCards(wild.players[nextIndex(1)],2); return advance(2); }
+  if(card.type==='wild_draw4'){ drawCards(wild.players[nextIndex(1)],4); return advance(2); }
+  if(card.type==='skip') return advance(2);
+  if(card.type==='reverse'){ wild.dir*=-1; return advance(1); }
+  advance(1);
+};
 
 /* ---- AUTO-WIRING (no edits to your code needed) ---- */
 // 1) Block clicks on your hand when it's not your turn (capture phase, runs first)
@@ -2254,34 +2204,11 @@ if(picker) picker.addEventListener('click',e=>{
   if(c) wild.pendingWildColor=c;
 },true);
 
-// 4) Detect YOUR play: watch the discard pile; when a new card face appears
-//    while it's your turn, find the matching card in your hand and commit it.
-const discardEl=$id('discard-deck-pile');
-if(discardEl){
-  const faceOf=()=>{
-    const el=discardEl.querySelector('.card')||discardEl;
-    const color=COLORS.find(c=>el.classList.contains(c)) || (el.classList.contains('wild')?'black':null) || el.dataset.color;
-    const value=(el.textContent||'').trim() || el.dataset.value;
-    return {color,value};
-  };
-  let last=null;
-  new MutationObserver(()=>{
-    if(!window.wildCanPlay()) return;                    // only your own plays
-    const f=faceOf(); if(!f.color&&!f.value) return;
-    const sig=f.color+'|'+f.value;
-    if(sig===last) return; last=sig;
-    if(f.color==='black'||f.value==='wild'||f.value==='+4'){
-      // wait a tick for the color picker choice to land
-      setTimeout(()=>{
-        const match=wild.hands.p_local.find(c=>c.type==='wild'||c.type==='wild_draw4');
-        if(match) window.wildOnLocalPlayed(match, wild.pendingWildColor);
-      },300);
-      return;
-    }
-    const match=wild.hands.p_local.find(c=>c.color===f.color&&c.value===f.value);
-    if(match) window.wildOnLocalPlayed(match);
-  }).observe(discardEl,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','data-color','data-value']});
-}
+// 4) (removed) The old discard-pile MutationObserver that "detected" the local
+//    player's play by spying on the pile has been replaced by the explicit bridge:
+//    the page's click handler calls window.__commitLocalPlay directly. Spying on the
+//    pile double-counted plays and matched the WRONG card whenever two cards in the
+//    hand shared a face — the engine, not the pixels, must be the source of truth.
 
 // 5) Boot
 function init(){
@@ -2291,8 +2218,10 @@ function init(){
   while(first.type!=='number'){ deck.unshift(first); first=deck.pop(); }
   wild.discard=[first]; wild.drawPile=deck; wild.currentColor=first.color;
   wild.turn=0; wild.dir=1; wild.busy=false; wild.over=false;
-  SEATS.forEach(p=>p==='p_local'?renderLocalHand():updateOpponentHand(p));
-  updateArrows();
+  paintDeckCount();
+  // The page paints this state from its own DOMContentLoaded hook — see the comment
+  // there. Nothing renders here: this script's own re-render would fight the page's
+  // cinematic deal, and the deal the player watches must be the real deal.
   console.log('[WILD] AI engine ready — opponents will play after your turn.');
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
