@@ -2162,6 +2162,11 @@ function runAiTurn(pid){
   if(wild.over || wild.players[wild.turn]!==pid) return;
   const card=pickAiCard(pid);
   if(card) return flyAiCard(pid,card);
+  if(wild.drawStack>0){
+    drawCards(pid,wild.drawStack);
+    wild.drawStack=0; wild.stackTopType=null;
+    return setTimeout(()=>{ if(!wild.over) advance(1); },500);
+  }
   drawCards(pid,1);
   const drawn=wild.hands[pid][wild.hands[pid].length-1];
   setTimeout(()=>{
@@ -2235,6 +2240,12 @@ window.wildIsLegal = (card) => isLegal(card);
 window.wildYourTurn = () => !wild.over && wild.players[wild.turn]==='p_local';
 window.wildLocalDraw = () => {
   if(!window.wildCanPlay()) return;
+  if(wild.drawStack>0){
+    drawCards('p_local',wild.drawStack);
+    wild.drawStack=0; wild.stackTopType=null; wild.busy=true;
+    setTimeout(()=>{ if(!wild.over) advance(1); },350);
+    return;
+  }
   const got=drawCards('p_local',1);
   const drawn=got[0];
   // The friendly draw rule: a drawn card you can play stays playable — the turn
