@@ -2120,6 +2120,19 @@ function drawCards(pid,count){
   }
   wild.hands[pid].push(...got);
   pid==='p_local' ? renderLocalHand() : updateOpponentHand(pid);
+  // Visual-only draw arrival: the real cards are already in engine state above.
+  if(got.length){
+    const box=pid==='p_local' ? $id('local-player-hand') : seatBoxes[pid];
+    if(box){
+      const start=Math.max(0,box.children.length-got.length);
+      for(let i=start;i<box.children.length;i++){
+        const el=box.children[i];
+        el.classList.add('champ-card-enter');
+        el.style.setProperty('--champ-enter-index',String(i-start));
+        setTimeout(()=>el.classList.remove('champ-card-enter'),700+(i-start)*70);
+      }
+    }
+  }
   paintDeckCount();
   // Visual-only draw acknowledgement. The engine state above remains authoritative.
   const deckEl=$id('central-deck');
