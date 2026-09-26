@@ -2101,6 +2101,7 @@ function commitPlay(pid,card,chosenColor){
   const i=hand.findIndex(c=>c.id===card.id);
   if(i>=0) hand.splice(i,1);
   wild.discard.push(card);
+  if(card.type==='discard_all') clearSameColor(pid,card);
   wild.currentColor=(card.type==='wild'||card.type==='wild_draw4') ? (chosenColor||wild.pendingWildColor||'red') : card.color;
   wild.pendingWildColor=null;
   // The pile is the table's shared truth: EVERY played card lands on it, AI or local.
