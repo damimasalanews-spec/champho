@@ -1964,11 +1964,7 @@ function buildDeck(){
 }
 const topCard = () => wild.discard[wild.discard.length-1] || null;
 function isDrawCard(card){ return card && (card.type==='draw2'||card.type==='wild_draw4'); }
-function isLegal(card){
-  const t = topCard(); if(!t) return true;
-  if(card.type==='wild'||card.type==='wild_draw4') return true;
-  return card.color===wild.currentColor || card.value===t.value;
-}
+function isLegal(card){ return goWildLegal(card); }
 function goWildLegal(card){
   const t=topCard(); if(!t) return true;
   if(wild.drawStack>0){
