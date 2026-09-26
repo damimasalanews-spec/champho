@@ -2304,9 +2304,14 @@ function commitPlay(pid,card,chosenColor){
   // stale AI animations or UI callbacks can never sneak a normal card onto the pile.
   if(wild.pendingDraw4 && wild.players[wild.turn]===pid){
     if(card.type!=='wild_draw4'){
+      // This is an illegal response for ANY of the four players. Local play is
+      // returned to the response UI; an AI seat immediately resolves its forced
+      // response instead of ever placing the illegal card on the pile.
       if(pid==='p_local'){
         wild.busy=true;
         presentDraw4ResponseForCurrentPlayer();
+      }else{
+        aiRespondToDraw4(pid);
       }
       return;
     }
@@ -2408,6 +2413,12 @@ function aiChooseColor(pid){
 }
 function runAiTurn(pid){
   if(wild.over || wild.players[wild.turn]!==pid) return;
+  // A pending Wild +4 is a hard response state for EVERY seat. Never let a
+  // previously queued normal AI turn continue into card selection.
+  if(wild.pendingDraw4){
+    if(wild.players[wild.pendingDraw4.responder]!==pid) return;
+    return aiRespondToDraw4(pid);
+  }
   const card=pickAiCard(pid);
   if(card) return flyAiCard(pid,card);
   if(wild.drawStack>0){
@@ -2423,6 +2434,11 @@ function runAiTurn(pid){
   },650);
 }
 function flyAiCard(pid,card){
+  // A pending Wild +4 is a mandatory response state for all four seats. A stale
+  // animation can never be allowed to visually throw or commit a normal card.
+  if(wild.pendingDraw4 && wild.players[wild.turn]===pid && card.type!=='wild_draw4'){
+    return aiRespondToDraw4(pid);
+  }
   // A seat-origin card: a REAL card face (same builder as every other card on the
   // table) that starts small at the seat and grows to table size mid-flight — the
   // card leaving the hand, exactly as Champ's does.
@@ -2431,7 +2447,16 @@ function flyAiCard(pid,card){
   cardEl.style.transform='translate(-50%,-50%) scale(.35)';
   cardEl.innerHTML=window.ChampCards.cardFaceHtml(card);
   (seatBoxes[pid]||document.body).appendChild(cardEl);
-  const done=()=>{ cardEl.remove(); commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined); };
+  const done=()=>{
+    cardEl.remove();
+    // Re-check the authoritative state at landing time. A +4 may have become
+    // pending while this card was in flight; in that case the card is discarded
+    // from the animation and the AI resolves the +4 instead of committing it.
+    if(wild.pendingDraw4 && wild.players[wild.turn]===pid && card.type!=='wild_draw4'){
+      return aiRespondToDraw4(pid);
+    }
+    commitPlay(pid,card, card.color==='black'?aiChooseColor(pid):undefined);
+  };
   // SAME RIG AS CHAMP: throwCardVisual is the local player's own throw — the same
   // anticipation, arc, spin, ghost trail, impact ring, sparks and camera recoil.
   // The only difference is the starting rect: the flyer launches from wherever this
