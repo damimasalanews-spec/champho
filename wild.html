@@ -2056,11 +2056,13 @@ function canPlayWildDraw4(pid){
 function goWildLegal(card){
   const t=topCard();
   if(!t)return true;
+  // Wild +4 is the mandatory response/priority card in this game. If a player
+  // has one, it is always a legal play, including when another +4 is pending.
+  if(card.type==='wild_draw4')return true;
   if(wild.pendingDraw4 || wild.drawStack>0){
-    return card.type==='wild_draw4' && canPlayWildDraw4(wild.players[wild.turn]);
+    return false;
   }
   if(card.type==='wild')return true;
-  if(card.type==='wild_draw4')return canPlayWildDraw4(wild.players[wild.turn]);
   if(card.type==='discard_all')return card.color===wild.currentColor;
   return card.color===wild.currentColor||card.value===t.value;
 }
