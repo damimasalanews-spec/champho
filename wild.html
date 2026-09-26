@@ -1546,17 +1546,21 @@
             const overlay = document.getElementById('wild-draw4-decision');
             const textNode = document.getElementById('draw4-decision-text');
             const stackBtn = document.getElementById('draw4-stack-btn');
+            const acceptBtn = document.getElementById('draw4-accept-btn');
             if (!overlay) return;
+            const pending = (typeof window.wildEngineState === 'function') ? window.wildEngineState().drawStack : 4;
+            const penalty = Math.max(4, pending || 4);
             if (textNode) {
                 const colour = String(previousColor || '').toUpperCase();
                 textNode.textContent = canStack
-                    ? `The +4 changed the color to ${colour}. Challenge it or stack another +4.`
-                    : `The +4 changed the color to ${colour}. Challenge it or take 4 cards.`;
+                    ? `+4 is stacked to ${penalty}. Challenge it or play another +4.`
+                    : `+4 penalty is ${penalty}. Challenge it or draw ${penalty} cards.`;
             }
             if (stackBtn) {
                 stackBtn.hidden = !canStack;
                 stackBtn.disabled = !canStack;
             }
+            if (acceptBtn) acceptBtn.textContent = `DRAW ${penalty}`;
             overlay.classList.add('visible');
             overlay.setAttribute('aria-hidden','false');
             if (typeof playColorWheelOpenSound === 'function') playColorWheelOpenSound();
@@ -2220,10 +2224,12 @@ function resolveDraw4Challenge(challengerPid){
 
 function acceptDraw4(pid){
   if(!wild.pendingDraw4) return;
+  // A stacked +4 penalty is cumulative: 4, then 8, then 12, and so on.
+  const penalty = Math.max(4, wild.drawStack || 4);
   wild.pendingDraw4=null;
   wild.drawStack=0;
   wild.stackTopType=null;
-  drawCards(pid,4);
+  drawCards(pid,penalty);
   advance(1);
 }
 
