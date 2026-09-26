@@ -50,3 +50,88 @@
 .draw4-actions button:hover{transform:translateY(-2px);filter:brightness(1.12);box-shadow:0 8px 18px #0006}
 .gwx-modal-card .danger-pill{box-shadow:0 0 22px #ff405433}
 @media(max-width:760px){.gwx-deal-flyer{border-radius:6px}.gwx-modal-card{padding:24px}.gwx-modal-card h2{font-size:28px}.draw4-actions{flex-direction:column}.draw4-actions button{min-height:46px}}
+
+/* FINAL PRESENTATION PASS */
+.gwx-table{isolation:isolate;background:
+ radial-gradient(ellipse at 50% 48%,rgba(34,229,147,.22),transparent 42%),
+ radial-gradient(circle at 12% 18%,rgba(62,140,255,.10),transparent 24%),
+ radial-gradient(circle at 88% 82%,rgba(255,77,98,.09),transparent 25%),
+ linear-gradient(145deg,#087a52,#075d41 62%,#064a35);
+}
+.gwx-table:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.18;background-image:radial-gradient(rgba(255,255,255,.55) .6px,transparent .7px);background-size:7px 7px;mix-blend-mode:overlay;z-index:1}
+.gwx-rail,.gwx-center-glow{z-index:0}
+.gwx-seat,.gwx-center,.gwx-controls,.gwx-chat-panel{z-index:5}
+.gwx-seat.active .gwx-player-card{border-color:#ffffff55;box-shadow:0 0 0 1px #ffffff10,0 0 32px rgba(72,164,255,.22),0 18px 42px #0009;transform:translateY(-3px)}
+.left .gwx-player-card.active,.right .gwx-player-card.active{transform:rotate(0deg) translateY(-3px)}
+.gwx-seat.active .status-dot{box-shadow:0 0 0 4px rgba(53,227,138,.10),0 0 18px #35e38a}
+.gwx-seat.bottom.active .gwx-avatar{box-shadow:0 0 0 2px rgba(255,214,107,.18),0 0 28px rgba(255,214,107,.25),0 10px 28px #0009}
+.gwx-avatar{overflow:visible}
+.gwx-avatar-art{position:relative;overflow:hidden}
+.gwx-avatar-art:before{content:"";position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.20),transparent 42%,rgba(0,0,0,.24));pointer-events:none}
+.avatar-head{position:absolute;width:29px;height:32px;left:18px;top:12px;border-radius:48% 48% 45% 45%;background:linear-gradient(145deg,#f4c6a0,#b76d4b);box-shadow:inset -5px -3px 0 rgba(72,30,24,.12),0 4px 8px #0005;z-index:2}
+.avatar-body{position:absolute;width:52px;height:29px;left:6px;bottom:-2px;border-radius:28px 28px 9px 9px;background:linear-gradient(145deg,#4b86d8,#183d79);box-shadow:inset 0 5px 0 rgba(255,255,255,.12);z-index:1}
+.avatar-poker .avatar-head:after{content:"";position:absolute;left:-2px;top:-5px;width:33px;height:18px;border-radius:50% 55% 25% 35%;background:#241b1c;box-shadow:7px 2px 0 #241b1c}
+.avatar-poker .avatar-body{background:linear-gradient(145deg,#4e9fff,#174d9b)}
+.avatar-kalkal .avatar-head{background:linear-gradient(145deg,#f2c29d,#ad6748)}
+.avatar-kalkal .avatar-head:after{content:"";position:absolute;left:-5px;top:-5px;width:39px;height:27px;border-radius:50%;background:#24191a;z-index:-1}
+.avatar-kalkal .avatar-body{background:linear-gradient(145deg,#df5d79,#7f203a)}
+.avatar-jess .avatar-head{background:linear-gradient(145deg,#c98b67,#7b4838)}
+.avatar-jess .avatar-head:after{content:"";position:absolute;left:-3px;top:-4px;width:36px;height:17px;border-radius:50% 55% 30% 30%;background:#17191e}
+.avatar-jess .avatar-body{background:linear-gradient(145deg,#efad49,#8b4d0f)}
+.avatar-champ .avatar-head:after{content:"";position:absolute;left:-3px;top:-5px;width:35px;height:17px;border-radius:50% 55% 28% 32%;background:#2a1c19}
+.avatar-champ .avatar-body{background:linear-gradient(145deg,#ffd66b,#9b6512)}
+.gwx-piles{gap:78px}
+.gwx-deck,.gwx-discard{width:146px;height:214px;border-radius:18px}
+.gwx-card{border-radius:18px}
+.gwx-deck{filter:drop-shadow(0 25px 25px #000b)}
+.deck-face{inset:13px;border-radius:14px;background:radial-gradient(circle at 35% 25%,#3e6594,#0a1422 72%);box-shadow:inset 0 0 35px #0009,0 0 0 1px #ffffff12}
+.deck-face:after{content:"";position:absolute;inset:7px;border:1px solid #ffffff14;border-radius:10px;transform:rotate(7deg)}
+.deck-face b{font-size:31px;z-index:1}
+.gwx-discard{box-shadow:0 24px 34px #0009}
+.gwx-discard-wrap:after{content:"";position:absolute;inset:-12px;border-radius:28px;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 68%);pointer-events:none}
+.gwx-status-line{margin-bottom:20px}
+.gwx-turn-label{box-shadow:0 0 24px rgba(115,223,255,.08)}
+.gwx-message{min-height:16px}
+.gwx-hand{height:220px}
+.gwx-hand-card{width:124px;height:186px;margin-left:-30px}
+.gwx-hand-card:hover{--lift:-30px}
+.gwx-action{box-shadow:0 10px 28px #0008;transition:transform .16s,filter .16s,border-color .16s}
+.gwx-action:hover{transform:translateY(-2px);filter:brightness(1.12);border-color:#ffffff38}
+.gwx-action:active{transform:translateY(1px) scale(.98)}
+.gwx-tools button{transition:.16s}
+.gwx-tools button:hover{background:#ffffff12;border-color:#ffffff35;transform:translateY(-1px)}
+.gwx-stack-badge{box-shadow:0 8px 20px #0008,0 0 18px rgba(255,77,98,.18)}
+@media(max-width:1050px){
+ .gwx-table{width:calc(100% - 20px);border-radius:28px}
+ .top .gwx-player-card{min-width:460px}
+ .gwx-center{width:520px}
+ .gwx-piles{gap:48px}
+ .gwx-deck,.gwx-discard{width:122px;height:182px}
+ .gwx-hand-card{width:106px;height:160px;margin-left:-27px}
+}
+@media(max-width:760px){
+ .gwx-topbar{height:62px;padding:0 14px}
+ .gwx-logo span{font-size:17px}.gwx-logo b{font-size:23px}.gwx-logo small{font-size:6px;margin-top:5px}
+ .gwx-matchbar{font-size:8px;gap:6px}
+ .gwx-tools button{width:36px;height:36px}
+ .gwx-table{top:62px;bottom:48px;width:calc(100% - 10px);border-radius:24px}
+ .gwx-table:before{inset:12px;border-radius:18px}
+ .gwx-seat.top{top:12px}.gwx-seat.left{left:10px}.gwx-seat.right{right:10px}
+ .top .gwx-player-card{min-width:0;width:310px;padding:6px 8px}
+ .left .gwx-player-card,.right .gwx-player-card{width:148px;padding:6px}
+ .gwx-avatar{width:48px;height:48px;border-radius:15px}.gwx-avatar-art{border-radius:12px}.avatar-head{transform:scale(.78);transform-origin:center}.avatar-body{transform:scale(.78);transform-origin:bottom center}
+ .gwx-player-info strong{font-size:11px}.gwx-player-info span,.gwx-local-meta span{font-size:6px}.gwx-player-info b{font-size:6px;margin-top:4px}
+ .gwx-partner-hand{height:45px;max-width:150px}.gwx-partner-hand .mini{width:25px;height:37px;margin-left:-9px}
+ .gwx-center{width:100%;top:47%;transform:translate(-50%,-50%)}
+ .gwx-piles{gap:25px;min-height:175px}
+ .gwx-deck,.gwx-discard{width:92px;height:138px;border-radius:13px}
+ .deck-face{inset:9px;border-radius:9px}.deck-face b{font-size:20px}.deck-face small{bottom:12px;font-size:6px}
+ .gwx-hand{height:145px;padding-left:50px}
+ .gwx-hand-card{width:66px;height:100px;margin-left:-20px;border-radius:11px}
+ .gwx-hand-card .gwx-card{border-radius:11px}
+ .gwx-local-meta{left:7px;bottom:8px}.gwx-local-meta .gwx-avatar{width:42px;height:42px}
+ .gwx-controls{right:9px;bottom:9px;gap:5px}.gwx-action{height:38px;padding:0 10px;font-size:8px}.gwx-action.chat{width:38px}
+ .gwx-message{font-size:9px;margin-top:7px}
+ .gwx-status-line{margin-bottom:8px}.gwx-turn-label,.gwx-color-label{padding:6px 9px;font-size:8px}
+ .gwx-footer{height:48px}
+}
