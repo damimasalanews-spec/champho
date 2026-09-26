@@ -33,9 +33,10 @@ function dealIntro(){
   const table=$('table'),pile=$('drawPile');
   if(!table||!pile||!s)return;
   const token=roundToken;
+  clearTimeout(aiTimer);
   table.classList.add('dealing');
-  const ps=$('previewState'); if(ps) ps.textContent='DEALING';
   s.dealing=true;
+  const ps=$('previewState'); if(ps) ps.textContent='DEALING';
 
   const motion=document.createElement('div');
   motion.className='gwx-motion-layer';
@@ -47,63 +48,80 @@ function dealIntro(){
     jess:document.querySelector('.gwx-seat.right'),
     champ:document.querySelector('.gwx-seat.bottom')
   };
+
   const targetFor=(pid,i)=>{
-    const h=pid==='champ'?$('hand-local'):pid==='poker'?$('hand-top'):seats[pid]?.querySelector('.gwx-opponent-hand');
-    return h?.children[i]||null;
+    if(pid==='champ') return $('hand-local')?.children[i]||null;
+    if(pid==='poker') return $('hand-top')?.children[i]||null;
+    return seats[pid]?.querySelector('.gwx-opponent-hand')?.children[i]||null;
   };
 
+  // True 2v2 round-robin: one card to each seat, seven passes.
   const jobs=[];
-  ORDER.forEach(pid=>{
-    for(let i=0;i<7;i++){
-      const target=targetFor(pid,i);
-      if(target) jobs.push({pid,i,target});
+  for(let round=0;round<7;round++){
+    for(const pid of ORDER){
+      const target=targetFor(pid,round);
+      if(target) jobs.push({pid,i:round,target});
     }
-  });
+  }
 
   const from=pile.getBoundingClientRect();
-  const total=jobs.length;
+  if(!from.width||!from.height){
+    finish();
+    return;
+  }
+
   let completed=0;
-  const step=190,startDelay=700,duration=760;
+  const total=jobs.length;
+  const step=150,startDelay=300,duration=650;
 
   jobs.forEach((job,index)=>{
     const delay=startDelay+index*step;
-    job.target.style.visibility='hidden';
-
     setTimeout(()=>{
-      if(token!==roundToken){return;}
-      const target=targetFor(job.pid,job.i);
-      if(!target){completed++;return finalizeIfDone();}
-      const r=target.getBoundingClientRect();
-      if(!r.width||!r.height){completed++;target.style.visibility='visible';return finalizeIfDone();}
+      if(token!==roundToken)return;
 
-      const clone=target.cloneNode(true);
+      const target=targetFor(job.pid,job.i);
+      if(!target){completed++;finishIfDone();return;}
+
+      const r=target.getBoundingClientRect();
+      if(!r.width||!r.height){
+        target.style.visibility='visible';
+        completed++;finishIfDone();return;
+      }
+
+      // Build a guaranteed-visible card from the real destination card.
+      const clone=job.pid==='champ'
+        ? target.cloneNode(true)
+        : target.cloneNode(true);
+
       clone.classList.remove('deal-target','deal-land');
       clone.classList.add('gwx-deal-clone');
-      clone.style.position='fixed';
-      clone.style.left=(from.left+from.width/2-r.width/2)+'px';
-      clone.style.top=(from.top+from.height/2-r.height/2)+'px';
-      clone.style.width=r.width+'px';
-      clone.style.height=r.height+'px';
-      clone.style.margin='0';
-      clone.style.zIndex='100000';
-      clone.style.opacity='0';
-      clone.style.visibility='visible';
+      clone.style.setProperty('position','fixed','important');
+      clone.style.setProperty('left',(from.left+from.width/2-r.width/2)+'px','important');
+      clone.style.setProperty('top',(from.top+from.height/2-r.height/2)+'px','important');
+      clone.style.setProperty('width',r.width+'px','important');
+      clone.style.setProperty('height',r.height+'px','important');
+      clone.style.setProperty('margin','0','important');
+      clone.style.setProperty('visibility','visible','important');
+      clone.style.setProperty('opacity','1','important');
+      clone.style.setProperty('display','block','important');
+      clone.style.setProperty('z-index','100000','important');
       clone.style.pointerEvents='none';
-      clone.style.transform='rotate('+(index%2?-7:7)+'deg) scale(.62)';
+      clone.style.transform='rotate('+(index%2?-8:8)+'deg) scale(.72)';
       motion.appendChild(clone);
 
-      const tx=r.left-(from.left+from.width/2-r.width/2);
-      const ty=r.top-(from.top+from.height/2-r.height/2);
-      const arc=job.pid==='champ'?-90:(job.pid==='poker'?-75:-95);
-      const spin=index%2?-7:7;
+      const sx=from.left+from.width/2-r.width/2;
+      const sy=from.top+from.height/2-r.height/2;
+      const tx=r.left-sx,ty=r.top-sy;
+      const arc=job.pid==='champ'?-75:job.pid==='poker'?-95:-70;
+      const spin=index%2?-8:8;
 
       requestAnimationFrame(()=>{
         const anim=clone.animate([
-          {transform:'translate(0,0) rotate('+(-spin)+'deg) scale(.62)',opacity:0},
-          {transform:'translate('+tx*.28+'px,'+(ty*.28+arc)+'px) rotate('+spin+'deg) scale(1.08)',opacity:1,offset:.28},
-          {transform:'translate('+tx*.72+'px,'+(ty*.72+arc*.24)+'px) rotate('+(-spin*.35)+'deg) scale(1.02)',opacity:1,offset:.72},
+          {transform:'translate(0,0) rotate('+(-spin)+'deg) scale(.72)',opacity:0},
+          {transform:'translate('+tx*.32+'px,'+(ty*.32+arc)+'px) rotate('+spin+'deg) scale(1.12)',opacity:1,offset:.3},
+          {transform:'translate('+tx*.72+'px,'+(ty*.72+arc*.25)+'px) rotate('+(-spin*.35)+'deg) scale(1.04)',opacity:1,offset:.72},
           {transform:'translate('+tx+'px,'+ty+'px) rotate(0deg) scale(1)',opacity:1}
-        ],{duration,easing:'cubic-bezier(.12,.82,.16,1)',fill:'forwards'});
+        ],{duration,easing:'cubic-bezier(.12,.78,.18,1)',fill:'forwards'});
 
         anim.finished.then(()=>{
           clone.remove();
@@ -111,27 +129,25 @@ function dealIntro(){
           target.style.visibility='visible';
           target.classList.add('deal-land');
           setTimeout(()=>target.classList.remove('deal-land'),380);
-          completed++;
-          finalizeIfDone();
+          completed++;finishIfDone();
         }).catch(()=>{
           clone.remove();
           if(token!==roundToken)return;
           target.style.visibility='visible';
-          completed++;
-          finalizeIfDone();
+          completed++;finishIfDone();
         });
       });
     },delay);
   });
 
-  function finalizeIfDone(){
-    if(completed<total)return;
+  function finishIfDone(){if(completed>=total)finish()}
+  function finish(){
     motion.remove();
     table.classList.remove('dealing');
     s.dealing=false;
     const ps=$('previewState'); if(ps) ps.textContent='READY';
     render();
-    if(current()!=='champ' && !s.dealing)scheduleAI();
+    if(current()!=='champ'&&!s.dealing)scheduleAI();
   }
 }
 
