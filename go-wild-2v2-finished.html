@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Go Wild 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=25">
+<title>Go Wild Words 2v2 — Champ Word</title>
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=27">
 </head>
 <body>
 <div id="app" class="gwx-app">
@@ -33,7 +33,7 @@
         <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-kalkal"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
         <div class="gwx-player-info"><strong>Kalkal</strong><span>OPPONENT</span><b>TEAM B</b></div>
       </div>
-      <div class="gwx-card-count"><span id="count-left">7</span><small>CARDS</small></div>
+      <div class="gwx-card-count"><span id="count-left">7</span><small>WORDS</small></div>
     </section>
 
     <section class="gwx-seat right" data-player="jess">
@@ -41,26 +41,25 @@
         <div class="gwx-player-info right-text"><strong>Jess</strong><span>OPPONENT</span><b>TEAM B</b></div>
         <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-jess"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
       </div>
-      <div class="gwx-card-count"><span id="count-right">7</span><small>CARDS</small></div>
+      <div class="gwx-card-count"><span id="count-right">7</span><small>WORDS</small></div>
     </section>
 
     <section class="gwx-center">
       <div class="gwx-status-line"><div id="turnLabel" class="gwx-turn-label">YOUR TURN</div><div id="colorLabel" class="gwx-color-label"><i></i> BLUE</div></div>
       <div class="gwx-piles">
-        <button id="drawPile" class="gwx-deck" aria-label="Draw pile"><span class="deck-layer l1"></span><span class="deck-layer l2"></span><span class="deck-face"><b>CW</b><small>GO</small></span><i id="drawBadge">136</i></button>
-        <div class="gwx-discard-wrap"><div class="gwx-discard-shadow"></div><div id="discard" class="gwx-discard"></div><div id="stackBadge" class="gwx-stack-badge"></div></div>
+        <button id="drawPile" class="gwx-deck" aria-label="Word book"><span class="deck-layer l1"></span><span class="deck-layer l2"></span><span class="deck-face"><b>BOOK</b><small>WORDS</small></span><i id="drawBadge">BOOK</i></button>
+        <div class="gwx-discard-wrap"><div class="gwx-discard-shadow"></div><div id="discard" class="gwx-discard"></div></div>
       </div>
-      <div id="message" class="gwx-message">Match color, letter or action</div>
+      <div id="message" class="gwx-message">Find a word that starts with the last letter.</div>
     </section>
 
     <section class="gwx-seat bottom" data-player="champ">
       <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>YOU · TEAM A</span></div></div>
     </section>
-    <div id="hand-local" class="gwx-hand" aria-label="Your cards"></div>
+    <div id="hand-local" class="gwx-hand" aria-label="Your words"></div>
 
     <div class="gwx-controls">
-      <button id="unoBtn" class="gwx-action uno">UNO!</button>
-      <button id="drawBtn" class="gwx-action draw">DRAW</button>
+      <button id="drawBtn" class="gwx-action draw">DRAW WORD</button>
       <button id="chatBtn" class="gwx-action chat">💬</button>
     </div>
     <div id="chatPanel" class="gwx-chat-panel">
@@ -75,12 +74,9 @@
     <div class="gwx-team-score"><span class="blue-dot"></span><b>TEAM A</b><strong id="teamScoreA">0</strong><span class="red-dot"></span><b>TEAM B</b><strong id="teamScoreB">0</strong></div>
   </footer>
 
-  <div id="colorModal" class="gwx-modal"><div class="gwx-modal-card"><small>WILD CARD</small><h2>CHOOSE A COLOR</h2><div class="color-grid"><button data-color="red">RED</button><button data-color="yellow">YELLOW</button><button data-color="green">GREEN</button><button data-color="blue">BLUE</button></div></div></div>
-  <div id="draw4Modal" class="gwx-modal"><div class="gwx-modal-card"><span class="danger-pill">WILD +4</span><h2>DRAW 4</h2><p id="draw4Text">Choose how to respond.</p><div class="draw4-actions"><button id="challengeBtn">CHALLENGE</button><button id="stackBtn">STACK +4</button><button id="acceptBtn">DRAW 4</button></div></div></div>
   <div id="winModal" class="gwx-modal"><div class="gwx-modal-card win"><small>MATCH COMPLETE</small><h2 id="winTitle">TEAM A WINS</h2><p id="winText"></p><button id="nextBtn">PLAY AGAIN</button></div></div>
 </div>
-<script src="game/cards.js"></script>
-<script type="module" src="game/go-wild-2v2-finished.js?v=25"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=27"></script>
 </body>
 </html>
 
