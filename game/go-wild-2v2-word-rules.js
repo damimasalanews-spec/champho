@@ -16,7 +16,9 @@ export function playableWords(hand, requiredLetter) {
 
 export function resolveBookDraw(hand, drawnWord, requiredLetter) {
   if (canPlayWord(drawnWord, requiredLetter)) {
-    return { hand: [...hand], play: drawnWord, passed: false };
+    // Put a matching draw in the hand briefly so the normal play path can
+    // validate it, animate it to the table, and remove it from the hand.
+    return { hand: [...hand, drawnWord], play: drawnWord, passed: false };
   }
   return { hand: [...hand, drawnWord], play: null, passed: true };
 }
