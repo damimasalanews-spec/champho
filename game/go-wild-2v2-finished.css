@@ -33,6 +33,97 @@
  .gwx-footer{height:50px;gap:12px}.gwx-footer>div{gap:4px}.gwx-team-score b{font-size:9px}
  .gwx-piles{gap:22px}.gwx-deck,.gwx-discard{width:96px;height:142px}.gwx-message{font-size:9px}
 }
+
+/* Letter deck artwork: a slim portrait frame, four-color oval and simple CW backs. */
+:root{--hand-card-height:clamp(72px,11.4vw,198px)}
+.gwx-card{background:linear-gradient(145deg,#15171b,#030406)!important;color:#fff!important;border:2px solid #f6f6f6!important;border-radius:10px!important;box-shadow:0 9px 16px #0008,inset 0 0 0 2px #101216!important;overflow:hidden}
+.gwx-card:before{inset:5px!important;border:1px solid #ffffffd9!important;border-radius:7px!important;z-index:3}
+.gwx-card:after{display:none!important}
+.cw-card-oval{position:absolute;left:18%;top:12%;width:64%;height:76%;border-radius:50%;transform:rotate(25deg);background:conic-gradient(from -35deg,#e52836 0 25%,#1267c4 25% 50%,#169747 50% 75%,#f0d20b 75% 100%);border:2px solid #fff;box-shadow:inset 0 0 0 1px #0008;z-index:1;pointer-events:none}
+.gwx-card .card-value,.gwx-card .card-glyph,.gwx-card .corner-value{z-index:2}
+.gwx-card .number-value{font-size:clamp(42px,5.8vw,88px)!important;letter-spacing:-2px!important;color:#fff;text-shadow:-2px -2px #08090b,2px -2px #08090b,-2px 2px #08090b,2px 2px #08090b,0 3px #08090b}
+.gwx-hand-card .number-value{font-size:clamp(34px,5vw,72px)!important;letter-spacing:-1px!important}
+.gwx-card .corner-value{font-size:clamp(9px,.95vw,16px)!important;color:#fff;text-shadow:-1px -1px #08090b,1px 1px #08090b}
+.gwx-hand-card{height:var(--hand-card-height)!important}
+.gwx-hand-card>.gwx-card{height:100%!important}
+.gwx-partner-hand{height:clamp(72px,11.4vw,198px)!important}
+.gwx-partner-hand .mini-back,.gwx-opponent-hand .opponent-back{width:clamp(34px,5.32vw,92px)!important;height:clamp(50px,7.98vw,139px)!important;border-radius:10px!important;border:2px solid #fff!important;background:linear-gradient(145deg,#14161a,#030406)!important;box-shadow:inset 0 0 0 2px #101216,0 6px 12px #0007!important;overflow:hidden}
+.gwx-partner-hand .mini-back:before,.gwx-opponent-hand .opponent-back:before{content:"CW"!important;width:62%!important;height:42%!important;border-radius:50%!important;background:radial-gradient(ellipse,#e52836 0 46%,#05070b 48% 100%)!important;border:1px solid #fff!important;color:#ffe85c!important;font-size:clamp(10px,1.35vw,20px)!important;font-style:italic;font-weight:1000;letter-spacing:-1px!important;text-shadow:1px 2px #050505;box-shadow:none!important}
+.gwx-partner-hand .mini-back:after,.gwx-opponent-hand .opponent-back:after{inset:5px!important;border:1px solid #ffffff9c!important;border-radius:7px!important;transform:none!important}
+.gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:clamp(50px,7.98vw,139px)!important}
+.gwx-deck{width:clamp(48px,7.6vw,132px)!important;height:clamp(72px,11.4vw,198px)!important;border-radius:10px!important}
+.gwx-discard-wrap{width:clamp(70px,7.6vw,132px)!important;height:clamp(105px,11.4vw,198px)!important}
+.gwx-discard{width:100%!important;height:100%!important;border-radius:10px!important}
+.deck-layer,.deck-face{border-radius:10px!important}
+.deck-layer{background:linear-gradient(145deg,#15171b,#030406)!important;border:1px solid #fff!important}
+.deck-face{inset:10px!important;background:linear-gradient(145deg,#15171b,#030406)!important;border:1px solid #fff!important}
+.deck-face:after{content:"";position:absolute;left:16%;top:20%;width:68%;height:60%;border:1px solid #fff;border-radius:50%;transform:rotate(25deg);background:radial-gradient(ellipse,#e52836 0 46%,#05070b 48% 100%)}
+.deck-face b{position:relative;z-index:1;color:#ffe85c!important;font-size:clamp(13px,1.7vw,24px)!important;font-style:italic;text-shadow:1px 2px #050505!important}
+.deck-face small{display:none!important}
+.fly,.fly.gwx-card{width:clamp(48px,7.6vw,132px)!important;height:clamp(72px,11.4vw,198px)!important;border-radius:10px!important}
+@media(max-width:760px){
+ .gwx-partner-hand{height:clamp(50px,12.3vw,70px)!important}
+ .gwx-partner-hand .mini-back,.gwx-opponent-hand .opponent-back{width:clamp(34px,8.2vw,48px)!important;height:clamp(50px,12.3vw,70px)!important}
+ .gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:clamp(50px,12.3vw,70px)!important}
+ .gwx-seat.left .gwx-opponent-hand .opponent-back,.gwx-seat.right .gwx-opponent-hand .opponent-back{height:clamp(50px,12.3vw,70px)!important}
+ .gwx-deck{width:clamp(48px,15vw,76px)!important;height:clamp(72px,22.5vw,114px)!important}
+ .gwx-discard-wrap{width:clamp(70px,23vw,108px)!important;height:clamp(105px,34.5vw,162px)!important}
+ .gwx-card .number-value{font-size:clamp(36px,10vw,56px)!important}
+ .gwx-hand-card .number-value{font-size:clamp(32px,9vw,46px)!important}
+ .gwx-card .corner-value{font-size:9px!important}
+ .fly,.fly.gwx-card{width:clamp(48px,7.6vw,62px)!important;height:clamp(72px,11.4vw,94px)!important}
+}
+
+/* Word-chain round layout: private word chips, a shared table word and a word book. */
+.gwx-center{width:min(700px,90vw)}
+.gwx-piles{gap:clamp(20px,5vw,62px)}
+.gwx-current-word{position:relative;display:flex;min-width:clamp(150px,22vw,270px);min-height:clamp(104px,15vw,178px);padding:18px 22px;align-items:center;justify-content:center;flex-direction:column;gap:9px;border:2px solid #f4f4e9;border-radius:24px;background:linear-gradient(145deg,#fff9e9,#d9edc2);color:#172a24;box-shadow:0 18px 32px #001a1766,inset 0 0 0 5px #ffffffb3;transform:rotate(-2deg)}
+.gwx-current-word span{font-size:clamp(23px,3.6vw,43px);font-weight:1000;line-height:1.05;text-align:center;text-transform:uppercase;overflow-wrap:anywhere;text-shadow:0 1px #fff}
+.gwx-current-word small{font-size:9px;font-weight:900;letter-spacing:1.5px;color:#32824f}
+.gwx-deck{width:clamp(86px,10vw,130px)!important;height:clamp(108px,13vw,166px)!important;border-radius:16px!important;background:linear-gradient(145deg,#f2d18a,#b77a35)!important;box-shadow:0 15px 24px #17221499!important;transform:rotate(-5deg)}
+.deck-layer{border-radius:14px!important;background:#704a2e!important;border:1px solid #f9dd9d!important}
+.deck-face{inset:10px!important;display:flex!important;flex-direction:column;justify-content:center;gap:6px;border:2px solid #fff1c4!important;border-radius:11px!important;background:linear-gradient(145deg,#16884f,#075a3b)!important;color:#fff}
+.deck-face:before{content:"📖";font-size:clamp(24px,3vw,38px);line-height:1}
+.deck-face b{font-size:clamp(11px,1.4vw,17px)!important;font-style:normal!important;letter-spacing:1px!important;text-shadow:0 2px #06472f!important}
+.deck-face:after{display:none!important}
+.gwx-discard-wrap{width:clamp(150px,22vw,270px)!important;height:clamp(104px,15vw,178px)!important}
+.gwx-discard{display:grid;place-items:center;overflow:visible!important}
+.gwx-message{max-width:min(90vw,540px);margin-inline:auto}
+#hand-local{position:fixed!important;left:17%!important;right:19%!important;bottom:10px!important;width:auto!important;height:auto!important;max-height:24vh;display:flex!important;align-items:flex-end!important;justify-content:center!important;gap:clamp(5px,.7vw,10px);padding:8px 10px!important;overflow:visible!important;pointer-events:none!important;z-index:50}
+.word-chip{position:relative;display:flex;flex:0 1 auto;min-width:clamp(64px,6.2vw,104px);max-width:clamp(86px,8.4vw,136px);min-height:clamp(48px,6.1vw,74px);padding:8px 10px;align-items:center;justify-content:flex-start;gap:7px;border:1px solid #fff9;border-radius:16px;background:linear-gradient(145deg,#fff2c2,#f4d778);color:#24352b;font-size:clamp(10px,.95vw,14px);font-weight:900;line-height:1.12;text-align:left;box-shadow:0 8px 14px #00150e55,inset 0 1px #fff;pointer-events:auto;transition:filter .15s,transform .15s}
+.word-chip b{display:grid;flex:none;width:24px;height:24px;place-items:center;border-radius:50%;background:#12824d;color:#fff;font-size:12px}
+.word-chip span{text-transform:uppercase;overflow-wrap:anywhere}
+.word-chip.is-playable{border-color:#ffffdc;background:linear-gradient(145deg,#fff7d9,#fff0a7);box-shadow:0 0 0 2px #49e08f,0 9px 16px #00150e66,inset 0 1px #fff}
+.word-chip:disabled{cursor:default;opacity:.75}
+.word-chip.is-playable:hover{filter:brightness(1.06)}
+.word-count{display:grid;min-width:80px;min-height:32px;padding:5px 11px;place-items:center;border-radius:13px;background:#063d31e8;border:1px solid #ffffff66;color:#edffd6;font-size:clamp(9px,1vw,13px);font-weight:1000;letter-spacing:1px;white-space:nowrap}
+.gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count{display:flex!important;position:absolute;top:calc(100% + 8px);margin:0;padding:4px 10px;border-radius:12px;background:#063d31e8;border:1px solid #ffffff55;color:#edffd6}
+.gwx-seat.left .gwx-card-count{left:10px}.gwx-seat.right .gwx-card-count{right:10px}
+.gwx-seat.left .gwx-card-count small,.gwx-seat.right .gwx-card-count small{display:block;color:#edffd6;font-size:8px}
+.gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{position:absolute;top:calc(100% + 8px);left:10px;right:auto;width:auto;height:auto;min-width:0;padding:4px 10px;border:1px solid #ffffff55;border-radius:12px;background:#063d31e8;color:#edffd6;font-size:9px;font-weight:1000;letter-spacing:1px;white-space:nowrap}
+.gwx-seat.right .gwx-opponent-hand{left:auto;right:10px}
+.gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count{display:none!important}
+.gwx-seat.top .gwx-partner-hand{display:flex;align-items:center;justify-content:center;width:auto!important;height:auto!important;min-width:90px;max-width:130px;margin-left:auto;overflow:visible}
+.gwx-word-flight{position:fixed;z-index:99999;display:grid;min-width:100px;min-height:55px;padding:10px 14px;place-items:center;border:2px solid #fff;border-radius:16px;background:#fff0bd;color:#163927;font-size:15px;font-weight:1000;text-transform:uppercase;box-shadow:0 12px 24px #00170d77;pointer-events:none}
+.gwx-action.draw{min-width:112px}
+@media(max-width:760px){
+ .gwx-center{width:94vw;transform:translate(-50%,-44%) scale(.84)}
+ .gwx-current-word{min-width:120px;min-height:90px;padding:12px 14px;border-radius:18px}
+ .gwx-current-word span{font-size:clamp(20px,6vw,30px)}
+ .gwx-current-word small{font-size:7px}
+ .gwx-deck{width:70px!important;height:88px!important}
+ .deck-face{inset:7px!important}
+ .deck-face:before{font-size:23px}
+ .deck-face b{font-size:9px!important}
+ .gwx-discard-wrap{width:120px!important;height:90px!important}
+ #hand-local{left:8%!important;right:8%!important;bottom:6px!important;max-height:28vh;gap:4px;padding:5px!important;flex-wrap:wrap;align-content:flex-end}
+ .word-chip{min-width:clamp(62px,19vw,86px);max-width:clamp(78px,22vw,104px);min-height:42px;padding:6px 7px;gap:5px;border-radius:12px;font-size:10px}
+ .word-chip b{width:20px;height:20px;font-size:10px}
+ .word-count{min-width:70px;min-height:28px;padding:4px 7px;font-size:8px}
+ .gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{top:calc(100% + 5px);font-size:8px}
+ .gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count{top:calc(100% + 5px)}
+ .gwx-action.draw{min-width:90px;padding-inline:10px}
+}
 @media(prefers-reduced-motion:reduce){
  .gwx-hand-card.playable,.gwx-table.dealing .gwx-deck,.gwx-seat.active .gwx-avatar{animation:none}
 }
@@ -522,45 +613,5 @@
  .gwx-discard{height:100%}
  .gwx-discard-wrap{height:clamp(74px,27vw,108px)}
  .fly,.fly.gwx-card{width:clamp(48px,7.6vw,132px);height:clamp(48px,7.6vw,132px)}
-}
-
-/* Letter deck artwork: a slim portrait frame, four-color oval and simple CW backs. */
-:root{--hand-card-height:clamp(72px,11.4vw,198px)}
-.gwx-card{background:linear-gradient(145deg,#15171b,#030406)!important;color:#fff!important;border:2px solid #f6f6f6!important;border-radius:10px!important;box-shadow:0 9px 16px #0008,inset 0 0 0 2px #101216!important;overflow:hidden}
-.gwx-card:before{inset:5px!important;border:1px solid #ffffffd9!important;border-radius:7px!important;z-index:3}
-.gwx-card:after{display:none!important}
-.cw-card-oval{position:absolute;left:18%;top:12%;width:64%;height:76%;border-radius:50%;transform:rotate(25deg);background:conic-gradient(from -35deg,#e52836 0 25%,#1267c4 25% 50%,#169747 50% 75%,#f0d20b 75% 100%);border:2px solid #fff;box-shadow:inset 0 0 0 1px #0008;z-index:1;pointer-events:none}
-.gwx-card .card-value,.gwx-card .card-glyph,.gwx-card .corner-value{z-index:2}
-.gwx-card .number-value{font-size:clamp(42px,5.8vw,88px)!important;letter-spacing:-2px!important;color:#fff;text-shadow:-2px -2px #08090b,2px -2px #08090b,-2px 2px #08090b,2px 2px #08090b,0 3px #08090b}
-.gwx-hand-card .number-value{font-size:clamp(34px,5vw,72px)!important;letter-spacing:-1px!important}
-.gwx-card .corner-value{font-size:clamp(9px,.95vw,16px)!important;color:#fff;text-shadow:-1px -1px #08090b,1px 1px #08090b}
-.gwx-hand-card{height:var(--hand-card-height)!important}
-.gwx-hand-card>.gwx-card{height:100%!important}
-.gwx-partner-hand{height:clamp(72px,11.4vw,198px)!important}
-.gwx-partner-hand .mini-back,.gwx-opponent-hand .opponent-back{width:clamp(34px,5.32vw,92px)!important;height:clamp(50px,7.98vw,139px)!important;border-radius:10px!important;border:2px solid #fff!important;background:linear-gradient(145deg,#14161a,#030406)!important;box-shadow:inset 0 0 0 2px #101216,0 6px 12px #0007!important;overflow:hidden}
-.gwx-partner-hand .mini-back:before,.gwx-opponent-hand .opponent-back:before{content:"CW"!important;width:62%!important;height:42%!important;border-radius:50%!important;background:radial-gradient(ellipse,#e52836 0 46%,#05070b 48% 100%)!important;border:1px solid #fff!important;color:#ffe85c!important;font-size:clamp(10px,1.35vw,20px)!important;font-style:italic;font-weight:1000;letter-spacing:-1px!important;text-shadow:1px 2px #050505;box-shadow:none!important}
-.gwx-partner-hand .mini-back:after,.gwx-opponent-hand .opponent-back:after{inset:5px!important;border:1px solid #ffffff9c!important;border-radius:7px!important;transform:none!important}
-.gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:clamp(50px,7.98vw,139px)!important}
-.gwx-deck{width:clamp(48px,7.6vw,132px)!important;height:clamp(72px,11.4vw,198px)!important;border-radius:10px!important}
-.gwx-discard-wrap{width:clamp(70px,7.6vw,132px)!important;height:clamp(105px,11.4vw,198px)!important}
-.gwx-discard{width:100%!important;height:100%!important;border-radius:10px!important}
-.deck-layer,.deck-face{border-radius:10px!important}
-.deck-layer{background:linear-gradient(145deg,#15171b,#030406)!important;border:1px solid #fff!important}
-.deck-face{inset:10px!important;background:linear-gradient(145deg,#15171b,#030406)!important;border:1px solid #fff!important}
-.deck-face:after{content:"";position:absolute;left:16%;top:20%;width:68%;height:60%;border:1px solid #fff;border-radius:50%;transform:rotate(25deg);background:radial-gradient(ellipse,#e52836 0 46%,#05070b 48% 100%)}
-.deck-face b{position:relative;z-index:1;color:#ffe85c!important;font-size:clamp(13px,1.7vw,24px)!important;font-style:italic;text-shadow:1px 2px #050505!important}
-.deck-face small{display:none!important}
-.fly,.fly.gwx-card{width:clamp(48px,7.6vw,132px)!important;height:clamp(72px,11.4vw,198px)!important;border-radius:10px!important}
-@media(max-width:760px){
- .gwx-partner-hand{height:clamp(50px,12.3vw,70px)!important}
- .gwx-partner-hand .mini-back,.gwx-opponent-hand .opponent-back{width:clamp(34px,8.2vw,48px)!important;height:clamp(50px,12.3vw,70px)!important}
- .gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:clamp(50px,12.3vw,70px)!important}
- .gwx-seat.left .gwx-opponent-hand .opponent-back,.gwx-seat.right .gwx-opponent-hand .opponent-back{height:clamp(50px,12.3vw,70px)!important}
- .gwx-deck{width:clamp(48px,15vw,76px)!important;height:clamp(72px,22.5vw,114px)!important}
- .gwx-discard-wrap{width:clamp(70px,23vw,108px)!important;height:clamp(105px,34.5vw,162px)!important}
- .gwx-card .number-value{font-size:clamp(36px,10vw,56px)!important}
- .gwx-hand-card .number-value{font-size:clamp(32px,9vw,46px)!important}
- .gwx-card .corner-value{font-size:9px!important}
- .fly,.fly.gwx-card{width:clamp(48px,7.6vw,62px)!important;height:clamp(72px,11.4vw,94px)!important}
 }
 
