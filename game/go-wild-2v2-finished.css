@@ -641,3 +641,19 @@
  .word-chip{flex-basis:clamp(72px,19vw,88px);font-size:10px}
 }
 
+/* Keep the words already played visible as a scrollable table trail. */
+.gwx-word-history{position:absolute;left:50%;top:calc(50% + 105px);transform:translateX(-50%);display:flex;align-items:center;gap:7px;width:min(720px,94vw);height:52px;padding:3px 5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#f4d77866 transparent;pointer-events:auto;z-index:10}
+.gwx-history-word{display:flex;flex:0 0 auto;flex-direction:column;justify-content:center;gap:2px;min-width:82px;max-width:138px;height:42px;padding:4px 9px;border:1px solid #fff7;border-radius:10px;background:#073d32e8;color:#fff;box-shadow:0 4px 9px #00150e44}
+.gwx-history-word small{font-size:7px;font-weight:1000;letter-spacing:1px;color:#a8d8c1}
+.gwx-history-word span{overflow:hidden;color:#fff4c8;font-size:10px;font-weight:900;text-overflow:ellipsis;text-transform:uppercase;white-space:nowrap}
+.gwx-history-word.latest{border-color:#ffe48b;background:linear-gradient(145deg,#258b63,#07533f);box-shadow:0 0 0 1px #ffe48b66,0 5px 11px #00150e66}
+.gwx-history-word.latest small{color:#ffe48b}
+.gwx-message{top:calc(50% + 166px)!important}
+@media(max-width:760px){
+ .gwx-word-history{top:calc(49% + 88px);width:94vw;height:46px;gap:5px;padding:2px 3px}
+ .gwx-history-word{min-width:70px;max-width:108px;height:38px;padding:3px 6px;border-radius:8px}
+ .gwx-history-word small{font-size:6px}
+ .gwx-history-word span{font-size:8px}
+ .gwx-message{top:calc(49% + 143px)!important}
+}
+
