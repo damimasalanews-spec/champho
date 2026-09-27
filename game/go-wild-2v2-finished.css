@@ -218,3 +218,38 @@
 .gwx-opponent-hand .opponent-back:before{content:'W';position:absolute;left:50%;top:50%;width:23px;height:32px;transform:translate(-50%,-50%) rotate(-9deg);display:grid;place-items:center;border-radius:7px;background:linear-gradient(145deg,#eef6ff,#9fb8d6);color:#102033;font-size:15px;font-weight:1000;font-style:italic;box-shadow:0 3px 7px #0007}
 .gwx-opponent-hand .opponent-back:after{content:'';position:absolute;inset:6px;border:1px solid #ffffff22;border-radius:5px;transform:rotate(8deg)}
 @media(max-width:760px){.gwx-opponent-hand{height:45px;min-width:115px}.gwx-opponent-hand .opponent-back{width:25px;height:37px;margin-left:-9px;border-radius:6px}.gwx-opponent-hand .opponent-back:before{width:15px;height:22px;font-size:10px;border-radius:4px}.gwx-opponent-hand .opponent-back:after{inset:4px;border-radius:4px}}
+
+/* Keep all four seats visible and protect the hand on narrow screens. */
+@media(max-width:760px){
+  .gwx-seat.left,.gwx-seat.right{display:block;top:36%;transform:translateY(-50%) scale(.66);transform-origin:center}
+  .gwx-seat.left{left:4px}.gwx-seat.right{right:4px}
+  .gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count{display:none}
+  .gwx-seat.top{top:8px;transform:translateX(-50%) scale(.68)}
+  .top .gwx-player-card{width:min(310px,78vw)}
+  .gwx-center{top:51%;transform:translate(-50%,-50%)}
+  .gwx-piles{gap:clamp(10px,4vw,24px);min-height:150px}
+  .gwx-deck,.gwx-discard{width:clamp(68px,19vw,92px);height:clamp(102px,28vw,138px)}
+  .gwx-hand{height:clamp(126px,34vw,155px);padding:0 8px 0 56px}
+  .gwx-hand-card{width:clamp(48px,14vw,66px);height:clamp(72px,21vw,100px);margin-left:clamp(-22px,-5.5vw,-14px)}
+  .gwx-local-meta{bottom:4px;transform:scale(.72);transform-origin:left bottom}
+  .gwx-controls{bottom:8px}
+  .gwx-message{padding:0 112px}
+}
+@media(max-height:520px) and (orientation:landscape){
+  .gwx-topbar{height:48px;padding:0 14px}.gwx-topbar .gwx-logo span{font-size:15px}.gwx-topbar .gwx-logo b{font-size:20px}
+  .gwx-table{top:48px;bottom:42px;border-radius:20px}
+  .gwx-footer{height:42px}
+  .gwx-seat.top{top:4px;transform:translateX(-50%) scale(.58)}
+  .gwx-seat.left,.gwx-seat.right{top:42%;transform:translateY(-50%) scale(.62)}
+  .gwx-center{top:49%;transform:translate(-50%,-50%) scale(.72)}
+  .gwx-seat.bottom{bottom:0}.gwx-hand{height:112px}.gwx-hand-card{width:56px;height:84px;margin-left:-20px}
+  .gwx-local-meta{bottom:2px;transform:scale(.62);transform-origin:left bottom}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+@media(max-aspect-ratio:1/1) and (min-width:761px){
+  .gwx-seat.left,.gwx-seat.right{display:block;top:38%;transform:translateY(-50%) scale(.72)}
+  .gwx-seat.left{left:10px}.gwx-seat.right{right:10px}
+  .gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count{display:none}
+}
