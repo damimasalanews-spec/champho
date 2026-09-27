@@ -285,17 +285,15 @@
   .avatar-body{transform:scale(1.02);transform-origin:bottom center}
 }
 
-/* Keep Champ's hand visible after the deal animation releases the table. */
-.gwx-table:not(.dealing) .gwx-seat.bottom .gwx-hand{visibility:visible!important;opacity:1!important;z-index:8}
-.gwx-table:not(.dealing) .gwx-seat.bottom .gwx-hand-card{display:block!important;visibility:visible!important;opacity:1!important;z-index:2}
-#hand-local{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:min(760px,calc(100vw - 90px));height:200px;padding:0;display:block;overflow:visible;visibility:visible!important;opacity:1!important;z-index:8}
-#hand-local>.gwx-hand-card{display:block!important;visibility:visible!important;opacity:1!important;position:absolute!important;bottom:0;width:clamp(82px,8.5vw,110px)!important;height:clamp(123px,12.8vw,165px)!important;margin:0!important;transform:rotate(var(--rot,0deg))!important;z-index:1!important;}
-#hand-local>.gwx-hand-card:nth-child(1){left:calc(50% - 248px)}
-#hand-local>.gwx-hand-card:nth-child(2){left:calc(50% - 180px)}
-#hand-local>.gwx-hand-card:nth-child(3){left:calc(50% - 112px)}
-#hand-local>.gwx-hand-card:nth-child(4){left:calc(50% - 44px)}
-#hand-local>.gwx-hand-card:nth-child(5){left:calc(50% + 24px)}
-#hand-local>.gwx-hand-card:nth-child(6){left:calc(50% + 92px)}
-#hand-local>.gwx-hand-card:nth-child(7){left:calc(50% + 160px)}
-@media(max-width:760px){#hand-local{left:50%;bottom:0;width:100%;height:clamp(126px,34vw,155px)}#hand-local>.gwx-hand-card{width:clamp(48px,14vw,62px)!important;height:clamp(72px,21vw,94px)!important}#hand-local>.gwx-hand-card:nth-child(1){left:calc(50% - 182px)}#hand-local>.gwx-hand-card:nth-child(2){left:calc(50% - 131px)}#hand-local>.gwx-hand-card:nth-child(3){left:calc(50% - 80px)}#hand-local>.gwx-hand-card:nth-child(4){left:calc(50% - 29px)}#hand-local>.gwx-hand-card:nth-child(5){left:calc(50% + 22px)}#hand-local>.gwx-hand-card:nth-child(6){left:calc(50% + 73px)}#hand-local>.gwx-hand-card:nth-child(7){left:calc(50% + 124px)}}
-
+/* Champ's hand is a single, top-layer fan spanning the lower table. */
+#hand-local{position:absolute;left:16%;right:13%;bottom:0;transform:none;width:auto;height:clamp(145px,25vh,220px);padding:0 0 8px;display:flex;align-items:flex-end;justify-content:center;overflow:visible;visibility:visible!important;opacity:1!important;z-index:50;pointer-events:none}
+#hand-local>.gwx-hand-card{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;flex:0 0 clamp(48px,8.5vw,110px);width:clamp(48px,8.5vw,110px)!important;height:clamp(72px,12.8vw,165px)!important;margin:0 0 0 clamp(-38px,-3vw,-18px)!important;transform:translateY(var(--lift,0)) rotate(var(--rot,0deg))!important;z-index:1!important;pointer-events:auto}
+#hand-local>.gwx-hand-card:first-child{margin-left:0!important}
+#hand-local>.gwx-hand-card:nth-child(1){z-index:1!important}
+#hand-local>.gwx-hand-card:nth-child(2){z-index:2!important}
+#hand-local>.gwx-hand-card:nth-child(3){z-index:3!important}
+#hand-local>.gwx-hand-card:nth-child(4){z-index:4!important}
+#hand-local>.gwx-hand-card:nth-child(5){z-index:5!important}
+#hand-local>.gwx-hand-card:nth-child(6){z-index:6!important}
+#hand-local>.gwx-hand-card:nth-child(7){z-index:7!important}
+@media(max-width:760px){#hand-local{left:8%;right:8%;height:clamp(105px,31vw,155px);padding-bottom:5px}#hand-local>.gwx-hand-card{flex-basis:clamp(42px,14vw,62px);width:clamp(42px,14vw,62px)!important;height:clamp(63px,21vw,94px)!important;margin-left:clamp(-23px,-5vw,-13px)!important}}
