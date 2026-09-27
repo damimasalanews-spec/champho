@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canPlayWord, chooseAiWord, playableWords, resolveBookDraw, wordLetters } from './go-wild-2v2-word-rules.js';
+import { canPlayWord, chooseAiWord, chooseMatchingWord, playableWords, resolveBookDraw, wordLetters } from './go-wild-2v2-word-rules.js';
 
 test('the next turn uses the final letter of the table word', () => {
   assert.deepEqual(wordLetters('Drama Queen!'), { first: 'D', last: 'N' });
@@ -11,6 +11,17 @@ test('the next turn uses the final letter of the table word', () => {
 test('playable words are selected by their first letter, case-insensitively', () => {
   const hand = [{ word: 'Noodle' }, { word: 'Nuisance' }, { word: 'Clown' }];
   assert.deepEqual(playableWords(hand, 'n'), hand.slice(0, 2));
+});
+
+test('book draws prefer a random word that matches the table ending', () => {
+  const book = [{ word: 'Noodle' }, { word: 'Suntale' }, { word: 'Susta' }];
+  assert.equal(chooseMatchingWord(book, [], 'S', () => 0).word, 'Suntale');
+  assert.equal(chooseMatchingWord(book, [], 'S', () => 0.99).word, 'Susta');
+});
+
+test('book draws reuse a matching played word when the book has no match', () => {
+  const used = [{ word: 'Suntale' }];
+  assert.equal(chooseMatchingWord([{ word: 'Noodle' }], used, 'S'), used[0]);
 });
 
 test('a matching word drawn from the book is queued for play and removed afterward', () => {
