@@ -475,3 +475,19 @@
 .gwx-tools button:last-child:before{display:none}
 .gwx-deck{pointer-events:auto}
 
+/* Opponent hands use upright vertical fans at seventy percent of Champ's size. */
+.gwx-seat.top .gwx-partner-hand .mini-back{width:clamp(34px,5.32vw,92px);height:clamp(50px,7.98vw,139px);margin-left:clamp(-58px,-2.8vw,-18px)}
+.gwx-seat.top .gwx-partner-hand .mini-back:first-child{margin-left:0}
+.gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{top:clamp(-90px,-5vw,-28px);width:clamp(44px,6.8vw,118px);height:clamp(50px,7.98vw,139px);overflow:visible}
+.gwx-seat.left .gwx-opponent-hand{left:clamp(72px,8vw,138px)}
+.gwx-seat.right .gwx-opponent-hand{right:clamp(72px,8vw,138px)}
+.gwx-seat.left .gwx-opponent-hand .opponent-back,.gwx-seat.right .gwx-opponent-hand .opponent-back{width:clamp(34px,5.32vw,92px);height:clamp(50px,7.98vw,139px);border-radius:9px}
+.gwx-seat.left .gwx-opponent-hand .opponent-back:before,.gwx-seat.right .gwx-opponent-hand .opponent-back:before{font-size:clamp(8px,1vw,14px)}
+@media(max-width:760px){
+ .gwx-seat.top .gwx-partner-hand .mini-back{width:clamp(34px,8.2vw,48px);height:clamp(50px,12.3vw,70px);margin-left:clamp(-30px,-5.4vw,-15px)}
+ .gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{top:clamp(-44px,-10vw,-16px);width:clamp(40px,11vw,58px);height:50px}
+ .gwx-seat.left .gwx-opponent-hand{left:clamp(34px,9vw,58px)}
+ .gwx-seat.right .gwx-opponent-hand{right:clamp(34px,9vw,58px)}
+ .gwx-seat.left .gwx-opponent-hand .opponent-back,.gwx-seat.right .gwx-opponent-hand .opponent-back{width:clamp(34px,8.2vw,48px);height:clamp(50px,12.3vw,70px);border-radius:7px}
+}
+
