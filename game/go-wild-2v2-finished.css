@@ -253,3 +253,17 @@
   .gwx-seat.left{left:10px}.gwx-seat.right{right:10px}
   .gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count{display:none}
 }
+@media(min-width:761px){
+  .gwx-seat.bottom{height:220px;overflow:visible}
+  .gwx-seat.bottom .gwx-hand{position:absolute;left:56px;right:0;bottom:0;width:auto;height:220px;padding:0;overflow:visible;z-index:3}
+  .gwx-seat.bottom .gwx-hand-card{opacity:1;visibility:visible;width:clamp(82px,8.5vw,124px);height:clamp(123px,12.8vw,186px);margin-left:clamp(-30px,-2.9vw,-22px)}
+  .gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:62px;margin-top:7px}
+  .gwx-seat.left .opponent-back,.gwx-seat.right .opponent-back{top:0}
+}
+@media(max-width:760px){
+  .gwx-seat.bottom{height:clamp(126px,34vw,155px);overflow:visible}
+  .gwx-seat.bottom .gwx-hand{position:absolute;left:56px;right:0;bottom:0;width:auto;height:clamp(126px,34vw,155px);padding:0;overflow:visible;z-index:3}
+  .gwx-seat.bottom .gwx-hand-card{opacity:1;visibility:visible}
+  .gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:45px;margin-top:5px}
+  .gwx-seat.left .opponent-back,.gwx-seat.right .opponent-back{top:0}
+}
