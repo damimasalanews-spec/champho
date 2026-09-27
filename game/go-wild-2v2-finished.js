@@ -82,7 +82,7 @@ function dealIntro(){
   for(let round=0;round<7;round++){
     for(const pid of ORDER){
       const target=targetFor(pid,round);
-      if(target) jobs.push({pid,i:round,target});
+      if(target){target.style.visibility='hidden';jobs.push({pid,i:round,target});}
     }
   }
 
@@ -93,6 +93,7 @@ function dealIntro(){
   }
 
   let completed=0;
+  let finished=false;
   const total=jobs.length;
   const step=150,startDelay=300,duration=650;
 
@@ -162,9 +163,14 @@ function dealIntro(){
     },delay);
   });
 
-  function finishIfDone(){if(completed>=total)finish()}
+  const finishDelay=total?startDelay+(total-1)*step+duration+350:0;
+  setTimeout(()=>{if(token===roundToken)finish()},finishDelay);
+  function finishIfDone(){if(!finished&&completed>=total)finish()}
   function finish(){
+    if(finished)return;
+    finished=true;
     motion.remove();
+    table.querySelectorAll('.gwx-hand-card,.mini-back,.opponent-back').forEach(card=>{card.style.visibility='visible';card.classList.remove('deal-target')});
     table.classList.remove('dealing');
     s.dealing=false;
     const ps=$('previewState'); if(ps) ps.textContent='READY';
