@@ -13,9 +13,12 @@ test('playable words are selected by their first letter, case-insensitively', ()
   assert.deepEqual(playableWords(hand, 'n'), hand.slice(0, 2));
 });
 
-test('a matching word drawn from the book is played and does not stay in hand', () => {
+test('a matching word drawn from the book is queued for play and removed afterward', () => {
   const hand = [{ word: 'Clown' }], drawnWord = { word: 'Noodle' };
-  assert.deepEqual(resolveBookDraw(hand, drawnWord, 'N'), { hand, play: drawnWord, passed: false });
+  const resolution = resolveBookDraw(hand, drawnWord, 'N');
+  assert.deepEqual(resolution, { hand: [...hand, drawnWord], play: drawnWord, passed: false });
+  resolution.hand.splice(resolution.hand.indexOf(resolution.play), 1);
+  assert.deepEqual(resolution.hand, hand);
 });
 
 test('a nonmatching book word stays in hand and the turn passes', () => {
