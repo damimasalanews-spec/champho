@@ -14,6 +14,12 @@ export function playableWords(hand, requiredLetter) {
   return (hand || []).filter(word => canPlayWord(word, requiredLetter));
 }
 
+export function chooseMatchingWord(book, used, requiredLetter, random = Math.random) {
+  const inBook = (book || []).filter(word => canPlayWord(word, requiredLetter));
+  const candidates = inBook.length ? inBook : (used || []).filter(word => canPlayWord(word, requiredLetter));
+  return candidates.length ? candidates[Math.floor(random() * candidates.length)] : null;
+}
+
 export function resolveBookDraw(hand, drawnWord, requiredLetter) {
   if (canPlayWord(drawnWord, requiredLetter)) {
     // Put a matching draw in the hand briefly so the normal play path can
