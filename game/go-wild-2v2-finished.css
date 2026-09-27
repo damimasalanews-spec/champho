@@ -491,3 +491,36 @@
  .gwx-seat.left .gwx-opponent-hand .opponent-back,.gwx-seat.right .gwx-opponent-hand .opponent-back{width:clamp(34px,8.2vw,48px);height:clamp(50px,12.3vw,70px);border-radius:7px}
 }
 
+/* Square card tiles with calm, static hover states. */
+:root{--hand-card-height:clamp(48px,7.6vw,132px);--card-radius:10px}
+.gwx-hand-card{height:var(--hand-card-height)}
+.gwx-hand-card>.gwx-card,.gwx-card-face{height:100%;border-radius:10px!important}
+.gwx-opponent-hand .opponent-back,.gwx-seat.top .gwx-partner-hand .mini-back{width:clamp(34px,5.32vw,92px);height:clamp(34px,5.32vw,92px);border-radius:10px}
+.gwx-seat.top .gwx-partner-hand{height:clamp(48px,7.6vw,132px)}
+.gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:clamp(34px,5.32vw,92px)}
+.gwx-seat.left .gwx-opponent-hand .opponent-back,.gwx-seat.right .gwx-opponent-hand .opponent-back{height:clamp(34px,5.32vw,92px)}
+.gwx-deck,.gwx-discard{height:clamp(76px,8.5vw,146px);border-radius:10px}
+.gwx-discard-wrap{height:clamp(100px,10vw,172px)}
+.gwx-deck{height:clamp(76px,8.5vw,146px)}
+.fly,.fly.gwx-card{width:clamp(48px,7.6vw,132px);height:clamp(48px,7.6vw,132px);border-radius:10px}
+.gwx-hand-card,.gwx-hand-card .gwx-card{transition:none!important}
+.gwx-hand-card.playable{animation:none!important;filter:none!important}
+.gwx-hand-card.playable .gwx-card:before{box-shadow:none!important}
+.gwx-hand-card:hover{--lift:0!important;filter:none!important}
+.gwx-hand-card:active{transform:translateY(var(--lift,0)) rotate(var(--rot,0deg))!important}
+.gwx-hand-card .number-value{font-size:clamp(20px,3.6vw,48px)!important;letter-spacing:-2px!important}
+.gwx-hand-card .action-symbol{font-size:clamp(15px,1.9vw,26px)!important}
+.gwx-hand-card .corner-value{font-size:clamp(8px,.7vw,12px)!important}
+.gwx-discard{width:100%;height:100%}
+@media(max-width:760px){
+ .gwx-hand-card{height:clamp(48px,7.6vw,132px)}
+ .gwx-opponent-hand .opponent-back,.gwx-seat.top .gwx-partner-hand .mini-back{width:clamp(34px,5.32vw,48px);height:clamp(34px,5.32vw,48px)}
+ .gwx-seat.top .gwx-partner-hand{height:clamp(34px,7.6vw,70px)}
+ .gwx-seat.left .gwx-opponent-hand,.gwx-seat.right .gwx-opponent-hand{height:34px}
+ .gwx-seat.left .gwx-opponent-hand .opponent-back,.gwx-seat.right .gwx-opponent-hand .opponent-back{height:clamp(34px,5.32vw,48px)}
+ .gwx-deck{width:clamp(48px,15vw,76px);height:clamp(48px,15vw,76px)}
+ .gwx-discard{height:100%}
+ .gwx-discard-wrap{height:clamp(74px,27vw,108px)}
+ .fly,.fly.gwx-card{width:clamp(48px,7.6vw,132px);height:clamp(48px,7.6vw,132px)}
+}
+
