@@ -616,3 +616,23 @@
  .gwx-action.draw{min-width:90px;padding-inline:10px}
 }
 
+/* Keep the word book and active word together in the middle of the table. */
+.gwx-center{left:50%!important;top:50%!important;width:min(720px,90vw)!important;transform:translate(-50%,-50%)!important}
+.gwx-deck{position:relative!important;left:auto!important;top:auto!important;transform:rotate(-5deg)!important}
+.gwx-discard-wrap{position:relative!important;left:auto!important;top:auto!important;transform:none!important;z-index:4!important}
+.gwx-discard{transform:none!important}
+.gwx-current-word{min-width:clamp(180px,24vw,320px);min-height:clamp(110px,16vw,180px)}
+.gwx-current-word span{font-size:clamp(22px,2.8vw,36px)}
+#hand-local{left:21%!important;right:18%!important}
+.word-chip{flex:0 0 clamp(86px,8vw,118px);max-width:none;font-size:clamp(10px,.72vw,12px)}
+.word-chip span{overflow-wrap:normal;word-break:normal}
+@media(max-width:760px){
+ .gwx-center{left:50%!important;top:46%!important;width:94vw!important;transform:translate(-50%,-45%) scale(.84)!important}
+ .gwx-deck{position:relative!important;left:auto!important;top:auto!important}
+ .gwx-discard-wrap{position:relative!important;left:auto!important;top:auto!important;transform:none!important}
+ .gwx-current-word{min-width:120px;min-height:90px}
+ .gwx-current-word span{font-size:clamp(18px,5vw,27px)}
+ #hand-local{left:7%!important;right:7%!important}
+ .word-chip{flex-basis:clamp(72px,19vw,88px);font-size:10px}
+}
+
