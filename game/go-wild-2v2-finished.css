@@ -288,6 +288,7 @@
 /* Keep Champ's hand visible after the deal animation releases the table. */
 .gwx-table:not(.dealing) .gwx-seat.bottom .gwx-hand{visibility:visible!important;opacity:1!important;z-index:8}
 .gwx-table:not(.dealing) .gwx-seat.bottom .gwx-hand-card{display:block!important;visibility:visible!important;opacity:1!important;z-index:2}
-#hand-local{visibility:visible!important;opacity:1!important;z-index:8!important}
+#hand-local{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:min(1000px,72%);height:220px;padding:0 0 0 56px;display:flex;align-items:flex-end;justify-content:center;overflow:visible;visibility:visible!important;opacity:1!important;z-index:8}
 #hand-local>.gwx-hand-card{display:block!important;visibility:visible!important;opacity:1!important;position:relative;z-index:1!important}
+@media(max-width:760px){#hand-local{left:50%;bottom:0;width:100%;height:clamp(126px,34vw,155px);padding:0 0 0 56px}}
 
