@@ -88,9 +88,9 @@ import { canPlayWord, chooseAiWord, playableWords, resolveBookDraw, wordLetters 
     const required=wordLetters(s.tableWord.word).last,word=drawOne(),hand=s.players[pid],resolution=resolveBookDraw(hand,word,required);
     busy=true;hand.splice(0,hand.length,...resolution.hand);render();flash(NAME[pid]+' le “'+word.word+'” tanyo.');
     setTimeout(()=>{
-      if(!s||s.phase!=='playing')return;busy=false;
-      if(resolution.play){flash(NAME[pid]+' ko milne sabda: '+word.word+'!');renderHands();setTimeout(()=>playWord(pid,word.id),420)}
-      else{flash(NAME[pid]+' le “'+word.word+'” rakhyo, aba arko palo.');nextTurn()}
+      if(!s||s.phase!=='playing')return;
+      if(resolution.play){flash(NAME[pid]+' ko milne sabda: '+word.word+'!');renderHands();setTimeout(()=>{busy=false;playWord(pid,word.id)},420)}
+      else{busy=false;flash(NAME[pid]+' le “'+word.word+'” rakhyo, aba arko palo.');nextTurn()}
     },520)
   }
   function scheduleAI(){clearTimeout(aiTimer);if(!s||s.phase!=='playing'||s.turn===0)return;const token=roundToken;aiTimer=setTimeout(()=>{if(token!==roundToken||!s||s.phase!=='playing')return;const pid=current(),required=wordLetters(s.tableWord.word).last,word=chooseAiWord(s.players[pid],required);if(word)playWord(pid,word.id);else drawFor(pid)},850+Math.random()*650)}
