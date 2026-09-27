@@ -1,4 +1,4 @@
-import { canPlayWord, chooseAiWord, playableWords, resolveBookDraw, wordLetters } from './go-wild-2v2-word-rules.js';
+import { canPlayWord, chooseAiWord, chooseMatchingWord, playableWords, resolveBookDraw, wordLetters } from './go-wild-2v2-word-rules.js';
 (()=>{
   'use strict';
   const ORDER=['champ','poker','kalkal','jess'],TEAM={champ:'A',poker:'A',kalkal:'B',jess:'B'},NAME={champ:'Champ',poker:'Poker',kalkal:'Kalkal',jess:'Jess'};
@@ -33,7 +33,18 @@ import { canPlayWord, chooseAiWord, playableWords, resolveBookDraw, wordLetters 
   function makeWord(text){return {id:uid(),word:text}}
   function makeBook(){return shuffle(WORD_BANK.map(makeWord))}
   function ensureBook(){if(s.book.length)return;const last=s.tableWord?.id;s.book=shuffle(s.used.filter(w=>w.id!==last));s.used=s.used.filter(w=>w.id===last)}
-  function drawOne(){ensureBook();return s.book.pop()||makeWord('guffadi')}
+  function drawOne(requiredLetter){
+    ensureBook();
+    const match=chooseMatchingWord(s.book,s.used,requiredLetter);
+    if(match){
+      let index=s.book.indexOf(match),pile=s.book;
+      if(index<0){pile=s.used;index=pile.indexOf(match)}
+      if(index>=0)pile.splice(index,1);
+      return match
+    }
+    const fallback=WORD_BANK.filter(text=>canPlayWord(text,requiredLetter));
+    return makeWord(fallback[Math.floor(Math.random()*fallback.length)]||'guffadi')
+  }
   function current(){return ORDER[s.turn]}
   function nextTurn(){s.turn=(s.turn+1)%ORDER.length;render();scheduleAI()}
   function flash(text){$('message').textContent=text}
@@ -85,7 +96,7 @@ import { canPlayWord, chooseAiWord, playableWords, resolveBookDraw, wordLetters 
   }
   function drawFor(pid){
     if(!s||s.phase!=='playing'||busy||current()!==pid)return;
-    const required=wordLetters(s.tableWord.word).last,word=drawOne(),hand=s.players[pid],resolution=resolveBookDraw(hand,word,required);
+    const required=wordLetters(s.tableWord.word).last,word=drawOne(required),hand=s.players[pid],resolution=resolveBookDraw(hand,word,required);
     busy=true;hand.splice(0,hand.length,...resolution.hand);render();flash(NAME[pid]+' le “'+word.word+'” tanyo.');
     setTimeout(()=>{
       if(!s||s.phase!=='playing')return;
