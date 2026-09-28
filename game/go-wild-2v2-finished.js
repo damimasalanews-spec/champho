@@ -135,20 +135,28 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     else if (!path.length || isNeighbor(path[path.length - 1], index)) path.push(index);
     else path = [index];
     $('guessMessage').textContent = path.length ? 'Keep tracing, then press GUESS.' : 'Any player can guess, in any order.';
-    $('guessMessage').className = '';
+    $('guessMessage').classList.remove('good', 'bad');
     renderPath();
   }
 
   function flashMessage(text, kind = '') {
-    $('guessMessage').textContent = text;
-    $('guessMessage').className = kind;
+    const message = $('guessMessage');
+    message.textContent = text;
+    message.classList.toggle('good', kind === 'good');
+    message.classList.toggle('bad', kind === 'bad');
     $('roundMessage').textContent = text;
   }
 
   function animateCoins(playerId, coins, word) {
     const panel = document.querySelector(`.gwx-seat[data-player="${playerId}"]`);
-    panel?.classList.remove('just-scored');
-    requestAnimationFrame(() => panel?.classList.add('just-scored'));
+    if (panel) {
+      /* The class has to be released again afterwards. Leaving it on meant the
+         score pop could only ever play once per seat in a whole session. */
+      panel.classList.remove('just-scored');
+      requestAnimationFrame(() => panel.classList.add('just-scored'));
+      window.clearTimeout(panel._justScoredTimer);
+      panel._justScoredTimer = window.setTimeout(() => panel.classList.remove('just-scored'), 800);
+    }
     const floater = document.createElement('div');
     floater.className = 'coin-floater';
     floater.textContent = `+${coins} ✦`;
@@ -173,7 +181,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     round.scores[playerId].words++;
     path = [];
     $('guessInput').value = '';
-    $('guessMessage').className = 'good';
+    $('guessMessage').classList.remove('bad');
+    $('guessMessage').classList.add('good');
     $('guessMessage').textContent = `${result.word.toUpperCase()} found! +${result.coins} coins to ${PLAYERS.find(item => item.id === playerId).name}.`;
     renderSlots();
     renderScores();
@@ -226,7 +235,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     $('resultModal').classList.remove('open');
     $('resultModal').setAttribute('aria-hidden', 'true');
     $('guessInput').value = '';
-    $('guessMessage').className = '';
+    $('guessMessage').classList.remove('good', 'bad');
     $('guessMessage').textContent = 'Any player can guess, in any order.';
     $('roundMessage').textContent = 'A correct word earns 100 coins per letter.';
     path = [];
