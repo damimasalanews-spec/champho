@@ -807,4 +807,5 @@
 
 .gwx-letter-grid-shell{box-shadow:0 8px 18px #00231880,inset 0 0 6px #22dfb066}
 @keyframes gridFramePulse{0%,100%{border-color:#65efc9;box-shadow:0 8px 18px #00231880,inset 0 0 6px #22dfb066}50%{border-color:#fff0a1;box-shadow:0 8px 18px #00231880,inset 0 0 9px #37ffd577}}
+.gwx-letter-grid-shell{clip-path:inset(0 round 22px)}
 
