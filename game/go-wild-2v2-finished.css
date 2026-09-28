@@ -765,3 +765,23 @@
   .gwx-seat.left .gwx-player-info strong,.gwx-seat.right .gwx-player-info strong{font-size:clamp(9px,1.15vw,16px)}
 }
 
+/* Center the puzzle and keep the former word-chat clutter off the table. */
+.gwx-rail,.gwx-rail:before,.gwx-rail:after,.gwx-center-glow{display:none!important}
+.gwx-word-slots,.gwx-center .gwx-message,.gwx-round-message{display:none!important}
+.gwx-center{left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important}
+.gwx-letter-grid-shell{isolation:isolate;border-radius:22px;z-index:1}
+.gwx-letter-grid-shell:before{content:"";position:absolute;inset:-3px;z-index:-1;padding:3px;border-radius:25px;background:conic-gradient(from var(--grid-border-angle,0deg),transparent 0 16%,#47ffd1 22%,#d5ffab 27%,#31d7ff 33%,transparent 42% 66%,#4bffe0 73%,#fff0a5 79%,transparent 88%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;filter:drop-shadow(0 0 8px #2df6d399);animation:gridBorderTurn 7s linear infinite;pointer-events:none}
+.gwx-letter-grid-shell:after{content:"";position:absolute;inset:-2px;z-index:-2;border:1px solid #6bffe455;border-radius:24px;box-shadow:0 0 18px #31f5c022,inset 0 0 15px #31f5c012;pointer-events:none}
+@keyframes gridBorderTurn{to{--grid-border-angle:360deg}}
+@property --grid-border-angle{syntax:"<angle>";initial-value:0deg;inherits:false}
+@media(min-aspect-ratio:1/1){
+ .gwx-seat.left,.gwx-seat.right{width:clamp(95px,11vw,190px)}
+ .gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card{width:100%}
+ .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{width:clamp(95px,11vw,190px);height:clamp(95px,11vw,190px);aspect-ratio:1/1}
+}
+@media(max-aspect-ratio:1/1){
+ .gwx-center{top:49%!important;width:calc(100vw - 150px)!important}
+ .gwx-letter-grid-shell{width:min(100%, min(58vh,390px))}
+ .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{width:clamp(54px,16vw,95px);height:clamp(54px,16vw,95px)}
+}
+
