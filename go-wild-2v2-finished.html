@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080d17">
 <title>Champ Word — 6×6 Word Grid</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=grid2">
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=grid4">
 </head>
 <body>
 <div class="grid-game">
@@ -18,17 +18,23 @@
   <main id="game" class="main-layout">
     <section class="puzzle-area" aria-label="Word puzzle">
       <div class="puzzle-heading"><div><small class="eyebrow">FIND THE HIDDEN WORDS</small><h1>Six by six. Seven words.</h1><p>Trace neighboring letters or type a guess. Find words from 3 to 9 letters.</p></div><div class="timer"><small>TIME LEFT</small><b id="timer">02:00</b></div></div>
-      <div class="puzzle-stage"><div id="letterGrid" class="letter-grid" role="grid" aria-label="Six by six letter grid"></div><div class="grid-sheen" aria-hidden="true"></div></div>
+      <div class="table-arena">
+        <div class="table-seat seat-north" data-player="poker"><span class="seat-portrait avatar-poker" role="img" aria-label="Poker avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><span class="seat-nameplate"><b>Poker</b><small>TEAM A · NORTH</small></span></div>
+        <div class="table-seat seat-west" data-player="kalkal"><span class="seat-portrait avatar-kalkal" role="img" aria-label="Kalkal avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><span class="seat-nameplate"><b>Kalkal</b><small>TEAM B · WEST</small></span></div>
+        <div class="puzzle-stage"><div id="letterGrid" class="letter-grid" role="grid" aria-label="Six by six letter grid"></div><div class="grid-sheen" aria-hidden="true"></div></div>
+        <div class="table-seat seat-east" data-player="jess"><span class="seat-portrait avatar-jess" role="img" aria-label="Jess avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><span class="seat-nameplate"><b>Jess</b><small>TEAM B · EAST</small></span></div>
+        <div class="table-seat seat-south" data-player="champ"><span class="seat-portrait avatar-champ" role="img" aria-label="Champ avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><span class="seat-nameplate"><b>Champ · YOU</b><small>TEAM A · SOUTH</small></span></div>
+      </div>
       <div class="selection-row"><div><small>YOUR LETTER PATH</small><strong id="selectedLetters">—</strong></div><button id="clearPathBtn" type="button" class="soft-button">CLEAR</button></div>
       <form id="guessForm" class="guess-form"><label for="guessInput">WORD GUESS</label><div class="guess-controls"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type your word" aria-describedby="guessMessage"><select id="playerSelect" aria-label="Choose player"><option value="champ">Champ</option><option value="poker">Poker</option><option value="kalkal">Kalkal</option><option value="jess">Jess</option></select><button type="submit">GUESS <span>↗</span></button></div><p id="guessMessage" aria-live="polite">Any player can guess, in any order.</p></form>
       <div class="word-slots" id="wordSlots" aria-label="Seven target word lengths"></div>
     </section>
 
-    <aside class="score-panel" aria-label="Player coin scores"><div class="score-title"><div><small class="eyebrow">THE COIN RACE</small><h2>Players</h2></div><span class="coin-icon">✦</span></div><div class="player-score team-a-player" data-player="champ"><span class="player-avatar avatar-champ" role="img" aria-label="Champ avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><div><b>Champ <small>YOU · TEAM A</small></b><span id="words-champ">0 words</span></div><strong><span id="coins-champ">0</span><small>COINS</small></strong></div><div class="player-score team-a-player" data-player="poker"><span class="player-avatar avatar-poker" role="img" aria-label="Poker avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><div><b>Poker <small>TEAM A</small></b><span id="words-poker">0 words</span></div><strong><span id="coins-poker">0</span><small>COINS</small></strong></div><div class="player-score team-b-player" data-player="kalkal"><span class="player-avatar avatar-kalkal" role="img" aria-label="Kalkal avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><div><b>Kalkal <small>TEAM B</small></b><span id="words-kalkal">0 words</span></div><strong><span id="coins-kalkal">0</span><small>COINS</small></strong></div><div class="player-score team-b-player" data-player="jess"><span class="player-avatar avatar-jess" role="img" aria-label="Jess avatar"><i class="avatar-head"></i><i class="avatar-body"></i></span><div><b>Jess <small>TEAM B</small></b><span id="words-jess">0 words</span></div><strong><span id="coins-jess">0</span><small>COINS</small></strong></div><div id="roundMessage" class="round-message" aria-live="polite">A correct word earns 100 coins per letter.</div></aside>
+    <aside class="score-panel" aria-label="Player coin scores"><div class="score-title"><div><small class="eyebrow">THE COIN RACE</small><h2>Players</h2></div><span class="coin-icon">✦</span></div><div class="player-score team-a-player" data-player="champ"><div><b>Champ <small>YOU · TEAM A</small></b><span id="words-champ">0 words</span></div><strong><span id="coins-champ">0</span><small>COINS</small></strong></div><div class="player-score team-a-player" data-player="poker"><div><b>Poker <small>TEAM A</small></b><span id="words-poker">0 words</span></div><strong><span id="coins-poker">0</span><small>COINS</small></strong></div><div class="player-score team-b-player" data-player="kalkal"><div><b>Kalkal <small>TEAM B</small></b><span id="words-kalkal">0 words</span></div><strong><span id="coins-kalkal">0</span><small>COINS</small></strong></div><div class="player-score team-b-player" data-player="jess"><div><b>Jess <small>TEAM B</small></b><span id="words-jess">0 words</span></div><strong><span id="coins-jess">0</span><small>COINS</small></strong></div><div id="roundMessage" class="round-message" aria-live="polite">A correct word earns 100 coins per letter.</div></aside>
   </main>
 
   <div id="resultModal" class="result-modal" aria-hidden="true"><div class="result-card"><span class="result-spark">✦</span><small>ROUND COMPLETE</small><h2 id="resultTitle">TEAM A WINS</h2><p id="resultText"></p><button id="playAgainBtn" type="button">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=grid1"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=grid2"></script>
 </body>
 </html>
