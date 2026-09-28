@@ -992,3 +992,7 @@
 @media(max-aspect-ratio:1/1){
   .gwx-letter-grid-shell{width:min(100%,min(64vh,572px))!important}
 }
+
+/* Match Poker and Champ's label panels to the full-width Kalkal/Jess labels. */
+.gwx-player-info>strong,.gwx-local-meta>div>strong{width:132px!important;min-width:132px!important;max-width:132px!important;box-sizing:border-box!important}
+.gwx-seat.top .gwx-player-info,#table>.gwx-seat.bottom .gwx-local-meta>div:last-child{padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important}
