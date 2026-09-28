@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="ne-Latn">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Go Wild Sabda Grid 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=avatar-tags-grid-30-scoreboard-type-v2-0928">
+<title>Go Wild Word Grid 2v2 — Champ Word</title>
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=responsive-grid-fit-0928">
 </head>
 <body>
 <div id="app" class="gwx-app">
@@ -19,21 +19,21 @@
     <section class="gwx-seat top" data-player="poker">
       <div class="gwx-player-card">
         <div class="gwx-avatar blue-ring"><div class="gwx-avatar-art avatar-poker"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
-        <div class="gwx-player-info"><strong>Poker</strong><span>TIMRO SAATHI · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-poker">0</span> COINS</b><small id="words-poker">0 WORDS</small></div></div>
+        <div class="gwx-player-info"><strong>Poker</strong><span>YOUR TEAM · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-poker">0</span> COINS</b><small id="words-poker">0 WORDS</small></div></div>
       </div>
     </section>
 
     <section class="gwx-seat left" data-player="kalkal">
       <div class="gwx-player-card">
         <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-kalkal"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
-        <div class="gwx-player-info"><strong>Kalkal</strong><span>PRATIDWANDI</span><b>TEAM B</b></div>
+        <div class="gwx-player-info"><strong>Kalkal</strong><span>OPPONENT</span><b>TEAM B</b></div>
       </div>
       <div class="gwx-card-count"><span id="coins-kalkal">0</span><small>COINS</small><em id="words-kalkal">0 WORDS</em></div>
     </section>
 
     <section class="gwx-seat right" data-player="jess">
       <div class="gwx-player-card">
-        <div class="gwx-player-info right-text"><strong>Jess</strong><span>PRATIDWANDI</span><b>TEAM B</b></div>
+        <div class="gwx-player-info right-text"><strong>Jess</strong><span>OPPONENT</span><b>TEAM B</b></div>
         <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-jess"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
       </div>
       <div class="gwx-card-count"><span id="coins-jess">0</span><small>COINS</small><em id="words-jess">0 WORDS</em></div>
@@ -42,7 +42,6 @@
     <section class="gwx-center">
       <div class="gwx-status-line"><div id="turnLabel" class="gwx-turn-label">FIND THE WORDS</div><div id="colorLabel" class="gwx-color-label"><i></i> 6×6 LETTER GRID</div></div>
       <div class="gwx-letter-grid-shell"><div id="letterGrid" class="gwx-letter-grid" role="grid" aria-label="Six by six letter grid"></div></div>
-      <div class="gwx-selected-row"><div><small>YOUR LETTER PATH</small><strong id="selectedLetters">—</strong></div><button id="clearPathBtn" type="button">CLEAR</button></div>
       <form id="guessForm" class="gwx-guess-form"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type your word" aria-label="Word guess"><select id="playerSelect" aria-label="Choose player"><option value="champ">Champ</option><option value="poker">Poker</option><option value="kalkal">Kalkal</option><option value="jess">Jess</option></select><button type="submit">GUESS</button></form>
       <div id="wordSlots" class="gwx-word-slots" aria-label="Seven word lengths"></div>
       <div id="guessMessage" class="gwx-message" aria-live="polite">Tap neighboring letters or type a word.</div>
@@ -50,7 +49,7 @@
     </section>
 
     <section class="gwx-seat bottom" data-player="champ">
-      <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>TIMI · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div></div></div>
+      <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>YOUR TEAM · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div></div></div>
       <div class="champ-social-controls" aria-label="Quick chat and reactions">
         <button id="emojiToggle" class="social-toggle" type="button" aria-expanded="false" aria-controls="emojiMenu" title="Choose an emoji">😊</button>
         <button id="chatToggle" class="social-toggle chat-toggle" type="button" aria-expanded="false" aria-controls="tableChatPanel" title="Open table chat">💬</button>
@@ -70,12 +69,13 @@
 
   <footer class="gwx-footer">
     <div><small>ROUND</small><strong id="roundLabel">01</strong></div>
-    <div class="gwx-timer"><small>SAMAYA</small><strong id="timer">02:30</strong></div>
+    <div class="gwx-timer"><small>TIME</small><strong id="timer">02:30</strong></div>
     <div class="gwx-team-score"><span class="blue-dot"></span><b>TEAM A</b><strong id="teamCoinsA">0</strong><span class="red-dot"></span><b>TEAM B</b><strong id="teamCoinsB">0</strong></div>
   </footer>
 
-  <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>KHEL SAKIYO</small><h2 id="resultTitle">TEAM A JITYO</h2><p id="resultText"></p><button id="playAgainBtn">FERI KHELAU</button></div></div>
+  <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">TEAM A WINS</h2><p id="resultText"></p><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=grid-chat-square-0928n"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=english-grid-0928"></script>
 </body>
 </html>
+

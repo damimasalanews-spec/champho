@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { WORD_BANK } from './nepali-roman-word-bank.js';
+import { WORD_BANK } from './english-word-bank.js';
 import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js';
 
 test('a generated board contains seven connected words, one at each length from 3 to 9', () => {
@@ -19,16 +19,17 @@ test('a generated board contains seven connected words, one at each length from 
   }
 });
 
-test('guess normalization accepts case and spaces', () => {
-  assert.equal(normalizeGuess(' Ukus Mukus! '), 'ukusmukus');
+test('guess normalization accepts case and punctuation', () => {
+  assert.equal(normalizeGuess(' Mountain! '), 'mountain');
 });
 
 test('correct words award 100 coins per letter and cannot score twice', () => {
-  const targets = [{ word: 'alu' }, { word: 'hawa' }];
+  const targets = [{ word: 'cat' }, { word: 'river' }];
   const found = new Set();
-  assert.deepEqual(scoreWord(targets, 'ALU', found, 'champ'), { word: 'alu', playerId: 'champ', coins: 300, length: 3 });
-  found.add('alu');
-  assert.equal(scoreWord(targets, 'alu', found, 'jess'), null);
+  assert.deepEqual(scoreWord(targets, 'CAT', found, 'champ'), { word: 'cat', playerId: 'champ', coins: 300, length: 3 });
+  found.add('cat');
+  assert.equal(scoreWord(targets, 'cat', found, 'jess'), null);
   assert.equal(scoreWord(targets, 'nope', found, 'jess'), null);
-  assert.equal(scoreWord(targets, 'hawa', found, 'jess').coins, 400);
+  assert.equal(scoreWord(targets, 'river', found, 'jess').coins, 500);
 });
+

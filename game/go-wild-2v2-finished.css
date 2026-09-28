@@ -1005,3 +1005,37 @@
 .gwx-seat-coins b>span,.gwx-card-count>span{min-width:26px!important;height:26px!important;font-size:14px!important}
 .gwx-seat-coins small,.gwx-card-count small{font-size:11px!important;letter-spacing:.55px!important}
 .gwx-card-count em{font-size:9px!important;letter-spacing:.5px!important}
+
+/* Responsive single-line score tags, a 20% larger board, and controls above Champ. */
+.gwx-table{--score-panel-width:clamp(100px,12vw,132px)}
+.gwx-player-info,#table>.gwx-seat.bottom .gwx-local-meta>div:last-child{width:var(--score-panel-width)!important;min-width:var(--score-panel-width)!important;max-width:var(--score-panel-width)!important}
+.gwx-player-info>strong,.gwx-local-meta>div>strong{width:100%!important;min-width:0!important;max-width:100%!important;min-height:40px!important;padding:6px 8px!important;font-size:clamp(13px,1.45vw,16px)!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.gwx-seat-coins,.gwx-card-count{width:var(--score-panel-width)!important;min-width:var(--score-panel-width)!important;max-width:var(--score-panel-width)!important;min-height:42px!important;padding:4px 5px!important;gap:clamp(3px,.45vw,7px)!important;flex-wrap:nowrap!important;overflow:hidden!important;white-space:nowrap!important}
+.gwx-seat-coins b,.gwx-card-count>span{flex:0 0 auto!important;gap:3px!important;white-space:nowrap!important;font-size:clamp(8px,1.05vw,11px)!important}
+.gwx-seat-coins b>span,.gwx-card-count>span{min-width:clamp(21px,2.35vw,26px)!important;height:clamp(21px,2.35vw,26px)!important;padding:0 3px!important;font-size:clamp(10px,1.25vw,14px)!important}
+.gwx-seat-coins small,.gwx-card-count small,.gwx-card-count em{flex:0 1 auto!important;min-width:0!important;white-space:nowrap!important;font-size:clamp(7px,.9vw,10px)!important;letter-spacing:.2px!important}
+.gwx-seat.left,.gwx-seat.right{grid-template-columns:var(--score-panel-width) var(--seat-avatar,132px)!important}
+.gwx-seat.top .gwx-player-info{width:var(--score-panel-width)!important;min-width:var(--score-panel-width)!important}
+@media(min-aspect-ratio:1/1){
+  .gwx-letter-grid-shell{width:min(554px,100%)!important}
+}
+@media(max-aspect-ratio:1/1){
+  .gwx-center{width:min(720px,calc(100vw - 80px))!important}
+  .gwx-letter-grid-shell{width:min(100%,min(64vh,823px))!important}
+}
+.champ-social-controls{left:18px!important;right:auto!important;top:auto!important;bottom:calc(100% + 12px)!important;transform:none!important;gap:8px!important}
+.emoji-menu{left:0!important;bottom:calc(100% + 10px)!important}
+.table-chat-panel{position:absolute!important;left:0!important;right:auto!important;top:auto!important;bottom:calc(100% + 10px)!important;width:min(370px,calc(100vw - 24px))!important;height:min(430px,55vh)!important}
+
+/* Keep the enlarged board and its controls inside the open space between seats. */
+.gwx-center{position:absolute!important;inset:auto!important;left:50%!important;right:auto!important;top:calc(50% + 10px)!important;bottom:auto!important;width:min(650px,calc(100vw - 340px))!important;height:auto!important;max-height:none!important;display:flex!important;flex-direction:column!important;align-items:center!important;transform:translate(-50%,-50%)!important;overflow:visible!important}
+.gwx-center .gwx-status-line{position:relative!important;inset:auto!important;top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;transform:none!important;flex:0 0 auto!important;margin:0 0 8px!important}
+.gwx-letter-grid-shell{flex:0 0 auto!important;width:min(554px,calc(100vh - 360px),100%)!important;margin:0 auto 8px!important}
+.gwx-letter-grid{width:100%!important;height:100%!important}
+.gwx-guess-form{flex:0 0 auto!important;margin:0 auto!important}
+.gwx-word-slots,.gwx-message,.gwx-round-message{display:none!important}
+@media(max-aspect-ratio:1/1){
+  .gwx-center{width:min(720px,calc(100vw - 80px))!important}
+  .gwx-letter-grid-shell{width:min(100%,64vh,calc(100vh - 360px))!important}
+}
+

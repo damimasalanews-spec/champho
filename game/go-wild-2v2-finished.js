@@ -1,4 +1,4 @@
-import { WORD_BANK } from './nepali-roman-word-bank.js';
+import { WORD_BANK } from './english-word-bank.js';
 import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js';
 
 (() => {
@@ -80,7 +80,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
       tile.classList.toggle('found', round.foundPaths.some(foundPath => foundPath.includes(index)));
     });
     const value = path.map(index => round.layout.grid[index]).join('').toUpperCase();
-    $('selectedLetters').textContent = value || '—';
     if (path.length) $('guessInput').value = value.toLowerCase();
   }
 
@@ -221,13 +220,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
   $('guessInput').addEventListener('input', () => {
     path = [];
     renderPath();
-  });
-  $('clearPathBtn').addEventListener('click', () => {
-    path = [];
-    $('guessInput').value = '';
-    renderPath();
-    $('guessMessage').textContent = 'Any player can guess, in any order.';
-    $('guessMessage').className = '';
   });
   $('restartBtn').addEventListener('click', resetRound);
   $('playAgainBtn').addEventListener('click', resetRound);
@@ -372,3 +364,4 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     reset: resetRound
   };
 })();
+
