@@ -801,3 +801,7 @@
 .gwx-letter-grid-shell:before{inset:0;padding:3px;border-radius:22px;filter:none;background:conic-gradient(from var(--grid-border-angle,0deg),transparent 0 17%,#47ffd1 23%,#d5ffab 28%,#12cda9 34%,transparent 43% 66%,#4bffe0 73%,#fff0a5 79%,transparent 88%)}
 .gwx-letter-grid-shell:after{inset:0}
 
+.gwx-letter-grid-shell{border:2px solid #8dffdc;box-shadow:0 0 0 1px #ffffff2b,0 0 16px #20e8b977;animation:gridFramePulse 2.8s ease-in-out infinite}
+.gwx-letter-grid-shell:before,.gwx-letter-grid-shell:after{display:none!important}
+@keyframes gridFramePulse{0%,100%{border-color:#65efc9;box-shadow:0 0 0 1px #ffffff2b,0 0 12px #22dfb066,0 8px 18px #00231880}50%{border-color:#fff0a1;box-shadow:0 0 0 2px #fff0a144,0 0 22px #37ffd599,0 8px 22px #00231899}}
+
