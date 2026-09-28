@@ -7,10 +7,12 @@
   'use strict';
 
   const THROWN    = 50;                            /* always 50, whatever the word */
-  const TOTAL_MS  = 2000;
-  const CHARGE_MS = 120;
-  const FLIGHT_MS = 460;
-  const POP_MS    = 140;
+  /* Deliberately unhurried: 50 coins released over 1.88s, each taking 720ms to
+     cross. A tighter window read as a burst rather than a throw. */
+  const TOTAL_MS  = 3000;
+  const CHARGE_MS = 180;
+  const FLIGHT_MS = 720;
+  const POP_MS    = 220;
   const SPAWN_MS  = TOTAL_MS - CHARGE_MS - FLIGHT_MS - POP_MS;
   const Z_INDEX   = 55;                            /* above the board (10) and the
                                                       coin floater (50), below the
@@ -30,7 +32,7 @@
   const DANCE_MS   = 760;
   const DANCE_ITER = 2;
   const DANCE_GAP  = 55;
-  const MORPH_MS   = 340;
+  const MORPH_MS   = 420;
 
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
 
@@ -378,12 +380,14 @@
       if (el >= FLIGHT_MS && !c.hit) {
         c.hit = true;
         burst(c.ix, c.iy);
-        if (now - lastChime > 52) {
+        /* 95ms rather than 52: at the wider spacing the landings stop smearing
+           into one buzz and read as individual coins arriving */
+        if (now - lastChime > 95) {
           lastChime = now;
-          coinChime(0.05 + Math.random() * 0.02, (Math.random() - 0.5) * 0.07);
-          coinClink(0.045);
+          coinChime(0.042 + Math.random() * 0.018, (Math.random() - 0.5) * 0.07);
+          coinClink(0.03);
         }
-        if (now - lastSmack > 100) {
+        if (now - lastSmack > 150) {
           lastSmack = now;
           bump(c.avatar, 'gwx-coin-hit', 280);
         }
@@ -409,18 +413,25 @@
         fade = 1 - p * p;
       }
 
-      const wob = Math.abs(Math.cos(c.spin + (el / 90) * Math.PI));
-      const wid = Math.max(1.4, size * wob);
+      /* a slower tumble than a real coin, but at this size a fast one strobes */
+      const wob = Math.abs(Math.cos(c.spin + (el / 150) * Math.PI));
+
+      /* depth: coins nearer the camera read bigger and throw their shadow lower,
+         which is what stops 50 same-sized sprites looking like a flat decal */
+      const per = 1 + (c.depth - 0.5) * 0.34;
+      const hgt = size * per;
+      const wid = Math.max(1.4, hgt * wob);
+      const lift = (c.depth - 0.5) * 16;
 
       if (el < FLIGHT_MS) {
         ctx.globalAlpha = fade * 0.2;
-        ctx.drawImage(SHADOW, x - wid * 0.62 + 2, y - size * 0.62 + 3, wid * 1.24, size * 1.24);
+        ctx.drawImage(SHADOW, x - wid * 0.62 + 2 + lift, y - hgt * 0.62 + 3 + lift, wid * 1.24, hgt * 1.24);
       }
       ctx.globalAlpha = fade;
-      ctx.drawImage(COIN, x - wid / 2, y - size / 2, wid, size);
+      ctx.drawImage(COIN, x - wid / 2, y - hgt / 2 - lift * 0.4, wid, hgt);
       if (1 - wob > 0.12) {
         ctx.globalAlpha = fade * (1 - wob) * 0.6;
-        ctx.drawImage(COIN_EDGE, x - wid / 2, y - size / 2, wid, size);
+        ctx.drawImage(COIN_EDGE, x - wid / 2, y - hgt / 2 - lift * 0.4, wid, hgt);
       }
       ctx.globalAlpha = 1;
     }
@@ -516,6 +527,7 @@
         iy: ay - uy * R + ux * tang * R * 0.85,
         bow: 10 + Math.random() * 26,
         size: 32 * (0.88 + Math.random() * 0.26),
+        depth: Math.random(),
         spin: Math.random() * Math.PI,
         avatar,
         hit: false
@@ -649,11 +661,18 @@
       seq(at, () => {
         launchWhoosh();
         p.el.style.opacity = '1';
+        /* Four stops with their own easings: the letter leaves the hand fast,
+           floats up towards the camera, then settles under its own weight. The
+           Z values are real depth — the layer carries the perspective. */
         p.el.animate([
-          { transform: 'translate(-50%,-50%) translate(' + sx + 'px,' + sy + 'px) scale(.42) rotateY(0deg)' },
-          { offset: .55, transform: 'translate(-50%,-50%) translate(' + (sx * .45) + 'px,' + (sy * .45 - apex) + 'px) scale(1.1) rotateY(200deg)' },
-          { transform: 'translate(-50%,-50%) translate(0,0) scale(1) rotateY(360deg)' }
-        ], { duration: TOSS_MS, easing: 'cubic-bezier(.4,.05,.3,1)', fill: 'forwards' });
+          { transform: 'translate(-50%,-50%) translate3d(' + sx + 'px,' + sy + 'px,-72px) scale(.4) rotateY(0deg)',
+            opacity: 0, easing: 'ease-out' },
+          { offset: .32, transform: 'translate(-50%,-50%) translate3d(' + (sx * .74) + 'px,' + (sy * .74 - apex * .8) + 'px,24px) scale(1.09) rotateY(120deg)',
+            opacity: 1, easing: 'ease-in-out' },
+          { offset: .68, transform: 'translate(-50%,-50%) translate3d(' + (sx * .3) + 'px,' + (sy * .3 - apex * .74) + 'px,46px) scale(1.15) rotateY(240deg)',
+            opacity: 1, easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1) rotateY(360deg)', opacity: 1 }
+        ], { duration: TOSS_MS, easing: 'linear', fill: 'forwards' });
       });
       seq(at + TOSS_MS, () => wordClack(392 + i * 72));
     });
@@ -668,20 +687,27 @@
     parts.forEach((p, i) => {
       const delay = i * DANCE_GAP;
       seq(danceAt, () => {
+        /* Two hops per pass, each rising with ease-out and falling with ease-in so
+           the letter decelerates at the top instead of pivoting there. Every hop
+           also travels in Z, so the tumble happens towards the player, not on a
+           flat plane. The second hop drifts sideways so the word is not a chorus
+           line. */
         p.el.animate([
-          { transform: 'translate(-50%,-50%) translateY(0) rotateY(0deg) rotateX(0deg) scale(1)' },
-          { transform: 'translate(-50%,-50%) translateY(-24px) rotateY(190deg) rotateX(12deg) scale(1.18)' },
-          { transform: 'translate(-50%,-50%) translateY(0) rotateY(380deg) rotateX(0deg) scale(1)' },
-          { transform: 'translate(-50%,-50%) translateY(-15px) rotateY(560deg) rotateX(-10deg) scale(1.12)' },
-          { transform: 'translate(-50%,-50%) translateY(0) rotateY(740deg) rotateX(0deg) scale(1)' }
-        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'cubic-bezier(.4,.05,.2,1)' });
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) rotateY(0deg) rotateX(0deg) scale(1)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(0,-26px,34px) rotateY(190deg) rotateX(14deg) scale(1.17)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) rotateY(380deg) rotateX(0deg) scale(1)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(-7px,-17px,26px) rotateY(560deg) rotateX(-12deg) scale(1.12)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) rotateY(740deg) rotateX(0deg) scale(1)' }
+        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
+
+        /* the shadow has to breathe exactly with the hops, or the depth collapses */
         p.shadow.animate([
-          { opacity: .55, transform: 'scaleX(1) scaleY(1)' },
-          { opacity: .2, transform: 'scaleX(.6) scaleY(.7)' },
-          { opacity: .55, transform: 'scaleX(1) scaleY(1)' },
-          { opacity: .26, transform: 'scaleX(.66) scaleY(.75)' },
-          { opacity: .55, transform: 'scaleX(1) scaleY(1)' }
-        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'ease-in-out' });
+          { opacity: .5, transform: 'scale(1,1)', easing: 'ease-out' },
+          { opacity: .2, transform: 'scale(.6,.7)', easing: 'ease-in' },
+          { opacity: .5, transform: 'scale(1,1)', easing: 'ease-out' },
+          { opacity: .28, transform: 'scale(.68,.76)', easing: 'ease-in' },
+          { opacity: .5, transform: 'scale(1,1)' }
+        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
       });
     });
 
@@ -703,11 +729,13 @@
            borrowed tile classes have to go for the coin sprite to show at all. */
         p.el.className = 'gwx-dance-tile gwx-morph';
         p.el.style.backgroundImage = 'url(' + sprite + ')';
+        /* a coin flip, not a vanish: it turns through 420 degrees as it shrinks
+           and drops away from the camera */
         p.el.animate([
-          { transform: 'translate(-50%,-50%) scale(1.16) rotate(0deg)', opacity: 1 },
-          { offset: .55, transform: 'translate(-50%,-50%) scale(.72) rotate(-18deg)', opacity: 1 },
-          { transform: 'translate(-50%,-50%) scale(.22) rotate(-40deg)', opacity: 0 }
-        ], { duration: MORPH_MS, easing: 'ease-in', fill: 'forwards' });
+          { transform: 'translate(-50%,-50%) translate3d(0,0,34px) rotateY(0deg) scale(1.14)', opacity: 1, easing: 'ease-out' },
+          { offset: .55, transform: 'translate(-50%,-50%) translate3d(0,-8px,18px) rotateY(210deg) scale(.82)', opacity: 1, easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,-46px) rotateY(420deg) scale(.22)', opacity: 0 }
+        ], { duration: MORPH_MS, easing: 'linear', fill: 'forwards' });
         coinClink(0.05);
       });
     });
