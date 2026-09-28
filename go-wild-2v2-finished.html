@@ -3,81 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Go Wild Sabda 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=32">
+<meta name="theme-color" content="#080d17">
+<title>Champ Word — 6×6 Word Grid</title>
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=grid1">
 </head>
 <body>
-<div id="app" class="gwx-app">
-  <div class="gwx-ambient gwx-a1"></div><div class="gwx-ambient gwx-a2"></div><div class="gwx-ambient gwx-a3"></div>
-  <header class="gwx-topbar">
-    <div class="gwx-logo"><span>CHAMP</span><b>WORD</b><small>GO WILD</small></div>
-    <div class="gwx-matchbar"><span class="team-dot blue"></span><strong>TEAM A</strong><em>2v2</em><strong>TEAM B</strong><span class="team-dot red"></span></div>
-    <div class="gwx-tools"><button id="soundBtn" aria-label="Toggle sound">⌁</button><button id="restartBtn" aria-label="Restart round">↻</button></div>
+<div class="grid-game">
+  <header class="topbar">
+    <a class="brand" href="#game" aria-label="Champ Word home"><span class="brand-mark">CW</span><span><b>CHAMP WORD</b><small>WORD GRID · 2v2</small></span></a>
+    <div class="team-strip"><span class="team-a">TEAM A <b id="teamCoinsA">0</b> <small>COINS</small></span><i>VS</i><span class="team-b">TEAM B <b id="teamCoinsB">0</b> <small>COINS</small></span></div>
+    <button id="restartBtn" class="restart" type="button">↻ <span>NEW ROUND</span></button>
   </header>
 
-  <main class="gwx-table" id="table">
-    <div class="gwx-rail"></div>
-    <div class="gwx-center-glow"></div>
-    <div class="gwx-turn-pulse" id="turnPulse"></div>
-
-    <section class="gwx-seat top" data-player="poker">
-      <div class="gwx-player-card">
-        <div class="gwx-avatar blue-ring"><div class="gwx-avatar-art avatar-poker"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
-        <div class="gwx-player-info"><strong>Poker</strong><span>TIMRO SAATHI</span><b>TEAM A</b></div>
-        <div class="gwx-partner-hand" id="hand-top"></div>
-      </div>
+  <main id="game" class="main-layout">
+    <section class="puzzle-area" aria-label="Word puzzle">
+      <div class="puzzle-heading"><div><small class="eyebrow">FIND THE HIDDEN WORDS</small><h1>Six by six. Seven words.</h1><p>Trace neighboring letters or type a guess. Find words from 3 to 9 letters.</p></div><div class="timer"><small>TIME LEFT</small><b id="timer">02:00</b></div></div>
+      <div class="puzzle-stage"><div id="letterGrid" class="letter-grid" role="grid" aria-label="Six by six letter grid"></div><div class="grid-sheen" aria-hidden="true"></div></div>
+      <div class="selection-row"><div><small>YOUR LETTER PATH</small><strong id="selectedLetters">—</strong></div><button id="clearPathBtn" type="button" class="soft-button">CLEAR</button></div>
+      <form id="guessForm" class="guess-form"><label for="guessInput">WORD GUESS</label><div class="guess-controls"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type your word" aria-describedby="guessMessage"><select id="playerSelect" aria-label="Choose player"><option value="champ">Champ</option><option value="poker">Poker</option><option value="kalkal">Kalkal</option><option value="jess">Jess</option></select><button type="submit">GUESS <span>↗</span></button></div><p id="guessMessage" aria-live="polite">Any player can guess, in any order.</p></form>
+      <div class="word-slots" id="wordSlots" aria-label="Seven target word lengths"></div>
     </section>
 
-    <section class="gwx-seat left" data-player="kalkal">
-      <div class="gwx-player-card">
-        <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-kalkal"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
-        <div class="gwx-player-info"><strong>Kalkal</strong><span>PRATIDWANDI</span><b>TEAM B</b></div>
-      </div>
-      <div class="gwx-card-count"><span id="count-left">7</span><small>WORDS</small></div>
-    </section>
-
-    <section class="gwx-seat right" data-player="jess">
-      <div class="gwx-player-card">
-        <div class="gwx-player-info right-text"><strong>Jess</strong><span>PRATIDWANDI</span><b>TEAM B</b></div>
-        <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-jess"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
-      </div>
-      <div class="gwx-card-count"><span id="count-right">7</span><small>WORDS</small></div>
-    </section>
-
-    <section class="gwx-center">
-      <div class="gwx-status-line"><div id="turnLabel" class="gwx-turn-label">TIMRO PALO</div><div id="colorLabel" class="gwx-color-label"><i></i> SABDA</div></div>
-      <div class="gwx-piles">
-        <button id="drawPile" class="gwx-deck" aria-label="Sabda ko kitab"><span class="deck-layer l1"></span><span class="deck-layer l2"></span><span class="deck-face"><b>KITAB</b><small>SABDA</small></span><i id="drawBadge">0</i></button>
-        <div class="gwx-discard-wrap"><div class="gwx-discard-shadow"></div><div id="discard" class="gwx-discard"></div></div>
-      </div>
-      <div id="wordHistory" class="gwx-word-history" aria-label="Sabda ko kram"></div>
-      <div id="message" class="gwx-message">Antim akshar bata suru hune sabda khela.</div>
-    </section>
-
-    <section class="gwx-seat bottom" data-player="champ">
-      <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>TIMI · TEAM A</span></div></div>
-    </section>
-    <div id="hand-local" class="gwx-hand" aria-label="Your words"></div>
-
-    <div class="gwx-controls">
-      <button id="drawBtn" class="gwx-action draw">SABDA TANA</button>
-      <button id="chatBtn" class="gwx-action chat">💬</button>
-    </div>
-    <div id="chatPanel" class="gwx-chat-panel">
-      <button data-msg="Ramro chal!">Ramro chal!</button><button data-msg="Kasto guff!">Kasto guff!</button><button data-msg="Aba mero palo!">Aba mero palo!</button><button data-msg="🔥">🔥</button>
-    </div>
-    <div id="fx" class="gwx-fx"></div>
+    <aside class="score-panel" aria-label="Player coin scores"><div class="score-title"><div><small class="eyebrow">THE COIN RACE</small><h2>Players</h2></div><span class="coin-icon">✦</span></div><div class="player-score team-a-player" data-player="champ"><span class="player-orb">C</span><div><b>Champ <small>YOU · TEAM A</small></b><span id="words-champ">0 words</span></div><strong><span id="coins-champ">0</span><small>COINS</small></strong></div><div class="player-score team-a-player" data-player="poker"><span class="player-orb">P</span><div><b>Poker <small>TEAM A</small></b><span id="words-poker">0 words</span></div><strong><span id="coins-poker">0</span><small>COINS</small></strong></div><div class="player-score team-b-player" data-player="kalkal"><span class="player-orb">K</span><div><b>Kalkal <small>TEAM B</small></b><span id="words-kalkal">0 words</span></div><strong><span id="coins-kalkal">0</span><small>COINS</small></strong></div><div class="player-score team-b-player" data-player="jess"><span class="player-orb">J</span><div><b>Jess <small>TEAM B</small></b><span id="words-jess">0 words</span></div><strong><span id="coins-jess">0</span><small>COINS</small></strong></div><div id="roundMessage" class="round-message" aria-live="polite">A correct word earns 100 coins per letter.</div></aside>
   </main>
 
-  <footer class="gwx-footer">
-    <div><small>ROUND</small><strong id="roundLabel">01</strong></div>
-    <div class="gwx-timer"><small>SAMAYA</small><strong id="timer">02:30</strong></div>
-    <div class="gwx-team-score"><span class="blue-dot"></span><b>TEAM A</b><strong id="teamScoreA">0</strong><span class="red-dot"></span><b>TEAM B</b><strong id="teamScoreB">0</strong></div>
-  </footer>
-
-  <div id="winModal" class="gwx-modal"><div class="gwx-modal-card win"><small>KHEL SAKIYO</small><h2 id="winTitle">TEAM A JITYO</h2><p id="winText"></p><button id="nextBtn">FERI KHELAU</button></div></div>
+  <div id="resultModal" class="result-modal" aria-hidden="true"><div class="result-card"><span class="result-spark">✦</span><small>ROUND COMPLETE</small><h2 id="resultTitle">TEAM A WINS</h2><p id="resultText"></p><button id="playAgainBtn" type="button">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=31"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=grid1"></script>
 </body>
 </html>
-
