@@ -148,3 +148,4 @@ export function scoreWord(targets, guess, foundWords, playerId) {
   if (!target) return null;
   return { word: target.word, playerId, coins: target.word.length * 100, length: target.word.length };
 }
+
