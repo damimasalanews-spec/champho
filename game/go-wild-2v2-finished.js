@@ -231,6 +231,45 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
   });
   $('restartBtn').addEventListener('click', resetRound);
   $('playAgainBtn').addEventListener('click', resetRound);
+  const emojiToggle = $('emojiToggle');
+  const chatToggle = $('chatToggle');
+  const emojiMenu = $('emojiMenu');
+  const chatMenu = $('chatMenu');
+  const reaction = $('champReaction');
+  let reactionTimer = null;
+  function closeSocialMenus() {
+    emojiMenu.hidden = true;
+    chatMenu.hidden = true;
+    emojiToggle.setAttribute('aria-expanded', 'false');
+    chatToggle.setAttribute('aria-expanded', 'false');
+  }
+  function toggleSocialMenu(menu, button) {
+    const opening = menu.hidden;
+    closeSocialMenus();
+    menu.hidden = !opening;
+    button.setAttribute('aria-expanded', String(opening));
+  }
+  function showChampReaction(value, isEmoji = false) {
+    reaction.textContent = value;
+    reaction.classList.toggle('emoji-reaction', isEmoji);
+    reaction.classList.add('visible');
+    clearTimeout(reactionTimer);
+    reactionTimer = window.setTimeout(() => reaction.classList.remove('visible'), 2200);
+    closeSocialMenus();
+  }
+  emojiToggle.addEventListener('click', () => toggleSocialMenu(emojiMenu, emojiToggle));
+  chatToggle.addEventListener('click', () => toggleSocialMenu(chatMenu, chatToggle));
+  emojiMenu.addEventListener('click', event => {
+    const button = event.target.closest('[data-emoji]');
+    if (button) showChampReaction(button.dataset.emoji, true);
+  });
+  chatMenu.addEventListener('click', event => {
+    const button = event.target.closest('[data-chat]');
+    if (button) showChampReaction(button.dataset.chat);
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.champ-social-controls')) closeSocialMenus();
+  });
   resetRound();
 
   window.__champWordGrid = {
