@@ -234,14 +234,24 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
   const emojiToggle = $('emojiToggle');
   const chatToggle = $('chatToggle');
   const emojiMenu = $('emojiMenu');
-  const chatMenu = $('chatMenu');
+  const chatPanel = $('tableChatPanel');
   const reaction = $('champReaction');
+  const chatMessages = $('chatMessages');
+  const chatConnection = $('chatConnection');
   let reactionTimer = null;
+  let chatSocket = null;
+  let chatReconnectTimer = null;
+  let chatRequest = 0;
+  let chatRoomId = new URLSearchParams(location.search).get('room');
+  const chatPlayerKey = 'champword.playerId';
+  let chatPlayerId = localStorage.getItem(chatPlayerKey);
+  if (!chatPlayerId) {
+    chatPlayerId = globalThis.crypto?.randomUUID?.() || `player-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    localStorage.setItem(chatPlayerKey, chatPlayerId);
+  }
   function closeSocialMenus() {
     emojiMenu.hidden = true;
-    chatMenu.hidden = true;
     emojiToggle.setAttribute('aria-expanded', 'false');
-    chatToggle.setAttribute('aria-expanded', 'false');
   }
   function toggleSocialMenu(menu, button) {
     const opening = menu.hidden;
@@ -257,19 +267,103 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     reactionTimer = window.setTimeout(() => reaction.classList.remove('visible'), 2200);
     closeSocialMenus();
   }
+  function appendChatMessage(text, playerId, at = new Date().toISOString()) {
+    const bubble = document.createElement('div');
+    bubble.className = `table-chat-bubble${playerId === chatPlayerId ? ' mine' : ''}`;
+    const body = document.createElement('span');
+    body.textContent = text;
+    const time = document.createElement('small');
+    time.textContent = new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    bubble.append(body, time);
+    chatMessages.appendChild(bubble);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  function setChatStatus(text, connected = false) {
+    chatConnection.textContent = text;
+    chatConnection.classList.toggle('connected', connected);
+  }
+  function connectTableChat() {
+    if (chatSocket && (chatSocket.readyState === WebSocket.OPEN || chatSocket.readyState === WebSocket.CONNECTING)) return;
+    const host = location.hostname;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socketUrl = host === 'champword-backend.onrender.com' || host === 'localhost' || host === '127.0.0.1'
+      ? `${protocol}//${location.host}`
+      : 'wss://champword-backend.onrender.com';
+    setChatStatus('Connecting…');
+    try {
+      chatSocket = new WebSocket(socketUrl);
+    } catch {
+      setChatStatus('Chat unavailable');
+      return;
+    }
+    chatSocket.addEventListener('open', () => {
+      const requestId = `grid-chat-${Date.now()}-${++chatRequest}`;
+      if (chatRoomId) chatSocket.send(JSON.stringify({ type: 'join_room', requestId, roomId: chatRoomId, playerId: chatPlayerId }));
+      else chatSocket.send(JSON.stringify({ type: 'create_room', requestId, playerId: chatPlayerId }));
+    });
+    chatSocket.addEventListener('message', event => {
+      let message;
+      try { message = JSON.parse(event.data); } catch { return; }
+      if (message.type === 'room_snapshot' && message.roomId) {
+        chatRoomId = message.roomId;
+        const nextUrl = new URL(location.href);
+        nextUrl.searchParams.set('room', chatRoomId);
+        history.replaceState(null, '', nextUrl);
+        setChatStatus('Connected · share the invite link', true);
+      } else if (message.type === 'chat_message') {
+        appendChatMessage(message.text, message.playerId, message.at);
+      } else if (message.type === 'error') {
+        setChatStatus('Reconnect to chat');
+      }
+    });
+    chatSocket.addEventListener('close', () => {
+      setChatStatus('Reconnecting…');
+      clearTimeout(chatReconnectTimer);
+      chatReconnectTimer = window.setTimeout(connectTableChat, 2400);
+    });
+    chatSocket.addEventListener('error', () => setChatStatus('Connecting…'));
+  }
   emojiToggle.addEventListener('click', () => toggleSocialMenu(emojiMenu, emojiToggle));
-  chatToggle.addEventListener('click', () => toggleSocialMenu(chatMenu, chatToggle));
+  chatToggle.addEventListener('click', () => {
+    closeSocialMenus();
+    chatPanel.hidden = !chatPanel.hidden;
+    chatToggle.setAttribute('aria-expanded', String(!chatPanel.hidden));
+    if (!chatPanel.hidden) $('tableChatInput').focus();
+  });
+  $('closeChat').addEventListener('click', () => {
+    chatPanel.hidden = true;
+    chatToggle.setAttribute('aria-expanded', 'false');
+  });
+  $('tableChatForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const input = $('tableChatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN || !chatRoomId) {
+      setChatStatus('Reconnecting…');
+      connectTableChat();
+      return;
+    }
+    chatSocket.send(JSON.stringify({ type: 'chat_send', requestId: `grid-chat-${Date.now()}-${++chatRequest}`, text }));
+    input.value = '';
+    input.focus();
+  });
+  $('copyRoomLink').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      setChatStatus('Invite link copied', true);
+    } catch {
+      setChatStatus('Copy the page link to invite players');
+    }
+  });
   emojiMenu.addEventListener('click', event => {
     const button = event.target.closest('[data-emoji]');
     if (button) showChampReaction(button.dataset.emoji, true);
   });
-  chatMenu.addEventListener('click', event => {
-    const button = event.target.closest('[data-chat]');
-    if (button) showChampReaction(button.dataset.chat);
-  });
   document.addEventListener('click', event => {
     if (!event.target.closest('.champ-social-controls')) closeSocialMenus();
   });
+  connectTableChat();
   resetRound();
 
   window.__champWordGrid = {
@@ -278,4 +372,3 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     reset: resetRound
   };
 })();
-
