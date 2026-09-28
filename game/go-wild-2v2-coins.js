@@ -22,6 +22,16 @@
   const SETTLE_MS    = 1150;
   const SETTLE_COUNT = 14;
 
+  /* Celebration sequence: the word is thrown into the grid, dances, turns into
+     coins, and only then does the shower arc to whoever scored. */
+  const TOSS_LEAD  = 90;
+  const TOSS_GAP   = 110;
+  const TOSS_MS    = 520;
+  const DANCE_MS   = 760;
+  const DANCE_ITER = 2;
+  const DANCE_GAP  = 55;
+  const MORPH_MS   = 340;
+
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
 
   /* ---------------------------------------------------------------- canvas */
@@ -133,6 +143,44 @@
     f.connect(g);
     g.connect(a.destination);
     src.start();
+  }
+
+  /* a dry wooden click, used when a thrown letter lands on its cell */
+  function wordClack(freq) {
+    const a = audio();
+    if (!a) return;
+    const t = a.currentTime;
+    const o = a.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(freq, t);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.11, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+    o.connect(g);
+    g.connect(a.destination);
+    o.start(t);
+    o.stop(t + 0.19);
+    coinClink(0.05);
+  }
+
+  /* the dance beat: a low body thump, paired with the existing clink as a hat */
+  function danceThump(vol) {
+    const a = audio();
+    if (!a) return;
+    const t = a.currentTime;
+    const o = a.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(155, t);
+    o.frequency.exponentialRampToValueAtTime(62, t + 0.16);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.18 * vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    o.connect(g);
+    g.connect(a.destination);
+    o.start(t);
+    o.stop(t + 0.22);
   }
 
   function fanfare() {
@@ -396,7 +444,7 @@
   }
 
   /* ----------------------------------------------------------------- play */
-  function play(playerId, amount) {
+  function play(playerId, amount, origin) {
     if (!ensureCanvas()) return;
 
     /* If the frame loop is not running, anything still in the arrays is stale:
@@ -436,8 +484,10 @@
       return;
     }
 
-    const gx = gr.left + gr.width / 2;
-    const gy = gr.top + gr.height / 2;
+    /* normally the middle of the grid; a word celebration hands in the centroid
+       of the cells the word was made from, so the coins leave from there */
+    const gx = origin && origin.x != null ? origin.x : gr.left + gr.width / 2;
+    const gy = origin && origin.y != null ? origin.y : gr.top + gr.height / 2;
     const ax = ar.left + ar.width / 2;
     const ay = ar.top + ar.height / 2;
     const R = Math.min(ar.width, ar.height) / 2 - 3;
@@ -502,6 +552,178 @@
     tools.appendChild(b);
   }
 
+  /* ------------------------------------------------------- word celebration */
+  /* Presentation only. Each letter of the found word is flown from the scoring
+     player's seat onto the cell it came from, dances there in 3D, turns into a
+     coin, and hands over to the shower. The game's own tile is hidden while a
+     clone stands in for it, so the board reads as brand new letters landing —
+     but no round state is read or written. */
+
+  let layer = null;
+  let seqTimers = [];
+  let hiddenTiles = [];
+
+  function ensureLayer() {
+    if (layer) return layer;
+    layer = document.createElement('div');
+    layer.className = 'gwx-dance-layer';
+    layer.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(layer);
+    return layer;
+  }
+
+  function seq(ms, fn) { seqTimers.push(window.setTimeout(fn, ms)); }
+
+  /* a cancelled sequence must never leave a cell invisible */
+  function releaseTiles() {
+    hiddenTiles.forEach((t) => t.classList.remove('gwx-thrown'));
+    hiddenTiles = [];
+  }
+
+  function cancelSequence() {
+    seqTimers.forEach((t) => window.clearTimeout(t));
+    seqTimers = [];
+    releaseTiles();
+    if (layer) layer.textContent = '';
+  }
+
+  function celebrate(playerId, word, cells, amount) {
+    const grid = document.getElementById('letterGrid');
+    const avatar = document.querySelector('.gwx-seat[data-player="' + playerId + '"] .gwx-avatar');
+
+    /* no usable path, or motion is off: the plain shower is the honest answer */
+    if (reduce || !grid || !avatar || !Array.isArray(cells) || !cells.length) {
+      play(playerId, amount);
+      return;
+    }
+    if (!ensureCanvas()) return;
+    if (!raf) { coins.length = 0; sparks.length = 0; settles.length = 0; }
+    cancelSequence();
+
+    const host = ensureLayer();
+    const av = avatar.getBoundingClientRect();
+    const ox = av.left + av.width / 2;
+    const oy = av.top + av.height / 2;
+    const sprite = COIN.toDataURL();
+
+    const parts = [];
+    cells.forEach((index) => {
+      const cell = grid.querySelector('.letter-tile[data-index="' + index + '"]');
+      if (!cell || !cell.textContent.trim()) return;
+      const r = cell.getBoundingClientRect();
+      if (!r.width) return;
+
+      /* the clone borrows the game's own found-tile classes, so it is pixel
+         identical to the cell it is standing in for */
+      const el = document.createElement('div');
+      el.className = 'letter-tile found gwx-dance-tile';
+      el.textContent = cell.textContent.trim();
+      el.style.left = (r.left + r.width / 2) + 'px';
+      el.style.top = (r.top + r.height / 2) + 'px';
+      el.style.width = r.width + 'px';
+      el.style.height = r.height + 'px';
+      el.style.fontSize = window.getComputedStyle(cell).fontSize;
+      el.style.transform = 'translate(-50%,-50%)';
+      el.style.opacity = '0';
+
+      const shadow = document.createElement('div');
+      shadow.className = 'gwx-dance-shadow';
+      shadow.style.left = (r.left + r.width * 0.16) + 'px';
+      shadow.style.width = (r.width * 0.68) + 'px';
+      shadow.style.top = (r.top + r.height - 7) + 'px';
+
+      host.append(shadow, el);
+      cell.classList.add('gwx-thrown');
+      hiddenTiles.push(cell);
+      parts.push({ el, shadow, mid: { x: r.left + r.width / 2, y: r.top + r.height / 2 } });
+    });
+
+    if (!parts.length) { releaseTiles(); play(playerId, amount); return; }
+
+    /* 1 — thrown from the seat onto the cells that spell the word */
+    parts.forEach((p, i) => {
+      const at = TOSS_LEAD + i * TOSS_GAP;
+      const sx = ox - p.mid.x;
+      const sy = oy - p.mid.y;
+      const apex = 96 + (i % 3) * 16;
+      seq(at, () => {
+        launchWhoosh();
+        p.el.style.opacity = '1';
+        p.el.animate([
+          { transform: 'translate(-50%,-50%) translate(' + sx + 'px,' + sy + 'px) scale(.42) rotateY(0deg)' },
+          { offset: .55, transform: 'translate(-50%,-50%) translate(' + (sx * .45) + 'px,' + (sy * .45 - apex) + 'px) scale(1.1) rotateY(200deg)' },
+          { transform: 'translate(-50%,-50%) translate(0,0) scale(1) rotateY(360deg)' }
+        ], { duration: TOSS_MS, easing: 'cubic-bezier(.4,.05,.3,1)', fill: 'forwards' });
+      });
+      seq(at + TOSS_MS, () => wordClack(392 + i * 72));
+    });
+
+    const danceAt = TOSS_LEAD + (parts.length - 1) * TOSS_GAP + TOSS_MS + 120;
+
+    /* 2 — the word dances on its own cells, on a beat */
+    [0, -0.19, -0.31, -0.44, -0.5].forEach((detune, i) => {
+      seq(danceAt + i * 80, () => coinChime(0.07, detune));
+    });
+
+    parts.forEach((p, i) => {
+      const delay = i * DANCE_GAP;
+      seq(danceAt, () => {
+        p.el.animate([
+          { transform: 'translate(-50%,-50%) translateY(0) rotateY(0deg) rotateX(0deg) scale(1)' },
+          { transform: 'translate(-50%,-50%) translateY(-24px) rotateY(190deg) rotateX(12deg) scale(1.18)' },
+          { transform: 'translate(-50%,-50%) translateY(0) rotateY(380deg) rotateX(0deg) scale(1)' },
+          { transform: 'translate(-50%,-50%) translateY(-15px) rotateY(560deg) rotateX(-10deg) scale(1.12)' },
+          { transform: 'translate(-50%,-50%) translateY(0) rotateY(740deg) rotateX(0deg) scale(1)' }
+        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'cubic-bezier(.4,.05,.2,1)' });
+        p.shadow.animate([
+          { opacity: .55, transform: 'scaleX(1) scaleY(1)' },
+          { opacity: .2, transform: 'scaleX(.6) scaleY(.7)' },
+          { opacity: .55, transform: 'scaleX(1) scaleY(1)' },
+          { opacity: .26, transform: 'scaleX(.66) scaleY(.75)' },
+          { opacity: .55, transform: 'scaleX(1) scaleY(1)' }
+        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'ease-in-out' });
+      });
+    });
+
+    const danceEnd = danceAt + DANCE_ITER * DANCE_MS + (parts.length - 1) * DANCE_GAP;
+    const beat = Math.round(DANCE_MS / 4);
+    for (let i = 0, n = Math.ceil((danceEnd - danceAt) / beat); i < n; i++) {
+      const t = danceAt + i * beat;
+      seq(t, () => danceThump(i % 2 ? 0.62 : 0.5));
+      seq(t + Math.round(beat / 2), () => coinClink(0.04));
+    }
+
+    /* 3 — the letters become coins */
+    const morphAt = danceEnd + 130;
+    parts.forEach((p, i) => {
+      seq(morphAt + i * 40, () => {
+        p.shadow.style.opacity = '0';
+        /* The base sheet paints .letter-tile with `background: … !important` and
+           `color: … !important`, which outranks even an inline style — so the
+           borrowed tile classes have to go for the coin sprite to show at all. */
+        p.el.className = 'gwx-dance-tile gwx-morph';
+        p.el.style.backgroundImage = 'url(' + sprite + ')';
+        p.el.animate([
+          { transform: 'translate(-50%,-50%) scale(1.16) rotate(0deg)', opacity: 1 },
+          { offset: .55, transform: 'translate(-50%,-50%) scale(.72) rotate(-18deg)', opacity: 1 },
+          { transform: 'translate(-50%,-50%) scale(.22) rotate(-40deg)', opacity: 0 }
+        ], { duration: MORPH_MS, easing: 'ease-in', fill: 'forwards' });
+        coinClink(0.05);
+      });
+    });
+    seq(morphAt + 90, () => coinChime(0.09, -0.3));
+
+    /* 4 — and the coins arc to whoever scored */
+    seq(morphAt + MORPH_MS, () => {
+      let cx = 0;
+      let cy = 0;
+      parts.forEach((p) => { cx += p.mid.x; cy += p.mid.y; });
+      releaseTiles();
+      host.textContent = '';
+      play(playerId, amount, { x: cx / parts.length, y: cy / parts.length });
+    });
+  }
+
   function start() {
     ensureCanvas();
     addSoundToggle();
@@ -510,6 +732,7 @@
   window.addEventListener('resize', fit, { passive: true });
   window.__champCoins = {
     play,
+    celebrate,
     setMuted(v) { muted = !!v; },
     isMuted() { return muted; }
   };

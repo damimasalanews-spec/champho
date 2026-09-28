@@ -29,6 +29,50 @@
   line-height: 1;
 }
 
+/* Word celebration: a fixed layer so the letters can fly from a seat anywhere on
+   the table onto the grid without being clipped by the board's overflow:hidden.
+   Same z-band as the coin canvas, above the board and below the chat panel. */
+.gwx-dance-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 56;
+  perspective: 900px;
+}
+
+/* the clone reuses the game's own .letter-tile.found classes for an exact match,
+   so everything here only repositions it and cancels the deal-in animation */
+.gwx-dance-layer .gwx-dance-tile {
+  position: absolute;
+  animation: none;
+  will-change: transform, opacity;
+}
+
+/* mid-morph the letter is replaced by the coin sprite handed in as a background */
+.gwx-dance-layer .gwx-dance-tile.gwx-morph {
+  color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.gwx-dance-shadow {
+  position: absolute;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #001d15cc, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* a cell whose letter is still in the air stays empty, so the letter visibly
+   arrives rather than landing on a tile that is already there */
+.gwx-letter-grid .letter-tile.gwx-thrown {
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gwx-seat .gwx-avatar.gwx-coin-hit { animation: none !important; }
 }

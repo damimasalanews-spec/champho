@@ -147,7 +147,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     $('roundMessage').textContent = text;
   }
 
-  function animateCoins(playerId, coins, word) {
+  function animateCoins(playerId, coins, word, cells) {
     const panel = document.querySelector(`.gwx-seat[data-player="${playerId}"]`);
     if (panel) {
       /* The class has to be released again afterwards. Leaving it on meant the
@@ -163,8 +163,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     panel?.appendChild(floater);
     window.setTimeout(() => floater.remove(), 1250);
     $('roundMessage').textContent = `${PLAYERS.find(item => item.id === playerId).name} found ${word.toUpperCase()} · +${coins} coins!`;
-    /* presentation only: coins arc from the grid to whoever scored */
-    window.__champCoins?.play(playerId, coins);
+    /* presentation only: the word is thrown into the grid, dances, becomes coins,
+       and those coins arc to whoever scored. Falls back to the plain shower. */
+    if (window.__champCoins?.celebrate) window.__champCoins.celebrate(playerId, word, cells, coins);
+    else window.__champCoins?.play(playerId, coins);
   }
 
   function submitGuess(value, playerId) {
@@ -189,7 +191,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     renderSlots();
     renderScores();
     renderPath();
-    animateCoins(playerId, result.coins, result.word);
+    animateCoins(playerId, result.coins, result.word, target.path);
     if (round.found.size === round.layout.words.length) finishRound('all-found');
     return true;
   }
