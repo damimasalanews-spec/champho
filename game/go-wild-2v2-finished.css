@@ -796,3 +796,5 @@
  .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{width:clamp(56px,17vw,82px);height:clamp(56px,17vw,82px)}
 }
 
+@media(min-aspect-ratio:1/1){.gwx-seat.bottom{bottom:11%!important}}
+
