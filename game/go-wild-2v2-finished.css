@@ -785,3 +785,14 @@
  .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{width:clamp(54px,16vw,95px);height:clamp(54px,16vw,95px)}
 }
 
+/* Final seat sizing and suppress dynamic chat-style copy reliably. */
+#wordSlots,#guessMessage,#roundMessage,.gwx-turn-pulse{display:none!important}
+@media(min-aspect-ratio:1/1){
+ .gwx-seat.left,.gwx-seat.right{width:clamp(58px,7vw,120px)}
+ .gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card{width:100%}
+ .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{width:clamp(58px,7vw,120px);height:clamp(58px,7vw,120px)}
+}
+@media(max-aspect-ratio:1/1){
+ .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{width:clamp(56px,17vw,82px);height:clamp(56px,17vw,82px)}
+}
+
