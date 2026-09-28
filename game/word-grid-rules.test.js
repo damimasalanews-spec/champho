@@ -32,3 +32,4 @@ test('correct words award 100 coins per letter and cannot score twice', () => {
   assert.equal(scoreWord(targets, 'nope', found, 'jess'), null);
   assert.equal(scoreWord(targets, 'hawa', found, 'jess').coins, 400);
 });
+
