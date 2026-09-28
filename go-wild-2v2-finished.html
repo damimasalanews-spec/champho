@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Go Wild Sabda Grid 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=champ-side-chat-0928k">
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=grid-chat-square-0928l">
 </head>
 <body>
 <div id="app" class="gwx-app">
@@ -53,12 +53,14 @@
       <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>TIMI · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div></div></div>
       <div class="champ-social-controls" aria-label="Quick chat and reactions">
         <button id="emojiToggle" class="social-toggle" type="button" aria-expanded="false" aria-controls="emojiMenu" title="Choose an emoji">😊</button>
-        <button id="chatToggle" class="social-toggle chat-toggle" type="button" aria-expanded="false" aria-controls="chatMenu" title="Quick chat">💬</button>
+        <button id="chatToggle" class="social-toggle chat-toggle" type="button" aria-expanded="false" aria-controls="tableChatPanel" title="Open table chat">💬</button>
         <div id="emojiMenu" class="champ-dropdown emoji-menu" hidden aria-label="Choose an emoji">
           <button type="button" data-emoji="😀">😀</button><button type="button" data-emoji="😂">😂</button><button type="button" data-emoji="😎">😎</button><button type="button" data-emoji="🔥">🔥</button><button type="button" data-emoji="👏">👏</button><button type="button" data-emoji="💯">💯</button>
         </div>
-        <div id="chatMenu" class="champ-dropdown chat-menu" hidden aria-label="Quick chat">
-          <button type="button" data-chat="Hi!">Hi!</button><button type="button" data-chat="Good game!">Good game!</button><button type="button" data-chat="Haha!">Haha!</button><button type="button" data-chat="Your turn!">Your turn!</button>
+        <div id="tableChatPanel" class="table-chat-panel" role="dialog" aria-label="Table chat" hidden>
+          <header class="table-chat-header"><div><strong>TABLE CHAT</strong><small id="chatConnection">Connecting…</small></div><button id="copyRoomLink" type="button" title="Copy invite link">↗</button><button id="closeChat" type="button" aria-label="Close chat">×</button></header>
+          <div id="chatMessages" class="table-chat-messages" aria-live="polite" aria-relevant="additions"></div>
+          <form id="tableChatForm" class="table-chat-compose"><input id="tableChatInput" maxlength="240" autocomplete="off" placeholder="Write a message…" aria-label="Write a chat message"><button type="submit" aria-label="Send message">➤</button></form>
         </div>
         <div id="champReaction" class="champ-reaction" aria-live="polite"></div>
       </div>
@@ -74,7 +76,6 @@
 
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>KHEL SAKIYO</small><h2 id="resultTitle">TEAM A JITYO</h2><p id="resultText"></p><button id="playAgainBtn">FERI KHELAU</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=champ-side-chat-0928k"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=grid-chat-square-0928l"></script>
 </body>
 </html>
-
