@@ -756,3 +756,12 @@
   .gwx-center .gwx-message,.gwx-round-message{font-size:8px;line-height:1.2}
 }
 
+@media(min-aspect-ratio:1/1){
+  .gwx-seat.left,.gwx-seat.right{display:block!important;top:50%;width:clamp(76px,13vw,160px);transform:translateY(-50%);z-index:9}
+  .gwx-seat.left{left:1.5%}.gwx-seat.right{right:1.5%}
+  .gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card{display:flex;width:100%;min-width:0;flex-direction:column;align-items:stretch;padding:0;transform:none}
+  .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{width:100%;height:auto;aspect-ratio:1/1}
+  .gwx-seat.left .gwx-player-info,.gwx-seat.right .gwx-player-info{width:100%;padding:6px 3px;margin-top:6px}
+  .gwx-seat.left .gwx-player-info strong,.gwx-seat.right .gwx-player-info strong{font-size:clamp(9px,1.15vw,16px)}
+}
+
