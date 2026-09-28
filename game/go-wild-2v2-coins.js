@@ -17,6 +17,11 @@
                                                       chat panel (60) and modal (100) */
   const MAX_LIVE  = 220;                           /* guard against many quick scores */
 
+  /* Reduced motion gets a still burst instead of a flight: the same coin art,
+     no travel and no tumble, so a correct answer is never silently invisible. */
+  const SETTLE_MS    = 1150;
+  const SETTLE_COUNT = 14;
+
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
 
   /* ---------------------------------------------------------------- canvas */
@@ -244,6 +249,7 @@
   let sparks = [];
   let charges = [];
   let glows = [];
+  let settles = [];
   let raf = 0;
   let lastSmack = 0;
 
@@ -293,6 +299,23 @@
       const gr = 26 + gp * 54;
       ctx.globalAlpha = (1 - gp) * 0.8;
       ctx.drawImage(GLOW, glows[i].x - gr, glows[i].y - gr, gr * 2, gr * 2);
+      ctx.globalAlpha = 1;
+    }
+
+    for (let i = settles.length - 1; i >= 0; i--) {
+      const s = settles[i];
+      const sp = (now - s.t0) / SETTLE_MS;
+      if (sp >= 1) { settles.splice(i, 1); continue; }
+      stopped = false;
+      const wob = Math.abs(Math.cos(s.spin));        /* fixed angle: no tumble */
+      const wid = Math.max(1.4, s.size * wob);
+      const fade = 1 - sp * sp;
+      ctx.globalAlpha = fade;
+      ctx.drawImage(COIN, s.x - wid / 2, s.y - s.size / 2, wid, s.size);
+      if (1 - wob > 0.12) {
+        ctx.globalAlpha = fade * (1 - wob) * 0.6;
+        ctx.drawImage(COIN_EDGE, s.x - wid / 2, s.y - s.size / 2, wid, s.size);
+      }
       ctx.globalAlpha = 1;
     }
 
@@ -379,21 +402,39 @@
     /* If the frame loop is not running, anything still in the arrays is stale:
        a hidden tab suspends requestAnimationFrame, so coins never retire and
        would accumulate until MAX_LIVE silently swallowed later showers. */
-    if (!raf) { coins.length = 0; sparks.length = 0; }
+    if (!raf) { coins.length = 0; sparks.length = 0; settles.length = 0; }
 
     const grid = document.getElementById('letterGrid');
     const avatar = document.querySelector('.gwx-seat[data-player="' + playerId + '"] .gwx-avatar');
     if (!grid || !avatar) return;
 
-    if (reduce) {                       /* still acknowledge the score, no motion */
-      bump(avatar, 'gwx-coin-hit', 280);
-      coinChime(0.08, 0);
-      return;
-    }
-
     const gr = grid.getBoundingClientRect();
     const ar = avatar.getBoundingClientRect();
     if (!gr.width || !ar.width) return;
+
+    if (reduce) {
+      /* No flight and no tumble, but never nothing: a ring of coins lands on
+         the avatar and fades, so reduced-motion players still get the cue. */
+      const now = performance.now();
+      const cx = ar.left + ar.width / 2;
+      const cy = ar.top + ar.height / 2;
+      const R = Math.min(ar.width, ar.height) / 2 - 3;
+      for (let i = 0; i < SETTLE_COUNT; i++) {
+        const a = (i / SETTLE_COUNT) * Math.PI * 2 + Math.random() * 0.4;
+        const rr = R + 8 + Math.random() * 18;
+        settles.push({
+          x: cx + Math.cos(a) * rr,
+          y: cy + Math.sin(a) * rr,
+          size: 32 * (0.88 + Math.random() * 0.26),
+          spin: Math.random() * Math.PI,
+          t0: now
+        });
+      }
+      bump(avatar, 'gwx-coin-hit', 280);
+      coinChime(0.08, 0);
+      if (!raf) raf = window.requestAnimationFrame(frame);
+      return;
+    }
 
     const gx = gr.left + gr.width / 2;
     const gy = gr.top + gr.height / 2;
