@@ -225,6 +225,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     $('resultText').textContent = `Team A ${totals.A} coins · Team B ${totals.B} coins. ${reason === 'all-found' ? 'All seven words found!' : `${round.found.size} of 7 words found.`}`;
     $('resultModal').classList.add('open');
     $('resultModal').setAttribute('aria-hidden', 'false');
+    /* presentation only: the round-win cascade, once per round, obeying the mute toggle */
+    window.__champCoins?.winStinger?.();
   }
 
   function updateTimer() {

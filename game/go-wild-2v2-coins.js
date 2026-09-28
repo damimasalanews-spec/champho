@@ -564,6 +564,134 @@
     tools.appendChild(b);
   }
 
+  /* ---------------------------------------------------------------- stinger */
+  /* "Sparkle cascade" for the end of a round: a fast run of bells over two low
+     brass notes, landing on one bright bell. Everything goes both dry and into
+     a small noise-built room, or a synth fanfare just sounds like a test tone. */
+
+  let roomIn = null;
+
+  function winRoom(a) {
+    if (!roomIn) {
+      const len = Math.floor(a.sampleRate * 0.5);
+      const buf = a.createBuffer(2, len, a.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = buf.getChannelData(ch);
+        for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+      }
+      const conv = a.createConvolver();
+      conv.buffer = buf;
+      const wet = a.createGain();
+      wet.gain.value = 0.24;
+      roomIn = a.createGain();
+      roomIn.gain.value = 1;
+      roomIn.connect(conv);
+      conv.connect(wet);
+      wet.connect(a.destination);
+    }
+    return roomIn;
+  }
+
+  function stingerBell(a, dry, snd, t, freq, vol, dur) {
+    [[1, 1], [2.76, 0.32], [5.4, 0.14]].forEach((part) => {
+      const o = a.createOscillator();
+      const g = a.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq * part[0];
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(vol * part[1], t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0008, t + dur / Math.sqrt(part[0]));
+      o.connect(g);
+      g.connect(dry);
+      g.connect(snd);
+      o.start(t);
+      o.stop(t + dur + 0.06);
+    });
+  }
+
+  /* two detuned saws through a fast downward sweep is what makes a synth read
+     as brass rather than as a buzzer */
+  function stingerBrass(a, dry, snd, t, freq, vol, dur) {
+    const lp = a.createBiquadFilter();
+    const g = a.createGain();
+    lp.type = 'lowpass';
+    lp.Q.value = 0.9;
+    lp.frequency.setValueAtTime(freq * 8, t);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(420, freq * 2.8), t + 0.24);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.022);
+    g.gain.setValueAtTime(vol, t + dur * 0.55);
+    g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    [-7, 7].forEach((cents) => {
+      const o = a.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.value = freq;
+      o.detune.value = cents;
+      o.connect(lp);
+      o.start(t);
+      o.stop(t + dur + 0.06);
+    });
+    lp.connect(g);
+    g.connect(dry);
+    g.connect(snd);
+  }
+
+  function winStinger() {
+    const a = audio();
+    if (!a) return;
+    const dry = a.destination;
+    const snd = winRoom(a);
+    const t0 = a.currentTime + 0.03;
+
+    /* the cascade */
+    const run = [523.25, 587.33, 659.25, 783.99, 880, 987.77, 1046.5, 1318.5];
+    run.forEach((freq, i) => {
+      stingerBell(a, dry, snd, t0 + i * 0.062, freq, i === run.length - 1 ? 0.15 : 0.115, 0.5);
+    });
+
+    /* the two low brass notes holding underneath */
+    stingerBrass(a, dry, snd, t0, 261.63, 0.085, 1.5);
+    stingerBrass(a, dry, snd, t0, 392, 0.075, 1.5);
+
+    /* the landing */
+    const land = t0 + 0.5;
+    stingerBell(a, dry, snd, land, 1568, 0.14, 1.2);
+
+    const sub = a.createOscillator();
+    const sg = a.createGain();
+    sub.type = 'sine';
+    sub.frequency.setValueAtTime(120, land);
+    sub.frequency.exponentialRampToValueAtTime(60, land + 0.14);
+    sg.gain.setValueAtTime(0.0001, land);
+    sg.gain.linearRampToValueAtTime(0.15, land + 0.006);
+    sg.gain.exponentialRampToValueAtTime(0.0008, land + 0.2);
+    sub.connect(sg);
+    sg.connect(dry);
+    sg.connect(snd);
+    sub.start(land);
+    sub.stop(land + 0.22);
+
+    /* one shimmer of noise so it opens out instead of being pure tones */
+    const len = Math.floor(a.sampleRate * 1.1);
+    const buf = a.createBuffer(1, len, a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 1.2);
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    const hp = a.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 4200;
+    const hg = a.createGain();
+    hg.gain.setValueAtTime(0.0001, land);
+    hg.gain.linearRampToValueAtTime(0.085, land + 0.005);
+    hg.gain.exponentialRampToValueAtTime(0.0008, land + 1.6);
+    src.connect(hp);
+    hp.connect(hg);
+    hg.connect(dry);
+    hg.connect(snd);
+    src.start(land);
+  }
+
   /* ------------------------------------------------------- word celebration */
   /* Presentation only. Each letter of the found word is flown from the scoring
      player's seat onto the cell it came from, dances there in 3D, turns into a
@@ -761,6 +889,7 @@
   window.__champCoins = {
     play,
     celebrate,
+    winStinger,
     setMuted(v) { muted = !!v; },
     isMuted() { return muted; }
   };
