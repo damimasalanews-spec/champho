@@ -805,3 +805,6 @@
 .gwx-letter-grid-shell:before,.gwx-letter-grid-shell:after{display:none!important}
 @keyframes gridFramePulse{0%,100%{border-color:#65efc9;box-shadow:0 0 0 1px #ffffff2b,0 0 12px #22dfb066,0 8px 18px #00231880}50%{border-color:#fff0a1;box-shadow:0 0 0 2px #fff0a144,0 0 22px #37ffd599,0 8px 22px #00231899}}
 
+.gwx-letter-grid-shell{box-shadow:0 8px 18px #00231880,inset 0 0 6px #22dfb066}
+@keyframes gridFramePulse{0%,100%{border-color:#65efc9;box-shadow:0 8px 18px #00231880,inset 0 0 6px #22dfb066}50%{border-color:#fff0a1;box-shadow:0 8px 18px #00231880,inset 0 0 9px #37ffd577}}
+
