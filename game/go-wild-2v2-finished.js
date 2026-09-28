@@ -49,7 +49,15 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
   function renderSlots() {
     const host = $('wordSlots');
     host.replaceChildren();
-    round.layout.words.slice().sort((a, b) => a.word.length - b.word.length).forEach(target => {
+    const targets = round.layout.words.slice().sort((a, b) => a.word.length - b.word.length);
+    const progress = Math.round(round.found.size / targets.length * 100);
+    const progressBar = $('wordProgress');
+    const progressTrack = progressBar?.parentElement;
+    if (progressBar) progressBar.style.width = `${progress}%`;
+    if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(round.found.size));
+    const progressLabel = $('wordProgressLabel');
+    if (progressLabel) progressLabel.textContent = `${round.found.size} / ${targets.length}`;
+    targets.forEach(target => {
       const slot = document.createElement('div');
       const solved = round.found.has(target.word);
       slot.className = 'word-slot' + (solved ? ' done' : '');
@@ -72,6 +80,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     PLAYERS.forEach(player => { teams[player.team] += round.scores[player.id].coins; });
     $('teamCoinsA').textContent = String(teams.A);
     $('teamCoinsB').textContent = String(teams.B);
+    const totalCoins = $('totalCoins');
+    if (totalCoins) totalCoins.textContent = String(teams.A + teams.B);
     renderLeaderboard();
   }
 

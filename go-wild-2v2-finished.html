@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Go Wild Word Grid 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=leaderboard-sidebars-fix-0928">
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=garden-concept-preview-fixed-gap-2">
 </head>
 <body>
 <div id="app" class="gwx-app">
@@ -12,6 +12,15 @@
   <header class="gwx-topbar">
     <div class="gwx-logo"><span>CHAMP</span><b>WORD</b><small>GO WILD</small></div>
     <div class="gwx-matchbar"><span class="team-dot blue"></span><strong>TEAM A</strong><em>2v2</em><strong>TEAM B</strong><span class="team-dot red"></span></div>
+    <section class="gwx-level-rail" aria-label="Word hunt progress">
+      <strong>WORD HUNT</strong>
+      <div class="gwx-level-track" role="progressbar" aria-label="Words found" aria-valuemin="0" aria-valuemax="7" aria-valuenow="0">
+        <span id="wordProgress"></span>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <b id="wordProgressLabel">0 / 7</b>
+    </section>
+    <div class="gwx-top-coins" aria-label="Combined coins"><span>¢</span><b id="totalCoins">0</b></div>
     <div class="gwx-tools"><button id="restartBtn" aria-label="Restart round">↻</button></div>
   </header>
 
