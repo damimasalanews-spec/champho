@@ -29,9 +29,11 @@
   const TOSS_LEAD  = 90;
   const TOSS_GAP   = 110;
   const TOSS_MS    = 520;
-  const DANCE_MS   = 760;
-  const DANCE_ITER = 2;
-  const DANCE_GAP  = 55;
+  /* Squash bounce: one pass of three decaying bounces, no rotation at all, so
+     the word stays legible while it dances. */
+  const DANCE_MS   = 1700;
+  const DANCE_ITER = 1;
+  const DANCE_GAP  = 90;
   const MORPH_MS   = 420;
 
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
@@ -815,25 +817,31 @@
     parts.forEach((p, i) => {
       const delay = i * DANCE_GAP;
       seq(danceAt, () => {
-        /* Two hops per pass, each rising with ease-out and falling with ease-in so
-           the letter decelerates at the top instead of pivoting there. Every hop
-           also travels in Z, so the tumble happens towards the player, not on a
-           flat plane. The second hop drifts sideways so the word is not a chorus
-           line. */
+        /* Squash bounce: the tile compresses on contact and stretches in flight,
+           three bounces each lower than the last. The transform origin is pinned
+           to the bottom edge so a squash flattens against the board rather than
+           shrinking towards the middle, and there is no rotation anywhere — that
+           is what keeps the word readable while it dances. */
+        p.el.style.transformOrigin = '50% 100%';
         p.el.animate([
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) rotateY(0deg) rotateX(0deg) scale(1)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(0,-26px,34px) rotateY(190deg) rotateX(14deg) scale(1.17)', easing: 'ease-in' },
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) rotateY(380deg) rotateX(0deg) scale(1)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(-7px,-17px,26px) rotateY(560deg) rotateX(-12deg) scale(1.12)', easing: 'ease-in' },
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) rotateY(740deg) rotateX(0deg) scale(1)' }
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.16,.84)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(0,-36px,30px) scale(.92,1.12)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.16,.84)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(0,-19px,20px) scale(.95,1.08)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.1,.9)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(0,-7px,8px) scale(.98,1.02)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1,1)' }
         ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
 
-        /* the shadow has to breathe exactly with the hops, or the depth collapses */
+        /* the shadow spreads flat at contact and pulls in as the tile rises, on
+           the same beat — that is what sells the impact */
         p.shadow.animate([
-          { opacity: .5, transform: 'scale(1,1)', easing: 'ease-out' },
-          { opacity: .2, transform: 'scale(.6,.7)', easing: 'ease-in' },
-          { opacity: .5, transform: 'scale(1,1)', easing: 'ease-out' },
-          { opacity: .28, transform: 'scale(.68,.76)', easing: 'ease-in' },
+          { opacity: .52, transform: 'scale(1.1,.5)', easing: 'ease-out' },
+          { opacity: .16, transform: 'scale(.5,.8)', easing: 'ease-in' },
+          { opacity: .52, transform: 'scale(1.1,.5)', easing: 'ease-out' },
+          { opacity: .24, transform: 'scale(.62,.86)', easing: 'ease-in' },
+          { opacity: .48, transform: 'scale(1,.56)', easing: 'ease-out' },
+          { opacity: .34, transform: 'scale(.8,.9)', easing: 'ease-in' },
           { opacity: .5, transform: 'scale(1,1)' }
         ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
       });
@@ -857,6 +865,8 @@
            borrowed tile classes have to go for the coin sprite to show at all. */
         p.el.className = 'gwx-dance-tile gwx-morph';
         p.el.style.backgroundImage = 'url(' + sprite + ')';
+        /* back to a centred origin, or the flip would pivot about the bottom edge */
+        p.el.style.transformOrigin = '50% 50%';
         /* a coin flip, not a vanish: it turns through 420 degrees as it shrinks
            and drops away from the camera */
         p.el.animate([
