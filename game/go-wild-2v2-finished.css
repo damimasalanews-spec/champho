@@ -970,3 +970,25 @@
 .gwx-seat.left .gwx-player-card{width:132px!important;align-items:flex-end!important}
 .gwx-seat.left .gwx-avatar{width:var(--seat-avatar)!important;height:var(--seat-avatar)!important;align-self:flex-end!important}
 .gwx-seat.left .gwx-player-info>strong,.gwx-seat.right .gwx-player-info>strong{border:1px solid #8ef3d27a!important;border-radius:11px!important;background:linear-gradient(145deg,#0b6653f2,#084638f2)!important;box-shadow:inset 0 1px #ffffff22,0 4px 10px #00271f66!important}
+
+/* Keep each player's name and score beside the portrait, with one consistent panel design. */
+.gwx-player-info,#table>.gwx-seat.bottom .gwx-local-meta>div:last-child{width:132px!important;min-width:132px!important;display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:6px!important;text-align:center!important}
+.gwx-player-info>strong,.gwx-local-meta>div>strong{min-height:34px!important;display:grid!important;place-items:center!important;padding:7px 10px!important;border:1px solid #a6f1d49c!important;border-radius:12px!important;background:linear-gradient(135deg,#0c6654f5,#073b3ff5)!important;box-shadow:inset 0 1px #ffffff26,0 6px 16px #001e1b80!important;color:#f4fff9!important;font-size:13px!important;font-weight:900!important;letter-spacing:.35px!important;line-height:1.1!important;text-shadow:0 1px 3px #001d18!important}
+.gwx-seat-coins,.gwx-card-count{width:132px!important;min-width:132px!important;min-height:38px!important;margin:0!important;padding:5px 8px!important;border-color:#8ee6c58c!important;border-radius:12px!important;background:linear-gradient(145deg,#0b3934f5,#071f29f5)!important;box-shadow:inset 0 1px #ffffff16,0 5px 12px #00201966!important}
+.gwx-seat.top .gwx-player-card{display:flex!important;flex-direction:row!important;align-items:center!important;gap:10px!important}
+.gwx-seat.top .gwx-player-info{display:flex!important;flex-direction:column!important;gap:6px!important}
+.gwx-seat.left,.gwx-seat.right{display:grid!important;grid-template-columns:132px var(--seat-avatar,132px)!important;grid-template-rows:auto auto!important;column-gap:8px!important;row-gap:6px!important;align-items:center!important}
+.gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card{display:contents!important}
+.gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{grid-column:2!important;grid-row:1 / span 2!important;align-self:center!important}
+.gwx-seat.left .gwx-player-info,.gwx-seat.right .gwx-player-info{grid-column:1!important;grid-row:1!important;align-self:end!important}
+.gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count{grid-column:1!important;grid-row:2!important;align-self:start!important}
+.gwx-seat.left .gwx-player-info,.gwx-seat.right .gwx-player-info{padding:0!important;margin:0!important;text-align:center!important}
+.gwx-seat.bottom .gwx-local-meta{position:static!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:10px!important}
+#table>.gwx-seat.bottom .gwx-local-meta>div:last-child{position:static!important;left:auto!important;top:auto!important;bottom:auto!important;text-align:left!important}
+.gwx-seat.bottom .gwx-seat-coins{justify-content:flex-start!important}
+@media(min-aspect-ratio:1/1){
+  .gwx-letter-grid-shell{width:min(385px,100%)!important}
+}
+@media(max-aspect-ratio:1/1){
+  .gwx-letter-grid-shell{width:min(100%,min(64vh,572px))!important}
+}
