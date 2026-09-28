@@ -72,6 +72,35 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     PLAYERS.forEach(player => { teams[player.team] += round.scores[player.id].coins; });
     $('teamCoinsA').textContent = String(teams.A);
     $('teamCoinsB').textContent = String(teams.B);
+    renderLeaderboard();
+  }
+
+  function renderLeaderboard() {
+    const host = $('leaderboardRows');
+    if (!host) return;
+    const ranking = PLAYERS.slice().sort((a, b) =>
+      round.scores[b.id].coins - round.scores[a.id].coins || round.scores[b.id].words - round.scores[a.id].words
+    );
+    host.replaceChildren();
+    ranking.forEach((player, index) => {
+      const row = document.createElement('li');
+      row.className = 'gwx-leader-row' + (index === 0 && round.scores[player.id].coins > 0 ? ' leading' : '');
+      const rank = document.createElement('span');
+      rank.className = 'gwx-leader-rank';
+      rank.textContent = String(index + 1).padStart(2, '0');
+      const identity = document.createElement('span');
+      identity.className = 'gwx-leader-identity';
+      const name = document.createElement('strong');
+      name.textContent = player.name;
+      const team = document.createElement('small');
+      team.textContent = `TEAM ${player.team}`;
+      identity.append(name, team);
+      const coins = document.createElement('b');
+      coins.className = 'gwx-leader-coins';
+      coins.textContent = String(round.scores[player.id].coins);
+      row.append(rank, identity, coins);
+      host.appendChild(row);
+    });
   }
 
   function renderPath() {

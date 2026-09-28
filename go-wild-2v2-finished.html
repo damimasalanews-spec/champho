@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Go Wild Word Grid 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=responsive-grid-fit-0928">
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=leaderboard-sidebars-0928">
 </head>
 <body>
 <div id="app" class="gwx-app">
@@ -41,9 +41,18 @@
 
     <section class="gwx-center">
       <div class="gwx-status-line"><div id="turnLabel" class="gwx-turn-label">FIND THE WORDS</div><div id="colorLabel" class="gwx-color-label"><i></i> 6×6 LETTER GRID</div></div>
-      <div class="gwx-letter-grid-shell"><div id="letterGrid" class="gwx-letter-grid" role="grid" aria-label="Six by six letter grid"></div></div>
+      <div class="gwx-board-row">
+        <section class="gwx-word-panel" aria-label="Seven hidden words">
+          <h2 class="gwx-side-heading">SEVEN WORDS</h2>
+          <div id="wordSlots" class="gwx-word-slots" aria-label="Seven word lengths"></div>
+        </section>
+        <div class="gwx-letter-grid-shell"><div id="letterGrid" class="gwx-letter-grid" role="grid" aria-label="Six by six letter grid"></div></div>
+        <section class="gwx-leaderboard" aria-label="Player leaderboard">
+          <h2 class="gwx-side-heading">LEADERBOARD</h2>
+          <ol id="leaderboardRows" class="gwx-leaderboard-rows"></ol>
+        </section>
+      </div>
       <form id="guessForm" class="gwx-guess-form"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type your word" aria-label="Word guess"><select id="playerSelect" aria-label="Choose player"><option value="champ">Champ</option><option value="poker">Poker</option><option value="kalkal">Kalkal</option><option value="jess">Jess</option></select><button type="submit">GUESS</button></form>
-      <div id="wordSlots" class="gwx-word-slots" aria-label="Seven word lengths"></div>
       <div id="guessMessage" class="gwx-message" aria-live="polite">Tap neighboring letters or type a word.</div>
       <div id="roundMessage" class="gwx-round-message" aria-live="polite">Correct word: 100 coins per letter.</div>
     </section>
@@ -75,7 +84,7 @@
 
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">TEAM A WINS</h2><p id="resultText"></p><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=english-grid-0928"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=leaderboard-sidebars-0928"></script>
 </body>
 </html>
 
