@@ -737,3 +737,22 @@
 @media(max-width:390px) and (max-aspect-ratio:1/1){.gwx-center{width:calc(100vw - 120px)}.gwx-seat.left,.gwx-seat.right{width:61px}.gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card{width:59px}.gwx-guess-form{grid-template-columns:minmax(0,1fr) 58px 52px}}
 @media(prefers-reduced-motion:reduce){.letter-tile,.gwx-letter-grid:before,.gwx-seat.just-scored .gwx-player-card,.coin-floater{animation:none}}
 
+/* Keep the classic four-seat table clear around the word board on desktop. */
+@media(min-width:761px) and (min-aspect-ratio:1/1){
+  .gwx-seat.top{top:1.5%;left:50%;transform:translateX(-50%) scale(.62);transform-origin:top center;z-index:10}
+  .gwx-seat.top .gwx-player-card{display:flex;flex-direction:row;align-items:center;gap:7px}
+  .gwx-seat.top .gwx-avatar{width:86px;height:86px}
+  .gwx-seat.top .gwx-player-info{width:112px;height:auto;margin:0;padding:8px 10px}
+  .gwx-seat.bottom{left:50%;bottom:2%;width:150px;transform:translateX(-50%) scale(.64);transform-origin:bottom center}
+  .gwx-center{left:50%;top:50%;width:min(500px,calc(100vw - 340px));height:auto!important;max-height:calc(100% - 170px);transform:translate(-50%,-50%);overflow:visible}
+  .gwx-center>*{pointer-events:auto}
+  .gwx-center .gwx-status-line{position:relative;top:auto;left:auto;transform:none;justify-content:center;margin:0 0 6px}
+  .gwx-letter-grid-shell{width:min(292px,100%);margin:0 auto 6px}
+  .gwx-letter-grid{gap:5px;padding:8px;border-radius:18px}
+  .letter-tile{font-size:clamp(18px,2vw,25px);border-radius:8px}
+  .gwx-selected-row{width:min(420px,100%);margin-bottom:4px}
+  .gwx-guess-form{width:min(420px,100%);margin-bottom:5px}
+  .gwx-word-slots{width:min(460px,100%);margin-bottom:4px}
+  .gwx-center .gwx-message,.gwx-round-message{font-size:8px;line-height:1.2}
+}
+
