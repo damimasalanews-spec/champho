@@ -1,0 +1,34 @@
+/* Champ Word — Go Wild coin shower: overlay + sound toggle.
+   Presentation only; it layers above the board and changes no layout. */
+
+.gwx-coin-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 55;              /* board is 10, coin floater 50, chat panel 60, modal 100 */
+}
+
+/* the flinch the avatar gives when a coin lands on it */
+.gwx-seat .gwx-avatar.gwx-coin-hit {
+  animation: gwxCoinHit 0.28s ease;
+}
+
+@keyframes gwxCoinHit {
+  0%   { transform: scale(1, 1) rotate(0); }
+  32%  { transform: scale(1.14, .88) rotate(-3deg); }
+  64%  { transform: scale(.96, 1.05) rotate(2deg); }
+  100% { transform: scale(1, 1) rotate(0); }
+}
+
+/* the toggle takes its size and shape from the base sheet's `.gwx-tools button`
+   rule (which resolves to 48x48 at this width), so only the glyph is set here */
+.gwx-tools .gwx-sound-toggle {
+  font-size: 18px;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gwx-seat .gwx-avatar.gwx-coin-hit { animation: none !important; }
+}

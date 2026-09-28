@@ -163,6 +163,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     panel?.appendChild(floater);
     window.setTimeout(() => floater.remove(), 1250);
     $('roundMessage').textContent = `${PLAYERS.find(item => item.id === playerId).name} found ${word.toUpperCase()} · +${coins} coins!`;
+    /* presentation only: coins arc from the grid to whoever scored */
+    window.__champCoins?.play(playerId, coins);
   }
 
   function submitGuess(value, playerId) {
