@@ -850,16 +850,16 @@
 
 /* Equal square player portraits, score bars, and a real room chat beside Champ. */
 @media(min-aspect-ratio:1/1){
-  .gwx-table{--seat-avatar:clamp(112px,10vw,158px)}
-  .gwx-seat.top{top:calc(50% - 220px - var(--seat-avatar) - 16px);left:50%;transform:translateX(-50%)!important;transform-origin:center}
+  .gwx-table{--seat-avatar:clamp(108px,8.5vw,132px)}
+  .gwx-seat.top{top:0;left:50%;transform:translateX(-50%)!important;transform-origin:center}
   .gwx-seat.top .gwx-avatar,.gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar,.gwx-seat.bottom .gwx-avatar{width:var(--seat-avatar)!important;height:var(--seat-avatar)!important;aspect-ratio:1/1;border-radius:24px}
   .gwx-seat.top .gwx-avatar-art,.gwx-seat.left .gwx-avatar-art,.gwx-seat.right .gwx-avatar-art,.gwx-seat.bottom .gwx-avatar-art{border-radius:20px}
-  .gwx-seat.left,.gwx-seat.right{top:50%;width:var(--seat-avatar);transform:translateY(-50%)!important}
+  .gwx-seat.left,.gwx-seat.right{top:calc(44% + 31px);width:var(--seat-avatar);transform:translateY(-50%)!important}
   .gwx-seat.left{left:calc(50% - 220px - var(--seat-avatar) - 14px)}
   .gwx-seat.right{right:calc(50% - 220px - var(--seat-avatar) - 14px)}
-  .gwx-seat.bottom{left:50%;top:calc(50% + 220px + 12px);bottom:auto!important;width:max-content;transform:translateX(-50%)!important}
+  .gwx-seat.bottom{left:50%;top:calc(44% + 246px);bottom:auto!important;width:max-content;transform:translateX(-50%)!important}
   .gwx-seat.bottom .gwx-local-meta{gap:10px}
-  .gwx-seat.top .gwx-player-card{min-width:0;padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none;flex-direction:column;gap:5px}
+  .gwx-seat.top .gwx-player-card{min-width:0;padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none;flex-direction:row;gap:8px}
   .gwx-seat.top .gwx-player-info{width:var(--seat-avatar);padding:8px 10px}
   .gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card{width:100%;align-items:center}
   .gwx-seat.left .gwx-player-info,.gwx-seat.right .gwx-player-info{padding:7px 4px}
