@@ -108,7 +108,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
   }
 
   function animateCoins(playerId, coins, word) {
-    const panel = document.querySelector(`[data-player="${playerId}"]`);
+    const panel = document.querySelector(`.player-score[data-player="${playerId}"]`);
     panel?.classList.remove('just-scored');
     requestAnimationFrame(() => panel?.classList.add('just-scored'));
     const floater = document.createElement('div');
