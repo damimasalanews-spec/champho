@@ -308,6 +308,7 @@
       ui.form.onsubmit = event => {
         event.preventDefault();
         if (!open || !alive(token) || !human) return;
+        window.ChampCues?.play?.("throwWord");
         const value = normalize(ui.input.value);
         ui.input.value = "";
         if (!value) return;
@@ -412,6 +413,7 @@
     }
     paint(0);
     requestAnimationFrame(() => el.classList.add("on"));
+    window.ChampCues?.play?.("superWin");
 
     const COUNT_MS = 1800;
     const t0 = performance.now();

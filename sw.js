@@ -73,6 +73,8 @@ const SHELL_ASSETS = [
   // the clipart guessing contest that decides the post-match duel
   '/game/wall-push-guess.js',
   '/game/wall-push-guess.css',
+  // the recorded sound cues the grid and the arena both play
+  '/game/audio-cues.js',
   '/assets/island-table-bg.webp',
   '/assets/icons/icon-192.png',
   '/assets/icons/icon-512.png',
@@ -90,6 +92,7 @@ const ART_GLOBS = [
   '/assets/effects/',
   '/assets/titles/',
   '/assets/clipart/',
+  '/assets/audio/',
   '/classic-bg/'
 ];
 
@@ -199,6 +202,8 @@ const ART_INDEX = [
   "/assets/clipart/house.webp", "/assets/clipart/key.webp", "/assets/clipart/moon.webp",
   "/assets/clipart/piano.webp", "/assets/clipart/pineapple.webp", "/assets/clipart/ring.webp",
   "/assets/clipart/star.webp", "/assets/clipart/sun.webp",
+  // the three recorded cues: a word thrown, coins paid out, the closing pop-up
+  "/assets/audio/word-throw.mp3", "/assets/audio/coins.mp3", "/assets/audio/super-win.mp3",
   "/assets/frames/cosmos.webp", "/assets/frames/cosmos_hole.webp", "/assets/frames/crystal.webp",
   "/assets/frames/crystal_hole.webp", "/assets/frames/emerald.webp", "/assets/frames/emerald_hole.webp",
   "/assets/frames/pearl.webp", "/assets/frames/pearl_hole.webp", "/assets/frames/prism.webp",

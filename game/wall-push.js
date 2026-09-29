@@ -393,6 +393,14 @@
   };
 
   /* ------------------------------------------------------------------- render */
+  /* The recorded cues live in game/audio-cues.js, which also owns mute and
+     volume, so this just defers to it rather than keeping a second opinion
+     about how loud anything should be. */
+  function cue(name) {
+    if (!SOUND) return;
+    try { window.ChampCues?.play?.(name); } catch (e) { /* audio unavailable */ }
+  }
+
   function paramsFor(k, t, isLoser) {
     var e = easeOut(t), io = easeInOut(t);
     switch (k) {
@@ -966,6 +974,8 @@
            from nowhere would be lying about the payout */
         ref.tag.textContent = loser.name + " finished on 0 coins";
       } else {
+        /* the grid throwing the coins back at the player who won them */
+        cue("coins");
         /* three waves, loser to winner, so the transfer reads as a transfer */
         [[120, 5], [430, 6], [760, 5]].forEach(function (w) {
           window.setTimeout(function () {
