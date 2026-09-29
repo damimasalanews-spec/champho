@@ -16,6 +16,10 @@
    everything from the floor line (624) down, so the deck grows from 182 to 226
    and the picture with it. */
 #wpOverlay.standoff .wp-plate { display: none }
+/* The coin card is a receipt, not a headline. "HOLDS THE WALL" and "FINALIST 2
+   TAKES IT" both announced a result the payout beat has already shown, so the
+   line is dropped and the card opens on the figures. */
+#wpOverlay.standoff #wpVerdict { display: none }
 #wpOverlay.standoff .wp-rank.name {
   padding: 8px 20px; font-size: 16px; font-weight: 1000;
   letter-spacing: .6px; text-transform: none;

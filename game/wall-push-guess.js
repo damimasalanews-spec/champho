@@ -413,9 +413,9 @@
     paint(0);
     requestAnimationFrame(() => el.classList.add("on"));
 
-    const COUNT_MS = 1800, HOLD_MS = 2600;
+    const COUNT_MS = 1800;
     const t0 = performance.now();
-    let dead = false, closing = false, quick = false, raf = 0;
+    let dead = false, raf = 0;
 
     function close() {
       if (dead) return;
@@ -424,22 +424,19 @@
       el.classList.remove("on");
       window.setTimeout(() => { el.remove(); done(); }, 280);
     }
-    function finish() {
-      if (closing || dead) return;
-      closing = true;
-      cancelAnimationFrame(raf);
-      window.clearTimeout(tick);
-      paint(total);
-      window.setTimeout(close, quick ? 420 : HOLD_MS);
-    }
     function frame() {
-      if (dead || closing) return;
-      paint(total * easeOut(clamp((performance.now() - t0) / COUNT_MS, 0, 1)));
+      if (dead) return;
+      const t = clamp((performance.now() - t0) / COUNT_MS, 0, 1);
+      paint(total * easeOut(t));
+      if (t >= 1) return;         /* the count is done; the pop-up stays put */
       raf = requestAnimationFrame(frame);
     }
     raf = requestAnimationFrame(frame);
-    const tick = window.setTimeout(finish, COUNT_MS);
-    el.addEventListener("click", () => { quick = true; finish(); });
+
+    /* No auto-dismiss. This receipt is where the post-match ends, so it stays on
+       screen until the player taps Continue - going away on its own would mean
+       the last thing they see is a summary they did not get to read. */
+    el.addEventListener("click", close);
   }
 
   /* =================================================================== module */
@@ -622,6 +619,10 @@
       if (run && run.arena) run.arena.teardown();
       clearTimers();
       dropDeck();
+      /* the receipt no longer dismisses itself, so a round reset has to take it
+         down or it would sit over the next board */
+      const fin = document.getElementById("wpFinal");
+      if (fin) fin.remove();
       run = null;
     }
   };

@@ -180,9 +180,9 @@
     + '  <div id="wpFx"></div>'
     + '  <div class="wp-banner" id="wpBanner"><span class="bk">POST MATCH</span><span class="bt">WALL PUSH</span></div>'
     + '  <div class="wp-next" id="wpNext"><b></b><span></span></div>'
-    + '  <div class="wp-meter a" id="wpMeterA"><div class="mt"><span>PUSH POWER</span><span id="wpPctA">100%</span></div>'
+    + '  <div class="wp-meter a" id="wpMeterA"><div class="mt"><span id="wpSideA">PUSH POWER</span><span id="wpPctA">100%</span></div>'
     + '    <div class="mtrack"><div class="mfill" id="wpFillA"></div></div></div>'
-    + '  <div class="wp-meter b" id="wpMeterB"><div class="mt"><span>PUSH POWER</span><span id="wpPctB">100%</span></div>'
+    + '  <div class="wp-meter b" id="wpMeterB"><div class="mt"><span id="wpSideB">PUSH POWER</span><span id="wpPctB">100%</span></div>'
     + '    <div class="mtrack"><div class="mfill" id="wpFillB"></div></div></div>'
     + '  <div class="wp-ledger" id="wpLedger">'
     + '    <h3>COIN SETTLEMENT</h3><p class="vd" id="wpVerdict">—</p>'
@@ -206,10 +206,32 @@
     fxLayer = root.querySelector("#wpFx");
     shakeEl = root.querySelector("#wpShake");
     ["FA","FB","Wall","RankA","RankB","PlateA","PlateB","NameA","NameB","CoinsA","CoinsB",
-     "TeamA","TeamB","Banner","Next","MeterA","MeterB","PctA","PctB","FillA","FillB",
+     "TeamA","TeamB","Banner","Next","MeterA","MeterB","SideA","SideB","PctA","PctB","FillA","FillB",
      "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip"].forEach(function (k) {
       E[k] = root.querySelector("#wp" + k);
     });
+
+     /* A key with no element behind it used to throw the moment anything
+        touched it, which took the whole post-match down before it could even
+        report ready. Anything unresolved now gets a stub that swallows reads
+        and writes, and says so, so a neglected id degrades instead of killing
+        the run. */
+     Object.keys(E).forEach(function (k) {
+       if (E[k]) return;
+       console.warn("wall-push: markup has no #wp" + k + " - using a stub");
+       var noop = function () {};
+       E[k] = {
+         textContent: "", className: "", innerHTML: "", value: "",
+         style: { setProperty: noop, removeProperty: noop },
+         classList: { add: noop, remove: noop, toggle: noop, contains: function () { return false; } },
+         addEventListener: noop, removeEventListener: noop, appendChild: noop,
+         insertAdjacentHTML: noop, remove: noop, setAttribute: noop, focus: noop,
+         querySelector: function () { return null; },
+         querySelectorAll: function () { return []; },
+         getBoundingClientRect: function () { return { left: 0, top: 0, width: 0, height: 0, bottom: 0, right: 0 }; },
+         parentNode: { classList: { add: noop, remove: noop, toggle: noop } }
+       };
+     });
     E.Skip.addEventListener("click", function () { if (abort) abort(); });
     window.addEventListener("resize", fit, { passive: true });
     if (window.visualViewport) window.visualViewport.addEventListener("resize", fit, { passive: true });
@@ -762,6 +784,10 @@
               st: null };
 
     E.NameA.textContent = duel.a.name; E.NameB.textContent = duel.b.name;
+    /* the two push-power rails carry the avatars' names, so the band across
+       the top reads as the matchup rather than saying PUSH POWER twice */
+    E.SideA.textContent = duel.a.name;
+    E.SideB.textContent = duel.b.name;
     E.TeamA.textContent = duel.a.team || ""; E.TeamB.textContent = duel.b.team || "";
     E.CoinsA.textContent = fmt(fav.coins); E.CoinsB.textContent = fmt(dog.coins);
     ["CoinsA", "CoinsB"].forEach(function (k) { E[k].parentNode.classList.remove("drain", "gain"); });
@@ -906,8 +932,9 @@
       var el = document.createElement("div");
       el.className = "wp-award";
       el.innerHTML =
+        /* no WIN / BIG WIN / SUPER WIN here: that ladder is for the one pop-up
+           that closes the whole post-match, not for each round's payout */
         '<div class="wa-card">' +
-          '<div class="wa-tier" data-x="tier">WIN</div>' +
           '<div class="wa-ribbon"><span class="wa-num" data-x="num">0</span></div>' +
           '<div class="wa-row">' +
             '<span class="wa-delta plus">' + winner.name + '<b data-x="wa">+0</b></span>' +
@@ -927,17 +954,8 @@
       var live = { dead: false, skip: false, raf: 0 };
       var t0 = performance.now();
 
-      function tierFor(v) {
-        return v >= 1400 ? ["SUPER WIN", "super"] : v >= 600 ? ["BIG WIN", "big"] : ["WIN", ""];
-      }
       function paint(v) {
         ref.num.textContent = fmt(Math.round(v));
-        var t = tierFor(v);
-        if (ref.tier.textContent !== t[0]) {
-          ref.tier.textContent = t[0];
-          ref.tier.className = "wa-tier " + t[1] + " pop";
-          void ref.tier.offsetWidth;
-        }
       }
       paint(0);
       ref.wa.textContent = "+" + fmt(paid);
@@ -946,9 +964,6 @@
       if (paid <= 0) {
         /* nothing to perform: the loser finished on zero, and flying coins in
            from nowhere would be lying about the payout */
-        ref.tier.textContent = "NO STAKE";
-        ref.tier.className = "wa-tier none";
-        ref.num.textContent = "0";
         ref.tag.textContent = loser.name + " finished on 0 coins";
       } else {
         /* three waves, loser to winner, so the transfer reads as a transfer */

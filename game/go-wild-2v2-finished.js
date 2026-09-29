@@ -306,7 +306,11 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
            straight back to the old coin-flip push. */
         if (canContest) guess.play(duels, {
           push: canPush ? wp : null,
-          onDone: showResult,
+          /* The post-match closes on its own receipt, so a contest that ran
+             does NOT open the TEAM A / TEAM B card. That card is still the
+             fallback when nothing could be played at all: an empty verdict
+             list means the contest bailed, and then there is nothing else. */
+          onDone: function (results) { if (!results || !results.length) showResult(); },
           onSettled: settleStake
         });
         else wp.play(duels, { onDone: showResult });
