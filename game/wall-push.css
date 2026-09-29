@@ -227,3 +227,44 @@
 }
 /* a player who has reduced motion on should not be made to sit through a 6.5s
    performance, so the duel is skipped entirely in that case (see wall-push.js) */
+
+/* ======================================================== the film (avatars) ==
+   The avatars are pre-rendered clips now. The film covers the arena picture —
+   felt, floor, the two <img> fighters and the slab — while the name plates,
+   meters and banner stay above it as HUD, so the guessing deck below keeps
+   working and the scores stay readable. */
+#wpFilm {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: #05070c;
+  transition: opacity .35s ease;
+}
+#wpStage.film #wpFilm { opacity: 1; }
+
+/* the drawn arena steps aside once there is film to show */
+#wpStage.film .wp-felt,
+#wpStage.film .wp-floor,
+#wpStage.film .wp-fighter,
+#wpStage.film #wpWall { opacity: 0; transition: opacity .35s ease; }
+
+/* the walls the plates sit on would otherwise fight the film */
+#wpStage.film .wp-plate,
+#wpStage.film .wp-rank,
+#wpStage.film .wp-meter { z-index: 3; }
+
+/* the seat that lost the wall drops out of frame */
+#wpStage.film-fall-a #wpPlateA,
+#wpStage.film-fall-a #wpRankA,
+#wpStage.film-fall-b #wpPlateB,
+#wpStage.film-fall-b #wpRankB {
+  animation: wpFilmFall .9s cubic-bezier(.5, 0, .9, .4) forwards;
+}
+@keyframes wpFilmFall {
+  to { transform: translateY(64px) rotate(-9deg); opacity: .12; }
+}

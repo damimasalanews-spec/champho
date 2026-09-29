@@ -165,6 +165,9 @@
     + '<div id="wpStage">'
     + '  <div class="wp-felt"><div class="wp-felt-glow"></div></div>'
     + '  <div class="wp-floor"></div>'
+    /* the avatars now ship as pre-rendered film: it owns the arena picture while
+       the plates and meters stay on top of it as HUD */
+    + '  <video class="wp-film" id="wpFilm" muted playsinline preload="auto"></video>'
     + '  <div id="wpShake">'
     + '    <img class="wp-fighter" id="wpFA" alt="">'
     + '    <img class="wp-fighter" id="wpFB" alt="">'
@@ -1058,8 +1061,62 @@
                b: { before: e.st.dogBefore, after: e.st.dogAfter } };
     }
 
+    /* ------------------------------------------------------------- the film --
+       The avatars ship as pre-rendered clips, so the arena picture is film now
+       rather than two puppeted <img> sprites. The clipart contest drives it: a
+       correct answer calls steps() and film(), and the answer that reaches NEED
+       calls breaker(), which plays the wall giving way and drops the loser's
+       seat. Everything here degrades to the old DOM duel if a clip is missing. */
+    var FILM = {
+      "pumpkin-boy":  { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
+      "boy":          { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
+      "pumpkin-girl": { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
+      "girl":         { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
+      "ninja":        { push: "assets/wallpush/ninja-push.mp4",       brk: "assets/wallpush/ninja-break.mp4" }
+    };
+    var filmEl = E.film || root.querySelector("#wpFilm");
+
+    function showFilm(key, which) {
+      if (!filmEl) return false;
+      var c = FILM[key] || FILM["pumpkin-boy"];
+      var src = c[which];
+      if (filmEl.getAttribute("data-src") !== src) {
+        filmEl.setAttribute("data-src", src);
+        filmEl.src = src;
+        filmEl.load();
+      }
+      if (stage) stage.classList.add("film");
+      /* never poke currentTime before metadata exists: that stranded the element
+         in NETWORK_LOADING at readyState 0 and the arena rendered black */
+      var go = function () {
+        try { filmEl.currentTime = 0; } catch (err) {}
+        var p = filmEl.play();
+        if (p && p.catch) p.catch(function () { /* autoplay blocked; still shows */ });
+      };
+      if (filmEl.readyState >= 2) go();
+      else filmEl.addEventListener("loadeddata", go, { once: true });
+      return true;
+    }
+
+    /* one correct answer: that seat shoves the wall */
+    function film(side) {
+      var seat = side === "b" ? duel.b : duel.a;
+      return showFilm(seat && seat.key, "push");
+    }
+
+    /* the winning answer: the wall goes, and the loser drops out of frame */
+    function breaker(side) {
+      var seat = side === "b" ? duel.b : duel.a;
+      if (!showFilm(seat && seat.key, "brk")) return false;
+      setTimeout(function () {
+        if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
+      }, 880);
+      return true;
+    }
+
     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
-             knock: knock, award: award, result: result, teardown: teardown };
+             knock: knock, award: award, result: result, teardown: teardown,
+             film: film, breaker: breaker };
   }
 
   /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]

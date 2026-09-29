@@ -293,10 +293,16 @@
            opponent, and an answer from the other side shoves it straight back */
         const net = tally.a - tally.b;
         if (arena && arena.steps) arena.steps(net);
+        /* the same answer that moves the slab now also plays that seat's film
+           beat, so the push the player sees IS their correct answer */
+        if (arena && arena.film) arena.film(by);
         if (arena && arena.charge) arena.charge(tally.a, tally.b);
 
         const decided = tally[by] >= NEED;
         if (decided) {
+          /* reaching NEED is the knockout: the wall gives way on film and the
+             losing seat drops */
+          if (arena && arena.breaker) arena.breaker(by);
           ui.sideA.classList.toggle("win", by === "a");
           ui.sideB.classList.toggle("win", by === "b");
           ui.msg.textContent = `${naming} takes the wall ${Math.max(tally.a, tally.b)} — ${Math.min(tally.a, tally.b)}.`;
