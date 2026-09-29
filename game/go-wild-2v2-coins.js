@@ -824,32 +824,30 @@
     parts.forEach((p, i) => {
       const delay = i * DANCE_GAP;
       seq(danceAt, () => {
-        /* Squash bounce: the tile compresses on contact and stretches in flight,
-           three bounces each lower than the last. The transform origin is pinned
-           to the bottom edge so a squash flattens against the board rather than
-           shrinking towards the middle, and there is no rotation anywhere — that
-           is what keeps the word readable while it dances. */
-        p.el.style.transformOrigin = '50% 100%';
+        /* Squash bounce, kept inside the cell. Scaling about the tile's centre
+           (never the bottom edge) keeps the glyph on the cell's centre line — a
+           bottom-pinned origin dropped every letter 5.5px low and swelled it
+           11px wider than its own cell. The lift is 12px at most, decaying to
+           3px, so a letter never leaves its cell while it dances. */
         p.el.animate([
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.16,.84)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(0,-36px,30px) scale(.92,1.12)', easing: 'ease-in' },
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.16,.84)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(0,-19px,20px) scale(.95,1.08)', easing: 'ease-in' },
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.1,.9)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(0,-7px,8px) scale(.98,1.02)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.08,.88)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(0,-12px,14px) scale(.96,1.06)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.08,.88)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(0,-7px,8px) scale(.97,1.04)', easing: 'ease-in' },
+          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.05,.93)', easing: 'ease-out' },
+          { transform: 'translate(-50%,-50%) translate3d(0,-3px,4px) scale(.99,1.02)', easing: 'ease-in' },
           { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1,1)' }
         ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
 
-        /* the shadow spreads flat at contact and pulls in as the tile rises, on
-           the same beat — that is what sells the impact */
+        /* the shadow flattens at contact and pulls in on the lift, same beat */
         p.shadow.animate([
-          { opacity: .52, transform: 'scale(1.1,.5)', easing: 'ease-out' },
-          { opacity: .16, transform: 'scale(.5,.8)', easing: 'ease-in' },
-          { opacity: .52, transform: 'scale(1.1,.5)', easing: 'ease-out' },
-          { opacity: .24, transform: 'scale(.62,.86)', easing: 'ease-in' },
-          { opacity: .48, transform: 'scale(1,.56)', easing: 'ease-out' },
-          { opacity: .34, transform: 'scale(.8,.9)', easing: 'ease-in' },
-          { opacity: .5, transform: 'scale(1,1)' }
+          { opacity: .42, transform: 'scale(1.04,.72)', easing: 'ease-out' },
+          { opacity: .26, transform: 'scale(.78,.92)', easing: 'ease-in' },
+          { opacity: .42, transform: 'scale(1.04,.72)', easing: 'ease-out' },
+          { opacity: .3, transform: 'scale(.84,.94)', easing: 'ease-in' },
+          { opacity: .4, transform: 'scale(1,.8)', easing: 'ease-out' },
+          { opacity: .34, transform: 'scale(.9,.96)', easing: 'ease-in' },
+          { opacity: .4, transform: 'scale(1,.88)' }
         ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
       });
     });
@@ -872,8 +870,6 @@
            borrowed tile classes have to go for the coin sprite to show at all. */
         p.el.className = 'gwx-dance-tile gwx-morph';
         p.el.style.backgroundImage = 'url(' + sprite + ')';
-        /* back to a centred origin, or the flip would pivot about the bottom edge */
-        p.el.style.transformOrigin = '50% 50%';
         /* a coin flip, not a vanish: it turns through 420 degrees as it shrinks
            and drops away from the camera */
         p.el.animate([
