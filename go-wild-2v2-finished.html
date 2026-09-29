@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=garden-concept-preview-fixed-gap-2">
 <link rel="stylesheet" href="game/go-wild-2v2-motion.css?v=motion-1">
 <link rel="stylesheet" href="game/go-wild-2v2-coins.css?v=coins-12">
-</head>
+<link rel="stylesheet" href="game/wall-push.css?v=1"><style>/* the seat avatars are CSS-drawn heads and bodies; when a real portrait is present it takes over and they are hidden */.gwx-avatar-art.has-portrait .avatar-head,.gwx-avatar-art.has-portrait .avatar-body{display:none}.gwx-avatar-art img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;position:relative;z-index:1}</style></head>
 <body>
 <div id="app" class="gwx-app">
   <div class="gwx-ambient gwx-a1"></div><div class="gwx-ambient gwx-a2"></div><div class="gwx-ambient gwx-a3"></div>
@@ -29,14 +29,14 @@
   <main class="gwx-table" id="table">
     <section class="gwx-seat top" data-player="poker">
       <div class="gwx-player-card">
-        <div class="gwx-avatar blue-ring"><div class="gwx-avatar-art avatar-poker"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
+        <div class="gwx-avatar blue-ring"><div class="gwx-avatar-art avatar-poker has-portrait"><img src="assets/avatars/pumpkin-girl.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
         <div class="gwx-player-info"><strong>Poker</strong><span>YOUR TEAM · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-poker">0</span> COINS</b><small id="words-poker">0 WORDS</small></div></div>
       </div>
     </section>
 
     <section class="gwx-seat left" data-player="kalkal">
       <div class="gwx-player-card">
-        <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-kalkal"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
+        <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-kalkal has-portrait"><img src="assets/avatars/pumpkin-girl.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
         <div class="gwx-player-info"><strong>Kalkal</strong><span>OPPONENT</span><b>TEAM B</b></div>
       </div>
       <div class="gwx-card-count"><span id="coins-kalkal">0</span><small>COINS</small><em id="words-kalkal">0 WORDS</em></div>
@@ -45,7 +45,7 @@
     <section class="gwx-seat right" data-player="jess">
       <div class="gwx-player-card">
         <div class="gwx-player-info right-text"><strong>Jess</strong><span>OPPONENT</span><b>TEAM B</b></div>
-        <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-jess"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
+        <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-jess has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
       </div>
       <div class="gwx-card-count"><span id="coins-jess">0</span><small>COINS</small><em id="words-jess">0 WORDS</em></div>
     </section>
@@ -69,7 +69,7 @@
     </section>
 
     <section class="gwx-seat bottom" data-player="champ">
-      <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ"><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>YOUR TEAM · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div></div></div>
+      <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>YOUR TEAM · TEAM A</span><div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div></div></div>
       <div class="champ-social-controls" aria-label="Quick chat and reactions">
         <button id="emojiToggle" class="social-toggle" type="button" aria-expanded="false" aria-controls="emojiMenu" title="Choose an emoji">😊</button>
         <button id="chatToggle" class="social-toggle chat-toggle" type="button" aria-expanded="false" aria-controls="tableChatPanel" title="Open table chat">💬</button>
@@ -96,7 +96,7 @@
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">TEAM A WINS</h2><p id="resultText"></p><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
 <script type="module" src="game/go-wild-2v2-finished.js?v=coins-12"></script>
-<script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
+<script src="game/wall-push.js?v=1"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
 <script src="game/go-wild-2v2-coins.js?v=coins-12" defer></script>
 </body>
 </html>

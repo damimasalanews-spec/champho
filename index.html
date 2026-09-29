@@ -677,6 +677,61 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .cw-a-bolt     .cwFxImg{animation:cwFxFlick .45s steps(3,end) infinite}
 .cw-a-starfield .cwFxImg{animation:cwFxSpin 30s linear infinite,cwFxTwinkle 3s ease-in-out infinite}
 .cw-a-spectral .cwFxImg{animation:cwFxSpin 18s linear infinite,cwFxHue 9s linear infinite}
+
+/* ============ WALL PUSH (pumpkin boy / pumpkin girl) ============
+   The only two effects that are a PERFORMANCE rather than an aura: the face
+   loads off the slab and slams back into it, and the slab takes a jump on each
+   slam. Both move, independently - the slab is its own image, so the relative
+   distance between face and slab actually changes. That relative change is the
+   push; animating one layer alone would just slide the whole tile.
+   The boy drives the slab right, the girl drives it left, so the two read as
+   different effects rather than mirror copies of one.                      */
+.cw-a-wallpush-boy  .cwFxAvatar{animation:cwWPload 2.6s ease-in-out infinite}
+.cw-a-wallpush-boy  .cwFxImg   {animation:cwWPslamR 2.6s ease-in-out infinite}
+.cw-a-wallpush-girl .cwFxAvatar{animation:cwWPloadL 2.6s ease-in-out infinite}
+.cw-a-wallpush-girl .cwFxImg   {animation:cwWPslamL 2.6s ease-in-out infinite}
+
+/* the face: contract off the slab, then drive in. The translate is smaller than
+   the slab's so the two visibly separate and close. */
+@keyframes cwWPload{
+  0%,6%   {transform:translate(-50%,-50%) translateX(0) rotate(0deg) scale(1)}
+  24%     {transform:translate(-50%,-50%) translateX(-11%) rotate(-5deg) scale(.99)}
+  38%     {transform:translate(-50%,-50%) translateX(4%) rotate(4deg) scale(1.02)}
+  50%     {transform:translate(-50%,-50%) translateX(-13%) rotate(-6deg) scale(.98)}
+  64%     {transform:translate(-50%,-50%) translateX(5%) rotate(5deg) scale(1.03)}
+  76%     {transform:translate(-50%,-50%) translateX(-8%) rotate(-4deg) scale(.99)}
+  88%     {transform:translate(-50%,-50%) translateX(3%) rotate(2deg) scale(1.01)}
+  100%    {transform:translate(-50%,-50%) translateX(0) rotate(0deg) scale(1)}
+}
+@keyframes cwWPloadL{
+  0%,6%   {transform:translate(-50%,-50%) translateX(0) rotate(0deg) scale(1)}
+  24%     {transform:translate(-50%,-50%) translateX(11%) rotate(5deg) scale(.99)}
+  38%     {transform:translate(-50%,-50%) translateX(-4%) rotate(-4deg) scale(1.02)}
+  50%     {transform:translate(-50%,-50%) translateX(13%) rotate(6deg) scale(.98)}
+  64%     {transform:translate(-50%,-50%) translateX(-5%) rotate(-5deg) scale(1.03)}
+  76%     {transform:translate(-50%,-50%) translateX(8%) rotate(4deg) scale(.99)}
+  88%     {transform:translate(-50%,-50%) translateX(-3%) rotate(-2deg) scale(1.01)}
+  100%    {transform:translate(-50%,-50%) translateX(0) rotate(0deg) scale(1)}
+}
+/* the slab: holds while the face loads, jumps on each slam */
+@keyframes cwWPslamR{
+  0%,30%  {transform:translateX(0)}
+  40%     {transform:translateX(7%)}
+  50%     {transform:translateX(7%)}
+  62%     {transform:translateX(15%)}
+  76%     {transform:translateX(15%)}
+  88%     {transform:translateX(24%)}
+  100%    {transform:translateX(0)}
+}
+@keyframes cwWPslamL{
+  0%,30%  {transform:translateX(0)}
+  40%     {transform:translateX(-7%)}
+  50%     {transform:translateX(-7%)}
+  62%     {transform:translateX(-15%)}
+  76%     {transform:translateX(-15%)}
+  88%     {transform:translateX(-24%)}
+  100%    {transform:translateX(0)}
+}
 @keyframes cwFxTwinkle{0%,100%{opacity:.6}50%{opacity:1}}
 @keyframes cwFxSpin{to{transform:rotate(360deg)}}
 @keyframes cwFxRise{0%,100%{transform:translateY(3%) scale(1)}50%{transform:translateY(-3%) scale(1.04)}}
@@ -882,7 +937,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var D={
     // one plain free portrait, everything else premium
     portraits:[
-      {id:'classic', name:'Classic Champ', desc:'The everyday grin. Plain, and free.',  from:'Starter Gift',    free:1},
+      {id:'pumpkin-boy',  name:'Pumpkin Boy',  desc:'Round orange head and a carved grin.', from:'Starter Gift',     free:1},
+      {id:'pumpkin-girl', name:'Pumpkin Girl', desc:'Carved grin, ribbon on the stem.',     from:'Shop - 900 coins', src:'shop', price:900, locked:1},
       {id:'knight',  name:'Sir Gourd',     desc:'Polished helm and a brave plume.',     from:'Ranked Season 3', src:'mission', locked:1},
       {id:'ninja',   name:'Shadow Squash', desc:'Hooded, silent, arms folded.',         from:'Ranked Season 4', src:'mission', locked:1},
       {id:'wizard',  name:'Wizard Zucc',   desc:'Starry hat and a long white beard.',   from:'Shop - 1,200 coins', src:'shop', price:1200, locked:1},
@@ -925,7 +981,16 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       {id:'pearl',     name:'Feather Fall',   desc:'Soft feathers and pearl light.',   from:'Hall of Fame',   locked:1, anim:'feather'},
       {id:'volt',      name:'Storm Arcs',     desc:'Arcs cracking around the rim.',    from:'Tournament Win', locked:1, anim:'bolt'},
       {id:'cosmos',    name:'Starfield',      desc:'Dust, stars and orbiting orbs.',   from:'Night Event',    locked:1, anim:'starfield'},
-      {id:'prism',     name:'Spectral Rays',  desc:'Beams fanning into every colour.', from:'Hall of Fame',   locked:1, anim:'spectral'}
+      {id:'prism',     name:'Spectral Rays',  desc:'Beams fanning into every colour.', from:'Hall of Fame',   locked:1, anim:'spectral'},
+      /* The two WALL PUSH effects. `who` overrides which portrait the swatch
+         shows, because these belong to a specific character rather than to the
+         one you happen to be wearing. Everything else follows the normal effect
+         shape: an id, art at assets/effects/<id>.webp, and a cw-a-<anim> class
+         carrying the animation. */
+      {id:'wallpush-boy',  name:'Pumpkin Boy Wall Push',  desc:'Loads up and drives the slab right.', from:'Wall Push', free:1,
+       anim:'wallpush-boy',  who:'pumpkin-boy'},
+      {id:'wallpush-girl', name:'Pumpkin Girl Wall Push', desc:'Loads up and drives the slab left.',  from:'Wall Push', locked:1,
+       anim:'wallpush-girl', who:'pumpkin-girl'}
     ],
     filters:[
       {id:'crystal',  name:'Crystal',  desc:'Icy cyan, glass-bright.',    from:'Starter Gift',    free:1,   cls:'cw-fl-crystal'},
@@ -964,8 +1029,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   var cat='portraits';                    // active section (matches the active top tab)
   var sel={frames:null,titles:null,effects:null,filters:null};   // PREVIEW selection only
   var AVATAR='';
-  var DEFAULT_AVATAR='assets/avatars/classic.webp';   // the free portrait is the profile's face
-  var EQUIPPED_AV='classic';                          // which portrait shows in game
+  var DEFAULT_AVATAR='assets/avatars/pumpkin-boy.webp';   // the free portrait is the profile's face
+  var EQUIPPED_AV='pumpkin-boy';                          // which portrait shows in game
   // the worn portrait lives in the saved profile, so it survives a reload instead
   // of silently reverting to the free one
   /* Missions are one of the three ways a locked cosmetic is earned, alongside
@@ -1121,8 +1186,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
           +'<span class="cwAvName">'+it.name+'</span>';
         if(it.id===equippedAvId()) t.classList.add('use');
       } else if(cat==='effects'){
+        // an effect may name its own portrait (`who`); otherwise it shows whatever
+        // the player is wearing, which is what every aura effect wants
+        var fxAv=it.who?('assets/avatars/'+it.who+'.webp'):AVATAR;
         t.innerHTML='<div class="cwFxSwatch cw-a-'+it.anim+'">'
-          +(AVATAR?'<img class="cwFxAvatar" src="'+AVATAR+'" alt="">':'')
+          +(fxAv?'<img class="cwFxAvatar" src="'+fxAv+'" alt="">':'')
           +'<img class="cwFxImg" src="assets/effects/'+it.id+'.webp" alt=""></div>'
           +'<span class="cwFxName">'+it.name+'</span>';
       } else {
@@ -1183,7 +1251,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     } else if(k==='effects'){
       var fx=byId('cwPrevFx');
       fx.className='cwPrevFx on cw-a-'+it.anim;
-      fx.innerHTML='<img class="cwFxImg" src="assets/effects/'+it.id+'.webp" alt="">';
+      // the wall-push effects animate a character as well as their artwork, so
+      // the big preview needs the portrait layer too or you would only see a slab
+      var fxAv=it.who?('assets/avatars/'+it.who+'.webp'):AVATAR;
+      fx.innerHTML=(it.who&&fxAv?'<img class="cwFxAvatar" src="'+fxAv+'" alt="">':'')
+        +'<img class="cwFxImg" src="assets/effects/'+it.id+'.webp" alt="">';
     } else if(k==='titles'){
       var el=byId('cwPrevTitle');
       el.innerHTML='<img class="cwTitleImg" src="assets/titles/'+it.id+'.webp" alt="">'
@@ -1460,10 +1532,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     return {displayName:'Guest',coins:0,gems:0,level:1,xp:0,wins:0,games:0,activity:[],
       // what the guest actually owns. champGrant() is the only thing that adds to
       // this, so an item can never be worn without a recorded source behind it.
-      owned:{portraits:['classic'],frames:['crystal'],titles:['crystal'],
+      owned:{portraits:['pumpkin-boy'],frames:['crystal'],titles:['crystal'],
              effects:['crystal'],filters:['crystal']},
       // what is actually worn - without this the player's choice was lost on reload
-      equipped:{portraits:'classic',frames:'crystal',titles:'crystal',
+      equipped:{portraits:'pumpkin-boy',frames:'crystal',titles:'crystal',
                 effects:'crystal',filters:'crystal'},
       // the game owner sees every cosmetic unlocked; a player never gets this
       owner:false};
@@ -1483,7 +1555,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     else for(var e in d.equipped){ if(!s.equipped[e]) s.equipped[e]=d.equipped[e]; }
     // the starter item of each category is always owned, even for a save that
     // predates it, so a player can never end up unable to wear the default
-    var ALWAYS={portraits:['classic'],frames:['crystal'],titles:['crystal'],
+    var ALWAYS={portraits:['pumpkin-boy'],frames:['crystal'],titles:['crystal'],
                 effects:['crystal'],filters:['crystal']};
     for(var a in ALWAYS){
       if(!Array.isArray(s.owned[a])) s.owned[a]=[];
@@ -1749,7 +1821,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     // what each seat should wear. The game draws the portrait, the frame ring and
     // the title on the board, so the equipped look has to travel with the profile.
     var eq=function(k){ try{ return (typeof window.champGetEquipped==='function'&&window.champGetEquipped(k))||''; }catch(e){ return ''; } };
-    var prof={name:name, portrait:eq('portraits')||'classic', frame:eq('frames')||'crystal',
+    var prof={name:name, portrait:eq('portraits')||'pumpkin-boy', frame:eq('frames')||'crystal',
               coins:(function(){ var n=parseInt(String(cash).replace(/[^0-9]/g,''),10); return isNaN(n)?0:n; })()};
     var t=eq('titles'); if(t) prof.title=t;   // omitted rather than blank, so the game keeps its default
     try{frame.contentWindow.postMessage({champEquippedAvatar:av&&av.src?av.src:'',champName:name,champCoins:cash,champProfile:prof,champSafeArea:safeAreaInsets()},'*')}catch(e){}

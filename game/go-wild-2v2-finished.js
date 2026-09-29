@@ -230,13 +230,51 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
        celebration has landed its coins, or the player never sees the word that
        won them the round: it plays behind the blur. A clock expiry has no
        celebration, so wait is 0 and the modal opens at once. */
-    const reveal = () => {
+    const showResult = () => {
       resultReveal = 0;
       if (!round) return;
       $('resultModal').classList.add('open');
       $('resultModal').setAttribute('aria-hidden', 'false');
       /* presentation only: the round-win cascade, once per round, obeying the mute toggle */
       window.__champCoins?.winStinger?.();
+    };
+
+    /* ---- WALL PUSH --------------------------------------------------------
+       The series runs BEFORE the result card: TOP 1 vs TOP 2, then TOP 3 vs
+       TOP 4. `wait` has already delayed us past the word celebration, so the
+       duel also lands after it rather than on top of it.
+
+       Ranking comes from the round scores that are already on screen - coins
+       first, words as the tiebreak. The stake is each seat's displayed coin
+       count, so the numbers in the duel are real in-game numbers rather than
+       invented ones.
+
+       The duel DISPLAYS the settlement and deliberately writes to no balance:
+       this game's coins are per-round scores, and treating them as a persistent
+       wallet is a game-design decision, not an animation one. */
+    const reveal = () => {
+      if (!round) { showResult(); return; }
+      const wp = window.ChampWallPush;
+      if (!wp || typeof wp.play !== 'function') { showResult(); return; }
+      const ranked = [...PLAYERS].sort((a, b) => {
+        const sa = round.scores[a.id], sb = round.scores[b.id];
+        return (sb.coins - sa.coins) || (sb.words - sa.words);
+      });
+      const side = p => ({
+        name: p.name,
+        coins: round.scores[p.id].coins,
+        team: p.team === 'A' ? 'TEAM WILD' : 'TEAM FLAME',
+        key: (p.id === 'jess' || p.id === 'champ') ? 'boy' : 'girl'
+      });
+      try {
+        wp.play([
+          { rankA: 1, rankB: 2, a: side(ranked[0]), b: side(ranked[1]) },
+          { rankA: 3, rankB: 4, a: side(ranked[2]), b: side(ranked[3]) }
+        ], { onDone: showResult });
+      } catch (e) {
+        console.warn('wall push failed, showing the result card anyway', e);
+        showResult();
+      }
     };
     resultReveal = wait > 0 ? window.setTimeout(reveal, wait) : 0;
     if (wait <= 0) reveal();
