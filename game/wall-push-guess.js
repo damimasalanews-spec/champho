@@ -463,6 +463,11 @@
       if (!duels || !duels.length || reduced) { done([]); return; }
       if (!push || typeof push.standoff !== "function") { done([]); return; }
 
+      /* The music belongs to the fights, so it starts with the first round and runs
+         until the last one ends. loop() and not play(): it is a bed, not an event,
+         and it must not restart if this is ever re-entered. */
+      window.ChampCues?.loop?.("music");
+
       const token = {};
       run = { token, timers: [], arena: null };
 
@@ -480,6 +485,9 @@
       duels.forEach(d => { balance.set(d.a.id, d.a.coins); balance.set(d.b.id, d.b.coins); });
 
       function cleanup() {
+        /* covers SKIP, a round reset, and the normal close - the music must never
+           outlive the wall push it belongs to */
+        window.ChampCues?.stop?.("music");
         if (run && run.arena) run.arena.teardown();
         clearTimers();
         dropDeck();
@@ -512,6 +520,9 @@
         }
         if (idx >= queue.length) {
           const tok = token;
+          /* All three rounds are done, so the music stops HERE rather than under
+             the receipt: it is the sound of the fight, not of the result. */
+          window.ChampCues?.stop?.("music");
           finale(Array.from(table.values()).sort((a, b) => b.delta - a.delta), function () {
             if (!run || run.token !== tok) return;      /* cancelled mid-finale */
             const all = results.slice();

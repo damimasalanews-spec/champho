@@ -12,6 +12,7 @@
      brake      a shove bringing the slab back toward its own side
      fall       the losing avatar going down at the end of a duel
      superWin   the pop-up that closes the post-match
+     music      the loop under the wall push, first round to last
 
    Every supplied file arrived carrying more than the game wants, so each is cut to
    its content and peak-normalised to about -2 dBFS. That normalisation is what
@@ -48,6 +49,7 @@
     yeah: "assets/audio/yeah.mp3",
     superWin: "assets/audio/super-win.mp3",
     bounce: "assets/audio/bounce.mp3",
+    music: "assets/audio/music.mp3",
     push: "assets/audio/push.mp3",
     brake: "assets/audio/brake.mp3",
     fall: "assets/audio/avatar-fall.mp3"
@@ -67,9 +69,14 @@
      near-invisible too, by construction rather than by taste.
 
      Every cue in FILES must have a level here: a missing key does not fail, it
-     falls back to full volume. fix-volume-map.py asserts the two agree. */
+     falls back to full volume. fix-volume-map.py asserts the two agree.
+
+     music is the odd one out: it is a bed, not an event, so it is set against
+     the effects rather than peak-matched to them. At 0.36 its peaks land about
+     9 dB under push and fall, which is where a background loop stops competing
+     with the hits it plays under. */
   const VOLUME = { throwWord: 0.55, coins: 0.55, yeah: 0.66, superWin: 0.75,
-                   bounce: 0.68, push: 0.8, brake: 0.75, fall: 0.85 };
+                   bounce: 0.68, push: 0.8, brake: 0.75, fall: 0.85, music: 0.36 };
 
   const cache = {};
 
@@ -110,9 +117,59 @@
     } catch (e) { return false; }
   }
 
+  /* ------------------------------------------------------------------- loop
+     Music is the one cue that is not a one-shot: it runs for as long as the wall
+     push does. `looping` is what the mute toggle reaches through, and a repeat
+     call is deliberately NOT rewound - loop("music") while it is already playing
+     must not restart the track in the middle of a round. */
+  const looping = [];
+
+  function loop(name) {
+    if (!FILES[name] || muted()) return false;
+    try {
+      const a = element(name);
+      a.loop = true;
+      if (looping.indexOf(name) < 0) looping.push(name);
+      if (a.paused) {
+        a.currentTime = 0;
+        const p = a.play();
+        /* rejected until the page has had a gesture, or with no audio device */
+        if (p && p.catch) p.catch(() => {});
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function stop(name) {
+    const i = looping.indexOf(name);
+    if (i >= 0) looping.splice(i, 1);
+    try {
+      /* the cached element only: stopping must never CREATE a cue that was never
+         played, which going through element() would do */
+      const a = cache[name];
+      if (!a) return false;
+      a.loop = false;
+      a.pause();
+      a.currentTime = 0;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* The mute toggle sits on the board, under the wall push overlay, so in practice
+     it cannot be pressed mid-round - but the state it sets has to be true, or the
+     music plays on over a page that says it is muted. */
+  function syncMute() {
+    looping.slice().forEach(name => {
+      const a = cache[name];
+      if (!a) return;
+      if (muted()) a.pause();
+      else if (a.paused) { const p = a.play(); if (p && p.catch) p.catch(() => {}); }
+    });
+  }
+
   function preload() {
     Object.keys(FILES).forEach(n => { try { element(n); } catch (e) {} });
   }
 
-  window.ChampCues = { play, preload, files: FILES, muted };
+  window.ChampCues = { play, loop, stop, syncMute, preload, files: FILES, muted };
 })();

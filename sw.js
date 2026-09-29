@@ -205,7 +205,7 @@ const ART_INDEX = [
   // the recorded cues: the word thrown, the coins paid out and the reaction to
   // them, the push and the brake, the fall, and the closing pop-up
   "/assets/audio/wordsthrow1.mp3", "/assets/audio/bounce.mp3",
-  "/assets/audio/coins.mp3", "/assets/audio/yeah.mp3",
+  "/assets/audio/coins.mp3", "/assets/audio/yeah.mp3", "/assets/audio/music.mp3",
   "/assets/audio/super-win.mp3",
   "/assets/audio/push.mp3", "/assets/audio/brake.mp3", "/assets/audio/avatar-fall.mp3",
   "/assets/frames/cosmos.webp", "/assets/frames/cosmos_hole.webp", "/assets/frames/crystal.webp",

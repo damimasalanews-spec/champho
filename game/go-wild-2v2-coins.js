@@ -595,6 +595,7 @@
     b.textContent = '\uD83D\uDD0A';
     b.addEventListener('click', () => {
       muted = !muted;
+      window.ChampCues?.syncMute?.();
       b.textContent = muted ? '\uD83D\uDD07' : '\uD83D\uDD0A';
       b.setAttribute('aria-pressed', muted ? 'false' : 'true');
       if (!muted) coinChime(0.09, 0);
@@ -874,22 +875,6 @@
     const oy = av.top + av.height / 2;
     const sprite = COIN.toDataURL();
 
-    /* The word assembles in the MIDDLE of the grid, at the grid's own cell size
-       and pitch. It used to assemble on the cells it was found in, which meant
-       the celebration happened wherever the word happened to be: a word down the
-       left-hand column danced against the left edge of the board, which reads as
-       the dance being in the wrong place. The pitch is read off two real tiles
-       rather than assumed, so this follows the board's own layout. */
-    const gr = grid.getBoundingClientRect();
-    const gridTiles = [...grid.querySelectorAll('.letter-tile')];
-    const t0 = gridTiles[0] ? gridTiles[0].getBoundingClientRect() : null;
-    const t1 = gridTiles[1] ? gridTiles[1].getBoundingClientRect() : null;
-    const cellW = t0 ? t0.width : 66;
-    const pitch = (t0 && t1 && t1.left > t0.left) ? (t1.left - t0.left) : cellW + 8;
-    const rowW = Math.max(0, cells.length - 1) * pitch + cellW;
-    const wordLeft = gr.left + gr.width / 2 - rowW / 2 + cellW / 2;
-    const gridMidY = gr.top + gr.height / 2;
-
     const parts = [];
     cells.forEach((index) => {
       const cell = grid.querySelector('.letter-tile[data-index="' + index + '"]');
@@ -902,12 +887,11 @@
       const el = document.createElement('div');
       el.className = 'letter-tile found gwx-dance-tile';
       el.textContent = cell.textContent.trim();
-      /* the slot this letter takes in the word, laid out from the grid centre */
-      const slot = parts.length;
-      const cx = wordLeft + slot * pitch;
-      const cy = gridMidY;
-      el.style.left = cx + 'px';
-      el.style.top = cy + 'px';
+      /* Each letter bounces where it belongs: on its own cell, exactly where the
+         board already put it. The word was briefly assembled as a row centred on
+         the grid instead, which puts the celebration somewhere the word is not. */
+      el.style.left = (r.left + r.width / 2) + 'px';
+      el.style.top = (r.top + r.height / 2) + 'px';
       el.style.width = r.width + 'px';
       el.style.height = r.height + 'px';
       el.style.fontSize = window.getComputedStyle(cell).fontSize;
@@ -916,15 +900,19 @@
 
       const shadow = document.createElement('div');
       shadow.className = 'gwx-dance-shadow';
-      shadow.style.left = (cx - r.width * 0.34) + 'px';
+      shadow.style.left = (r.left + r.width * 0.16) + 'px';
       shadow.style.width = (r.width * 0.68) + 'px';
-      shadow.style.top = (cy + r.height / 2 - 7) + 'px';
+      shadow.style.top = (r.top + r.height - 7) + 'px';
 
       host.append(shadow, el);
-      /* The cell keeps its letter and stays visible: the word no longer dances
-         on top of it, so hiding it would punch a hole in the board for the four
-         seconds the celebration runs. */
-      parts.push({ el, shadow, mid: { x: cx, y: cy } });
+      /* The cell goes dark behind the clone. The clone carries the game's own
+         found-tile classes and sits exactly on the cell, so the board looks
+         untouched while the letter really being animated is the clone - and a
+         hidden cell is what releaseTiles() exists to put back if the run is
+         cancelled, so it has to be tracked here. */
+      cell.classList.add('gwx-thrown');
+      hiddenTiles.push(cell);
+      parts.push({ el, shadow, mid: { x: r.left + r.width / 2, y: r.top + r.height / 2 } });
     });
 
     /* no letters to throw, so the shower runs on its own - and the caller still
@@ -1033,7 +1021,7 @@
     celebrate,
     cancel,
     winStinger,
-    setMuted(v) { muted = !!v; },
+    setMuted(v) { muted = !!v; window.ChampCues?.syncMute?.(); },
     isMuted() { return muted; }
   };
 
