@@ -371,9 +371,9 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
 
   $('guessForm').addEventListener('submit', event => {
     event.preventDefault();
-    /* the throw is the player's move, so it sounds whether or not the word
-       lands - the grid answers for itself when it scores */
-    window.ChampCues?.play?.('throwWord');
+    /* No cue here: a word that lands is thrown into the grid by the
+       celebration itself, which owns that beat and would otherwise double this
+       one up. A word that misses never reaches the grid, so it is silent. */
     submitGuess($('guessInput').value, $('playerSelect').value);
   });
   $('guessInput').addEventListener('input', () => {

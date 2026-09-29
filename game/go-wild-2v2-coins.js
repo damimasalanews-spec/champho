@@ -125,6 +125,14 @@
     src.start();
   }
 
+  /* The recorded cues live in game/audio-cues.js, which reads its mute from
+     this module's own flag, so the speaker button stays the single control
+     over every sound on the page. */
+  function cue(name) {
+    if (muted) return;
+    try { window.ChampCues?.play?.(name); } catch (e) { /* audio unavailable */ }
+  }
+
   function launchWhoosh() {
     const a = audio();
     if (!a) return;
@@ -518,7 +526,8 @@
     const count = Math.min(n, room);
 
     charges.push({ t0: now, x: gx, y: gy });
-    launchWhoosh();
+    /* the grid throwing the coins at the player who scored */
+    cue("coins");
 
     for (let i = 0; i < count; i++) {
       const tang = (Math.random() - 0.5) * 1.6;
@@ -798,14 +807,16 @@
 
     if (!parts.length) { releaseTiles(); play(playerId, amount); return 0; }
 
-    /* 1 — thrown from the seat onto the cells that spell the word */
+    /* 1 — thrown from the seat onto the cells that spell the word. One cue for
+       the word: the whoosh this replaces sat inside the per-letter loop, so a
+       six-letter word stacked six of them on top of each other. */
+    cue("throwWord");
     parts.forEach((p, i) => {
       const at = TOSS_LEAD + i * TOSS_GAP;
       const sx = ox - p.mid.x;
       const sy = oy - p.mid.y;
       const apex = 96 + (i % 3) * 16;
       seq(at, () => {
-        launchWhoosh();
         p.el.style.opacity = '1';
         /* Four stops with their own easings: the letter leaves the hand fast,
            floats up towards the camera, then settles under its own weight. The
@@ -831,10 +842,9 @@
 
     const danceAt = TOSS_LEAD + (parts.length - 1) * TOSS_GAP + TOSS_MS + 120;
 
-    /* 2 — the word dances on its own cells, on a beat */
-    [0, -0.19, -0.31, -0.44, -0.5].forEach((detune, i) => {
-      seq(danceAt + i * 80, () => coinChime(0.07, detune));
-    });
+    /* 2 — the word dances on its own cells, on a beat. The beat is the supplied
+       coin sound ticked, rather than the synthesised thump and chime it used to
+       be, so the dance is made of the same material as the payout after it. */
 
     parts.forEach((p, i) => {
       const delay = i * DANCE_GAP;
@@ -870,9 +880,7 @@
     const danceEnd = danceAt + DANCE_ITER * DANCE_MS + (parts.length - 1) * DANCE_GAP;
     const beat = Math.round(DANCE_MS / 4);
     for (let i = 0, n = Math.ceil((danceEnd - danceAt) / beat); i < n; i++) {
-      const t = danceAt + i * beat;
-      seq(t, () => danceThump(i % 2 ? 0.62 : 0.5));
-      seq(t + Math.round(beat / 2), () => coinClink(0.04));
+      seq(danceAt + i * beat, () => cue("danceTick"));
     }
 
     /* 3 — the letters become coins */

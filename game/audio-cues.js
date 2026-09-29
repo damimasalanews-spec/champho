@@ -4,7 +4,8 @@
    The arena's own sound effects are synthesised at runtime. These three cannot
    be, so they are files:
 
-     throwWord  a word being thrown at the grid
+     throwWord  a word being thrown at the grid, before it dances
+     danceTick  the beat the word dances on
      coins      the grid throwing coins back at a player
      superWin   the pop-up that closes the post-match
 
@@ -25,10 +26,11 @@
   const FILES = {
     throwWord: "assets/audio/word-throw.mp3",
     coins: "assets/audio/coins.mp3",
-    superWin: "assets/audio/super-win.mp3"
+    superWin: "assets/audio/super-win.mp3",
+    danceTick: "assets/audio/dance-tick.mp3"
   };
   /* mixed down from their originals, which are loud and slightly clipped */
-  const VOLUME = { throwWord: 0.5, coins: 0.62, superWin: 0.75 };
+  const VOLUME = { throwWord: 0.5, coins: 0.62, superWin: 0.75, danceTick: 0.4 };
 
   const cache = {};
 
