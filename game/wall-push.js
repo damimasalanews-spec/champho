@@ -904,7 +904,7 @@
         skid(loser.cx, S.FLOOR + 2, adv);
         sweat(loser.cx, S.FLOOR - loser.H * .92, 6);
       }
-      SFX.slam();
+      /* the fall's own cue fires where the fall starts, in the runner below */
 
       var seq = [["break", 300], ["impact", 520], ["result", 1050], ["settle", 420]], i = 0;
       (function step() {
@@ -921,6 +921,9 @@
           return;
         }
         var ph = seq[i++], t0 = performance.now();
+        /* the loser is driven back and begins to topple during impact, which is
+           the moment being scored - not the shatter that precedes it */
+        if (ph[0] === "impact") cue("fall");
         (function sub() {
           if (st.dead || !run || run.tok !== tok) return;
           var t = clamp((performance.now() - t0) / (ph[1] / RATE), 0, 1);

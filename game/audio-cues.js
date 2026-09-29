@@ -9,6 +9,7 @@
      coins      the grid throwing coins back at a player
      push       a correct answer driving the slab at the opponent
      brake      a shove bringing the slab back toward its own side
+     fall       the losing avatar going down at the end of a duel
      superWin   the pop-up that closes the post-match
 
    Both supplied sounds arrived carrying more than the game wants. The throw is
@@ -31,11 +32,12 @@
     superWin: "assets/audio/super-win.mp3",
     danceTick: "assets/audio/dance-tick.mp3",
     push: "assets/audio/push.mp3",
-    brake: "assets/audio/brake.mp3"
+    brake: "assets/audio/brake.mp3",
+    fall: "assets/audio/avatar-fall.mp3"
   };
   /* mixed down from their originals, which are loud and slightly clipped */
   const VOLUME = { throwWord: 0.5, coins: 0.62, superWin: 0.75, danceTick: 0.4,
-                   push: 0.8, brake: 0.75 };
+                   push: 0.8, brake: 0.75, fall: 0.85 };
 
   const cache = {};
 
