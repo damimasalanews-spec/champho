@@ -16,6 +16,18 @@
    everything from the floor line (624) down, so the deck grows from 182 to 226
    and the picture with it. */
 #wpOverlay.standoff .wp-plate { display: none }
+/* The two rails already carried the avatars' names, but they sat a clear band
+   below the headline. Level with it, the three read as one header: each side's
+   name and bar either side of the matchup they belong to.
+
+   92px is not a guess: measured against the banner, the headline block opens on
+   its small "GUESS THE CLIPART" kicker at y=98 and the rails opened at y=110.
+   Matching the tops puts the rails' name row on the kicker's line and drops the
+   bars into the title's band, so the strip reads level left to right. */
+#wpOverlay.standoff .wp-meter { top: 92px }
+#wpOverlay.standoff .wp-meter .mt {
+  font-size: 15px; letter-spacing: 1.2px; margin-bottom: 7px;
+}
 /* The coin card is a receipt, not a headline. "HOLDS THE WALL" and "FINALIST 2
    TAKES IT" both announced a result the payout beat has already shown, so the
    line is dropped and the card opens on the figures. */
