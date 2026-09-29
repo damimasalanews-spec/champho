@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v12';
+const VERSION = 'v13';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -62,6 +62,10 @@ const SHELL_ASSETS = [
   '/assets/fonts/nunito-var.woff2',
   '/game/sound.js',
   '/game/pwa.js',
+  // the post-match wall push: module and stylesheet. The duel skips itself
+  // rather than show an armless fallback, so these must be offline-ready.
+  '/game/wall-push.js',
+  '/game/wall-push.css',
   '/assets/island-table-bg.webp',
   '/assets/icons/icon-192.png',
   '/assets/icons/icon-512.png',
@@ -168,13 +172,16 @@ self.addEventListener('activate', (event) => {
    added without being added here it still works online, it just is not warmed for
    offline until it is fetched once. */
 const ART_INDEX = [
-  "/assets/avatars/alien.webp", "/assets/avatars/classic.webp", "/assets/avatars/genie.webp",
+  "/assets/avatars/alien.webp", "/assets/avatars/pumpkin-boy.webp", "/assets/avatars/pumpkin-girl.webp", "/assets/avatars/genie.webp",
   "/assets/avatars/ghost.webp", "/assets/avatars/knight.webp", "/assets/avatars/ninja.webp",
   "/assets/avatars/pirate.webp", "/assets/avatars/robot.webp", "/assets/avatars/scholar.webp",
   "/assets/avatars/vampire.webp", "/assets/avatars/wizard.webp", "/assets/avatars/yeti.webp",
   "/assets/effects/cosmos.webp", "/assets/effects/crystal.webp", "/assets/effects/emerald.webp",
   "/assets/effects/pearl.webp", "/assets/effects/prism.webp", "/assets/effects/royal.webp",
   "/assets/effects/silk.webp", "/assets/effects/thorn.webp", "/assets/effects/volt.webp",
+  // the wall-push effects and the bodies the post-match duel animates
+  "/assets/effects/wallpush-boy.webp", "/assets/effects/wallpush-girl.webp",
+  "/assets/wallpush/boy-body.png", "/assets/wallpush/girl-body.png",
   "/assets/frames/cosmos.webp", "/assets/frames/cosmos_hole.webp", "/assets/frames/crystal.webp",
   "/assets/frames/crystal_hole.webp", "/assets/frames/emerald.webp", "/assets/frames/emerald_hole.webp",
   "/assets/frames/pearl.webp", "/assets/frames/pearl_hole.webp", "/assets/frames/prism.webp",

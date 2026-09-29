@@ -27,7 +27,45 @@ function renderAll(){ORDER.forEach(id=>renderHand(id,false));renderDiscard();upd
 function impact(){let t=document.querySelector('.gw-table');t.classList.remove('impact');void t.offsetWidth;t.classList.add('impact');let fx=$('gw-fx');for(let i=0;i<12;i++){let s=document.createElement('i');s.className='gw-spark';s.style.left='50%';s.style.top='50%';let a=Math.PI*2*i/12,d=40+Math.random()*55;s.style.setProperty('--dx',Math.cos(a)*d+'px');s.style.setProperty('--dy',Math.sin(a)*d+'px');fx.appendChild(s);setTimeout(()=>s.remove(),600)}}
 function throwVisual(pid,card,done){let host=hostFor(pid),src=host&&(host.querySelector('[data-id="'+card.id+'"]')||host.firstElementChild),dst=$('gw-discard'),a=src&&src.getBoundingClientRect(),b=dst.getBoundingClientRect();if(!a||!b){if(done)done();return}let fly=makeCardEl(card,'gw-fly');document.body.appendChild(fly);fly.style.left=a.left+'px';fly.style.top=a.top+'px';let x0=a.left+a.width/2,y0=a.top+a.height/2,x1=b.left+b.width/2,y1=b.top+b.height/2,cx=(x0+x1)/2,cy=Math.min(y0,y1)-Math.max(90,Math.abs(x1-x0)*.22),t0=performance.now(),dur=520;
  function step(now){let t=Math.min(1,(now-t0)/dur),u=1-t,x=u*u*x0+2*u*t*cx+t*t*x1,y=u*u*y0+2*u*t*cy+t*t*y1;fly.style.transform='translate('+(x-x0)+'px,'+(y-y0)+'px) rotate('+(-12+28*t+Math.sin(t*Math.PI)*8)+'deg) scale('+(1.12+Math.sin(t*Math.PI)*.14)+')';if(t<1)requestAnimationFrame(step);else{fly.remove();impact();if(done)done()}}requestAnimationFrame(step)}
-function endRound(team,reason){state.phase='ended';state.winner=team;clearTimeout(aiTimer);clearInterval(clockTimer);$('gw-win-title').textContent=team==='A'?'TEAM WILD WINS':'TEAM FLAME WINS';$('gw-win-copy').textContent=reason;$('gw-win').classList.add('open')}
+/*
+  ---- WALL PUSH SERIES ------------------------------------------------------
+  Runs after the round: TOP 1 vs TOP 2, then TOP 3 vs TOP 4. The round-complete
+  card waits until the series is done.
+*/
+// bot seats have no persisted wallet. Placeholders only - see the note at the top
+// of this block. The human seat reads the real balance.
+var WP_BOT_COINS={poker:31400,kalkal:18720,jess:9340};
+// which pumpkin each seat fights as. Must match the portraits in go-wild-2v2.html.
+var WP_AVATAR={champ:'boy',poker:'girl',kalkal:'girl',jess:'boy'};
+function wpWalletCoins(){try{var st=(typeof window.champGetState==='function')?window.champGetState():(window.champState||null);if(st&&typeof st.coins==='number')return st.coins}catch(e){}return null}
+function wpCoins(pid){if(pid==='champ'){var c=wpWalletCoins();if(c!=null)return c}return WP_BOT_COINS[pid]||10000}
+/* 1st..4th from remaining cards, ties by seating order. The game never tracked an
+   individual order, only a winning team, so this is the proxy - replace if the
+   real ranking should come from elsewhere. */
+function wpRanking(){return ORDER.map(function(pid,i){return{pid:pid,cards:state.players[pid].length,i:i}})
+  .sort(function(a,b){return a.cards-b.cards||a.i-b.i})
+  .map(function(o){return o.pid})}
+function wpSide(pid){return{name:PLAYERS[pid].name,coins:wpCoins(pid),
+  team:TEAM[pid]==='A'?'TEAM WILD':'TEAM FLAME',key:WP_AVATAR[pid]||'boy'}}
+function wpShowWin(){$('gw-win').classList.add('open')}
+function runWallPushSeries(){
+  if(!window.ChampWallPush||typeof window.ChampWallPush.play!=='function'){wpShowWin();return}
+  var r=wpRanking();
+  try{
+    window.ChampWallPush.play([
+      {rankA:1,rankB:2,a:wpSide(r[0]),b:wpSide(r[1])},
+      {rankA:3,rankB:4,a:wpSide(r[2]),b:wpSide(r[3])}
+    ],{onDone:wpShowWin});
+  }catch(e){console.warn('wall-push failed, showing the result card anyway',e);wpShowWin()}
+}
+function endRound(team,reason){
+  if(state.phase==='ended')return;          // a late timer must not restart the finale
+  state.phase='ended';state.winner=team;
+  clearTimeout(aiTimer);clearInterval(clockTimer);
+  $('gw-win-title').textContent=team==='A'?'TEAM WILD WINS':'TEAM FLAME WINS';
+  $('gw-win-copy').textContent=reason;
+  runWallPushSeries();
+}
 function advanceTurn(steps=1){state.current=nextIndex(state.current,steps);renderAll();if(currentPid()==='champ'&&state.pendingDraw4)setTimeout(playerDraw4Prompt,180);else if(PLAYERS[currentPid()].kind==='ai')scheduleAi()}
 function commitPlay(pid,card,isWild=false,chosenColor=null){let idx=state.players[pid].findIndex(c=>c.id===card.id);if(idx<0)return;let prior=state.activeColor;if(state.pendingDraw4&&card.type!=='wild4')return;if(card.type==='wild4'){state.lastDraw4Legal=!hasColor(pid,prior);state.lastDraw4Color=prior;state.pendingDraw4=(state.pendingDraw4||0)+4;state.pendingDraw4By=pid}state.players[pid].splice(idx,1);state.discard.push(card);if(card.color!=='wild'&&!isWild)state.activeColor=card.color;if(card.type==='wild'||card.type==='wild4')state.activeColor=chosenColor||COLORS[Math.floor(Math.random()*4)];renderHand(pid,false);renderDiscard();updateTeam();if(state.players[pid].length===1&&pid==='champ')announceUno();if(state.players[pid].length===0){endRound(TEAM[pid],PLAYERS[pid].name+' went out');return}animationBusy=true;throwVisual(pid,card,()=>{animationBusy=false;resolveAfterPlay(pid,card)})}
 function resolveAfterPlay(pid,card){if(card.type==='wild4'){advanceTurn();return}let steps=1;if(card.type==='skip')steps=2;if(card.type==='reverse'){state.direction*=-1;steps=1}if(card.type==='draw2'){let target=ORDER[nextIndex(ORDER.indexOf(pid),1)];drawCards(target,2);steps=2}if(card.type==='discard_all'){let color=card.color,removed=state.players[pid].filter(c=>c.color===color);state.players[pid]=state.players[pid].filter(c=>c.color!==color);removed.forEach(c=>state.discard.push(c));renderHand(pid,false);updateTeam();if(!state.players[pid].length){endRound(TEAM[pid],PLAYERS[pid].name+' cleared the color');return}}advanceTurn(steps)}
