@@ -30,10 +30,11 @@
   const TOSS_GAP   = 110;
   const TOSS_MS    = 520;
   /* Squash bounce: one pass of three decaying bounces, no rotation at all, so
-     the word stays legible while it dances. */
-  const DANCE_MS   = 1700;
+     the word stays legible while it dances. 2.6s was asked for — at 1.7s each
+     bounce read as a twitch rather than a bounce. */
+  const DANCE_MS   = 2600;
   const DANCE_ITER = 1;
-  const DANCE_GAP  = 90;
+  const DANCE_GAP  = 120;
   const MORPH_MS   = 420;
 
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
@@ -804,7 +805,13 @@
           { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1) rotateY(360deg)', opacity: 1 }
         ], { duration: TOSS_MS, easing: 'linear', fill: 'forwards' });
       });
-      seq(at + TOSS_MS, () => wordClack(392 + i * 72));
+      /* the throw lands: this is the point the letter takes on the glass it
+         dances in, and it keeps it until the morph replaces it with a coin */
+      seq(at + TOSS_MS, () => {
+        wordClack(392 + i * 72);
+        p.el.classList.add('gwx-glass');
+        p.shadow.classList.add('gwx-glass-shadow');
+      });
     });
 
     const danceAt = TOSS_LEAD + (parts.length - 1) * TOSS_GAP + TOSS_MS + 120;
