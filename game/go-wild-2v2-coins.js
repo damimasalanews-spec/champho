@@ -391,13 +391,9 @@
       if (el >= FLIGHT_MS && !c.hit) {
         c.hit = true;
         burst(c.ix, c.iy);
-        /* 95ms rather than 52: at the wider spacing the landings stop smearing
-           into one buzz and read as individual coins arriving */
-        if (now - lastChime > 95) {
-          lastChime = now;
-          coinChime(0.042 + Math.random() * 0.018, (Math.random() - 0.5) * 0.07);
-          coinClink(0.03);
-        }
+        /* The landing chime is gone: the supplied coin cue carries the arrival,
+           and a chime per coin was doubling it. The hit burst and the seat bump
+           stay, since those are the visuals of a coin landing. */
         if (now - lastSmack > 150) {
           lastSmack = now;
           bump(c.avatar, 'gwx-coin-hit', 280);
@@ -501,7 +497,9 @@
         });
       }
       bump(avatar, 'gwx-coin-hit', 280);
-      coinChime(0.08, 0);
+      /* the still burst is the same event as the flight, and this branch
+         returns before the cue below, so it gets one of its own */
+      cue("coins");
       if (!raf) raf = window.requestAnimationFrame(frame);
       return;
     }
@@ -549,7 +547,6 @@
     /* closing flourish once the last coin has landed */
     window.setTimeout(() => {
       glows.push({ t0: performance.now(), x: ax, y: ay });
-      fanfare();
       bump(avatar, 'gwx-coin-hit', 280);
       if (!raf) raf = window.requestAnimationFrame(frame);
     }, CHARGE_MS + SPAWN_MS + FLIGHT_MS + POP_MS);
@@ -834,7 +831,6 @@
       /* the throw lands: this is the point the letter takes on the glass it
          dances in, and it keeps it until the morph replaces it with a coin */
       seq(at + TOSS_MS, () => {
-        wordClack(392 + i * 72);
         p.el.classList.add('gwx-glass');
         p.shadow.classList.add('gwx-glass-shadow');
       });

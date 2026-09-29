@@ -351,7 +351,8 @@
           var ms = (620 + Math.random() * 260) / RATE;
           d.style.animation = "wpCoin " + ms + "ms cubic-bezier(.25,.6,.35,1) forwards";
           spawn(d, ms);
-          if (i % 2 === 0) SFX.coin(i);
+          /* no blip per coin: the supplied coin cue carries the payout, and a
+             synthesised chime on every other coin was talking over it */
         }, (i * 62) / RATE);
       })(i);
     }
@@ -988,7 +989,6 @@
           window.setTimeout(function () {
             if (live.dead || st.dead) return;
             coins(lG.cx, S.FLOOR - lG.H * .62, wG.cx, S.FLOOR - wG.H * .62, w[1]);
-            SFX.coin();
           }, w[0]);
         });
         /* and the room showers the winner from both edges, the way a payout
@@ -1002,7 +1002,6 @@
         /* no floating + and - over the fighters: the badge below already
            names both sides with their own figure, and a third copy floated
            up straight through the headline */
-        SFX.tick();
       }
 
       function frame() {
@@ -1025,7 +1024,7 @@
         window.clearTimeout(live.timer);
         paint(paid);
         glow(800, 330, 320, "rgba(255,207,37,.42)", 900);
-        if (paid > 0) { kick(9, 260); ring(800, 330, "#ffe9a8"); SFX.win(); }
+        if (paid > 0) { kick(9, 260); ring(800, 330, "#ffe9a8"); }
         window.setTimeout(close, BURST_MS);
       }
       live.timer = window.setTimeout(finish, COUNT_MS + HOLD_MS);
