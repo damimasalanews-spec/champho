@@ -371,7 +371,9 @@
                 '<span class="wf-delta ' + (p.delta >= 0 ? "plus" : "minus") + '">' +
                   (p.delta >= 0 ? "+" : "−") + fmt(Math.abs(p.delta)) + '</span>' +
                 '<span class="wf-flow">' + fmt(p.before) + " → " + fmt(p.after) + '</span>' +
-                '<span class="wf-role">' + (p.won ? "TOOK THE WALL" : "PAID THE STAKE") + '</span>' +
+                /* the role is booked per duel, so a finalist reads CHAMPION or
+                   RUNNER-UP rather than being called a play-off winner twice */
+                '<span class="wf-role">' + (p.role || (p.won ? "TOOK THE WALL" : "PAID THE STAKE")) + '</span>' +
               '</div>' +
             '</div>').join("") +
         '</div>' +
@@ -450,7 +452,9 @@
        opts:   { push, onDone, sound }
 
        Each duel is raced on the shared screen and handed to `push.knock` with a
-       verdict, so the arena no longer picks its own winner. */
+       verdict, so the arena no longer picks its own winner. When it is given the
+       two play-offs, their winners are paired for one more match - the final - and
+       only then does the post-match close on the receipt. */
     play: function (duels, opts) {
       opts = opts || {};
       const done = opts.onDone || function () {};
@@ -463,9 +467,18 @@
       const token = {};
       run = { token, timers: [], arena: null };
 
+      /* The queue starts as the two play-offs and grows by one: their winners
+         meet in a final before the post-match closes. Balances are tracked here
+         because the final's stake is whatever the pair round left each finalist
+         holding, not the figure they started it with. */
+      const queue = duels.slice();
+      const balance = new Map();
+      const table = new Map();        /* id -> that player's line in the receipt */
+      const pairWinners = [];
+      let finalAdded = false;
       let idx = 0;
       let results = [];
-      const summary = [];      /* every player's before ➜ after, for the finale */
+      duels.forEach(d => { balance.set(d.a.id, d.a.coins); balance.set(d.b.id, d.b.coins); });
 
       function cleanup() {
         if (run && run.arena) run.arena.teardown();
@@ -483,10 +496,24 @@
 
       function nextDuel() {
         if (!alive(token)) return;
-        if (idx >= duels.length) {
-          /* both pairs have pushed, so the post-match closes on one receipt */
+        /* Once both play-offs are done their winners meet, and only then does
+           the post-match close on one receipt. A final needs two different
+           people, so it is skipped rather than fought against oneself. */
+        if (!finalAdded && idx >= duels.length && pairWinners.length === 2
+            && pairWinners[0].id !== pairWinners[1].id) {
+          finalAdded = true;
+          queue.push({
+            rankA: 1, rankB: 2,
+            labelA: "FINALIST 1", labelB: "FINALIST 2",
+            title: "FINAL WALL PUSH",
+            isFinal: true,
+            a: Object.assign({}, pairWinners[0], { coins: balance.get(pairWinners[0].id) }),
+            b: Object.assign({}, pairWinners[1], { coins: balance.get(pairWinners[1].id) })
+          });
+        }
+        if (idx >= queue.length) {
           const tok = token;
-          finale(summary, function () {
+          finale(Array.from(table.values()).sort((a, b) => b.delta - a.delta), function () {
             if (!run || run.token !== tok) return;      /* cancelled mid-finale */
             const all = results.slice();
             cleanup();
@@ -494,7 +521,7 @@
           });
           return;
         }
-        const duel = duels[idx];
+        const duel = queue[idx];
         let opened = false;
         push.standoff(duel, {
           sound: opts.sound,
@@ -532,14 +559,30 @@
                     paid: paid
                   });
                 }
-                summary.push(
-                  { id: duel.a.id, name: duel.a.name, key: duel.a.key, won: aWon,
-                    delta: aWon ? paid : -paid,
-                    before: st ? st.a.before : duel.a.coins, after: st ? st.a.after : duel.a.coins },
-                  { id: duel.b.id, name: duel.b.name, key: duel.b.key, won: !aWon,
-                    delta: aWon ? -paid : paid,
-                    before: st ? st.b.before : duel.b.coins, after: st ? st.b.after : duel.b.coins }
-                );
+                /* a finalist appears in two duels, so the receipt is summed per
+                   player: the delta adds up, the before is their first and the
+                   after is their last */
+                const role = duel.isFinal
+                  ? { win: "CHAMPION", lose: "RUNNER-UP" }
+                  : { win: "TOOK THE WALL", lose: "PAID THE STAKE" };
+                [[duel.a, aWon, st && st.a], [duel.b, !aWon, st && st.b]].forEach(function (row) {
+                  const who = row[0], won = row[1], money = row[2];
+                  const before = money ? money.before : who.coins;
+                  const after = money ? money.after : who.coins;
+                  balance.set(who.id, after);
+                  const line = table.get(who.id) || {
+                    id: who.id, name: who.name, key: who.key,
+                    delta: 0, before: before, after: after, won: false, role: ""
+                  };
+                  line.name = who.name;
+                  line.key = who.key;
+                  line.delta += won ? paid : -paid;
+                  line.after = after;
+                  line.won = won;
+                  line.role = won ? role.win : role.lose;
+                  table.set(who.id, line);
+                });
+                if (!duel.isFinal) pairWinners.push(aWon ? duel.a : duel.b);
               };
 
               let settled = false;

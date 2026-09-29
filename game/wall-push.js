@@ -623,14 +623,14 @@
   function ledger(e) {
     var st = e.st, dogWins = e.dogWins;
     E.Verdict.textContent = dogWins
-      ? (st.capped ? "TOP " + e.dogRank + " TAKES IT — PAYOUT CAPPED"
-                   : "TOP " + e.dogRank + " TAKES IT — THE UNDERDOG DOUBLES")
-      : "TOP " + e.favRank + " HOLDS THE WALL";
+      ? (st.capped ? e.dogLabel + " TAKES IT — PAYOUT CAPPED"
+                   : e.dogLabel + " TAKES IT — THE UNDERDOG DOUBLES")
+      : e.favLabel + " HOLDS THE WALL";
     E.Verdict.className = "vd " + (dogWins ? "lose" : "win");
     E.Stake.textContent = fmt(st.stake);
     E.Win.textContent = fmt(st.paid);
-    E.LblL.textContent = "TOP " + e.favRank + " · BEFORE";
-    E.LblR.textContent = "TOP " + e.dogRank + " · BEFORE";
+    E.LblL.textContent = e.favLabel + " · BEFORE";
+    E.LblR.textContent = e.dogLabel + " · BEFORE";
     E.L.textContent = fmt(st.favBefore) + "  ➜  " + fmt(st.favAfter);
     E.R.textContent = fmt(st.dogBefore) + "  ➜  " + fmt(st.dogAfter);
     E.Note.innerHTML = st.capped
@@ -649,6 +649,8 @@
     var e = {
       tok: tok, fav: fav, dog: dog, dogWins: dogWins,
       favRank: duel.rankA, dogRank: duel.rankB,
+      favLabel: duel.labelA || ("TOP " + duel.rankA),
+      dogLabel: duel.labelB || ("TOP " + duel.rankB),
       st: settle(fav, dog, dogWins)
     };
 
@@ -752,7 +754,12 @@
     var fav = { coins: duel.a.coins, key: duel.a.key };
     var dog = { coins: duel.b.coins, key: duel.b.key };
     var e = { tok: tok, fav: fav, dog: dog, dogWins: false,
-              favRank: duel.rankA, dogRank: duel.rankB, st: null };
+              favRank: duel.rankA, dogRank: duel.rankB,
+              /* what the verdict and the coin card call each side - a final
+                 between two pair-winners has no TOP 1 to be one of */
+              favLabel: duel.labelA || ("TOP " + duel.rankA),
+              dogLabel: duel.labelB || ("TOP " + duel.rankB),
+              st: null };
 
     E.NameA.textContent = duel.a.name; E.NameB.textContent = duel.b.name;
     E.TeamA.textContent = duel.a.team || ""; E.TeamB.textContent = duel.b.team || "";
@@ -768,7 +775,7 @@
     E.RankB.textContent = duel.b.name;
     E.RankA.className = "wp-rank name r1";
     E.RankB.className = "wp-rank name r2";
-    E.Banner.querySelector(".bk").textContent = "GUESS THE CLIPART";
+    E.Banner.querySelector(".bk").textContent = duel.title || "GUESS THE CLIPART";
     E.Banner.querySelector(".bt").textContent = duel.a.name + " vs " + duel.b.name;
     E.Banner.classList.add("on");
     E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
