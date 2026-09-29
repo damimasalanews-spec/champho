@@ -1009,8 +1009,16 @@
     fit();
     st.raf = requestAnimationFrame(frame);
 
+    /* what settle() worked out, for a caller that has to move real balances */
+    function result() {
+      if (!e.st) return null;
+      return { paid: e.st.paid, capped: e.st.capped,
+               a: { before: e.st.favBefore, after: e.st.favAfter },
+               b: { before: e.st.dogBefore, after: e.st.dogAfter } };
+    }
+
     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
-             knock: knock, award: award, teardown: teardown };
+             knock: knock, award: award, result: result, teardown: teardown };
   }
 
   /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]

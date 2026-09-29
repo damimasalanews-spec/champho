@@ -71,6 +71,11 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
     });
   }
 
+  /* Every seat opens the round with a stake already in it, so the post-match
+     wall push always has something to play for - a player who finds no words
+     would otherwise hold nothing and the payout would be nothing. */
+  const START_COINS = 500;
+
   function renderScores() {
     for (const player of PLAYERS) {
       const score = round.scores[player.id];
@@ -257,7 +262,21 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
        The duel DISPLAYS the settlement and deliberately writes to no balance:
        this game's coins are per-round scores, and treating them as a persistent
        wallet is a game-design decision, not an animation one. */
-    const reveal = () => {
+    /* The wall push settles in real coins. The winner takes the loser's stake and
+     the loser keeps whatever the winner's balance could not reach, so a 1,500
+     against 1,300 ends either 2,800 to nil or 2,600 to 200 - never below zero,
+     which is why nothing here needs a floor. This module owns the scores, so the
+     transfer lands here and the standings behind the animation redraw at once. */
+  function settleStake(s) {
+    if (!round || !s) return;
+    const win = round.scores[s.winnerId], lose = round.scores[s.loserId];
+    if (!win || !lose) return;
+    win.coins += s.paid;
+    lose.coins -= s.paid;
+    renderScores();
+  }
+
+  const reveal = () => {
       if (!round) { showResult(); return; }
       const wp = window.ChampWallPush;
       const guess = window.ChampWallGuess;
@@ -285,7 +304,11 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
            side carries its player id because the contest has to know which seat
            the human answers for. If the contest module is missing this falls
            straight back to the old coin-flip push. */
-        if (canContest) guess.play(duels, { push: canPush ? wp : null, onDone: showResult });
+        if (canContest) guess.play(duels, {
+          push: canPush ? wp : null,
+          onDone: showResult,
+          onSettled: settleStake
+        });
         else wp.play(duels, { onDone: showResult });
       } catch (e) {
         console.warn('wall push failed, showing the result card anyway', e);
@@ -318,13 +341,13 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
     $('guessInput').value = '';
     $('guessMessage').classList.remove('good', 'bad');
     $('guessMessage').textContent = 'Any player can guess, in any order.';
-    $('roundMessage').textContent = 'A correct word earns 100 coins per letter.';
+    $('roundMessage').textContent = 'Everyone starts on ' + START_COINS.toLocaleString('en-US') + ' coins. A correct word earns 100 coins per letter.';
     path = [];
     round = {
       layout: createWordGrid(WORD_BANK),
       found: new Set(),
       foundPaths: [],
-      scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: 0, words: 0 }])),
+      scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: START_COINS, words: 0 }])),
       ended: false
     };
     secondsLeft = 120;

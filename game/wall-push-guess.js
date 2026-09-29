@@ -31,6 +31,12 @@
     "diamond", "giraffe", "butterfly", "pineapple"
   ];
   const ART = w => `assets/clipart/${w}.webp`;
+  const HEADS = {
+    boy: "assets/avatars/pumpkin-boy.webp",
+    girl: "assets/avatars/pumpkin-girl.webp"
+  };
+  /* the payout video's own ladder: the badge changes word as the total grows */
+  const TIERS = [[2400, "SUPER WIN", "super"], [1000, "BIG WIN", "big"], [0, "WIN", ""]];
 
   const ROUNDS = 4;          /* four cliparts in a duel */
   const SLOT_MS = 30000;     /* 30 seconds for each one */
@@ -45,6 +51,7 @@
   const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
   const normalize = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 9);
   const fmt = n => Number(n || 0).toLocaleString("en-US");
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
 
   let ui = null;             /* the deck while it is mounted */
   let run = null;            /* the live run: { token, timers, arena } */
@@ -336,6 +343,103 @@
     preload(words, () => { if (alive(token)) advance(false); });
   }
 
+  /* ================================================================ the finale
+     The last beat, once BOTH pairs have pushed: one pop-up in the language of the
+     payout video - a tier that escalates with the total, a ribbon that counts that
+     total up, and gold spraying in from every side - except this one names all
+     four players, shows the avatar each of them played as, and gives every one of
+     them the figure they gained or handed over. Each duel already paid out on the
+     arena; this is the receipt for the whole post-match. */
+  function finale(list, done) {
+    if (!list || !list.length) { done(); return; }
+    const total = list.reduce((n, p) => n + Math.max(0, p.delta), 0);
+
+    const el = document.createElement("div");
+    el.id = "wpFinal";
+    el.className = "wp-final";
+    el.innerHTML =
+      '<div class="wf-card">' +
+        '<div class="wf-kicker">COIN PAYOUT</div>' +
+        '<div class="wf-tier" data-x="ftier">WIN</div>' +
+        '<div class="wf-ribbon"><span class="wf-num" data-x="fnum">0</span><small>coins won</small></div>' +
+        '<div class="wf-grid">' +
+          list.map(p =>
+            '<div class="wf-p' + (p.won ? " won" : "") + '">' +
+              '<img alt="" src="' + (HEADS[p.key] || HEADS.boy) + '">' +
+              '<div class="wf-p-body">' +
+                '<b>' + p.name + '</b>' +
+                '<span class="wf-delta ' + (p.delta >= 0 ? "plus" : "minus") + '">' +
+                  (p.delta >= 0 ? "+" : "−") + fmt(Math.abs(p.delta)) + '</span>' +
+                '<span class="wf-flow">' + fmt(p.before) + " → " + fmt(p.after) + '</span>' +
+                '<span class="wf-role">' + (p.won ? "TOOK THE WALL" : "PAID THE STAKE") + '</span>' +
+              '</div>' +
+            '</div>').join("") +
+        '</div>' +
+        '<div class="wf-foot">Tap to continue</div>' +
+      '</div>' +
+      '<div class="wf-spray" data-x="fspray"></div>';
+    document.body.appendChild(el);
+
+    const ref = {};
+    el.querySelectorAll("[data-x]").forEach(n => { ref[n.dataset.x] = n; });
+
+    /* gold from all sides, the way the payout video fills its screen */
+    let spray = "";
+    for (let i = 0; i < 46; i++) {
+      const x = (Math.random() * 100).toFixed(1), y = (Math.random() * 100).toFixed(1);
+      const dx = Math.round(-170 + Math.random() * 340), dy = Math.round(130 + Math.random() * 300);
+      const s = (0.5 + Math.random() * 0.95).toFixed(2);
+      const delay = (Math.random() * 1.5).toFixed(2), dur = (1.1 + Math.random() * 1.4).toFixed(2);
+      spray += '<i style="left:' + x + '%;top:' + y + '%;--dx:' + dx + 'px;--dy:' + dy +
+        'px;--s:' + s + ';animation-delay:' + delay + 's;animation-duration:' + dur + 's"></i>';
+    }
+    ref.fspray.innerHTML = spray;
+
+    function tierFor(v) {
+      for (const t of TIERS) if (v >= t[0]) return t;
+      return TIERS[TIERS.length - 1];
+    }
+    function paint(v) {
+      ref.fnum.textContent = fmt(Math.round(v));
+      const t = tierFor(v);
+      if (ref.ftier.textContent !== t[1]) {
+        ref.ftier.textContent = t[1];
+        ref.ftier.className = "wf-tier " + t[2] + " pop";
+        void ref.ftier.offsetWidth;
+      }
+    }
+    paint(0);
+    requestAnimationFrame(() => el.classList.add("on"));
+
+    const COUNT_MS = 1800, HOLD_MS = 2600;
+    const t0 = performance.now();
+    let dead = false, closing = false, quick = false, raf = 0;
+
+    function close() {
+      if (dead) return;
+      dead = true;
+      cancelAnimationFrame(raf);
+      el.classList.remove("on");
+      window.setTimeout(() => { el.remove(); done(); }, 280);
+    }
+    function finish() {
+      if (closing || dead) return;
+      closing = true;
+      cancelAnimationFrame(raf);
+      window.clearTimeout(tick);
+      paint(total);
+      window.setTimeout(close, quick ? 420 : HOLD_MS);
+    }
+    function frame() {
+      if (dead || closing) return;
+      paint(total * easeOut(clamp((performance.now() - t0) / COUNT_MS, 0, 1)));
+      raf = requestAnimationFrame(frame);
+    }
+    raf = requestAnimationFrame(frame);
+    const tick = window.setTimeout(finish, COUNT_MS);
+    el.addEventListener("click", () => { quick = true; finish(); });
+  }
+
   /* =================================================================== module */
   window.ChampWallGuess = {
     pool: POOL,
@@ -361,6 +465,7 @@
 
       let idx = 0;
       let results = [];
+      const summary = [];      /* every player's before ➜ after, for the finale */
 
       function cleanup() {
         if (run && run.arena) run.arena.teardown();
@@ -379,9 +484,14 @@
       function nextDuel() {
         if (!alive(token)) return;
         if (idx >= duels.length) {
-          const all = results.slice();
-          cleanup();
-          done(all);
+          /* both pairs have pushed, so the post-match closes on one receipt */
+          const tok = token;
+          finale(summary, function () {
+            if (!run || run.token !== tok) return;      /* cancelled mid-finale */
+            const all = results.slice();
+            cleanup();
+            done(all);
+          });
           return;
         }
         const duel = duels[idx];
@@ -407,10 +517,36 @@
               };
               /* the knockout belongs to the arena and it is told the verdict,
                  so there is no second place a winner could be chosen */
+              /* Book the pair's settlement: tell the game so it can move the real
+                 balances, and keep the figures for the finale's receipt. `result()`
+                 comes from the arena's own settle(), so the numbers shown, the
+                 numbers paid and the numbers on the receipt are all one source. */
+              const book = function () {
+                const st = handle.result ? handle.result() : null;
+                const aWon = verdict.winner === "a";
+                const paid = st ? st.paid : 0;
+                if (opts.onSettled) {
+                  opts.onSettled({
+                    winnerId: aWon ? duel.a.id : duel.b.id,
+                    loserId: aWon ? duel.b.id : duel.a.id,
+                    paid: paid
+                  });
+                }
+                summary.push(
+                  { id: duel.a.id, name: duel.a.name, key: duel.a.key, won: aWon,
+                    delta: aWon ? paid : -paid,
+                    before: st ? st.a.before : duel.a.coins, after: st ? st.a.after : duel.a.coins },
+                  { id: duel.b.id, name: duel.b.name, key: duel.b.key, won: !aWon,
+                    delta: aWon ? -paid : paid,
+                    before: st ? st.b.before : duel.b.coins, after: st ? st.b.after : duel.b.coins }
+                );
+              };
+
               let settled = false;
               handle.knock(verdict.winner, function () {
                 if (settled || !alive(token)) return;
                 settled = true;
+                book();
                 after(CARD_MS, function () { if (alive(token)) advancePair(); });
               });
               /* The knock-out, the payout and the coin card are three chained
@@ -421,6 +557,7 @@
                 if (settled) return;
                 settled = true;
                 console.warn("wall-push: the post-match beat never finished; moving on");
+                book();          /* the coins still move, even if the show did not */
                 if (alive(token)) advancePair();
               });
             });
