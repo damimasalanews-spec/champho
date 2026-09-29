@@ -61,7 +61,7 @@
      a more transient sound, so its average energy is lower. The rest are as they
      were. */
   const VOLUME = { throwWord: 0.55, coins: 0.55, yeah: 0.66, superWin: 0.75,
-                   push: 0.8, brake: 0.75, fall: 0.85 };
+                   danceTick: 0.4, push: 0.8, brake: 0.75, fall: 0.85 };
 
   const cache = {};
 
@@ -80,6 +80,10 @@
     if (cache[name]) return cache[name];
     const a = new Audio(FILES[name]);
     a.preload = "auto";
+    /* A cue added to FILES without a level here used to fall through to
+       full volume, which is not a neutral default - it is the loudest this
+       cue can be. Silent when it happens, so it says so now. */
+    if (VOLUME[name] === undefined) console.warn("audio-cues: no VOLUME for '" + name + "' - playing it at full level");
     a.volume = VOLUME[name] === undefined ? 1 : VOLUME[name];
     cache[name] = a;
     return a;
