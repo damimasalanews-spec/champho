@@ -1,7 +1,13 @@
-const SIZE = 6;
-const LENGTHS = [3, 4, 5, 6, 7, 8];
-const FILLER = 'abcdefghijklmnopqrstuvwxyz';
-const cells = Array.from({ length: SIZE * SIZE }, (_, index) => index);
+/* CHAMP WORD - Go Wild word grid.
+   Seven words, one at each length from 3 to 9. Those lengths sum to 42, which is
+   exactly the cell count of a 7x6 board, so the seven words can tile it without
+   sharing a single letter: every letter belongs to one word, and a completed
+   round leaves nothing unhighlighted. Sharing used to be how the board got
+   filled, which meant a letter could sit in two words at once. */
+export const COLS = 7;
+export const ROWS = 6;
+const TOTAL = COLS * ROWS;
+const LENGTHS = [3, 4, 5, 6, 7, 8, 9];
 
 export function normalizeGuess(value) {
   return String(value ?? '').toLowerCase().replace(/[^a-z]/g, '');
@@ -18,12 +24,12 @@ export function wordsByLength(bank) {
   return groups;
 }
 
-function neighbors(index) {
-  const row = Math.floor(index / SIZE), col = index % SIZE, result = [];
+function neighbours(index) {
+  const row = Math.floor(index / COLS), col = index % COLS, result = [];
   for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
     if (!dr && !dc) continue;
     const r = row + dr, c = col + dc;
-    if (r >= 0 && r < SIZE && c >= 0 && c < SIZE) result.push(r * SIZE + c);
+    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) result.push(r * COLS + c);
   }
   return result;
 }
@@ -37,63 +43,57 @@ function shuffled(items, random) {
   return result;
 }
 
-function firstPath(grid, word, random) {
+/* One randomised Hamiltonian path over every cell. Cutting it into runs gives
+   seven connected paths that between them cover the board exactly once, which is
+   the only way a word can own every letter it uses while the board still ends up
+   complete. Ordering each step by how many onward moves it leaves (fewest first)
+   keeps a random walk from stranding itself in a dead end. */
+function hamiltonian(random) {
   const path = [], used = new Set();
-  let budget = 5000;
   const walk = index => {
-    if (index === word.length) return true;
-    if (--budget < 0) return false;
-    const options = index === 0 ? shuffled(cells, random) : shuffled(neighbors(path[index - 1]), random);
-    for (const cell of options) {
-      if (used.has(cell) || grid[cell] !== null) continue;
-      path[index] = cell;
-      used.add(cell);
-      if (walk(index + 1)) return true;
-      used.delete(cell);
-    }
+    path.push(index);
+    used.add(index);
+    if (path.length === TOTAL) return true;
+    const options = neighbours(index)
+      .filter(cell => !used.has(cell))
+      .map(cell => ({ cell, onward: neighbours(cell).filter(next => !used.has(next) && next !== index).length }));
+    const order = shuffled(options, random).sort((a, b) => a.onward - b.onward);
+    for (const item of order) if (walk(item.cell)) return true;
+    path.pop();
+    used.delete(index);
     return false;
   };
-  return walk(0) ? path : null;
+  return walk(Math.floor(random() * TOTAL)) ? path : null;
 }
 
 function placeWords(bank, random, attempts = 32) {
   const byLength = wordsByLength(bank);
   if (LENGTHS.some(length => !(byLength.get(length)?.length))) {
-    throw new Error('Word bank must include words from 3 through 8 letters.');
+    throw new Error('Word bank must include words of 3 through 9 letters.');
   }
 
   for (let attempt = 0; attempt < attempts; attempt++) {
-    const grid = Array(SIZE * SIZE).fill(null), placed = [], selected = new Set();
-    let stuck = false;
+    const path = hamiltonian(random);
+    if (!path) continue;
 
-    /* Longest first, because the tight ones need the room. firstPath only ever
-       steps onto empty cells, so a letter can never end up belonging to two
-       words - which is what the old anchor-chaining did on purpose in order to
-       fill the board. */
-    for (const length of [...LENGTHS].sort((a, b) => b - a)) {
-      const candidates = shuffled(byLength.get(length), random)
-        .filter(word => !selected.has(word))
-        .slice(0, 12);
-      let chosen = null;
-      for (const candidate of candidates) {
-        const path = firstPath(grid, candidate, random);
-        if (path) { chosen = { word: candidate, path }; break; }
-      }
-      if (!chosen) { stuck = true; break; }
-      chosen.path.forEach((cell, index) => { grid[cell] = chosen.word[index]; });
-      placed.push({ word: chosen.word, path: chosen.path });
-      selected.add(chosen.word);
+    const picked = new Set(), words = [];
+    let cursor = 0, stuck = false;
+    for (const length of LENGTHS) {
+      const options = shuffled(byLength.get(length), random).filter(word => !picked.has(word));
+      if (!options.length) { stuck = true; break; }
+      picked.add(options[0]);
+      words.push({ word: options[0], path: path.slice(cursor, cursor + length) });
+      cursor += length;
     }
     if (stuck) continue;
 
-    /* the few cells no word uses still have to be letters */
-    for (let cell = 0; cell < grid.length; cell++) {
-      if (grid[cell] === null) grid[cell] = FILLER[Math.floor(random() * FILLER.length)];
-    }
-    return { grid, words: placed };
+    const grid = Array(TOTAL).fill(null);
+    for (const item of words) item.path.forEach((cell, index) => { grid[cell] = item.word[index]; });
+    return { grid, words };
   }
-  throw new Error('Could not build a 6x6 word grid with disjoint words.');
+  throw new Error('Could not build a ' + COLS + 'x' + ROWS + ' word grid.');
 }
+
 export function createWordGrid(bank, random = Math.random) {
   return placeWords(bank, random);
 }

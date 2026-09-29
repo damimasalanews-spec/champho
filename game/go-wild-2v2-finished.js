@@ -1,5 +1,5 @@
 import { WORD_BANK } from './english-word-bank.js?v=coins-11';
-import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?v=coins-11';
+import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rules.js?v=coins-12';
 
 (() => {
   'use strict';
@@ -38,8 +38,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       tile.className = 'letter-tile';
       tile.setAttribute('role', 'gridcell');
       tile.textContent = letter.toUpperCase();
-      tile.setAttribute('aria-label', `Letter ${letter.toUpperCase()}, row ${Math.floor(index / 6) + 1}, column ${index % 6 + 1}`);
-      tile.style.animationDelay = `${(index % 6) * 32 + Math.floor(index / 6) * 22}ms`;
+      tile.setAttribute('aria-label', `Letter ${letter.toUpperCase()}, row ${Math.floor(index / COLS) + 1}, column ${index % COLS + 1}`);
+      tile.style.animationDelay = `${(index % COLS) * 32 + Math.floor(index / COLS) * 22}ms`;
       tile.dataset.index = String(index);
       tile.addEventListener('click', () => selectCell(index));
       gridEl.appendChild(tile);
@@ -124,8 +124,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   }
 
   function isNeighbor(a, b) {
-    const rowA = Math.floor(a / 6), colA = a % 6;
-    const rowB = Math.floor(b / 6), colB = b % 6;
+    const rowA = Math.floor(a / COLS), colA = a % COLS;
+    const rowB = Math.floor(b / COLS), colB = b % COLS;
     return Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB)) === 1;
   }
 
