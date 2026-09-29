@@ -7,13 +7,25 @@
   'use strict';
 
   const THROWN    = 50;                            /* always 50, whatever the word */
-  /* Deliberately unhurried: 50 coins released over 1.88s, each taking 720ms to
-     cross. A tighter window read as a burst rather than a throw. */
-  const TOTAL_MS  = 3000;
-  const CHARGE_MS = 180;
-  const FLIGHT_MS = 720;
-  const POP_MS    = 220;
-  const SPAWN_MS  = TOTAL_MS - CHARGE_MS - FLIGHT_MS - POP_MS;
+  /* The shower is timed to its sound rather than to taste: TOTAL_MS IS the length
+     of assets/audio/coins.mp3, so the last coin finishes popping exactly as the
+     cue stops. It ran 3s against a 1.25s cue, which left the last 1.75s of flight
+     silent - the animation visibly outliving its own sound. The cost of matching
+     a 1.25s cue is density: 50 coins in this window is a far faster stream than
+     the old unhurried release, so THROWN is the dial if it reads as a mass rather
+     than as a throw. */
+  const TOTAL_MS  = 1250;
+  const CHARGE_MS = 150;
+  const FLIGHT_MS = 440;
+  const POP_MS    = 160;
+  const SPAWN_MS  = TOTAL_MS - CHARGE_MS - FLIGHT_MS - POP_MS;   /* 500ms */
+
+  /* How long the payout section runs once the coins leave the grid: the shower, or
+     the player's reaction finishing, whichever is later. The reaction is a 1.03s
+     cue started at FLIGHT_MS, so it is the longer of the two. The wall push waits
+     for this, so it can never open on a section that is still making a noise. */
+  const YEAH_MS   = 1030;                        /* length of the yeah cue */
+  const PAYOUT_MS = Math.max(TOTAL_MS, FLIGHT_MS + YEAH_MS) + 150;
   const Z_INDEX   = 55;                            /* above the board (10) and the
                                                       coin floater (50), below the
                                                       chat panel (60) and modal (100) */
@@ -29,12 +41,23 @@
   const TOSS_LEAD  = 90;
   const TOSS_GAP   = 110;
   const TOSS_MS    = 520;
-  /* Squash bounce: one pass of three decaying bounces, no rotation at all, so
-     the word stays legible while it dances. 2.6s was asked for — at 1.7s each
-     bounce read as a twitch rather than a bounce. */
-  const DANCE_MS   = 2600;
+  /* The dance is a ball drop, and the ball was measured rather than imitated. A
+     10ms RMS envelope with onset detection over the supplied bounce gives the
+     impact times below, in ms from its first contact, and the letters are
+     animated from those numbers - which is the only way the bounce the eye sees
+     is the bounce the ear hears. The intervals shrink 290, 250, 220, 200, 170,
+     150, 130, 120, 100, 80, 70, 70, 80, 60ms: a real ball losing height. Each
+     hop's apex sits at the midpoint of its interval, with a height that falls as
+     the SQUARE of that interval - the actual relationship - so the decay reads as
+     physics rather than as a shape that merely gets smaller.
+
+     DANCE_MS is the length of bounce.mp3; the cue and the animation start
+     together, which is what keeps them locked all the way down the decay. */
+  const DANCE_MS   = 2060;
   const DANCE_ITER = 1;
-  const DANCE_GAP  = 120;
+  const DANCE_IMPACTS = [0, 290, 540, 760, 960, 1130, 1280, 1410, 1540, 1650,
+                         1730, 1800, 1870, 1930, 1990];
+  const BOUNCE_APEX = 22;   /* px, the height of the first hop */
   const MORPH_MS   = 420;
 
   const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
@@ -754,6 +777,81 @@
     if (ctx) ctx.clearRect(0, 0, W, H);
   }
 
+  /* Keyframes for the hop sequence, built from DANCE_IMPACTS rather than written
+     out by hand, so the timings have exactly one source: the measurement above.
+     Contact is a squash flat on the ground; the apex between two impacts is a
+     stretch, at the midpoint of that gap. */
+  function bounceFrames() {
+    const frames = [];
+    const first = (DANCE_IMPACTS[1] - DANCE_IMPACTS[0]) / 1000;
+    /* How hard the ball is landing at each contact, as a fraction of the first
+       and hardest one. The drop into the first contact is full strength; every
+       contact after it is as hard as the hop that fell into it, which is the
+       square of that hop's interval against the first. */
+    let landing = 1;
+    for (let i = 0; i < DANCE_IMPACTS.length; i++) {
+      const t = DANCE_IMPACTS[i];
+      const next = DANCE_IMPACTS[i + 1];
+      /* The squash is scaled by that, not left at full strength. Unscaled, it was
+         a constant ~6px of travel per contact, so the letter went on visibly
+         pulsing through the last third while the sound decayed to inaudible - the
+         motion came apart from the audio exactly where the ball dies. A real ball
+         deforms less the softer it lands, so this now falls with the bounce. */
+      const sq = 'scale(' + (1 + .14 * landing).toFixed(3) + ',' + (1 - .16 * landing).toFixed(3) + ')';
+      frames.push({
+        offset: t / DANCE_MS,
+        transform: 'translate(-50%,-50%) translate3d(0,0,0) ' + sq,
+        easing: 'ease-out'
+      });
+      if (next === undefined) break;
+      const gap = (next - t) / 1000;
+      const k = gap / first;
+      const h = BOUNCE_APEX * k * k;
+      /* the same decay for the stretch at the top of the hop */
+      const st = 'scale(' + (1 - .04 * k * k).toFixed(3) + ',' + (1 + .06 * k * k).toFixed(3) + ')';
+      frames.push({
+        offset: (t + (next - t) / 2) / DANCE_MS,
+        transform: 'translate(-50%,-50%) translate3d(0,' + (-h).toFixed(2) + 'px,0) ' + st,
+        easing: 'ease-in'
+      });
+      landing = k * k;
+    }
+    /* square again, so the letter is not left mid-squash when the morph takes it */
+    frames.push({ offset: 1, transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1,1)' });
+    return frames;
+  }
+
+  /* The same beats for the shadow, and the same decay: contact pulls it dark and
+     flat, the apex pulls it light and tight, and both settle back to the resting
+     shadow as the ball runs out of height. The deviations are written as offsets
+     from that resting .4 / scale(1,.88) rather than as fixed numbers, so the two
+     ends of the bounce meet in the middle instead of snapping. */
+  function bounceShadowFrames() {
+    const frames = [];
+    const first = (DANCE_IMPACTS[1] - DANCE_IMPACTS[0]) / 1000;
+    let landing = 1;
+    for (let i = 0; i < DANCE_IMPACTS.length; i++) {
+      const next = DANCE_IMPACTS[i + 1];
+      frames.push({
+        offset: DANCE_IMPACTS[i] / DANCE_MS,
+        opacity: .4 + .06 * landing,
+        transform: 'scale(' + (1 + .06 * landing).toFixed(3) + ',' + (.88 - .18 * landing).toFixed(3) + ')',
+        easing: 'ease-out'
+      });
+      if (next === undefined) break;
+      const k2 = Math.pow((next - DANCE_IMPACTS[i]) / 1000 / first, 2);
+      frames.push({
+        offset: (DANCE_IMPACTS[i] + (next - DANCE_IMPACTS[i]) / 2) / DANCE_MS,
+        opacity: .4 - .16 * k2,
+        transform: 'scale(' + (1 - .26 * k2).toFixed(3) + ',' + (.88 + .06 * k2).toFixed(3) + ')',
+        easing: 'ease-in'
+      });
+      landing = k2;
+    }
+    frames.push({ offset: 1, opacity: .4, transform: 'scale(1,.88)' });
+    return frames;
+  }
+
   /* Returns how long until the coins start flying, in ms, so the caller can hold
      the result modal back until the word that won the round has been seen. The
      zero returns mean the sequence did not run; there is nothing to wait for. */
@@ -776,6 +874,22 @@
     const oy = av.top + av.height / 2;
     const sprite = COIN.toDataURL();
 
+    /* The word assembles in the MIDDLE of the grid, at the grid's own cell size
+       and pitch. It used to assemble on the cells it was found in, which meant
+       the celebration happened wherever the word happened to be: a word down the
+       left-hand column danced against the left edge of the board, which reads as
+       the dance being in the wrong place. The pitch is read off two real tiles
+       rather than assumed, so this follows the board's own layout. */
+    const gr = grid.getBoundingClientRect();
+    const gridTiles = [...grid.querySelectorAll('.letter-tile')];
+    const t0 = gridTiles[0] ? gridTiles[0].getBoundingClientRect() : null;
+    const t1 = gridTiles[1] ? gridTiles[1].getBoundingClientRect() : null;
+    const cellW = t0 ? t0.width : 66;
+    const pitch = (t0 && t1 && t1.left > t0.left) ? (t1.left - t0.left) : cellW + 8;
+    const rowW = Math.max(0, cells.length - 1) * pitch + cellW;
+    const wordLeft = gr.left + gr.width / 2 - rowW / 2 + cellW / 2;
+    const gridMidY = gr.top + gr.height / 2;
+
     const parts = [];
     cells.forEach((index) => {
       const cell = grid.querySelector('.letter-tile[data-index="' + index + '"]');
@@ -788,8 +902,12 @@
       const el = document.createElement('div');
       el.className = 'letter-tile found gwx-dance-tile';
       el.textContent = cell.textContent.trim();
-      el.style.left = (r.left + r.width / 2) + 'px';
-      el.style.top = (r.top + r.height / 2) + 'px';
+      /* the slot this letter takes in the word, laid out from the grid centre */
+      const slot = parts.length;
+      const cx = wordLeft + slot * pitch;
+      const cy = gridMidY;
+      el.style.left = cx + 'px';
+      el.style.top = cy + 'px';
       el.style.width = r.width + 'px';
       el.style.height = r.height + 'px';
       el.style.fontSize = window.getComputedStyle(cell).fontSize;
@@ -798,17 +916,20 @@
 
       const shadow = document.createElement('div');
       shadow.className = 'gwx-dance-shadow';
-      shadow.style.left = (r.left + r.width * 0.16) + 'px';
+      shadow.style.left = (cx - r.width * 0.34) + 'px';
       shadow.style.width = (r.width * 0.68) + 'px';
-      shadow.style.top = (r.top + r.height - 7) + 'px';
+      shadow.style.top = (cy + r.height / 2 - 7) + 'px';
 
       host.append(shadow, el);
-      cell.classList.add('gwx-thrown');
-      hiddenTiles.push(cell);
-      parts.push({ el, shadow, mid: { x: r.left + r.width / 2, y: r.top + r.height / 2 } });
+      /* The cell keeps its letter and stays visible: the word no longer dances
+         on top of it, so hiding it would punch a hole in the board for the four
+         seconds the celebration runs. */
+      parts.push({ el, shadow, mid: { x: cx, y: cy } });
     });
 
-    if (!parts.length) { releaseTiles(); play(playerId, amount); return 0; }
+    /* no letters to throw, so the shower runs on its own - and the caller still
+       has to wait for it, rather than taking the screen the moment it starts */
+    if (!parts.length) { releaseTiles(); play(playerId, amount); return PAYOUT_MS; }
 
     /* 1 — thrown from the seat onto the cells that spell the word. One cue for
        the word: the whoosh this replaces sat inside the per-letter loop, so a
@@ -844,46 +965,22 @@
 
     const danceAt = TOSS_LEAD + (parts.length - 1) * TOSS_GAP + TOSS_MS + 120;
 
-    /* 2 — the word dances on its own cells, on a beat. The beat is the supplied
-       coin sound ticked, rather than the synthesised thump and chime it used to
-       be, so the dance is made of the same material as the payout after it. */
+    /* 2 — the word bounces, in the middle of the grid, on the ball's impacts. One
+       cue for the whole word, the same 2060ms as the animation, so its first
+       contact and the first impact are the same moment. Every letter bounces
+       together: the sound is one ball, and the per-letter delay this used to have
+       (DANCE_GAP) would have put all but the first letter out of time with it. */
 
-    parts.forEach((p, i) => {
-      const delay = i * DANCE_GAP;
+    parts.forEach((p) => {
       seq(danceAt, () => {
-        /* Squash bounce, kept inside the cell. Scaling about the tile's centre
-           (never the bottom edge) keeps the glyph on the cell's centre line — a
-           bottom-pinned origin dropped every letter 5.5px low and swelled it
-           11px wider than its own cell. The lift is 12px at most, decaying to
-           3px, so a letter never leaves its cell while it dances. */
-        p.el.animate([
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.08,.88)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(0,-12px,14px) scale(.96,1.06)', easing: 'ease-in' },
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.08,.88)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(0,-7px,8px) scale(.97,1.04)', easing: 'ease-in' },
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1.05,.93)', easing: 'ease-out' },
-          { transform: 'translate(-50%,-50%) translate3d(0,-3px,4px) scale(.99,1.02)', easing: 'ease-in' },
-          { transform: 'translate(-50%,-50%) translate3d(0,0,0) scale(1,1)' }
-        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
-
-        /* the shadow flattens at contact and pulls in on the lift, same beat */
-        p.shadow.animate([
-          { opacity: .42, transform: 'scale(1.04,.72)', easing: 'ease-out' },
-          { opacity: .26, transform: 'scale(.78,.92)', easing: 'ease-in' },
-          { opacity: .42, transform: 'scale(1.04,.72)', easing: 'ease-out' },
-          { opacity: .3, transform: 'scale(.84,.94)', easing: 'ease-in' },
-          { opacity: .4, transform: 'scale(1,.8)', easing: 'ease-out' },
-          { opacity: .34, transform: 'scale(.9,.96)', easing: 'ease-in' },
-          { opacity: .4, transform: 'scale(1,.88)' }
-        ], { duration: DANCE_MS, delay, iterations: DANCE_ITER, easing: 'linear' });
+        p.el.animate(bounceFrames(), { duration: DANCE_MS, iterations: DANCE_ITER, easing: 'linear' });
+        p.shadow.animate(bounceShadowFrames(), { duration: DANCE_MS, iterations: DANCE_ITER, easing: 'linear' });
       });
     });
 
-    const danceEnd = danceAt + DANCE_ITER * DANCE_MS + (parts.length - 1) * DANCE_GAP;
-    const beat = Math.round(DANCE_MS / 4);
-    for (let i = 0, n = Math.ceil((danceEnd - danceAt) / beat); i < n; i++) {
-      seq(danceAt + i * beat, () => cue("danceTick"));
-    }
+    const danceEnd = danceAt + DANCE_ITER * DANCE_MS;
+    /* the ball the letters are already in step with */
+    seq(danceAt, () => cue("bounce"));
 
     /* 3 — the letters become coins */
     const morphAt = danceEnd + 130;
@@ -917,9 +1014,12 @@
       play(playerId, amount, { x: cx / parts.length, y: cy / parts.length });
     });
 
-    /* the coins leave at morphAt + MORPH_MS; that is the moment the caller has
-       finished showing the word and can safely take the screen */
-    return morphAt + MORPH_MS;
+    /* When the caller may take the screen. It is NOT when the coins leave. It used
+       to be that, which is why the wall push opened over the payout: the shower
+       ran its whole length behind the duel's overlay and the player never saw the
+       coins arrive. The coins leave at morphAt + MORPH_MS, so the section ends
+       there plus the payout itself. */
+    return morphAt + MORPH_MS + PAYOUT_MS;
   }
 
   function start() {

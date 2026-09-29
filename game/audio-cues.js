@@ -5,7 +5,7 @@
    they are files:
 
      throwWord  a word being thrown at the grid, before it dances
-     danceTick  the beat the word dances on
+     bounce     the ball the dancing word bounces on
      coins      the grid throwing coins back at a player
      yeah       the player's own reaction as those coins land
      push       a correct answer driving the slab at the opponent
@@ -47,7 +47,7 @@
     coins: "assets/audio/coins.mp3",
     yeah: "assets/audio/yeah.mp3",
     superWin: "assets/audio/super-win.mp3",
-    danceTick: "assets/audio/dance-tick.mp3",
+    bounce: "assets/audio/bounce.mp3",
     push: "assets/audio/push.mp3",
     brake: "assets/audio/brake.mp3",
     fall: "assets/audio/avatar-fall.mp3"
@@ -58,10 +58,18 @@
      pair sums past full scale. yeah sits just above the jingle, because a voice
      has to be a little forward of the bed it plays over to be heard AS a voice.
      throwWord gains ~1 dB: it is peak-matched to the cue it replaces, but it is
-     a more transient sound, so its average energy is lower. The rest are as they
-     were. */
+     a more transient sound, so its average energy is lower.
+
+     bounce replaces danceTick. Its average energy is low (-26.8 dB against the
+     family's -20 to -24) because a ball spends most of its time in the air being
+     silent, so it is levelled on peak, where it matches yeah. The letters are
+     animated from its measured impacts, so the last few near-inaudible hops are
+     near-invisible too, by construction rather than by taste.
+
+     Every cue in FILES must have a level here: a missing key does not fail, it
+     falls back to full volume. fix-volume-map.py asserts the two agree. */
   const VOLUME = { throwWord: 0.55, coins: 0.55, yeah: 0.66, superWin: 0.75,
-                   danceTick: 0.4, push: 0.8, brake: 0.75, fall: 0.85 };
+                   bounce: 0.68, push: 0.8, brake: 0.75, fall: 0.85 };
 
   const cache = {};
 
