@@ -730,6 +730,18 @@
     if (layer) layer.textContent = '';
   }
 
+  /* Tear down everything a celebration still owns. The game calls this when the
+     round resets. The letter clones live on a page-level layer and their timers
+     are real timeouts, so without this a word still in flight keeps floating
+     over the next board at its old coordinates for about four seconds. */
+  function cancel() {
+    cancelSequence();
+    coins.length = 0;
+    sparks.length = 0;
+    settles.length = 0;
+    if (ctx) ctx.clearRect(0, 0, W, H);
+  }
+
   function celebrate(playerId, word, cells, amount) {
     const grid = document.getElementById('letterGrid');
     const avatar = document.querySelector('.gwx-seat[data-player="' + playerId + '"] .gwx-avatar');
@@ -902,6 +914,7 @@
   window.__champCoins = {
     play,
     celebrate,
+    cancel,
     winStinger,
     setMuted(v) { muted = !!v; },
     isMuted() { return muted; }

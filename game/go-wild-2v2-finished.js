@@ -236,6 +236,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
   }
 
   function resetRound() {
+    /* presentation only: a celebration still in flight belongs to the board being
+       replaced. Without this its letters keep floating over the new grid at the
+       old coordinates until their own timers expire. */
+    window.__champCoins?.cancel?.();
     window.clearInterval(timer);
     botTimers.forEach(id => window.clearTimeout(id));
     $('resultModal').classList.remove('open');
