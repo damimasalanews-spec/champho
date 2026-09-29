@@ -629,7 +629,7 @@
   function runDuel(duel, onFinished) {
     var tok = {};
     var fav = { coins: duel.a.coins, key: duel.a.key }, dog = { coins: duel.b.coins, key: duel.b.key };
-    var dogWins = Math.random() < 0.5;
+    var dogWins = duel.winner === "a" ? false : duel.winner === "b" ? true : (Math.random() < 0.5); /* the clipart contest hands the verdict in as duel.winner; only a duel that arrives unjudged still flips a coin */
     var e = {
       tok: tok, fav: fav, dog: dog, dogWins: dogWins,
       favRank: duel.rankA, dogRank: duel.rankB,

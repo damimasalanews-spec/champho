@@ -1,0 +1,184 @@
+/* ===========================================================================
+   WALL PUSH — CLIPART GUESSING CONTEST
+   ---------------------------------------------------------------------------
+   This replaces the coin flip. Where the wall push used to pick a winner at
+   random, the two duelists now race to name a 3D clipart of a word: a correct
+   answer shoves the slab one step toward the opponent, and the first to two
+   correct answers drives it into that opponent's corner.
+
+   Everything is scoped to the `.wgx-*` marker classes, so there is no way for
+   a rule here to reach classic mode or the card table.
+
+   The three contest panels deliberately REUSE the game's own board-row classes
+   (`.gwx-word-panel`, `.gwx-letter-grid-shell`, `.gwx-leaderboard`): they then
+   inherit the exact column widths, frames, responsive rules and rail heights of
+   the seven-word table they stand in for. The format stays the same; only the
+   contents change.
+   =========================================================================== */
+
+/* only the contest's own panels survive in the board row while it is running */
+.gwx-board-row.wg-on > :not(.wgx) { display: none !important; }
+
+/* the round's own guess bar is replaced by the contest's, which only lets the
+   two duelists answer. Direct-child selectors so the contest bar - which wears
+   the same .gwx-guess-form class on purpose - is left alone. */
+#table.wg-on .gwx-center > .gwx-guess-form,
+#table.wg-on .gwx-center > #guessMessage,
+#table.wg-on .gwx-center > #roundMessage { display: none !important; }
+
+.wgx-slots { grid-column: 1; }
+.wgx-stage { grid-column: 2; }
+.wgx-tally { grid-column: 3; }
+
+.wgx-slots,
+.wgx-tally { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.wgx-stage {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 9px; min-width: 0;
+}
+
+/* ---------------------------------------------------------------- the picture */
+/* The picture is an ABSOLUTELY positioned box-filling image, not a centred grid
+   item with max-height:100%. As a grid item the percentage resolved against an
+   auto-sized track - which is indefinite, so `max-height` was ignored and the
+   full 512px sprite spilled 222px down the panel, straight over the countdown
+   and the guess bar. `inset:0` resolves against this definite box instead, and
+   `object-fit: contain` does the fitting, so it can never overflow whatever the
+   sprite's aspect ratio turns out to be. */
+.wgx-art {
+  position: relative; width: 100%; height: min(40vh, 290px);
+  flex: 0 0 auto;
+}
+.wgx-art img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(0 12px 20px #00160ea8);
+  animation: wgx-pop .46s cubic-bezier(.2, .9, .25, 1) both;
+}
+.wgx-art.done img { animation: wgx-solved .5s ease both; }
+@keyframes wgx-pop { from { opacity: 0; transform: scale(.82) } to { opacity: 1; transform: scale(1) } }
+@keyframes wgx-solved { 0%,100% { transform: scale(1) } 45% { transform: scale(1.07) } }
+
+.wgx-head-row { display: flex; align-items: center; gap: 7px; }
+.wgx-kicker { font-size: 8px; letter-spacing: 1.1px; color: #9fe8c6; }
+.wgx-kicker b { color: var(--gold) }
+
+/* ------------------------------------------------------------------ the clock */
+.wgx-clock { width: 100%; display: flex; flex-direction: column; gap: 3px; }
+.wgx-clock-top {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-size: 8px; letter-spacing: 1px; color: #9fe8c6;
+}
+.wgx-clock-top b { font-size: 15px; color: var(--gold); font-weight: 1000 }
+.wgx-clock.low .wgx-clock-top b { color: var(--red); animation: wgx-beat .7s infinite }
+@keyframes wgx-beat { 50% { opacity: .35 } }
+.wgx-clock-track {
+  height: 6px; border-radius: 99px; overflow: hidden;
+  background: #03211a; border: 1px solid #a3f4d124;
+}
+.wgx-clock-fill {
+  height: 100%; width: 100%; transform-origin: left;
+  background: linear-gradient(90deg, var(--green), var(--gold));
+}
+.wgx-clock.low .wgx-clock-fill { background: linear-gradient(90deg, var(--gold), var(--red)); }
+
+/* --------------------------------------------------- compressed letter slots
+   The seven hidden words used to be listed here as "N LETTERS / HIDDEN WORD".
+   In the contest the same rail carries the ANSWER as letter boxes, sized down
+   so a nine-letter word still fits the rail. */
+.wgx-slotrow { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.wgx-blank {
+  width: 15px; height: 20px; border-radius: 5px;
+  background: #062a1e; border: 1px solid #a3f4d133;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 1000; color: #eafff5;
+  transition: transform .18s, border-color .18s, background .18s;
+}
+.wgx-blank.on { background: #0c3a29; border-color: var(--gold); color: var(--gold); transform: translateY(-2px) }
+
+/* ------------------------------------------------------------ the duel panel */
+.wgx-duelist {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px; border-radius: 10px; min-width: 0;
+  border: 1px solid #a3f4d124; background: #04241a99;
+}
+.wgx-duelist img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid #ffd66b66 }
+.wgx-duelist b { flex: 1; min-width: 0; font-size: 9px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.wgx-duelist.win { border-color: var(--green); background: #07402baa }
+.wgx-pips { display: flex; gap: 3px }
+.wgx-pips i { width: 13px; height: 5px; border-radius: 99px; background: #0b3a29; border: 1px solid #a3f4d124 }
+.wgx-pips i.on { background: var(--gold); border-color: #ffe9a8 }
+
+/* The two side rails are pale cream and the centre stage is dark brown, so one
+   text colour cannot serve both. Mint reads on the stage; on a rail it is
+   nearly invisible, which is why the ink below is dark. */
+.wgx-title {
+  font-size: 9px; letter-spacing: 1.2px; text-align: center;
+  color: #4a3a1c; text-transform: uppercase;
+}
+.wgx-title b { color: #8a5a12 }
+
+/* --------------------------------------------------------- the slab and track */
+.wgx-track {
+  position: relative; height: 54px; border-radius: 12px; overflow: hidden;
+  background: linear-gradient(180deg, #04241a, #021a12);
+  border: 1px solid #a3f4d124;
+}
+.wgx-corner { position: absolute; top: 0; bottom: 0; width: 16% }
+.wgx-corner.l { left: 0; background: linear-gradient(90deg, #ff4d6255, transparent) }
+.wgx-corner.r { right: 0; background: linear-gradient(270deg, #3e8cff55, transparent) }
+/* `left` percentages resolve against the TRACK, so the slab really travels the
+   whole rail: -2 lands it in one corner, +2 in the other. A translate() would
+   instead resolve against the rig's own width and barely move it. */
+.wgx-rig {
+  position: absolute; left: calc(50% + var(--wg-push, 0) * 13%); top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 5px;
+  transition: left .42s cubic-bezier(.2, .9, .25, 1);
+}
+.wgx-rig.crash { animation: wgx-crash .42s ease }
+@keyframes wgx-crash {
+  0% { transform: translate(-50%, -50%) }
+  35% { transform: translate(-50%, -50%) rotate(-7deg) }
+  70% { transform: translate(-50%, -50%) rotate(4deg) }
+  100% { transform: translate(-50%, -50%) }
+}
+.wgx-head { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold) }
+.wgx-head.fall { animation: wgx-fall .8s ease both }
+@keyframes wgx-fall {
+  0% { transform: rotate(0) translateY(0); opacity: 1 }
+  100% { transform: rotate(84deg) translateY(16px); opacity: .25 }
+}
+.wgx-slab {
+  width: 22px; height: 38px; border-radius: 4px;
+  background: linear-gradient(180deg, #d3e2ef, #7c93a6);
+  box-shadow: inset 0 0 0 1px #ffffff6b;
+}
+
+/* ------------------------------------------------------------- guess + feed */
+.wgx-form { width: 100% }
+
+/* The game's own .gwx-message class resolves to display:none outside its own
+   slot in the layout, so the contest's two message lines carry their own class
+   rather than inheriting an invisible one. */
+.wgx-msg {
+  font-size: 8px; letter-spacing: .3px; text-align: center;
+  color: #9fe8c6; min-height: 11px; line-height: 1.35;
+}
+.wgx-msg.good { color: var(--green) }
+.wgx-msg.bad { color: var(--red) }
+/* the same line also sits on the pale tally rail, where the stage's mint and
+   neon green/red wash out completely */
+.wgx-tally .wgx-msg { color: #4a3a1c }
+.wgx-tally .wgx-msg.good { color: #0d6b41 }
+.wgx-tally .wgx-msg.bad { color: #a4241c }
+.wgx-feed { display: flex; flex-direction: column; gap: 3px; font-size: 8px; min-height: 0; overflow: hidden }
+.wgx-feed div { display: flex; justify-content: space-between; gap: 5px }
+.wgx-feed span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.wgx-feed .ok { color: var(--green); font-weight: 1000 }
+.wgx-feed .no { color: var(--red) }
+
+@media (prefers-reduced-motion: reduce) {
+  .wgx-rig, .wgx-blank { transition: none }
+  .wgx-art img, .wgx-rig.crash, .wgx-head.fall, .wgx-clock.low .wgx-clock-top b { animation: none }
+}

@@ -249,13 +249,21 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
        count, so the numbers in the duel are real in-game numbers rather than
        invented ones.
 
+       The stake rule is the one the game asked for, and it is symmetric: the
+       loser pays their OWN balance. So when TOP 1 wins he takes everything TOP 2
+       holds, and when TOP 2 wins he doubles - TOP 1 funds exactly TOP 2's
+       balance, capped by what TOP 1 actually has. settle() already does this.
+
        The duel DISPLAYS the settlement and deliberately writes to no balance:
        this game's coins are per-round scores, and treating them as a persistent
        wallet is a game-design decision, not an animation one. */
     const reveal = () => {
       if (!round) { showResult(); return; }
       const wp = window.ChampWallPush;
-      if (!wp || typeof wp.play !== 'function') { showResult(); return; }
+      const guess = window.ChampWallGuess;
+      const canPush = !!wp && typeof wp.play === 'function';
+      const canContest = !!guess && typeof guess.play === 'function';
+      if (!canPush && !canContest) { showResult(); return; }
       const ranked = [...PLAYERS].sort((a, b) => {
         const sa = round.scores[a.id], sb = round.scores[b.id];
         return (sb.coins - sa.coins) || (sb.words - sa.words);
@@ -264,13 +272,21 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
         name: p.name,
         coins: round.scores[p.id].coins,
         team: p.team === 'A' ? 'TEAM WILD' : 'TEAM FLAME',
+        id: p.id,
         key: (p.id === 'jess' || p.id === 'champ') ? 'boy' : 'girl'
       });
+      const duels = [
+        { rankA: 1, rankB: 2, a: side(ranked[0]), b: side(ranked[1]) },
+        { rankA: 3, rankB: 4, a: side(ranked[2]), b: side(ranked[3]) }
+      ];
       try {
-        wp.play([
-          { rankA: 1, rankB: 2, a: side(ranked[0]), b: side(ranked[1]) },
-          { rankA: 3, rankB: 4, a: side(ranked[2]), b: side(ranked[3]) }
-        ], { onDone: showResult });
+        /* The clipart contest runs the guessing and hands each duel back WITH a
+           verdict, so the post-match reel plays a duel it did not decide. Each
+           side carries its player id because the contest has to know which seat
+           the human answers for. If the contest module is missing this falls
+           straight back to the old coin-flip push. */
+        if (canContest) guess.play(duels, { push: canPush ? wp : null, onDone: showResult });
+        else wp.play(duels, { onDone: showResult });
       } catch (e) {
         console.warn('wall push failed, showing the result card anyway', e);
         showResult();
@@ -291,6 +307,8 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
        replaced. Without this its letters keep floating over the new grid at the
        old coordinates until their own timers expire. */
     window.__champCoins?.cancel?.();
+    /* an unanswered contest bot must not fire onto the next board */
+    window.ChampWallGuess?.cancel?.();
     window.clearTimeout(resultReveal);
     resultReveal = 0;
     window.clearInterval(timer);

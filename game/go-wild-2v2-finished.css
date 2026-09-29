@@ -436,7 +436,7 @@
 .avatar-poker{background-image:url('../assets/avatars/wizard.webp')}
 .avatar-kalkal{background-image:url('../assets/avatars/alien.webp')}
 .avatar-jess{background-image:url('../assets/avatars/genie.webp')}
-.avatar-champ{background-image:url('../assets/avatars/classic.webp')}
+.avatar-champ{background-image:url('../assets/avatars/pumpkin-boy.webp')}
 .avatar-poker .avatar-head,.avatar-poker .avatar-body,.avatar-kalkal .avatar-head,.avatar-kalkal .avatar-body,.avatar-jess .avatar-head,.avatar-jess .avatar-body,.avatar-champ .avatar-head,.avatar-champ .avatar-body{display:none}
 .gwx-center{inset:0;width:100%;height:100%;top:0;left:0;transform:none;pointer-events:none;z-index:6}
 .gwx-status-line{position:absolute;top:24%;left:50%;transform:translateX(-50%);margin:0}
