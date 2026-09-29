@@ -846,8 +846,15 @@
        a 2-1 finish end with the slab fully driven into the loser's side */
     function steps(n) {
       if (st.dead) return;
+      var want = clamp(n, -2, 2) * (S.FULL / 2);
+      /* Which cue plays follows the slab's TRAVEL, not the answerer: every
+         correct answer is a push for whoever made it, so keying off the
+         answerer alone would leave the brake sound unused. Driving the slab
+         further from the centre is a push; bringing it back toward the side it
+         came from is a brake. */
+      var shoving = Math.abs(want) > Math.abs(st.target) + 1;
       st.joltDir = n < 0 ? -1 : 1;
-      st.target = clamp(n, -2, 2) * (S.FULL / 2);
+      st.target = want;
       st.joltUntil = performance.now() + 280;
       if (st.geo) {
         st.geo.forEach(function (g) {
@@ -855,7 +862,7 @@
         });
       }
       kick(7, 200);
-      SFX.shove();
+      cue(shoving ? "push" : "brake");
     }
 
     /* the meters read 'how much of the wall you still hold': every answer the
