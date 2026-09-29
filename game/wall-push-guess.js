@@ -39,7 +39,8 @@
   const BOT_SKILL = 0.78;    /* how often a bot actually knows the picture */
   const SHOVE_MS = 1150;     /* beat between a shove and the next picture */
   const FINISH_MS = 1000;    /* beat between the winning answer and the knockout */
-  const CARD_MS = 4200;      /* how long the coin card is held before the next pair */
+  const CARD_MS = 3200;      /* how long the coin card is held before the next pair */
+  const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
 
   const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
   const normalize = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 9);
@@ -397,17 +398,30 @@
             runDuel(duel, token, function (verdict) {
               if (!alive(token)) return;
               results.push(verdict);
+              const advancePair = function () {
+                handle.teardown();
+                run.arena = null;
+                dropDeck();
+                idx++;
+                nextDuel();
+              };
               /* the knockout belongs to the arena and it is told the verdict,
                  so there is no second place a winner could be chosen */
+              let settled = false;
               handle.knock(verdict.winner, function () {
-                after(CARD_MS, function () {
-                  if (!alive(token)) return;
-                  handle.teardown();
-                  run.arena = null;
-                  dropDeck();
-                  idx++;
-                  nextDuel();
-                });
+                if (settled || !alive(token)) return;
+                settled = true;
+                after(CARD_MS, function () { if (alive(token)) advancePair(); });
+              });
+              /* The knock-out, the payout and the coin card are three chained
+                 animations in another module. If any of them throws or never
+                 reports back, the player would be left staring at the arena with
+                 no way forward, so the pair advances on a ceiling regardless. */
+              after(KNOCK_CEILING_MS, function () {
+                if (settled) return;
+                settled = true;
+                console.warn("wall-push: the post-match beat never finished; moving on");
+                if (alive(token)) advancePair();
               });
             });
           }

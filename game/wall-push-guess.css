@@ -31,6 +31,82 @@
   animation: none; opacity: 1; transform: translateX(-50%) scale(1);
 }
 
+/* ------------------------------------------------------------- the payout
+   The badge takes over the middle of the arena the way a match-3 payout does:
+   the tier escalates with the amount, the ribbon carries the counting number,
+   and each side shows its own + or -. */
+#wpOverlay .wp-meter { transition: opacity .3s ease }
+#wpOverlay.awarding .wp-banner { opacity: 0 }
+#wpOverlay.awarding .wp-meter { opacity: .22 }
+
+#wpOverlay .wp-award {
+  position: absolute; inset: 0; z-index: 44; cursor: pointer;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 168px;
+}
+.wp-award .wa-card { text-align: center; animation: waIn .42s cubic-bezier(.2, 1.3, .3, 1) both }
+@keyframes waIn { from { transform: translateY(20px) scale(.8); opacity: 0 } to { transform: none; opacity: 1 } }
+
+.wp-award .wa-tier {
+  font-size: 40px; font-weight: 1000; font-style: italic; line-height: 1;
+  letter-spacing: 2px; color: #ffe9a8;
+  text-shadow: 0 3px 0 #c07f18, 0 6px 0 #8a5410, 0 12px 22px #000000c4;
+}
+.wp-award .wa-tier.big { font-size: 52px }
+.wp-award .wa-tier.super {
+  font-size: 56px; color: #eaf5ff;
+  text-shadow: 0 3px 0 #3d7cc0, 0 6px 0 #234f80, 0 0 26px #7cc0ff, 0 12px 24px #000000c4;
+}
+.wp-award .wa-tier.none { font-size: 30px; color: #cfe0d6; text-shadow: 0 3px 0 #0000008a }
+.wp-award .wa-tier.pop { animation: waPop .34s ease both }
+@keyframes waPop { 0% { transform: scale(1) } 45% { transform: scale(1.18) } 100% { transform: scale(1) } }
+
+.wp-award .wa-ribbon {
+  position: relative; display: inline-block; margin-top: 9px;
+  padding: 6px 46px; border-radius: 10px;
+  background: linear-gradient(180deg, #59aef0, #2b6cb4);
+  box-shadow: 0 6px 0 #1b4778, inset 0 2px #ffffff70, 0 14px 26px #000000a0;
+}
+/* the ribbon's forked tails */
+.wp-award .wa-ribbon::before,
+.wp-award .wa-ribbon::after {
+  content: ""; position: absolute; top: 9px; width: 28px; height: 32px;
+  background: linear-gradient(180deg, #3f8ed2, #245b96);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 36% 50%);
+}
+.wp-award .wa-ribbon::before { left: -21px }
+.wp-award .wa-ribbon::after { right: -21px; transform: scaleX(-1) }
+.wp-award .wa-num {
+  font-size: 36px; font-weight: 1000; font-style: italic; color: #fff;
+  text-shadow: 0 2px 0 #1b4778; font-variant-numeric: tabular-nums;
+}
+
+.wp-award .wa-row {
+  margin-top: 13px; display: flex; align-items: center; justify-content: center; gap: 16px;
+  font-size: 18px; font-weight: 900;
+}
+.wp-award .wa-delta {
+  display: flex; align-items: center; gap: 8px; padding: 7px 16px;
+  border-radius: 999px; background: #02160ec9; border: 1px solid #ffffff2e;
+}
+.wp-award .wa-delta b { font-size: 24px; font-variant-numeric: tabular-nums }
+.wp-award .wa-delta.plus { color: #d8ffe9; border-color: #20d98a8a }
+.wp-award .wa-delta.plus b { color: #4dff9e; text-shadow: 0 2px 0 #0d5c30 }
+.wp-award .wa-delta.minus { color: #ffe3e6; border-color: #ff4d628a }
+.wp-award .wa-delta.minus b { color: #ff7c8c; text-shadow: 0 2px 0 #7a1622 }
+/* on its own the mint label washed out against the felt; it needs its own plate */
+.wp-award .wa-tag {
+  font-size: 12px; letter-spacing: 2px; color: #d9fff0;
+  padding: 6px 14px; border-radius: 999px;
+  background: #02160ed9; border: 1px solid #ffffff26;
+  text-shadow: 0 2px 4px #000000a6;
+}
+
+.wp-award .wa-skip {
+  position: absolute; right: 44px; bottom: 242px;
+  font-size: 11px; letter-spacing: 1px; color: #cfe0d699;
+}
+
 #wpOverlay .wp-deck {
   position: absolute; left: 54px; right: 54px; top: 660px; height: 226px;
   display: flex; align-items: stretch; gap: 18px; padding: 12px;
@@ -187,5 +263,7 @@
   .wp-deck.shake,
   .wp-deck .wd-art img,
   .wp-deck .wd-blank.on,
-  .wp-deck .wd-clock.low .wd-clock-top b { animation: none; transition: none }
+  .wp-deck .wd-clock.low .wd-clock-top b,
+  .wp-award .wa-card,
+  .wp-award .wa-tier.pop { animation: none; transition: none }
 }

@@ -860,17 +860,138 @@
       var seq = [["break", 300], ["impact", 520], ["result", 1050], ["settle", 420]], i = 0;
       (function step() {
         if (st.dead || !run || run.tok !== tok) return;
-        if (i >= seq.length) { ledger(e); if (done) done(); return; }
+        if (i >= seq.length) {
+          /* the payout gets its own beat before the receipt: coins fly, both
+             sides show their + and -, and then the card itemises it */
+          try {
+            award(side, function () { ledger(e); if (done) done(); });
+          } catch (err) {
+            console.warn("wall-push: payout animation failed", err);
+            ledger(e); if (done) done();
+          }
+          return;
+        }
         var ph = seq[i++], t0 = performance.now();
         (function sub() {
           if (st.dead || !run || run.tok !== tok) return;
           var t = clamp((performance.now() - t0) / (ph[1] / RATE), 0, 1);
-          render(performance.now(), adv, { k: ph[0], t: t });
+          st.geo = render(performance.now(), adv, { k: ph[0], t: t });
           if (t < 1) requestAnimationFrame(sub); else step();
         })();
       })();
     }
 
+    /* ------------------------------------------------------------ the payout
+       The winner's gain is performed, not printed. Coins leave the loser and
+       land on the winner, both sides show their own + or -, and a badge over
+       the arena counts the stake up and escalates as it grows - WIN, then BIG
+       WIN, then SUPER WIN. Every number here comes from settle(), so the
+       animation cannot show a payout that the coin card disagrees with. */
+    function award(side, done) {
+      var st2 = e.st || settle(fav, dog, side === "b");
+      var paid = st2.paid;
+      var winner = side === "a" ? duel.a : duel.b;
+      var loser = side === "a" ? duel.b : duel.a;
+      var ge = st.geo || [];
+      var wG = ge[side === "a" ? 0 : 1] || { cx: side === "a" ? 520 : 1080, H: 380 };
+      var lG = ge[side === "a" ? 1 : 0] || { cx: side === "a" ? 1080 : 520, H: 380 };
+
+      var el = document.createElement("div");
+      el.className = "wp-award";
+      el.innerHTML =
+        '<div class="wa-card">' +
+          '<div class="wa-tier" data-x="tier">WIN</div>' +
+          '<div class="wa-ribbon"><span class="wa-num" data-x="num">0</span></div>' +
+          '<div class="wa-row">' +
+            '<span class="wa-delta plus">' + winner.name + '<b data-x="wa">+0</b></span>' +
+            '<span class="wa-tag" data-x="tag">takes the wall</span>' +
+            '<span class="wa-delta minus"><b data-x="lo">-0</b>' + loser.name + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="wa-skip">Tap to skip</div>';
+
+      root.classList.add("awarding");
+      stage.appendChild(el);
+
+      var ref = {};
+      el.querySelectorAll("[data-x]").forEach(function (n) { ref[n.dataset.x] = n; });
+
+      var COUNT_MS = 1500, HOLD_MS = 700, BURST_MS = 420;
+      var live = { dead: false, skip: false, raf: 0 };
+      var t0 = performance.now();
+
+      function tierFor(v) {
+        return v >= 1400 ? ["SUPER WIN", "super"] : v >= 600 ? ["BIG WIN", "big"] : ["WIN", ""];
+      }
+      function paint(v) {
+        ref.num.textContent = fmt(Math.round(v));
+        var t = tierFor(v);
+        if (ref.tier.textContent !== t[0]) {
+          ref.tier.textContent = t[0];
+          ref.tier.className = "wa-tier " + t[1] + " pop";
+          void ref.tier.offsetWidth;
+        }
+      }
+      paint(0);
+      ref.wa.textContent = "+" + fmt(paid);
+      ref.lo.textContent = "-" + fmt(paid);
+
+      if (paid <= 0) {
+        /* nothing to perform: the loser finished on zero, and flying coins in
+           from nowhere would be lying about the payout */
+        ref.tier.textContent = "NO STAKE";
+        ref.tier.className = "wa-tier none";
+        ref.num.textContent = "0";
+        ref.tag.textContent = loser.name + " finished on 0 coins";
+      } else {
+        /* three waves, loser to winner, so the transfer reads as a transfer */
+        [[120, 5], [430, 6], [760, 5]].forEach(function (w) {
+          window.setTimeout(function () {
+            if (live.dead || st.dead) return;
+            coins(lG.cx, S.FLOOR - lG.H * .62, wG.cx, S.FLOOR - wG.H * .62, w[1]);
+            SFX.coin();
+          }, w[0]);
+        });
+        /* and the room showers the winner from both edges, the way a payout
+           does in a match-3 */
+        [[300, 40, 6], [300, 1560, 6], [920, 120, 8], [920, 1480, 8]].forEach(function (w) {
+          window.setTimeout(function () {
+            if (live.dead || st.dead) return;
+            coins(w[1], 210, 800, 430, w[2]);
+          }, w[0]);
+        });
+        /* no floating + and - over the fighters: the badge below already
+           names both sides with their own figure, and a third copy floated
+           up straight through the headline */
+        SFX.tick();
+      }
+
+      function frame() {
+        if (live.dead) return;
+        if (!live.skip) paint(paid * easeOut(clamp((performance.now() - t0) / COUNT_MS, 0, 1)));
+        live.raf = requestAnimationFrame(frame);
+      }
+      live.raf = requestAnimationFrame(frame);
+
+      function close() {
+        if (st.dead) return;
+        root.classList.remove("awarding");
+        el.remove();
+        if (done) done();
+      }
+      function finish() {
+        if (live.dead) return;
+        live.dead = true;
+        cancelAnimationFrame(live.raf);
+        window.clearTimeout(live.timer);
+        paint(paid);
+        glow(800, 330, 320, "rgba(255,207,37,.42)", 900);
+        if (paid > 0) { kick(9, 260); ring(800, 330, "#ffe9a8"); SFX.win(); }
+        window.setTimeout(close, BURST_MS);
+      }
+      live.timer = window.setTimeout(finish, COUNT_MS + HOLD_MS);
+      el.addEventListener("click", function () { live.skip = true; finish(); });
+    }
     function teardown() {
       st.dead = true;
       if (st.raf) cancelAnimationFrame(st.raf);
@@ -889,7 +1010,7 @@
     st.raf = requestAnimationFrame(frame);
 
     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
-             knock: knock, teardown: teardown };
+             knock: knock, award: award, teardown: teardown };
   }
 
   /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]
