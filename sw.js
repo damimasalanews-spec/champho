@@ -202,9 +202,11 @@ const ART_INDEX = [
   "/assets/clipart/house.webp", "/assets/clipart/key.webp", "/assets/clipart/moon.webp",
   "/assets/clipart/piano.webp", "/assets/clipart/pineapple.webp", "/assets/clipart/ring.webp",
   "/assets/clipart/star.webp", "/assets/clipart/sun.webp",
-  // the three recorded cues: a word thrown, coins paid out, the closing pop-up
-  "/assets/audio/word-throw.mp3", "/assets/audio/dance-tick.mp3",
-  "/assets/audio/coins.mp3", "/assets/audio/super-win.mp3",
+  // the recorded cues: the word thrown, the coins paid out and the reaction to
+  // them, the push and the brake, the fall, and the closing pop-up
+  "/assets/audio/wordsthrow1.mp3", "/assets/audio/dance-tick.mp3",
+  "/assets/audio/coins.mp3", "/assets/audio/yeah.mp3",
+  "/assets/audio/super-win.mp3",
   "/assets/audio/push.mp3", "/assets/audio/brake.mp3", "/assets/audio/avatar-fall.mp3",
   "/assets/frames/cosmos.webp", "/assets/frames/cosmos_hole.webp", "/assets/frames/crystal.webp",
   "/assets/frames/crystal_hole.webp", "/assets/frames/emerald.webp", "/assets/frames/emerald_hole.webp",
