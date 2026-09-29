@@ -43,6 +43,7 @@
 
   const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
   const normalize = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 9);
+  const fmt = n => Number(n || 0).toLocaleString("en-US");
 
   let ui = null;             /* the deck while it is mounted */
   let run = null;            /* the live run: { token, timers, arena } */
@@ -57,9 +58,11 @@
       '<div class="wd-mid">' +
         '<div class="wd-head">' +
           '<span class="wd-side" data-x="sideA"><b data-x="nameA">—</b>' +
+            '<i class="wd-coins" data-x="coinsA">0</i>' +
             '<span class="wd-pips" data-x="tallyA"><i></i><i></i></span></span>' +
           '<span class="wd-title">GUESS THE WORD</span>' +
           '<span class="wd-side" data-x="sideB"><span class="wd-pips" data-x="tallyB"><i></i><i></i></span>' +
+            '<i class="wd-coins" data-x="coinsB">0</i>' +
             '<b data-x="nameB">—</b></span>' +
         '</div>' +
         '<div class="wd-blanks" data-x="blanks"></div>' +
@@ -74,7 +77,6 @@
         '<form class="wd-form" data-x="form">' +
           '<input autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type the word" ' +
             'aria-label="Word guess" data-x="input">' +
-          '<select aria-label="Who is answering" data-x="select"></select>' +
           '<button type="submit">GUESS</button>' +
         '</form>' +
         '<div class="wd-msg" data-x="msg">Both duelists may answer.</div>' +
@@ -169,23 +171,29 @@
 
     ui.nameA.textContent = A.name;
     ui.nameB.textContent = B.name;
+    ui.coinsA.textContent = fmt(A.coins);
+    ui.coinsB.textContent = fmt(B.coins);
     ui.sideA.classList.remove("win");
     ui.sideB.classList.remove("win");
+    ui.deck.classList.remove("shake");
     pips(ui.tallyA, 0);
     pips(ui.tallyB, 0);
     pips(ui.rounds, 0);
     ui.feed.replaceChildren();
     ui.msg.className = "wd-msg";
 
+    /* Only the two duelists answer, and each answers for their OWN seat - hence
+       no "who is answering" picker. In this round nobody else has a guess to
+       spend; the other two players are not left out, they simply get their own
+       round, because TOP 3 vs TOP 4 runs straight after this one. */
     if (human) {
       ui.form.style.display = "";
-      ui.select.innerHTML = `<option value="a">${A.name}</option><option value="b">${B.name}</option>`;
-      ui.select.value = human;
       ui.input.disabled = false;
-      ui.msg.textContent = `You answer for ${human === "a" ? A.name : B.name}. Both duelists may guess.`;
+      ui.input.placeholder = "Type the word for " + (human === "a" ? A.name : B.name);
+      ui.msg.textContent = `Only ${A.name} and ${B.name} can answer this round.`;
     } else {
       ui.form.style.display = "none";
-      ui.msg.textContent = "Both duelists are bots — spectating.";
+      ui.msg.textContent = `${A.name} vs ${B.name} — both are bots, spectating.`;
     }
 
     /* ---- one picture ---------------------------------------------------- */
@@ -205,7 +213,7 @@
       ui.secs.textContent = String(Math.round(SLOT_MS / 1000));
       ui.fill.style.transform = "scaleX(1)";
       ui.msg.className = "wd-msg";
-      ui.msg.textContent = `Picture ${round} of ${ROUNDS} — name it.`;
+      ui.msg.textContent = `Picture ${round} of ${ROUNDS} — only ${A.name} and ${B.name} can answer.`;
 
       const started = performance.now();
       let open = true;
@@ -239,6 +247,11 @@
         note(`${naming} · ${guess.toUpperCase()}`, "no");
         ui.msg.className = "wd-msg bad";
         ui.msg.textContent = `${naming} guessed ${guess.toUpperCase()} — not it.`;
+        /* a wrong answer is still an event: one small knock so the deck says so
+           even if the message line is the last thing being read */
+        ui.deck.classList.remove("shake");
+        void ui.deck.offsetWidth;
+        ui.deck.classList.add("shake");
       }
 
       /* closeRound ends the picture: a correct answer, or nobody at all inside
@@ -283,15 +296,15 @@
         after(decided ? FINISH_MS : SHOVE_MS, () => advance(decided));
       }
 
+      /* the human answers for their own seat and no other */
       ui.form.onsubmit = event => {
         event.preventDefault();
-        if (!open || !alive(token)) return;
+        if (!open || !alive(token) || !human) return;
         const value = normalize(ui.input.value);
-        const side = ui.select.value;
         ui.input.value = "";
         if (!value) return;
-        if (value === word) closeRound({ side, guess: value });
-        else wrongGuess(side, value);
+        if (value === word) closeRound({ side: human, guess: value });
+        else wrongGuess(human, value);
       };
     }
 

@@ -760,10 +760,17 @@
     ["CoinsA", "CoinsB"].forEach(function (k) { E[k].parentNode.classList.remove("drain", "gain"); });
     E.Ledger.classList.remove("on");
     E.Verdict.textContent = "—";
-    E.RankA.textContent = "TOP " + duel.rankA;
-    E.RankB.textContent = "TOP " + duel.rankB;
-    E.RankA.className = "wp-rank r1";
-    E.RankB.className = "wp-rank r2";
+    /* The chips over the fighters and the headline both name the avatars, not
+       their seeds. A seed is data about which play-off this is, and it already
+       says so in the verdict and the coin card; pinned above a fighter it just
+       read as a label attached to nobody in particular. */
+    E.RankA.textContent = duel.a.name;
+    E.RankB.textContent = duel.b.name;
+    E.RankA.className = "wp-rank name r1";
+    E.RankB.className = "wp-rank name r2";
+    E.Banner.querySelector(".bk").textContent = "GUESS THE CLIPART";
+    E.Banner.querySelector(".bt").textContent = duel.a.name + " vs " + duel.b.name;
+    E.Banner.classList.add("on");
     E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
     E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
     E.PctA.textContent = "100%"; E.PctB.textContent = "100%";

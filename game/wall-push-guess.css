@@ -10,9 +10,30 @@
    the card table, and none of it applies while the reel is playing instead.
    =========================================================================== */
 
+/* Arena chrome in standoff mode -------------------------------------------------
+   The name plates sat under the fighters and said the same thing as the chips
+   above them, in the strip the deck now needs. Standing them down frees
+   everything from the floor line (624) down, so the deck grows from 182 to 226
+   and the picture with it. */
+#wpOverlay.standoff .wp-plate { display: none }
+#wpOverlay.standoff .wp-rank.name {
+  padding: 8px 20px; font-size: 16px; font-weight: 1000;
+  letter-spacing: .6px; text-transform: none;
+}
+/* the banner is an intro flash that fades itself out; here it is the headline
+   that names the pair, so it stays put for the whole duel */
+#wpOverlay.standoff .wp-banner { top: 92px }
+#wpOverlay.standoff .wp-banner .bk { font-size: 11px; letter-spacing: 5px }
+#wpOverlay.standoff .wp-banner .bt {
+  font-size: 36px; font-style: normal; letter-spacing: .4px; text-shadow: 0 5px 0 #000000a6;
+}
+#wpOverlay.standoff .wp-banner.on {
+  animation: none; opacity: 1; transform: translateX(-50%) scale(1);
+}
+
 #wpOverlay .wp-deck {
-  position: absolute; left: 54px; right: 54px; top: 706px; height: 182px;
-  display: flex; align-items: stretch; gap: 16px; padding: 12px;
+  position: absolute; left: 54px; right: 54px; top: 660px; height: 226px;
+  display: flex; align-items: stretch; gap: 18px; padding: 12px;
   border-radius: 20px; z-index: 46;
   background: linear-gradient(180deg, rgba(6, 24, 18, .94), rgba(3, 14, 10, .97));
   border: 1px solid #ffffff2e;
@@ -28,13 +49,13 @@
 
 /* ------------------------------------------------------------------ picture */
 .wp-deck .wd-art {
-  position: relative; flex: 0 0 auto; width: 158px; height: 158px;
-  border-radius: 16px; overflow: hidden; z-index: 1;
+  position: relative; flex: 0 0 auto; width: 200px; height: 200px;
+  border-radius: 18px; overflow: hidden; z-index: 1;
   background: radial-gradient(circle at 50% 40%, #16496f, #071a2c 72%);
   border: 1px solid #ffffff24;
 }
 .wp-deck .wd-art img {
-  position: absolute; inset: 7px; width: calc(100% - 14px); height: calc(100% - 14px);
+  position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px);
   object-fit: contain; filter: drop-shadow(0 8px 14px #000000a0);
 }
 .wp-deck .wd-art img.pop { animation: wdPop .44s cubic-bezier(.2, .9, .25, 1) both }
@@ -42,8 +63,8 @@
 @keyframes wdPop { from { opacity: 0; transform: scale(.8) } to { opacity: 1; transform: scale(1) } }
 @keyframes wdSolved { 0%, 100% { transform: scale(1) } 45% { transform: scale(1.08) } }
 .wp-deck .wd-chip {
-  position: absolute; left: 7px; top: 7px; z-index: 2; padding: 3px 8px;
-  border-radius: 999px; font-size: 9px; font-weight: 900; letter-spacing: 1px;
+  position: absolute; left: 10px; top: 10px; z-index: 2; padding: 4px 11px;
+  border-radius: 999px; font-size: 10px; font-weight: 900; letter-spacing: 1.1px;
   background: #040f0bd9; border: 1px solid #ffffff2e; color: #ffd66b;
 }
 
@@ -64,6 +85,10 @@
 }
 .wp-deck .wd-side b { max-width: 156px; overflow: hidden; text-overflow: ellipsis }
 .wp-deck .wd-side.win { border-color: #20d98a; background: #07402baa }
+.wp-deck .wd-coins {
+  font-style: normal; font-size: 12px; font-weight: 900;
+  color: #ffd66b; font-variant-numeric: tabular-nums;
+}
 .wp-deck .wd-side .wd-pips { display: flex; gap: 4px }
 .wp-deck .wd-side .wd-pips i {
   width: 15px; height: 7px; border-radius: 99px;
@@ -76,9 +101,9 @@
    same place, just with the shape of the answer spelled out. */
 .wp-deck .wd-blanks { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center }
 .wp-deck .wd-blank {
-  width: 27px; height: 36px; border-radius: 8px;
+  width: 34px; height: 46px; border-radius: 10px;
   display: grid; place-items: center;
-  font-size: 17px; font-weight: 1000; color: #eafff5;
+  font-size: 21px; font-weight: 1000; color: #eafff5;
   background: #062a1e; border: 1px solid #ffffff26;
 }
 .wp-deck .wd-blank.on {
@@ -143,12 +168,23 @@
   background: linear-gradient(180deg, #ffe08a, #f5b53c); color: #25170a;
 }
 .wp-deck .wd-form button:active { transform: translateY(1px) }
-.wp-deck .wd-msg { font-size: 10px; min-height: 13px; text-align: center; color: #9fe8c6 }
+.wp-deck .wd-msg { font-size: 11px; min-height: 14px; text-align: center; color: #9fe8c6 }
 .wp-deck .wd-msg.good { color: #20d98a }
 .wp-deck .wd-msg.bad { color: #ff8a95 }
 
+/* a wrong answer is still an event, and the message line is the last thing
+   anyone reads - so the deck itself says so */
+.wp-deck.shake { animation: wdShake .4s ease }
+@keyframes wdShake {
+  0%, 100% { transform: none }
+  20% { transform: translateX(-8px) }
+  45% { transform: translateX(6px) }
+  70% { transform: translateX(-3px) }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #wpOverlay .wp-deck,
+  .wp-deck.shake,
   .wp-deck .wd-art img,
   .wp-deck .wd-blank.on,
   .wp-deck .wd-clock.low .wd-clock-top b { animation: none; transition: none }
