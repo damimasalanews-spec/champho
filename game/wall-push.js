@@ -390,6 +390,15 @@
           gap: -hv.recoil * amp
         };
       }
+      /* STANDOFF: both fighters lean on the slab for as long as the guessing
+         lasts, so this pose has no timeline at all. The side that is winning the
+         contest drives harder and the other is pressed back onto its heels -
+         which is the whole visual feedback loop for a correct answer. */
+      case "live":
+        return isLoser
+          ? { lean: -1.8, squash: .06, advance: -4, entry: 0, gap: 0 }
+          : { lean: 3.4, squash: -.01, advance: 4, entry: 0, gap: 0 };
+
       case "break":
         return isLoser ? { lean: -2.2, squash: .09, advance: -6, entry: 0 }
                        : { lean: 5.5, squash: -.03, advance: 9, entry: 0 };
@@ -406,7 +415,14 @@
     var wall = E.Wall;
     var wallX = S.CENTER, wallRot = 0, wallY = 0;
 
-    if (prog.k === "setup") {
+    if (prog.k === "live") {
+      /* STANDOFF. The slab sits wherever the answers have shoved it - `lead` is
+         that distance in px, `jolt` the momentary kick that lands with a correct
+         answer. The idle tremble stays, because it is the thing that says the two
+         of them are still leaning on the slab rather than posing next to it. */
+      wallX = S.CENTER + (prog.lead || 0) + Math.sin(ms / 38) * 1.5 + (prog.jolt || 0);
+      wallRot = -(wallX - S.CENTER) * .030;
+    } else if (prog.k === "setup") {
       var drop = Math.min(1, prog.t / .86);
       wallY = -150 * (1 - drop * drop);
     } else if (prog.k === "ready") {
@@ -725,6 +741,174 @@
   }
   var aspectByKey = {};
 
+  /* ---------------------------------------------------------------- standoff
+     The combined screen. Where the reel above plays a fixed timeline, the
+     standoff is driven entirely from outside: the clipart contest calls `steps`
+     on every correct answer, `knock` once somebody has two, and `teardown` when
+     the pair is done. It reuses the same rig, the same floor compensation and the
+     same FX as the reel, so the two cannot drift apart in look. */
+  function liveMount(duel, hooks) {
+    var tok = {};
+    var fav = { coins: duel.a.coins, key: duel.a.key };
+    var dog = { coins: duel.b.coins, key: duel.b.key };
+    var e = { tok: tok, fav: fav, dog: dog, dogWins: false,
+              favRank: duel.rankA, dogRank: duel.rankB, st: null };
+
+    E.NameA.textContent = duel.a.name; E.NameB.textContent = duel.b.name;
+    E.TeamA.textContent = duel.a.team || ""; E.TeamB.textContent = duel.b.team || "";
+    E.CoinsA.textContent = fmt(fav.coins); E.CoinsB.textContent = fmt(dog.coins);
+    ["CoinsA", "CoinsB"].forEach(function (k) { E[k].parentNode.classList.remove("drain", "gain"); });
+    E.Ledger.classList.remove("on");
+    E.Verdict.textContent = "—";
+    E.RankA.textContent = "TOP " + duel.rankA;
+    E.RankB.textContent = "TOP " + duel.rankB;
+    E.RankA.className = "wp-rank r1";
+    E.RankB.className = "wp-rank r2";
+    E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
+    E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
+    E.PctA.textContent = "100%"; E.PctB.textContent = "100%";
+    E.Wall.classList.remove("cracked", "shattered", "straining");
+    fxLayer.innerHTML = "";
+    stopShake();
+    curKey = [null, null];
+
+    run = { tok: tok, a: duel.a, b: duel.b, done: false, adv: 1 };
+    var st = { lead: 0, target: 0, joltDir: 1, joltUntil: 0, raf: 0, geo: null, paused: false, dead: false };
+
+    function frame() {
+      if (st.dead) return;
+      if (!run || run.tok !== tok) return;
+      var now = performance.now();
+      st.lead += (st.target - st.lead) * .2;
+      if (Math.abs(st.target - st.lead) < .4) st.lead = st.target;
+      st.raf = requestAnimationFrame(frame);
+      if (st.paused) return;                  // the knockout owns the screen now
+      var jolt = 0;
+      if (now < st.joltUntil) {
+        var u = 1 - (st.joltUntil - now) / 280;
+        jolt = Math.sin(u * Math.PI) * .9 * st.joltDir;
+      }
+      /* adv follows the slab, so the side being driven back is the one who
+         reads as losing ground - the same field the reel derives from the verdict */
+      run.adv = st.target < 0 ? -1 : 1;
+      st.geo = render(now, run.adv, { k: "live", t: 0, lead: st.lead, jolt: jolt });
+    }
+
+    /* one step per correct answer, and the corner sits at two, so both a 2-0 and
+       a 2-1 finish end with the slab fully driven into the loser's side */
+    function steps(n) {
+      if (st.dead) return;
+      st.joltDir = n < 0 ? -1 : 1;
+      st.target = clamp(n, -2, 2) * (S.FULL / 2);
+      st.joltUntil = performance.now() + 280;
+      if (st.geo) {
+        st.geo.forEach(function (g) {
+          if (g.pushDir === st.joltDir) { ring(g.handX, g.handY, "#ffffff"); spark(g.handX, g.handY, 3); }
+        });
+      }
+      kick(7, 200);
+      SFX.shove();
+    }
+
+    /* the meters read 'how much of the wall you still hold': every answer the
+       other side lands costs you half of it */
+    function charge(a, b) {
+      if (st.dead) return;
+      var pa = clamp(100 - Math.max(0, b - a) * 50, 0, 100);
+      var pb = clamp(100 - Math.max(0, a - b) * 50, 0, 100);
+      E.FillA.style.width = pa + "%"; E.PctA.textContent = pa + "%";
+      E.FillB.style.width = pb + "%"; E.PctB.textContent = pb + "%";
+      E.MeterA.classList.toggle("dying", pa <= 50);
+      E.MeterB.classList.toggle("dying", pb <= 50);
+    }
+
+    function knock(side, done) {
+      if (st.dead) return;
+      var adv = side === "a" ? 1 : -1;
+      e.dogWins = adv < 0;
+      e.st = settle(fav, dog, e.dogWins);
+      run.adv = adv;
+      st.paused = true;                    // the live loop yields to this
+      st.lead = st.target = adv * S.FULL;
+      st.joltUntil = 0;
+      render(performance.now(), adv, { k: "live", t: 0, lead: st.lead, jolt: 0 });
+      E.Wall.classList.add("shattered");
+      E.FillA.style.width = (adv > 0 ? 100 : 0) + "%"; E.PctA.textContent = (adv > 0 ? 100 : 0) + "%";
+      E.FillB.style.width = (adv < 0 ? 100 : 0) + "%"; E.PctB.textContent = (adv < 0 ? 100 : 0) + "%";
+      (adv > 0 ? E.MeterB : E.MeterA).classList.add("dying");
+      kick(26, 460);
+      var face = S.CENTER + adv * S.FULL - adv * S.WALL_HW;
+      ring(face, 560, "#ffffff");
+      ring(face, 560, adv < 0 ? "#39a1ff" : "#ff4d62");
+      debris(face, 560, adv, 18);
+      var loser = st.geo ? st.geo[adv < 0 ? 0 : 1] : null;
+      if (loser) {
+        dust(loser.cx, S.FLOOR - 4, adv, 12);
+        streaks(loser.cx, 560, adv, 5);
+        skid(loser.cx, S.FLOOR + 2, adv);
+        sweat(loser.cx, S.FLOOR - loser.H * .92, 6);
+      }
+      SFX.slam();
+
+      var seq = [["break", 300], ["impact", 520], ["result", 1050], ["settle", 420]], i = 0;
+      (function step() {
+        if (st.dead || !run || run.tok !== tok) return;
+        if (i >= seq.length) { ledger(e); if (done) done(); return; }
+        var ph = seq[i++], t0 = performance.now();
+        (function sub() {
+          if (st.dead || !run || run.tok !== tok) return;
+          var t = clamp((performance.now() - t0) / (ph[1] / RATE), 0, 1);
+          render(performance.now(), adv, { k: ph[0], t: t });
+          if (t < 1) requestAnimationFrame(sub); else step();
+        })();
+      })();
+    }
+
+    function teardown() {
+      st.dead = true;
+      if (st.raf) cancelAnimationFrame(st.raf);
+      run = null;
+      abort = null;
+      root.classList.remove("on");
+      root.classList.remove("standoff");
+      fxLayer.innerHTML = "";
+      stopShake();
+    }
+
+    abort = function () { if (hooks.onSkip) hooks.onSkip(); };
+    root.classList.add("standoff");
+    root.classList.add("on");
+    fit();
+    st.raf = requestAnimationFrame(frame);
+
+    return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
+             knock: knock, teardown: teardown };
+  }
+
+  /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]
+     opts:  { onReady(handle|null), onSkip, sound }
+     Hands back a handle only when the sprites decoded - an armless silhouette
+     cannot read as a push, so the caller is told to fall back instead. */
+  function standoff(duel, opts) {
+    opts = opts || {};
+    SOUND = opts.sound !== false;
+    RATE = 1;
+    FX.shake = opts.shake !== false;  FX.debris = opts.debris !== false;
+    FX.dust = opts.dust !== false;    FX.spark = opts.spark !== false;
+    FX.coins = opts.coins !== false;
+    build();
+    var ready = opts.onReady || function () {};
+    preloadBodies([duel.a.key, duel.b.key], function (ok) {
+      if (!ok) {
+        console.warn("wall-push: sprites failed to load, skipping the standoff");
+        ready(null);
+        return;
+      }
+      aspect = [aspectByKey[duel.a.key] || 1, aspectByKey[duel.b.key] || 1];
+      ready(liveMount(duel, opts));
+    });
+  }
+
   window.ChampWallPush = {
     /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...] */
     play: function (duels, opts) {
@@ -784,6 +968,7 @@
         next();
       });
     },
+    standoff: standoff,
     spriteFor: function (key) { return BODIES[key]; }
   };
 })();

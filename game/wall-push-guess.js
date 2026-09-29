@@ -1,20 +1,20 @@
 /* ===========================================================================
-   WALL PUSH — CLIPART GUESSING CONTEST
+   WALL PUSH — THE STANDOFF
    ---------------------------------------------------------------------------
-   The wall push used to decide its winner with Math.random(). This module is
-   what replaces that: instead of a coin flip, the two duelists are shown a 3D
-   clipart drawing of a word and race to name it.
+   The wall push and the clipart contest, on one screen.
 
-     - four cliparts per duel, 30 seconds each
-     - a correct answer shoves the slab one step toward the opponent
-     - a correct answer from the other side shoves it back
-     - the first duelist to TWO correct answers drives the slab into the
-       opponent's corner and that opponent goes down
+   The duel module used to decide its winner with Math.random() and play the
+   result as a separate 6.5 second reel. Neither happens now. This module mounts
+   the same arena in a "standoff" mode - both fighters leaning on the slab, no
+   timeline - and puts the guessing deck underneath it, so the picture that moves
+   the wall and the wall moving are in the same view at the same time.
 
-   The contest renders into the round's own grid section - the seven-word rail
-   carries the answer's letter boxes, the centre carries the picture, the
-   leaderboard rail carries the two duelists and the slab. The layout is the
-   game's; only the contents change.
+     - four 3D clipart pictures of words per duel, 30 seconds each
+     - a correct answer shoves the slab one step toward the opponent, lives, and
+       drains half of the opponent's push power with it
+     - a correct answer from the other side shoves it straight back
+     - the first duelist to TWO correct answers drives it into the opponent's
+       corner, that opponent goes down, and the coin card prints
 
    Every word in POOL was checked against game/english-word-bank.js, so the
    contest can only ask for words a player could also have met on the board.
@@ -31,105 +31,70 @@
     "diamond", "giraffe", "butterfly", "pineapple"
   ];
   const ART = w => `assets/clipart/${w}.webp`;
-  const HEADS = {
-    boy: "assets/avatars/pumpkin-boy.webp",
-    girl: "assets/avatars/pumpkin-girl.webp"
-  };
 
   const ROUNDS = 4;          /* four cliparts in a duel */
   const SLOT_MS = 30000;     /* 30 seconds for each one */
   const NEED = 2;            /* first to two correct answers takes the wall */
   const TICK_MS = 100;
   const BOT_SKILL = 0.78;    /* how often a bot actually knows the picture */
-  const RESOLVE_MS = 1250;   /* beat between the knockout and the post-match reel */
+  const SHOVE_MS = 1150;     /* beat between a shove and the next picture */
+  const FINISH_MS = 1000;    /* beat between the winning answer and the knockout */
+  const CARD_MS = 4200;      /* how long the coin card is held before the next pair */
 
   const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
   const normalize = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 9);
 
-  let root = null;     /* the three contest panels while they are mounted */
-  let run = null;      /* the live run: { token, timers } */
+  let ui = null;             /* the deck while it is mounted */
+  let run = null;            /* the live run: { token, timers, arena } */
 
-  /* ====================================================================== DOM */
-  function build() {
-    const row = document.querySelector(".gwx-board-row");
-    const table = document.getElementById("table");
-    if (!row || !table) return null;
-
-    const slots = document.createElement("section");
-    slots.className = "gwx-word-panel wgx wgx-slots";
-    slots.innerHTML =
-      '<h2 class="gwx-side-heading">GUESS THE WORD</h2>' +
-      '<div class="wgx-title">TOP <b data-x="rankA">1</b> vs TOP <b data-x="rankB">2</b></div>' +
-      '<div class="wgx-slotrow" data-x="slots"></div>' +
-      '<div class="wgx-feed" data-x="feed"></div>';
-
-    const stage = document.createElement("div");
-    stage.className = "gwx-letter-grid-shell wgx wgx-stage";
-    stage.innerHTML =
-      '<div class="wgx-head-row">' +
-        '<span class="wgx-kicker">CLIPART <b data-x="n">1</b> / ' + ROUNDS + '</span>' +
-        /* the marks have to exist: pips() toggles the children it finds, so an
-           empty span is a progress bar that can never light up */
-        '<span class="wgx-pips" data-x="rounds">' + '<i></i>'.repeat(ROUNDS) + '</span>' +
-      '</div>' +
-      '<div class="wgx-art" data-x="art"><img alt="" data-x="img"></div>' +
-      '<div class="wgx-clock" data-x="clock">' +
-        '<div class="wgx-clock-top"><span>SECONDS LEFT</span><b data-x="secs">30</b></div>' +
-        '<div class="wgx-clock-track"><div class="wgx-clock-fill" data-x="fill"></div></div>' +
-      '</div>' +
-      '<form class="gwx-guess-form wgx-form" data-x="form">' +
-        '<input autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type the word" aria-label="Word guess" data-x="input">' +
-        '<select aria-label="Who is answering" data-x="select"></select>' +
-        '<button type="submit">GUESS</button>' +
-      '</form>' +
-      '<div class="wgx-msg" data-x="msg">Both duelists may answer.</div>';
-
-    const tally = document.createElement("section");
-    tally.className = "gwx-leaderboard wgx wgx-tally";
-    tally.innerHTML =
-      '<h2 class="gwx-side-heading">THE WALL</h2>' +
-      '<div class="wgx-duelist" data-x="da">' +
-        '<img alt="" data-x="ava">' +
-        '<b data-x="nameA">—</b>' +
-        '<span class="wgx-pips" data-x="pipsA"><i></i><i></i></span>' +
-      '</div>' +
-      '<div class="wgx-track" data-x="track">' +
-        '<span class="wgx-corner l"></span><span class="wgx-corner r"></span>' +
-        '<div class="wgx-rig" data-x="rig">' +
-          '<img class="wgx-head" alt="" data-x="headA">' +
-          '<i class="wgx-slab"></i>' +
-          '<img class="wgx-head" alt="" data-x="headB">' +
+  /* ============================================================== the deck UI */
+  function buildDeck(stage) {
+    const deck = document.createElement("div");
+    deck.className = "wp-deck";
+    deck.innerHTML =
+      '<div class="wd-art"><span class="wd-chip">CLIPART <b data-x="n">1</b>/' + ROUNDS + '</span>' +
+        '<img alt="" data-x="img"></div>' +
+      '<div class="wd-mid">' +
+        '<div class="wd-head">' +
+          '<span class="wd-side" data-x="sideA"><b data-x="nameA">—</b>' +
+            '<span class="wd-pips" data-x="tallyA"><i></i><i></i></span></span>' +
+          '<span class="wd-title">GUESS THE WORD</span>' +
+          '<span class="wd-side" data-x="sideB"><span class="wd-pips" data-x="tallyB"><i></i><i></i></span>' +
+            '<b data-x="nameB">—</b></span>' +
         '</div>' +
+        '<div class="wd-blanks" data-x="blanks"></div>' +
+        '<div class="wd-feed" data-x="feed"></div>' +
       '</div>' +
-      '<div class="wgx-duelist" data-x="db">' +
-        '<img alt="" data-x="avb">' +
-        '<b data-x="nameB">—</b>' +
-        '<span class="wgx-pips" data-x="pipsB"><i></i><i></i></span>' +
-      '</div>' +
-      '<div class="wgx-msg" data-x="verdict">First to ' + NEED + ' correct answers.</div>';
+      '<div class="wd-right">' +
+        '<div class="wd-clock" data-x="clock">' +
+          '<div class="wd-clock-top"><span>SECONDS LEFT</span><b data-x="secs">30</b>' +
+            '<span class="wd-rounds" data-x="rounds">' + "<i></i>".repeat(ROUNDS) + '</span></div>' +
+          '<div class="wd-bar"><i data-x="fill"></i></div>' +
+        '</div>' +
+        '<form class="wd-form" data-x="form">' +
+          '<input autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type the word" ' +
+            'aria-label="Word guess" data-x="input">' +
+          '<select aria-label="Who is answering" data-x="select"></select>' +
+          '<button type="submit">GUESS</button>' +
+        '</form>' +
+        '<div class="wd-msg" data-x="msg">Both duelists may answer.</div>' +
+      '</div>';
+
+    stage.appendChild(deck);
 
     const find = {};
-    [slots, stage, tally].forEach(node => {
-      node.querySelectorAll("[data-x]").forEach(el => { find[el.dataset.x] = el; });
-    });
-
-    row.append(slots, stage, tally);
-    row.classList.add("wg-on");
-    table.classList.add("wg-on");
-
-    root = { row, table, slots, stage, tally, find };
-    return root;
+    deck.querySelectorAll("[data-x]").forEach(el => { find[el.dataset.x] = el; });
+    find.deck = deck;
+    ui = find;
+    return ui;
   }
 
-  function teardown() {
-    if (!root) return;
-    root.row.classList.remove("wg-on");
-    root.table.classList.remove("wg-on");
-    [root.slots, root.stage, root.tally].forEach(n => n.remove());
-    root = null;
+  function dropDeck() {
+    if (ui && ui.deck && ui.deck.parentNode) ui.deck.parentNode.removeChild(ui.deck);
+    ui = null;
   }
 
-  /* ================================================================ rendering */
+  /* ================================================================= helpers */
   function pips(host, n) {
     [...host.children].forEach((i, index) => i.classList.toggle("on", index < n));
   }
@@ -138,8 +103,7 @@
     host.replaceChildren();
     for (const ch of word) {
       const b = document.createElement("span");
-      b.className = "wgx-blank";
-      b.textContent = "";
+      b.className = "wd-blank";
       b.dataset.letter = ch.toUpperCase();
       host.appendChild(b);
     }
@@ -152,32 +116,26 @@
     });
   }
 
+  /* the deck is 180px tall, so the feed runs across instead of down */
   function note(text, kind) {
-    const f = root.find.feed;
-    const line = document.createElement("div");
-    const left = document.createElement("span");
-    left.textContent = text;
-    const right = document.createElement("span");
-    if (kind) right.className = kind;
-    right.textContent = kind === "ok" ? "✓" : kind === "no" ? "✗" : "";
-    line.append(left, right);
-    f.prepend(line);
-    while (f.children.length > 5) f.lastElementChild.remove();
+    const line = document.createElement("span");
+    line.className = kind || "";
+    line.textContent = text;
+    ui.feed.prepend(line);
+    while (ui.feed.children.length > 3) ui.feed.lastElementChild.remove();
   }
 
-  /* ==================================================================== timing */
-  function timers() {
-    if (!run) run = { token: {}, timers: [] };
-    return run.timers;
-  }
+  /* ================================================================== timing */
   function after(ms, fn) {
+    if (!run) return 0;
     const id = window.setTimeout(() => { if (run) fn(); }, ms);
-    timers().push(id);
+    run.timers.push(id);
     return id;
   }
   function every(ms, fn) {
+    if (!run) return 0;
     const id = window.setInterval(() => { if (run) fn(); }, ms);
-    timers().push(id);
+    run.timers.push(id);
     return id;
   }
   function clearTimers() {
@@ -190,8 +148,8 @@
   function preload(words, cb) {
     let left = words.length;
     if (!left) { cb(); return; }
-    let done = false;
-    const finish = () => { if (done) return; done = true; cb(); };
+    let fired = false;
+    const finish = () => { if (!fired) { fired = true; cb(); } };
     after(3000, finish);                       /* never hold the contest hostage */
     words.forEach(w => {
       const im = new Image();
@@ -200,81 +158,75 @@
     });
   }
 
-  /* ===================================================================== duel */
-  function playDuel(duel, token, done) {
+  /* ==================================================================== duel */
+  function runDuel(duel, token, onSettled) {
     const A = duel.a, B = duel.b;
-    const f = root.find;
+    const arena = run.arena;
     const words = [...POOL].sort(() => Math.random() - 0.5).slice(0, ROUNDS);
     const tally = { a: 0, b: 0 };
     const human = A.id === "champ" ? "a" : B.id === "champ" ? "b" : null;
     let round = 0;
 
-    f.rankA.textContent = String(duel.rankA);
-    f.rankB.textContent = String(duel.rankB);
-    f.nameA.textContent = A.name;
-    f.nameB.textContent = B.name;
-    f.ava.src = HEADS[A.key] || HEADS.boy;
-    f.avb.src = HEADS[B.key] || HEADS.girl;
-    f.headA.src = f.ava.src;
-    f.headB.src = f.avb.src;
-    f.da.classList.remove("win");
-    f.db.classList.remove("win");
-    f.headA.classList.remove("fall");
-    f.headB.classList.remove("fall");
-    f.track.style.setProperty("--wg-push", "0");
-    pips(f.pipsA, 0);
-    pips(f.pipsB, 0);
-    f.feed.replaceChildren();
-    f.verdict.textContent = `TOP ${duel.rankA} vs TOP ${duel.rankB} — first to ${NEED} correct answers.`;
+    ui.nameA.textContent = A.name;
+    ui.nameB.textContent = B.name;
+    ui.sideA.classList.remove("win");
+    ui.sideB.classList.remove("win");
+    pips(ui.tallyA, 0);
+    pips(ui.tallyB, 0);
+    pips(ui.rounds, 0);
+    ui.feed.replaceChildren();
+    ui.msg.className = "wd-msg";
 
     if (human) {
-      f.form.style.display = "";
-      f.select.innerHTML = `<option value="a">${A.name}</option><option value="b">${B.name}</option>`;
-      f.select.value = human;
-      f.input.disabled = false;
-      f.msg.textContent = `You answer for ${human === "a" ? A.name : B.name}. Both duelists may guess.`;
+      ui.form.style.display = "";
+      ui.select.innerHTML = `<option value="a">${A.name}</option><option value="b">${B.name}</option>`;
+      ui.select.value = human;
+      ui.input.disabled = false;
+      ui.msg.textContent = `You answer for ${human === "a" ? A.name : B.name}. Both duelists may guess.`;
     } else {
-      f.form.style.display = "none";
-      f.msg.textContent = "Both duelists are bots — spectating.";
+      ui.form.style.display = "none";
+      ui.msg.textContent = "Both duelists are bots — spectating.";
     }
 
-    /* ---- one clipart ---------------------------------------------------- */
+    /* ---- one picture ---------------------------------------------------- */
     function runRound(word) {
       clearTimers();
       if (!alive(token)) return;
 
-      f.n.textContent = String(round);
-      pips(f.rounds, round);
-      const clock = f.clock, fill = f.fill, secs = f.secs;
-      f.art.classList.remove("done");
-      f.img.src = ART(word);
-      blanks(f.slots, word);
-      clock.classList.remove("low");
-      secs.textContent = String(Math.round(SLOT_MS / 1000));
-      fill.style.transform = "scaleX(1)";
-      f.verdict.textContent = `${round} of ${ROUNDS} — name the picture.`;
+      ui.n.textContent = String(round);
+      pips(ui.rounds, round);
+      ui.img.classList.remove("solved");
+      ui.img.classList.remove("pop");
+      void ui.img.offsetWidth;
+      ui.img.src = ART(word);
+      ui.img.classList.add("pop");
+      blanks(ui.blanks, word);
+      ui.clock.classList.remove("low");
+      ui.secs.textContent = String(Math.round(SLOT_MS / 1000));
+      ui.fill.style.transform = "scaleX(1)";
+      ui.msg.className = "wd-msg";
+      ui.msg.textContent = `Picture ${round} of ${ROUNDS} — name it.`;
 
       const started = performance.now();
       let open = true;
 
       every(TICK_MS, () => {
         const left = Math.max(0, SLOT_MS - (performance.now() - started));
-        secs.textContent = String(Math.ceil(left / 1000));
-        fill.style.transform = "scaleX(" + (left / SLOT_MS).toFixed(4) + ")";
-        clock.classList.toggle("low", left <= 10000);
+        ui.secs.textContent = String(Math.ceil(left / 1000));
+        ui.fill.style.transform = "scaleX(" + (left / SLOT_MS).toFixed(4) + ")";
+        ui.clock.classList.toggle("low", left <= 10000);
         if (left <= 0) closeRound(null);
       });
 
-      /* the bots decide whether they know this picture, and when they say so */
       ["a", "b"].forEach(side => {
         const who = side === "a" ? A : B;
         if (who.id === "champ") return;
         if (Math.random() > BOT_SKILL) return;
         const at = 3500 + Math.random() * 22500;
         const other = POOL[Math.floor(Math.random() * POOL.length)];
-        /* A wrong guess is only a wrong guess. It used to close the round, which
-           cancelled the same bot's own pending right answer along with every
-           other timer in flight - so the duel could never score at all. */
+        /* a wrong guess is only a wrong guess: it used to close the round, which
+           cancelled the same bot's pending right answer along with every other
+           timer in flight, so a duel could never score at all */
         if (other !== word && Math.random() < 0.45) {
           after(Math.max(1400, at - 2600), () => wrongGuess(side, other));
         }
@@ -285,104 +237,92 @@
         if (!open || !alive(token)) return;
         const naming = side === "a" ? A.name : B.name;
         note(`${naming} · ${guess.toUpperCase()}`, "no");
-        f.msg.textContent = `${naming} guessed ${guess.toUpperCase()} — not it.`;
+        ui.msg.className = "wd-msg bad";
+        ui.msg.textContent = `${naming} guessed ${guess.toUpperCase()} — not it.`;
       }
 
-      /* closeRound ends the round: a correct answer, or nobody at all in thirty
-         seconds. A wrong guess deliberately leaves it running. */
+      /* closeRound ends the picture: a correct answer, or nobody at all inside
+         thirty seconds. A wrong guess deliberately leaves it running. */
       function closeRound(result) {
         if (!open) return;
         open = false;
         clearTimers();
 
         if (!result) {
-          revealBlanks(f.slots, false);
+          revealBlanks(ui.blanks, false);
           note(`TIME UP · ${word.toUpperCase()}`, "no");
-          f.msg.textContent = `Time up — the picture was ${word.toUpperCase()}.`;
-          after(1000, () => advance(false));
+          ui.msg.className = "wd-msg bad";
+          ui.msg.textContent = `Time up — the picture was ${word.toUpperCase()}.`;
+          after(1200, () => advance(false));
           return;
         }
 
-        {
-          const by = result.side;
-          tally[by]++;
-          pips(by === "a" ? f.pipsA : f.pipsB, tally[by]);
-          f.art.classList.add("done");
-          revealBlanks(f.slots, true);
-          const naming = by === "a" ? A.name : B.name;
-          note(`${naming} · ${word.toUpperCase()}`, "ok");
-          f.msg.textContent = `${naming} has it — the wall takes a shove!`;
-          f.verdict.textContent = `${word.toUpperCase()} · ${tally.a} — ${tally.b}`;
-          const decided = tally[by] >= NEED;
-          /* the finishing answer is the one that drives the slab into the
-             opponent's corner, so a 2-1 duel ends with the loser buried in the
-             corner rather than stranded in the middle */
-          if (decided) {
-            f.track.style.setProperty("--wg-push", by === "a" ? "2" : "-2");
-            f.rig.classList.add("crash");
-            (by === "a" ? f.headB : f.headA).classList.add("fall");
-            f.da.classList.toggle("win", by === "a");
-            f.db.classList.toggle("win", by === "b");
-          } else {
-            f.track.style.setProperty("--wg-push", String(clamp(tally.a - tally.b, -NEED, NEED)));
-          }
-          after(decided ? RESOLVE_MS : 1150, () => advance(decided));
+        const by = result.side;
+        tally[by]++;
+        pips(by === "a" ? ui.tallyA : ui.tallyB, tally[by]);
+        ui.img.classList.add("solved");
+        revealBlanks(ui.blanks, true);
+
+        const naming = by === "a" ? A.name : B.name;
+        note(`${naming} · ${word.toUpperCase()}`, "ok");
+        ui.msg.className = "wd-msg good";
+        ui.msg.textContent = `${naming} has it — the wall takes a shove!`;
+
+        /* net answers in that side's favour: +1 shoves the slab toward the
+           opponent, and an answer from the other side shoves it straight back */
+        const net = tally.a - tally.b;
+        if (arena && arena.steps) arena.steps(net);
+        if (arena && arena.charge) arena.charge(tally.a, tally.b);
+
+        const decided = tally[by] >= NEED;
+        if (decided) {
+          ui.sideA.classList.toggle("win", by === "a");
+          ui.sideB.classList.toggle("win", by === "b");
+          ui.msg.textContent = `${naming} takes the wall ${Math.max(tally.a, tally.b)} — ${Math.min(tally.a, tally.b)}.`;
         }
+        after(decided ? FINISH_MS : SHOVE_MS, () => advance(decided));
       }
 
-      /* the human's answer for this round */
-      f.form.onsubmit = event => {
+      ui.form.onsubmit = event => {
         event.preventDefault();
         if (!open || !alive(token)) return;
-        const value = normalize(f.input.value);
-        const side = f.select.value;
-        f.input.value = "";
+        const value = normalize(ui.input.value);
+        const side = ui.select.value;
+        ui.input.value = "";
         if (!value) return;
         if (value === word) closeRound({ side, guess: value });
         else wrongGuess(side, value);
       };
     }
 
-    /* `round` is 1-based here: the counter and the round pips read straight off
-       it, and the first round is entered by calling advance() rather than
-       runRound() directly - entering at round 0 rendered "CLIPART 0 / 4" with no
-       pip lit for the whole first picture. */
+    /* `round` is 1-based: the chip and the round pips read straight off it, and
+       the first picture is entered by calling advance() rather than runRound()
+       directly - entering at 0 rendered "CLIPART 0 / 4" with no pip lit. */
     function advance(decided) {
       if (!alive(token)) return;
-      if (decided) return finish();
+      if (decided) return settle();
       round++;
-      if (round > ROUNDS || tally.a >= NEED || tally.b >= NEED) return finish();
+      if (round > ROUNDS || tally.a >= NEED || tally.b >= NEED) return settle();
       runRound(words[round - 1]);
     }
 
-    function finish() {
-      if (!alive(token)) return;
+    function settle() {
       clearTimers();
-      f.form.onsubmit = null;
-      /* No coin flip and no invented winner: the louder tally takes the wall,
+      ui.form.onsubmit = null;
+      /* no coin flip and no invented winner: the louder tally takes the wall,
          and a dead heat goes to the higher seed, which is at least a rule a
-         player can learn. It cannot happen in a 2-1 or 2-0 finish. */
+         player can learn. It cannot happen in a 2-1 or a 2-0 finish. */
       const winner = tally.b > tally.a ? "b" : "a";
-      const loser = winner === "a" ? "b" : "a";
-      f.track.style.setProperty("--wg-push", winner === "a" ? "2" : "-2");
-      f.rig.classList.add("crash");
-      (winner === "a" ? f.headB : f.headA).classList.add("fall");
-      f.da.classList.toggle("win", winner === "a");
-      f.db.classList.toggle("win", winner === "b");
-      f.verdict.textContent = tally.a === tally.b
-        ? `Level at ${tally.a} — TOP ${winner === "a" ? duel.rankA : duel.rankB} holds the wall.`
-        : `TOP ${winner === "a" ? duel.rankA : duel.rankB} takes the wall ${Math.max(tally.a, tally.b)} — ${Math.min(tally.a, tally.b)}.`;
-      after(700, () => done({
+      onSettled({
         rankA: duel.rankA, rankB: duel.rankB, winner,
-        correctA: tally.a, correctB: tally.b,
-        loserName: (loser === "a" ? A : B).name
-      }));
+        correctA: tally.a, correctB: tally.b
+      });
     }
 
     preload(words, () => { if (alive(token)) advance(false); });
   }
 
-  /* ==================================================================== module */
+  /* =================================================================== module */
   window.ChampWallGuess = {
     pool: POOL,
     rounds: ROUNDS,
@@ -390,52 +330,92 @@
 
     /* duels: [{ rankA, rankB, a:{id,name,coins,team,key}, b:{...} }, ...]
        opts:   { push, onDone, sound }
-       Each duel is raced here, then handed to `push` as a DECIDED duel so the
-       post-match reel can no longer pick its own winner. */
+
+       Each duel is raced on the shared screen and handed to `push.knock` with a
+       verdict, so the arena no longer picks its own winner. */
     play: function (duels, opts) {
       opts = opts || {};
       const done = opts.onDone || function () {};
+      const push = opts.push;
       const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
       if (!duels || !duels.length || reduced) { done([]); return; }
-      if (!build()) { done([]); return; }
+      if (!push || typeof push.standoff !== "function") { done([]); return; }
 
       const token = {};
-      run = { token, timers: [] };
-      const results = [];
-      let idx = 0;
+      run = { token, timers: [], arena: null };
 
-      function next() {
+      let idx = 0;
+      let results = [];
+
+      function cleanup() {
+        if (run && run.arena) run.arena.teardown();
+        clearTimers();
+        dropDeck();
+        run = null;
+      }
+
+      function bail() {                       /* sprite load failed, or SKIP */
+        if (!alive(token)) return;
+        const sofar = results.slice();
+        cleanup();
+        done(sofar);
+      }
+
+      function nextDuel() {
         if (!alive(token)) return;
         if (idx >= duels.length) {
-          clearTimers();
-          run = null;
-          teardown();
-          done(results);
+          const all = results.slice();
+          cleanup();
+          done(all);
           return;
         }
         const duel = duels[idx];
-        playDuel(duel, token, verdict => {
-          results.push(verdict);
-          idx++;
-          const push = opts.push;
-          if (push && typeof push.play === "function") {
-            push.play([{
-              rankA: duel.rankA, rankB: duel.rankB, a: duel.a, b: duel.b,
-              winner: verdict.winner
-            }], { sound: opts.sound, onDone: next });
-          } else {
-            next();
+        let opened = false;
+        push.standoff(duel, {
+          sound: opts.sound,
+          onSkip: bail,
+          onReady: function (handle) {
+            if (!alive(token)) { if (handle) handle.teardown(); return; }
+            if (!handle) { bail(); return; }
+            opened = true;
+            run.arena = handle;
+            buildDeck(handle.stage);
+            runDuel(duel, token, function (verdict) {
+              if (!alive(token)) return;
+              results.push(verdict);
+              /* the knockout belongs to the arena and it is told the verdict,
+                 so there is no second place a winner could be chosen */
+              handle.knock(verdict.winner, function () {
+                after(CARD_MS, function () {
+                  if (!alive(token)) return;
+                  handle.teardown();
+                  run.arena = null;
+                  dropDeck();
+                  idx++;
+                  nextDuel();
+                });
+              });
+            });
           }
         });
+        /* the arena builds synchronously and preloads both bodies; if that
+           preload never resolves the whole post-match would hang, so a hard
+           ceiling hands the round back to the result card */
+        window.setTimeout(function () {
+          if (alive(token) && !opened) bail();
+        }, 6000);
       }
-      next();
+
+      nextDuel();
     },
 
     /* a round reset must not leave a bot's answer queued for the next board */
     cancel: function () {
+      if (run && run.arena) run.arena.teardown();
       clearTimers();
+      dropDeck();
       run = null;
-      teardown();
     }
   };
 })();
