@@ -1,5 +1,5 @@
-import { WORD_BANK } from './english-word-bank.js?v=coins-10';
-import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?v=coins-10';
+import { WORD_BANK } from './english-word-bank.js?v=coins-11';
+import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?v=coins-11';
 
 (() => {
   'use strict';
@@ -16,6 +16,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   let round = null;
   let timer = null;
   let botTimers = [];
+  let resultReveal = 0;   /* pending reveal of the round-end modal */
   let secondsLeft = 120;
   let path = [];
 
@@ -165,8 +166,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     $('roundMessage').textContent = `${PLAYERS.find(item => item.id === playerId).name} found ${word.toUpperCase()} · +${coins} coins!`;
     /* presentation only: the word is thrown into the grid, dances, becomes coins,
        and those coins arc to whoever scored. Falls back to the plain shower. */
-    if (window.__champCoins?.celebrate) window.__champCoins.celebrate(playerId, word, cells, coins);
-    else window.__champCoins?.play(playerId, coins);
+    if (window.__champCoins?.celebrate) return window.__champCoins.celebrate(playerId, word, cells, coins);
+    window.__champCoins?.play(playerId, coins);
+    return 0;
   }
 
   function submitGuess(value, playerId) {
@@ -191,8 +193,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     renderSlots();
     renderScores();
     renderPath();
-    animateCoins(playerId, result.coins, result.word, target.path);
-    if (round.found.size === round.layout.words.length) finishRound('all-found');
+    const revealAfter = animateCoins(playerId, result.coins, result.word, target.path);
+    if (round.found.size === round.layout.words.length) finishRound('all-found', revealAfter);
     return true;
   }
 
@@ -213,7 +215,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }, delay));
   }
 
-  function finishRound(reason) {
+  function finishRound(reason, wait = 0) {
     if (!round || round.ended) return;
     round.ended = true;
     window.clearInterval(timer);
@@ -223,10 +225,21 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const winner = totals.A === totals.B ? null : totals.A > totals.B ? 'A' : 'B';
     $('resultTitle').textContent = winner ? `TEAM ${winner} WINS` : 'IT’S A TIE';
     $('resultText').textContent = `Team A ${totals.A} coins · Team B ${totals.B} coins. ${reason === 'all-found' ? `All ${round.layout.words.length} words found!` : `${round.found.size} of ${round.layout.words.length} words found.`}`;
-    $('resultModal').classList.add('open');
-    $('resultModal').setAttribute('aria-hidden', 'false');
-    /* presentation only: the round-win cascade, once per round, obeying the mute toggle */
-    window.__champCoins?.winStinger?.();
+    /* The round normally ends on the word that was just found, so its celebration
+       is still on screen. Hold the modal - and the cascade - back until that
+       celebration has landed its coins, or the player never sees the word that
+       won them the round: it plays behind the blur. A clock expiry has no
+       celebration, so wait is 0 and the modal opens at once. */
+    const reveal = () => {
+      resultReveal = 0;
+      if (!round) return;
+      $('resultModal').classList.add('open');
+      $('resultModal').setAttribute('aria-hidden', 'false');
+      /* presentation only: the round-win cascade, once per round, obeying the mute toggle */
+      window.__champCoins?.winStinger?.();
+    };
+    resultReveal = wait > 0 ? window.setTimeout(reveal, wait) : 0;
+    if (wait <= 0) reveal();
   }
 
   function updateTimer() {
@@ -240,6 +253,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        replaced. Without this its letters keep floating over the new grid at the
        old coordinates until their own timers expire. */
     window.__champCoins?.cancel?.();
+    window.clearTimeout(resultReveal);
+    resultReveal = 0;
     window.clearInterval(timer);
     botTimers.forEach(id => window.clearTimeout(id));
     $('resultModal').classList.remove('open');

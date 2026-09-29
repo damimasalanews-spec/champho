@@ -742,6 +742,9 @@
     if (ctx) ctx.clearRect(0, 0, W, H);
   }
 
+  /* Returns how long until the coins start flying, in ms, so the caller can hold
+     the result modal back until the word that won the round has been seen. The
+     zero returns mean the sequence did not run; there is nothing to wait for. */
   function celebrate(playerId, word, cells, amount) {
     const grid = document.getElementById('letterGrid');
     const avatar = document.querySelector('.gwx-seat[data-player="' + playerId + '"] .gwx-avatar');
@@ -749,9 +752,9 @@
     /* no usable path, or motion is off: the plain shower is the honest answer */
     if (reduce || !grid || !avatar || !Array.isArray(cells) || !cells.length) {
       play(playerId, amount);
-      return;
+      return 0;
     }
-    if (!ensureCanvas()) return;
+    if (!ensureCanvas()) return 0;
     if (!raf) { coins.length = 0; sparks.length = 0; settles.length = 0; }
     cancelSequence();
 
@@ -793,7 +796,7 @@
       parts.push({ el, shadow, mid: { x: r.left + r.width / 2, y: r.top + r.height / 2 } });
     });
 
-    if (!parts.length) { releaseTiles(); play(playerId, amount); return; }
+    if (!parts.length) { releaseTiles(); play(playerId, amount); return 0; }
 
     /* 1 — thrown from the seat onto the cells that spell the word */
     parts.forEach((p, i) => {
@@ -903,6 +906,10 @@
       host.textContent = '';
       play(playerId, amount, { x: cx / parts.length, y: cy / parts.length });
     });
+
+    /* the coins leave at morphAt + MORPH_MS; that is the moment the caller has
+       finished showing the word and can safely take the screen */
+    return morphAt + MORPH_MS;
   }
 
   function start() {
