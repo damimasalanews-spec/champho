@@ -1,5 +1,5 @@
-import { WORD_BANK } from './english-word-bank.js';
-import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js';
+import { WORD_BANK } from './english-word-bank.js?v=coins-10';
+import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?v=coins-10';
 
 (() => {
   'use strict';
@@ -222,7 +222,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js'
     PLAYERS.forEach(player => { totals[player.team] += round.scores[player.id].coins; });
     const winner = totals.A === totals.B ? null : totals.A > totals.B ? 'A' : 'B';
     $('resultTitle').textContent = winner ? `TEAM ${winner} WINS` : 'IT’S A TIE';
-    $('resultText').textContent = `Team A ${totals.A} coins · Team B ${totals.B} coins. ${reason === 'all-found' ? 'All seven words found!' : `${round.found.size} of 7 words found.`}`;
+    $('resultText').textContent = `Team A ${totals.A} coins · Team B ${totals.B} coins. ${reason === 'all-found' ? `All ${round.layout.words.length} words found!` : `${round.found.size} of ${round.layout.words.length} words found.`}`;
     $('resultModal').classList.add('open');
     $('resultModal').setAttribute('aria-hidden', 'false');
     /* presentation only: the round-win cascade, once per round, obeying the mute toggle */

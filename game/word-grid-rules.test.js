@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { WORD_BANK } from './english-word-bank.js';
 import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js';
 
-test('a generated board contains seven connected words, one at each length from 3 to 9', () => {
+test('a board holds six connected words, one per length 3-8, sharing no letters', () => {
   const puzzle = createWordGrid(WORD_BANK);
   assert.equal(puzzle.grid.length, 36);
-  assert.equal(puzzle.words.length, 7);
-  assert.deepEqual(puzzle.words.map(item => item.word.length).sort((a, b) => a - b), [3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(puzzle.words.length, 6);
+  assert.deepEqual(puzzle.words.map(item => item.word.length).sort((a, b) => a - b), [3, 4, 5, 6, 7, 8]);
+
+  const owner = new Map();
   for (const item of puzzle.words) {
     assert.equal(item.path.length, item.word.length);
     assert.equal(item.path.map(index => puzzle.grid[index]).join(''), item.word);
@@ -16,7 +18,13 @@ test('a generated board contains seven connected words, one at each length from 
       const rowB = Math.floor(item.path[i] / 6), colB = item.path[i] % 6;
       assert.ok(Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB)) === 1);
     }
+    /* the guarantee the whole change is about: a letter belongs to one word only */
+    for (const cell of item.path) {
+      assert.equal(owner.has(cell), false, `cell ${cell} is in both "${owner.get(cell)}" and "${item.word}"`);
+      owner.set(cell, item.word);
+    }
   }
+  assert.equal(owner.size, 33);
 });
 
 test('guess normalization accepts case and punctuation', () => {
@@ -32,4 +40,3 @@ test('correct words award 100 coins per letter and cannot score twice', () => {
   assert.equal(scoreWord(targets, 'nope', found, 'jess'), null);
   assert.equal(scoreWord(targets, 'river', found, 'jess').coins, 500);
 });
-
