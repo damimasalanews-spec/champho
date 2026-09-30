@@ -1072,14 +1072,27 @@
       "boy":          { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
       "pumpkin-girl": { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
       "girl":         { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
-      "ninja":        { push: "assets/wallpush/ninja-push.mp4",       brk: "assets/wallpush/ninja-break.mp4" }
+       "ninja":        { push: "assets/wallpush/ninja-push.mp4",       brk: "assets/wallpush/ninja-break.mp4",
+                         fall: "assets/wallpush/ninja-fall.mp4" }
     };
+    /* push and brk fall back to the canonical clip so every avatar still animates
+       something while the rest of the set is generated. `fall` deliberately does
+       NOT fall back — see breaker() below. */
+    var FILM_FALLBACK = "pumpkin-boy";
     var filmEl = E.film || root.querySelector("#wpFilm");
 
-    function showFilm(key, which) {
+    function showFilm(key, which, allowFallback, onDone) {
       if (!filmEl) return false;
-      var c = FILM[key] || FILM["pumpkin-boy"];
+      var c = FILM[key];
+      if (!c || !c[which]) {
+        if (!allowFallback) return false;
+        c = FILM[FILM_FALLBACK];
+      }
+      if (!c || !c[which]) return false;
       var src = c[which];
+      /* always reassign, never leave a stale handler from the previous clip */
+      filmEl.onended = onDone || null;
+      filmEl.loop = false;
       if (filmEl.getAttribute("data-src") !== src) {
         filmEl.setAttribute("data-src", src);
         filmEl.src = src;
@@ -1101,16 +1114,31 @@
     /* one correct answer: that seat shoves the wall */
     function film(side) {
       var seat = side === "b" ? duel.b : duel.a;
-      return showFilm(seat && seat.key, "push");
+      return showFilm(seat && seat.key, "push", true);
     }
 
-    /* the winning answer: the wall goes, and the loser drops out of frame */
+    /* the winning answer: the winner's wall-break, then the LOSER going down.
+       Two clips back to back, because a clip only ever contains one fighter — and
+       the fall belongs to the losing seat, so it is looked up from the other side
+       of the duel, never from the seat that just answered. */
     function breaker(side) {
-      var seat = side === "b" ? duel.b : duel.a;
-      if (!showFilm(seat && seat.key, "brk")) return false;
-      setTimeout(function () {
+      var winner = (side === "b" ? duel.b : duel.a) || {};
+      var loser = (side === "b" ? duel.a : duel.b) || {};
+      var fell = false;
+      var doFall = function () {
+        if (fell) return;
+        fell = true;
+        if (!showFilm(loser.key, "fall", false)) return;
         if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
-      }, 880);
+      };
+      if (!showFilm(winner.key, "brk", true, doFall)) return false;
+      /* Hand over on the clip's own `ended` event rather than subtracting from
+         duration: at this point the break clip has only just had its src set, so
+         duration is still 0 and the sum silently collapsed to the 500ms floor —
+         which cut the fall in early on every break longer than ~0.6s.
+         Belt and braces: if `ended` never arrives (blocked autoplay, decode
+         error, missing file) the loser still goes down. */
+      setTimeout(doFall, 2000);
       return true;
     }
 

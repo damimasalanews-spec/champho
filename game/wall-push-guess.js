@@ -44,7 +44,10 @@
   const TICK_MS = 100;
   const BOT_SKILL = 0.78;    /* how often a bot actually knows the picture */
   const SHOVE_MS = 1150;     /* beat between a shove and the next picture */
-  const FINISH_MS = 1000;    /* beat between the winning answer and the knockout */
+  /* The knockout is two film beats back to back: the winner's wall-break (~1.0s)
+   and then the loser's fall (~1.6s). At the original 1000ms the payout card cut
+   in while the loser was still standing, so the hold has to cover both cuts. */
+const FINISH_MS = 2700;    /* beat between the winning answer and the knockout */
   const CARD_MS = 3200;      /* how long the coin card is held before the next pair */
   const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
 
