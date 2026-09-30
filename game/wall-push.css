@@ -238,7 +238,11 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain, not cover. The clips are 2560x1440 but the arena is roughly 3:1, so
+     cover zoomed them until the fighter filled the frame and the wall — the thing
+     the whole beat is about — was cropped off the edge. Contain shows the fighter
+     AND the wall, letterboxed onto the arena's own dark backdrop. */
+  object-fit: contain;
   opacity: 0;
   z-index: 1;
   pointer-events: none;

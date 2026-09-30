@@ -299,7 +299,10 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
         coins: round.scores[p.id].coins,
         team: p.team === 'A' ? 'TEAM WILD' : 'TEAM FLAME',
         id: p.id,
-        key: WEAR[p.id] || 'boy'
+        /* ninja is the default fighter: it is the only avatar with a complete
+           shove + kick + fall set, so an unmapped seat falls back to it rather
+           than to a body sprite with no clips behind it */
+        key: WEAR[p.id] || 'ninja'
       });
       const duels = [
         { rankA: 1, rankB: 2, a: side(ranked[0]), b: side(ranked[1]) },
