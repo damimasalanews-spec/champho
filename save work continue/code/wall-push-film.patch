@@ -1,0 +1,148 @@
+﻿diff --git a/game/wall-push-guess.js b/game/wall-push-guess.js
+index 0029e7f..8f84c26 100644
+--- a/game/wall-push-guess.js
++++ b/game/wall-push-guess.js
+@@ -293,10 +293,16 @@
+            opponent, and an answer from the other side shoves it straight back */
+         const net = tally.a - tally.b;
+         if (arena && arena.steps) arena.steps(net);
++        /* the same answer that moves the slab now also plays that seat's film
++           beat, so the push the player sees IS their correct answer */
++        if (arena && arena.film) arena.film(by);
+         if (arena && arena.charge) arena.charge(tally.a, tally.b);
+ 
+         const decided = tally[by] >= NEED;
+         if (decided) {
++          /* reaching NEED is the knockout: the wall gives way on film and the
++             losing seat drops */
++          if (arena && arena.breaker) arena.breaker(by);
+           ui.sideA.classList.toggle("win", by === "a");
+           ui.sideB.classList.toggle("win", by === "b");
+           ui.msg.textContent = `${naming} takes the wall ${Math.max(tally.a, tally.b)} — ${Math.min(tally.a, tally.b)}.`;
+diff --git a/game/wall-push.css b/game/wall-push.css
+index d9c1387..7764fed 100644
+--- a/game/wall-push.css
++++ b/game/wall-push.css
+@@ -227,3 +227,44 @@
+ }
+ /* a player who has reduced motion on should not be made to sit through a 6.5s
+    performance, so the duel is skipped entirely in that case (see wall-push.js) */
++
++/* ======================================================== the film (avatars) ==
++   The avatars are pre-rendered clips now. The film covers the arena picture —
++   felt, floor, the two <img> fighters and the slab — while the name plates,
++   meters and banner stay above it as HUD, so the guessing deck below keeps
++   working and the scores stay readable. */
++#wpFilm {
++  position: absolute;
++  inset: 0;
++  width: 100%;
++  height: 100%;
++  object-fit: cover;
++  opacity: 0;
++  z-index: 1;
++  pointer-events: none;
++  background: #05070c;
++  transition: opacity .35s ease;
++}
++#wpStage.film #wpFilm { opacity: 1; }
++
++/* the drawn arena steps aside once there is film to show */
++#wpStage.film .wp-felt,
++#wpStage.film .wp-floor,
++#wpStage.film .wp-fighter,
++#wpStage.film #wpWall { opacity: 0; transition: opacity .35s ease; }
++
++/* the walls the plates sit on would otherwise fight the film */
++#wpStage.film .wp-plate,
++#wpStage.film .wp-rank,
++#wpStage.film .wp-meter { z-index: 3; }
++
++/* the seat that lost the wall drops out of frame */
++#wpStage.film-fall-a #wpPlateA,
++#wpStage.film-fall-a #wpRankA,
++#wpStage.film-fall-b #wpPlateB,
++#wpStage.film-fall-b #wpRankB {
++  animation: wpFilmFall .9s cubic-bezier(.5, 0, .9, .4) forwards;
++}
++@keyframes wpFilmFall {
++  to { transform: translateY(64px) rotate(-9deg); opacity: .12; }
++}
+diff --git a/game/wall-push.js b/game/wall-push.js
+index ee5513e..096a3ce 100644
+--- a/game/wall-push.js
++++ b/game/wall-push.js
+@@ -165,6 +165,9 @@
+     + '<div id="wpStage">'
+     + '  <div class="wp-felt"><div class="wp-felt-glow"></div></div>'
+     + '  <div class="wp-floor"></div>'
++    /* the avatars now ship as pre-rendered film: it owns the arena picture while
++       the plates and meters stay on top of it as HUD */
++    + '  <video class="wp-film" id="wpFilm" muted playsinline preload="auto"></video>'
+     + '  <div id="wpShake">'
+     + '    <img class="wp-fighter" id="wpFA" alt="">'
+     + '    <img class="wp-fighter" id="wpFB" alt="">'
+@@ -1058,8 +1061,62 @@
+                b: { before: e.st.dogBefore, after: e.st.dogAfter } };
+     }
+ 
++    /* ------------------------------------------------------------- the film --
++       The avatars ship as pre-rendered clips, so the arena picture is film now
++       rather than two puppeted <img> sprites. The clipart contest drives it: a
++       correct answer calls steps() and film(), and the answer that reaches NEED
++       calls breaker(), which plays the wall giving way and drops the loser's
++       seat. Everything here degrades to the old DOM duel if a clip is missing. */
++    var FILM = {
++      "pumpkin-boy":  { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
++      "boy":          { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
++      "pumpkin-girl": { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
++      "girl":         { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
++      "ninja":        { push: "assets/wallpush/ninja-push.mp4",       brk: "assets/wallpush/ninja-break.mp4" }
++    };
++    var filmEl = E.film || root.querySelector("#wpFilm");
++
++    function showFilm(key, which) {
++      if (!filmEl) return false;
++      var c = FILM[key] || FILM["pumpkin-boy"];
++      var src = c[which];
++      if (filmEl.getAttribute("data-src") !== src) {
++        filmEl.setAttribute("data-src", src);
++        filmEl.src = src;
++        filmEl.load();
++      }
++      if (stage) stage.classList.add("film");
++      /* never poke currentTime before metadata exists: that stranded the element
++         in NETWORK_LOADING at readyState 0 and the arena rendered black */
++      var go = function () {
++        try { filmEl.currentTime = 0; } catch (err) {}
++        var p = filmEl.play();
++        if (p && p.catch) p.catch(function () { /* autoplay blocked; still shows */ });
++      };
++      if (filmEl.readyState >= 2) go();
++      else filmEl.addEventListener("loadeddata", go, { once: true });
++      return true;
++    }
++
++    /* one correct answer: that seat shoves the wall */
++    function film(side) {
++      var seat = side === "b" ? duel.b : duel.a;
++      return showFilm(seat && seat.key, "push");
++    }
++
++    /* the winning answer: the wall goes, and the loser drops out of frame */
++    function breaker(side) {
++      var seat = side === "b" ? duel.b : duel.a;
++      if (!showFilm(seat && seat.key, "brk")) return false;
++      setTimeout(function () {
++        if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
++      }, 880);
++      return true;
++    }
++
+     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
+-             knock: knock, award: award, result: result, teardown: teardown };
++             knock: knock, award: award, result: result, teardown: teardown,
++             film: film, breaker: breaker };
+   }
+ 
+   /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]
