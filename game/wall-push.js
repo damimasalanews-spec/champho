@@ -34,7 +34,7 @@
   if (window.ChampWallPush) return;
 
   /* ---------------------------------------------------------------- geometry */
-  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 42, RANGE: 100, FULL: 190, KNOCK: 60 };
+  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 56, RANGE: 100, FULL: 190, KNOCK: 60 };
 
   /* the two values chosen on the review build's calibration sliders */
   var CONTACT = -14;     // sprite front edge vs the slab's face, in stage px
