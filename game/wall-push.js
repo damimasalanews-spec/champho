@@ -165,9 +165,12 @@
     + '<div id="wpStage">'
     + '  <div class="wp-felt"><div class="wp-felt-glow"></div></div>'
     + '  <div class="wp-floor"></div>'
-    /* the avatars now ship as pre-rendered film: it owns the arena picture while
-       the plates and meters stay on top of it as HUD */
-    + '  <video class="wp-film" id="wpFilm" muted playsinline preload="auto"></video>'
+    /* the avatars now ship as pre-rendered film, ONE HALF PER SEAT: the left
+       video carries seat a and the right video carries seat b (mirrored), so
+       the same ninja footage plays on both sides of the screen and the drawn
+       wall stays the real, sliding wall in the middle. */
+    + '  <video class="wp-film" id="wpFilmL" muted playsinline preload="auto"></video>'
+    + '  <video class="wp-film" id="wpFilmR" muted playsinline preload="auto"></video>'
     + '  <div id="wpShake">'
     + '    <img class="wp-fighter" id="wpFA" alt="">'
     + '    <img class="wp-fighter" id="wpFB" alt="">'
@@ -210,7 +213,7 @@
     shakeEl = root.querySelector("#wpShake");
     ["FA","FB","Wall","RankA","RankB","PlateA","PlateB","NameA","NameB","CoinsA","CoinsB",
      "TeamA","TeamB","Banner","Next","MeterA","MeterB","SideA","SideB","PctA","PctB","FillA","FillB",
-     "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip"].forEach(function (k) {
+     "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip","FilmL","FilmR"].forEach(function (k) {
       E[k] = root.querySelector("#wp" + k);
     });
 
@@ -764,9 +767,10 @@
      A seat is drawable if it has a sprite OR a clip. */
   var FILM = {
     "ninja": {
-      shove: "assets/wallpush/ninja-shove.mp4",
-      kick:  "assets/wallpush/ninja-kick.mp4",
-      fall:  "assets/wallpush/ninja-fall.mp4"
+      shove:   "assets/wallpush/ninja-shove.mp4",
+      defense: "assets/wallpush/ninja-defense.mp4",
+      kick:    "assets/wallpush/ninja-kick.mp4",
+      fall:    "assets/wallpush/ninja-fall.mp4"
     },
     "pumpkin-boy":  { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
     "boy":          { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
@@ -777,6 +781,32 @@
 
   function canDraw(key) {
     return !!(BODIES[key] || FILM[key] || FILM[FILM_FALLBACK]);
+  }
+
+  /* every clip the duel can play, for the offline warm-up list */
+  function allFilmSrcs() {
+    var out = [];
+    Object.keys(FILM).forEach(function (k) {
+      Object.keys(FILM[k]).forEach(function (b) {
+        if (out.indexOf(FILM[k][b]) < 0) out.push(FILM[k][b]);
+      });
+    });
+    return out;
+  }
+
+  /* start loading a seat's clips without playing them, so the first beat is
+     already decoded when the guess lands. Fire and forget. */
+  function warmFilm(keys) {
+    (keys || []).forEach(function (k) {
+      var c = FILM[k] || FILM[FILM_FALLBACK];
+      if (!c) return;
+      Object.keys(c).forEach(function (b) {
+        var v = document.createElement("video");
+        v.muted = true; v.preload = "auto";
+        v.src = c[b];
+        v.load();
+      });
+    });
   }
 
   var loaded = {};                                  // key -> true once decoded
@@ -1100,72 +1130,82 @@
        shove and kick fall back to the canonical clip so every avatar animates
        something while the rest of the set is still being generated. `fall`
        deliberately does NOT fall back — see breaker(). */
-    var filmEl = E.film || root.querySelector("#wpFilm");
+    /* Two half-screen video layers, one per seat. Every clip is shot from the
+       left seat's point of view (ninja on the LEFT, pushing RIGHT), so:
+         - seat a (left)  plays its clip as-is on the LEFT half
+         - seat b (right) plays the SAME footage mirrored on the RIGHT half
+       The baked-in wall of each clip lands near its half's inner edge, so the two
+       baked walls meet where the real drawn slab stands — the slab stays visible
+       between the halves and slides with steps(), exactly as before. */
+    var filmL = E.FilmL, filmR = E.FilmR;
+
+    function seatFilmEl(side) { return side === "b" ? filmR : filmL; }
 
     function showFilm(key, which, side, onDone) {
-      if (!filmEl) return false;
+      var el = seatFilmEl(side);
+      if (!el) return false;
       var c = FILM[key];
       if ((!c || !c[which]) && which !== "fall") c = FILM[FILM_FALLBACK];
       if (!c || !c[which]) return false;
       var src = c[which];
-      /* seat b is seat a mirrored */
-      if (side === "b") filmEl.classList.add("mirror");
-      else filmEl.classList.remove("mirror");
+      /* seat b is always the mirrored half — it plays the same left-shot footage
+         flipped, so both sides of the screen show the same character */
+      if (side === "b") el.classList.add("mirror");
+      else el.classList.remove("mirror");
       /* always reassign, never leave a stale handler from the previous clip */
-      filmEl.onended = onDone || null;
-      filmEl.loop = false;
-      if (filmEl.getAttribute("data-src") !== src) {
-        filmEl.setAttribute("data-src", src);
-        filmEl.src = src;
-        filmEl.load();
+      el.onended = onDone || null;
+      el.loop = false;
+      if (el.getAttribute("data-src") !== src) {
+        el.setAttribute("data-src", src);
+        el.src = src;
+        el.load();
       }
       if (stage) stage.classList.add("film");
       /* never poke currentTime before metadata exists: that stranded the element
          in NETWORK_LOADING at readyState 0 and the arena rendered black */
       var go = function () {
-        try { filmEl.currentTime = 0; } catch (err) {}
-        var p = filmEl.play();
+        try { el.currentTime = 0; } catch (err) {}
+        var p = el.play();
         if (p && p.catch) p.catch(function () { /* autoplay blocked; still shows */ });
       };
-      if (filmEl.readyState >= 2) go();
-      else filmEl.addEventListener("loadeddata", go, { once: true });
+      if (el.readyState >= 2) go();
+      else el.addEventListener("loadeddata", go, { once: true });
       return true;
     }
 
-    /* one correct answer: that seat shoves the wall one step. Seat b's shove is
-       the same footage mirrored, so the wall reads as being driven back the other
-       way and the slab returns to the middle of its own accord. */
-    function film(side) {
+    /* The side that is NOT performing this beat plays its defense clip: the
+       opponent braced against the wall slides back a little as it is shoved.
+       Mirrored to that seat like everything else. Returns false when no
+       defense clip exists, so callers can carry on regardless. */
+    function defenseFilm(side) {
       var seat = (side === "b" ? duel.b : duel.a) || {};
-      return showFilm(seat.key, "shove", side);
+      return showFilm(seat.key, "defense", side);
     }
 
-    /* the winning answer: the winner's wall-break, then the LOSER going down.
-       Two clips back to back, because a clip only ever contains one fighter — and
-       the fall belongs to the losing seat, so it is looked up from the other side
-       of the duel, never from the seat that just answered. */
+    /* one correct answer: that seat shoves the wall one step while the OTHER
+       seat's defense clip plays — both sides of the screen animate at once. */
+    function film(side) {
+      var seat = (side === "b" ? duel.b : duel.a) || {};
+      var oppSide = side === "b" ? "a" : "b";
+      var pushed = showFilm(seat.key, "shove", side);
+      if (pushed) defenseFilm(oppSide);
+      return pushed;
+    }
+
+    /* the winning answer: the winner's final blow on their half, the LOSER's
+       fall on the other half — both halves at once, no pause between them.
+       The fall belongs to the losing seat and is mirrored to it, so the body
+       is thrown AWAY from the wall rather than into it. */
     function breaker(side) {
       var winner = (side === "b" ? duel.b : duel.a) || {};
       var loser = (side === "b" ? duel.a : duel.b) || {};
       var loserSide = side === "b" ? "a" : "b";
-      var fell = false;
-      var doFall = function () {
-        if (fell) return;
-        fell = true;
-        /* the fall belongs to the losing seat, and it is mirrored to that seat
-           too, so the body is thrown AWAY from the wall rather than into it */
-        if (!showFilm(loser.key, "fall", loserSide)) return;
-        if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
-      };
-      if (!showFilm(winner.key, "kick", side, doFall)) return false;
-      /* Hand over on the clip's own `ended` event rather than subtracting from
-         duration: at this point the break clip has only just had its src set, so
-         duration is still 0 and the sum silently collapsed to the 500ms floor —
-         which cut the fall in early on every break longer than ~0.6s.
-         Belt and braces: if `ended` never arrives (blocked autoplay, decode
-         error, missing file) the loser still goes down. */
-      setTimeout(doFall, 2000);
-      return true;
+      if (!showFilm(winner.key, "kick", side)) return false;
+      /* the loser's fall starts right away on its own half; the plate-drop class
+         still lands after the kick so the HUD matches the film */
+      var fell = showFilm(loser.key, "fall", loserSide);
+      if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
+      return fell || true;
     }
 
     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
@@ -1196,6 +1236,9 @@
         return;
       }
       aspect = [aspectByKey[duel.a.key] || 1, aspectByKey[duel.b.key] || 1];
+      /* warm the clips for these two seats while the standoff plays: the first
+         shove must not stall on a cold video decode */
+      warmFilm([duel.a.key, duel.b.key]);
       ready(liveMount(duel, opts));
     });
   }

@@ -229,33 +229,39 @@
    performance, so the duel is skipped entirely in that case (see wall-push.js) */
 
 /* ======================================================== the film (avatars) ==
-   The avatars are pre-rendered clips now. The film covers the arena picture —
-   felt, floor, the two <img> fighters and the slab — while the name plates,
-   meters and banner stay above it as HUD, so the guessing deck below keeps
-   working and the scores stay readable. */
-#wpFilm {
+   The avatars are pre-rendered clips now, ONE HALF PER SEAT: #wpFilmL owns the
+   left half of the arena, #wpFilmR the right. Every clip is shot from the left
+   seat's point of view — ninja toward the left of the frame pushing RIGHT — so
+   the right half plays the very same footage MIRRORED: both sides of the screen
+   carry the character, and the two clip walls are cropped away by the half
+   frames. The drawn slab (#wpWall) therefore STAYS in the middle as the one
+   real wall and slides with steps(). The name plates, meters and banner remain
+   above the film as HUD, so the guessing deck below keeps working. */
+#wpFilmL, #wpFilmR {
   position: absolute;
-  inset: 0;
-  width: 100%;
+  top: 0;
   height: 100%;
-  /* contain, not cover. The clips are 2560x1440 but the arena is roughly 3:1, so
-     cover zoomed them until the fighter filled the frame and the wall — the thing
-     the whole beat is about — was cropped off the edge. Contain shows the fighter
-     AND the wall, letterboxed onto the arena's own dark backdrop. */
-  object-fit: contain;
+  width: 50.15%;              /* a hair over half so the centre seam never gaps */
+  /* cover, cropped from the frame's LEFT: keeps the fighter, throws away the
+     clip's own baked wall so it can never double with the real slab */
+  object-fit: cover;
+  object-position: left center;
   opacity: 0;
   z-index: 1;
   pointer-events: none;
   background: #05070c;
   transition: opacity .35s ease;
 }
-#wpStage.film #wpFilm { opacity: 1; }
+#wpFilmL { left: 0; }
+#wpFilmR { left: 50%; }
+#wpStage.film #wpFilmL,
+#wpStage.film #wpFilmR { opacity: 1; }
 
-/* the drawn arena steps aside once there is film to show */
+/* the drawn arena steps aside once there is film to show — except the slab:
+   it is the one real wall the whole beat is about, and it keeps sliding */
 #wpStage.film .wp-felt,
 #wpStage.film .wp-floor,
-#wpStage.film .wp-fighter,
-#wpStage.film #wpWall { opacity: 0; transition: opacity .35s ease; }
+#wpStage.film .wp-fighter { opacity: 0; transition: opacity .35s ease; }
 
 /* the walls the plates sit on would otherwise fight the film */
 #wpStage.film .wp-plate,
@@ -276,4 +282,4 @@
 /* Seat b is seat a mirrored. One clip per fighter covers both players: the
    right-hand seat shoves leftwards and is knocked to the right off the same
    footage, and the wall reads as being driven back the other way. */
-#wpFilm.mirror { transform: scaleX(-1); }
+#wpFilmR.mirror { transform: scaleX(-1); }

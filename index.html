@@ -940,7 +940,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       {id:'pumpkin-boy',  name:'Pumpkin Boy',  desc:'Round orange head and a carved grin.', from:'Starter Gift',     free:1},
       {id:'pumpkin-girl', name:'Pumpkin Girl', desc:'Carved grin, ribbon on the stem.',     from:'Shop - 900 coins', src:'shop', price:900, locked:1},
       {id:'knight',  name:'Sir Gourd',     desc:'Polished helm and a brave plume.',     from:'Ranked Season 3', src:'mission', locked:1},
-      {id:'ninja',   name:'Shadow Squash', desc:'Hooded, silent, arms folded.',         from:'Ranked Season 4', src:'mission', locked:1},
+      {id:'ninja',   name:'Shadow Squash', desc:'Hooded, silent, arms folded.',         from:'Default Roster',  free:1},
       {id:'wizard',  name:'Wizard Zucc',   desc:'Starry hat and a long white beard.',   from:'Shop - 1,200 coins', src:'shop', price:1200, locked:1},
       {id:'pirate',  name:'Captain Gourd', desc:'Tricorn, eyepatch and a gold tooth.',  from:'Tournament Win',  src:'event',   locked:1},
       {id:'vampire', name:'Baron Vine',    desc:'High collar and two small fangs.',     from:'Night Event',     src:'event',   locked:1},
@@ -1039,8 +1039,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   D.missions=[
     {id:'first_win', name:'First Blood', desc:'Win a round',       metric:'wins',  goal:1,     cat:'portraits', item:'knight',  from:'Mission reward'},
     {id:'warm_up',   name:'Warm Up',     desc:'Play 3 rounds',     metric:'games', goal:3,     cat:'frames',    item:'royal',   from:'Mission reward'},
-    {id:'sharpen',   name:'Sharpen Up',  desc:'Win 5 rounds',      metric:'wins',  goal:5,     cat:'titles',    item:'royal',   from:'Mission reward'},
-    {id:'regular',   name:'Regular',     desc:'Play 10 rounds',    metric:'games', goal:10,    cat:'portraits', item:'ninja',   from:'Mission reward'},
+    {id:'sharpen',   name:'Sharpen Up',  desc:'Win 5 rounds',      metric:'wins',  goal:5,     cat:'titles',    item:'royal',   from:'Mission reward'},      {id:'regular',   name:'Regular',     desc:'Play 10 rounds',    metric:'games', goal:10,    cat:'portraits', item:'pirate',  from:'Mission reward'},
     {id:'veteran',   name:'Veteran',     desc:'Win 15 rounds',     metric:'wins',  goal:15,    cat:'portraits', item:'genie',   from:'Mission reward'},
     {id:'banker',    name:'Coin Banker', desc:'Bank 20,000 coins', metric:'coins', goal:20000, cat:'frames',    item:'emerald', from:'Mission reward'}
   ];
@@ -1532,7 +1531,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     return {displayName:'Guest',coins:0,gems:0,level:1,xp:0,wins:0,games:0,activity:[],
       // what the guest actually owns. champGrant() is the only thing that adds to
       // this, so an item can never be worn without a recorded source behind it.
-      owned:{portraits:['pumpkin-boy'],frames:['crystal'],titles:['crystal'],
+      owned:{portraits:['pumpkin-boy','ninja'],frames:['crystal'],titles:['crystal'],
              effects:['crystal'],filters:['crystal']},
       // what is actually worn - without this the player's choice was lost on reload
       equipped:{portraits:'pumpkin-boy',frames:'crystal',titles:'crystal',
@@ -1555,7 +1554,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     else for(var e in d.equipped){ if(!s.equipped[e]) s.equipped[e]=d.equipped[e]; }
     // the starter item of each category is always owned, even for a save that
     // predates it, so a player can never end up unable to wear the default
-    var ALWAYS={portraits:['pumpkin-boy'],frames:['crystal'],titles:['crystal'],
+    var ALWAYS={portraits:['pumpkin-boy','ninja'],frames:['crystal'],titles:['crystal'],
                 effects:['crystal'],filters:['crystal']};
     for(var a in ALWAYS){
       if(!Array.isArray(s.owned[a])) s.owned[a]=[];
