@@ -268,3 +268,8 @@
 @keyframes wpFilmFall {
   to { transform: translateY(64px) rotate(-9deg); opacity: .12; }
 }
+
+/* Seat b is seat a mirrored. One clip per fighter covers both players: the
+   right-hand seat shoves leftwards and is knocked to the right off the same
+   footage, and the wall reads as being driven back the other way. */
+#wpFilm.mirror { transform: scaleX(-1); }

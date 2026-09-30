@@ -287,12 +287,19 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
         const sa = round.scores[a.id], sb = round.scores[b.id];
         return (sb.coins - sa.coins) || (sb.words - sa.words);
       });
+      /* Which fighter art each seat wears. The clip set is complete for ninja
+         only (shove + kick + fall), and the intended read is that the SAME
+         fighter appears on both sides with the right-hand seat mirrored, so a
+         duel shows that fighter shoving the wall back and forth and then going
+         down. Swap the values as the remaining avatar clips land — 'boy' and
+         'girl' still work off the original sprites. */
+      const WEAR = { champ: 'ninja', poker: 'ninja', kalkal: 'ninja', jess: 'ninja' };
       const side = p => ({
         name: p.name,
         coins: round.scores[p.id].coins,
         team: p.team === 'A' ? 'TEAM WILD' : 'TEAM FLAME',
         id: p.id,
-        key: (p.id === 'jess' || p.id === 'champ') ? 'boy' : 'girl'
+        key: WEAR[p.id] || 'boy'
       });
       const duels = [
         { rankA: 1, rankB: 2, a: side(ranked[0]), b: side(ranked[1]) },

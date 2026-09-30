@@ -756,6 +756,29 @@
     boy:  "assets/wallpush/boy-body.png",
     girl: "assets/wallpush/girl-body.png"
   };
+
+  /* The film beats live out here, not inside the renderer, because the standoff
+     gate below needs them too. They used to be local to liveMount(), which meant
+     the gate only ever knew about the two body sprites: a duel between two newer
+     avatars found no sprites to load and silently skipped the whole wall push.
+     A seat is drawable if it has a sprite OR a clip. */
+  var FILM = {
+    "ninja": {
+      shove: "assets/wallpush/ninja-shove.mp4",
+      kick:  "assets/wallpush/ninja-kick.mp4",
+      fall:  "assets/wallpush/ninja-fall.mp4"
+    },
+    "pumpkin-boy":  { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
+    "boy":          { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
+    "pumpkin-girl": { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
+    "girl":         { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" }
+  };
+  var FILM_FALLBACK = "pumpkin-boy";
+
+  function canDraw(key) {
+    return !!(BODIES[key] || FILM[key] || FILM[FILM_FALLBACK]);
+  }
+
   var loaded = {};                                  // key -> true once decoded
 
   function preloadBodies(keys, done) {
@@ -1067,29 +1090,27 @@
        correct answer calls steps() and film(), and the answer that reaches NEED
        calls breaker(), which plays the wall giving way and drops the loser's
        seat. Everything here degrades to the old DOM duel if a clip is missing. */
-    var FILM = {
-      "pumpkin-boy":  { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
-      "boy":          { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
-      "pumpkin-girl": { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
-      "girl":         { push: "assets/wallpush/pumpkin-boy-push.mp4", brk: "assets/wallpush/pumpkin-boy-break.mp4" },
-       "ninja":        { push: "assets/wallpush/ninja-push.mp4",       brk: "assets/wallpush/ninja-break.mp4",
-                         fall: "assets/wallpush/ninja-fall.mp4" }
-    };
-    /* push and brk fall back to the canonical clip so every avatar still animates
-       something while the rest of the set is generated. `fall` deliberately does
-       NOT fall back — see breaker() below. */
-    var FILM_FALLBACK = "pumpkin-boy";
+    /* Battles are cut out of one clip per fighter, as three beats:
+         shove -> any correct answer
+         kick  -> the answer that takes the wall
+         fall  -> the loser going down
+       Both seats share the same fighter: seat b is the MIRROR of seat a, so a
+       right-hand player shoves leftwards and gets knocked to the right using the
+       very same footage. Nothing is drawn twice.
+       shove and kick fall back to the canonical clip so every avatar animates
+       something while the rest of the set is still being generated. `fall`
+       deliberately does NOT fall back — see breaker(). */
     var filmEl = E.film || root.querySelector("#wpFilm");
 
-    function showFilm(key, which, allowFallback, onDone) {
+    function showFilm(key, which, side, onDone) {
       if (!filmEl) return false;
       var c = FILM[key];
-      if (!c || !c[which]) {
-        if (!allowFallback) return false;
-        c = FILM[FILM_FALLBACK];
-      }
+      if ((!c || !c[which]) && which !== "fall") c = FILM[FILM_FALLBACK];
       if (!c || !c[which]) return false;
       var src = c[which];
+      /* seat b is seat a mirrored */
+      if (side === "b") filmEl.classList.add("mirror");
+      else filmEl.classList.remove("mirror");
       /* always reassign, never leave a stale handler from the previous clip */
       filmEl.onended = onDone || null;
       filmEl.loop = false;
@@ -1111,10 +1132,12 @@
       return true;
     }
 
-    /* one correct answer: that seat shoves the wall */
+    /* one correct answer: that seat shoves the wall one step. Seat b's shove is
+       the same footage mirrored, so the wall reads as being driven back the other
+       way and the slab returns to the middle of its own accord. */
     function film(side) {
-      var seat = side === "b" ? duel.b : duel.a;
-      return showFilm(seat && seat.key, "push", true);
+      var seat = (side === "b" ? duel.b : duel.a) || {};
+      return showFilm(seat.key, "shove", side);
     }
 
     /* the winning answer: the winner's wall-break, then the LOSER going down.
@@ -1124,14 +1147,17 @@
     function breaker(side) {
       var winner = (side === "b" ? duel.b : duel.a) || {};
       var loser = (side === "b" ? duel.a : duel.b) || {};
+      var loserSide = side === "b" ? "a" : "b";
       var fell = false;
       var doFall = function () {
         if (fell) return;
         fell = true;
-        if (!showFilm(loser.key, "fall", false)) return;
+        /* the fall belongs to the losing seat, and it is mirrored to that seat
+           too, so the body is thrown AWAY from the wall rather than into it */
+        if (!showFilm(loser.key, "fall", loserSide)) return;
         if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
       };
-      if (!showFilm(winner.key, "brk", true, doFall)) return false;
+      if (!showFilm(winner.key, "kick", side, doFall)) return false;
       /* Hand over on the clip's own `ended` event rather than subtracting from
          duration: at this point the break clip has only just had its src set, so
          duration is still 0 and the sum silently collapsed to the 500ms floor —
@@ -1161,8 +1187,11 @@
     build();
     var ready = opts.onReady || function () {};
     preloadBodies([duel.a.key, duel.b.key], function (ok) {
-      if (!ok) {
-        console.warn("wall-push: sprites failed to load, skipping the standoff");
+      /* Only refuse when NEITHER seat can be drawn. A film-enabled avatar ships
+         no body sprite, so bailing on !ok alone skipped the entire standoff for
+         every avatar outside the original boy/girl pair. */
+      if (!ok && !canDraw(duel.a.key) && !canDraw(duel.b.key)) {
+        console.warn("wall-push: nothing to draw for " + duel.a.key + "/" + duel.b.key);
         ready(null);
         return;
       }
@@ -1193,7 +1222,10 @@
          to an armless silhouette, which cannot read as a push at all, so refuse to
          present that — just hand back to the game. */
       preloadBodies([duels[0].a.key, duels[0].b.key], function (ok) {
-        if (!ok) { console.warn("wall-push: sprites failed to load, skipping the duel"); done([]); return; }
+        /* same rule as the standoff: the film can carry a seat with no sprite */
+        if (!ok && !canDraw(duels[0].a.key) && !canDraw(duels[0].b.key)) {
+          console.warn("wall-push: nothing to draw, skipping the duel"); done([]); return;
+        }
         aspect = [aspectByKey[duels[0].a.key] || 1, aspectByKey[duels[0].b.key] || 1];
 
         var idx = 0, results = [], closed = false;
