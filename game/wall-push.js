@@ -872,7 +872,7 @@
     E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
     E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
     E.PctA.textContent = "100%"; E.PctB.textContent = "100%";
-    E.Wall.classList.remove("cracked", "shattered", "straining");
+    E.Wall.classList.remove("cracked", "shattered", "straining", "wp-break-a", "wp-break-b");
     fxLayer.innerHTML = "";
     stopShake();
     curKey = [null, null];
@@ -1195,11 +1195,22 @@
     /* the winning answer: the winner's final blow on their half, the LOSER's
        fall on the other half — both halves at once, no pause between them.
        The fall belongs to the losing seat and is mirrored to it, so the body
-       is thrown AWAY from the wall rather than into it. */
+       is thrown AWAY from the wall rather than into it. The real slab gives
+       way in sync: cracks spread, then it shatters toward the loser's side
+       and drops out of the frame. */
     function breaker(side) {
       var winner = (side === "b" ? duel.b : duel.a) || {};
       var loser = (side === "b" ? duel.a : duel.b) || {};
       var loserSide = side === "b" ? "a" : "b";
+      /* the wall cracks first, then shatters toward the losing side */
+      if (E.Wall && E.Wall.classList) {
+        E.Wall.classList.add("cracked");
+        setTimeout(function () {
+          if (!E.Wall || !E.Wall.classList) return;
+          E.Wall.classList.remove("cracked", "straining");
+          E.Wall.classList.add("shattered", "wp-break-" + loserSide);
+        }, 620);
+      }
       if (!showFilm(winner.key, "kick", side)) return false;
       /* the loser's fall starts right away on its own half; the plate-drop class
          still lands after the kick so the HUD matches the film */

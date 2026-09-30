@@ -76,6 +76,22 @@
   transition:clip-path .6s cubic-bezier(.2,.8,.3,1)}
 #wpWall.shattered .wp-cracks{clip-path:inset(0 0 0 0)}
 
+/* the knockout: the broken slab gives way toward the loser's side and drops.
+   Runs ON TOP of the shatter transform, so it is written as an animation and
+   the two halves fall apart as it plays. */
+#wpWall.wp-break-a{animation:wpWallBreakL .95s cubic-bezier(.4,0,.8,.6) .55s forwards}
+#wpWall.wp-break-b{animation:wpWallBreakR .95s cubic-bezier(.4,0,.8,.6) .55s forwards}
+@keyframes wpWallBreakL{
+  0%{opacity:1}
+  30%{transform:translate3d(var(--wx,800px),var(--wy,0px),0) rotate(calc(var(--wrot,0deg) - 4deg))}
+  100%{transform:translate3d(calc(var(--wx,800px) - 130px),110px,0) rotate(-38deg);opacity:0}
+}
+@keyframes wpWallBreakR{
+  0%{opacity:1}
+  30%{transform:translate3d(var(--wx,800px),var(--wy,0px),0) rotate(calc(var(--wrot,0deg) + 4deg))}
+  100%{transform:translate3d(calc(var(--wx,800px) + 130px),110px,0) rotate(38deg);opacity:0}
+}
+
 /* --------------------------------------------------------------- the fighters
    One <img> per fighter. transform-origin is the bottom centre, so the whole
    performance is translate / rotate / scale on a single element:
@@ -239,34 +255,47 @@
    above the film as HUD, so the guessing deck below keeps working. */
 #wpFilmL, #wpFilmR {
   position: absolute;
-  top: 0;
-  height: 100%;
-  width: 50.15%;              /* a hair over half so the centre seam never gaps */
-  /* cover, cropped from the frame's LEFT: keeps the fighter, throws away the
-     clip's own baked wall so it can never double with the real slab */
-  object-fit: cover;
-  object-position: left center;
+  top: 150px;                    /* feet land on the floor line (y=624): 150+620=770... floor at 624 is INSIDE the clip, matching the clip's own ground */
+  height: 620px;
+  width: 780px;                  /* 780x620 clip, 1:1 shown — no cropping */
+  object-fit: fill;
   opacity: 0;
   z-index: 1;
   pointer-events: none;
-  background: #05070c;
+  border-radius: 26px;
+  /* spotlight card: a soft dark pool so the green felt still reads around it */
+  background: radial-gradient(ellipse at 50% 62%, #0b1626 0%, #081018 58%, transparent 78%);
+  box-shadow: 0 0 0 1px #ffffff14, 0 18px 60px #00000073;
   transition: opacity .35s ease;
 }
-#wpFilmL { left: 0; }
-#wpFilmR { left: 50%; }
+#wpFilmL { left: 20px; }
+#wpFilmR { left: 800px; }      /* cards meet exactly at x=800: the wall axis — the
+                                  slab (z-index 5) stands in the seam between them */
 #wpStage.film #wpFilmL,
 #wpStage.film #wpFilmR { opacity: 1; }
 
 /* the drawn arena steps aside once there is film to show — except the slab:
    it is the one real wall the whole beat is about, and it keeps sliding */
-#wpStage.film .wp-felt,
-#wpStage.film .wp-floor,
+#wpStage.film .wp-felt-glow,
 #wpStage.film .wp-fighter { opacity: 0; transition: opacity .35s ease; }
 
 /* the walls the plates sit on would otherwise fight the film */
 #wpStage.film .wp-plate,
 #wpStage.film .wp-rank,
 #wpStage.film .wp-meter { z-index: 3; }
+
+/* ---- 3D-style duel headline: the "Jess vs Champ" banner, boxed like the
+   guess-deck cards so it reads as part of the artist drawing --------------- */
+#wpOverlay .wp-banner .bt {
+  font-size: 54px;
+  letter-spacing: 1px;
+  padding: 10px 34px 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #123c2b, #0a2a1e);
+  border: 1px solid #ffffff2e;
+  box-shadow: inset 0 2px 0 #ffffff1f, inset 0 -3px 0 #00000059, 0 14px 34px #00000066;
+  text-shadow: 0 4px 0 #000000b3, 0 0 34px #ffd24a4d;
+}
 
 /* the seat that lost the wall drops out of frame */
 #wpStage.film-fall-a #wpPlateA,

@@ -47,7 +47,9 @@
   /* The knockout is two film beats back to back: the winner's wall-break (~1.0s)
    and then the loser's fall (~1.6s). At the original 1000ms the payout card cut
    in while the loser was still standing, so the hold has to cover both cuts. */
-const FINISH_MS = 2700;    /* beat between the winning answer and the knockout */
+const FINISH_MS = 4200;    /* beat between the winning answer and the knockout: kick
+                              2.67s + fall 2.5s play together, +1.5s over the old
+                              2.7s so the wall break and the fall read fully */
   const CARD_MS = 3200;      /* how long the coin card is held before the next pair */
   const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
 
