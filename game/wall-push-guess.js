@@ -47,10 +47,10 @@
   /* The knockout is two film beats back to back: the winner's wall-break (~1.0s)
    and then the loser's fall (~1.6s). At the original 1000ms the payout card cut
    in while the loser was still standing, so the hold has to cover both cuts. */
-const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
-                              kick 2.67s + fall 2.75s play together; the old 4200
-                              parked the screen for ~12s once the payout and coin
-                              card were counted in */
+const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
+                              kick 2.67s + fall 2.75s play together, and the
+                              deciding blow now replays in slow motion after the
+                              breath, so the hold covers film + replay */
   const CARD_MS = 2200;      /* how long the coin card is held before the next pair */
   const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
   /* correct answers that have to be answered BACK before the other side wins -
@@ -60,6 +60,14 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
   const COMEBACK_WORDS = ["NOW OR NEVER!", "DO OR DIE!", "ONE LEFT!"];
   const HYPE = ["CRUSH 'EM!", "HOLD THE LINE!", "PUSH!!", "WALL POWER!", "NO MERCY!",
                 "HEAVE!!", "BRACE!!", "LET'S GOOO!"];
+  /* the bots have opinions: taunts after they answer, and while they are
+     beating you. `final` ones only fire in the title fight, and areNaughty
+     taunts (with your name in them) only fire when YOU are losing. */
+  const TAUNT = {
+    after:  ["HA!", "TOO EASY!", "MY WALL NOW!", "WATCH THIS!"],
+    ahead:  ["IS THAT ALL?", "GO HOME!", "CATCH UP!", "NOT TODAY!"],
+    final:  ["NO MERCY!", "THE WALL IS MINE!", "THIS ENDS NOW!"]
+  };
   /* back-to-back duel wins pay extra: the second win in a row is 1.5x, the
      third and every one after it 2x, so a streak is worth protecting */
   const STREAK_MULT = s => (s >= 3 ? 2 : s === 2 ? 1.5 : 1);
@@ -176,6 +184,20 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
     window.setTimeout(() => el.remove(), 1500);
   }
 
+  /* a bot's taunt: a speech bubble over their film half. The tail flips for the
+     right seat, and at most one bubble lives at a time. */
+  function say(side, text) {
+    const stage = ui.deck && ui.deck.parentNode;
+    if (!stage) return;
+    stage.querySelectorAll(".wp-taunt").forEach(t => t.remove());
+    const el = document.createElement("div");
+    el.className = "wp-taunt" + (side === "b" ? " r" : "");
+    el.style.left = side === "b" ? "76%" : "24%";
+    el.textContent = text;
+    stage.appendChild(el);
+    window.setTimeout(() => el.remove(), 1900);
+  }
+
   /* ================================================================== timing */
   function after(ms, fn) {
     if (!run) return 0;
@@ -221,6 +243,9 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
     let isSudden = false;     /* the duel is past its pictures and playing sudden death */
 
     const need = duel.isFinal ? 3 : NEED;   /* the final is played to three */
+    /* the title fight sounds bigger: the music bed runs at 1.3x for the final,
+       back to normal for everything else */
+    window.ChampCues?.heat?.(duel.isFinal ? 1.3 : 1);
     /* the champion's medal + crown render on their finale line; flames render on
        the fighter pips, so both reset here and the streak comes from the map */
     const flameRow = which => { const f = which === "a" ? ui.flameA : ui.flameB;
@@ -305,6 +330,12 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
         if (Math.random() > BOT_SKILL) return;
         const at = 2200 + Math.random() * 16000;
         const other = POOL[Math.floor(Math.random() * POOL.length)];
+        /* the winner talks: answering bots taunt about half the time */
+        if (Math.random() < 0.5) {
+          const pool = duel.isFinal && Math.random() < 0.4 ? TAUNT.final
+            : TAUNT.after;
+          after(at - 400, () => { if (alive(token)) say(side, pool[Math.floor(Math.random() * pool.length)]); });
+        }
         /* a wrong guess is only a wrong guess: it used to close the round, which
            cancelled the same bot's pending right answer along with every other
            timer in flight, so a duel could never score at all */
@@ -394,6 +425,14 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
         if (decided) knocked = true;
         const net = tally.a - tally.b;
         if (arena && arena.steps) arena.steps(net);
+        /* the score as damage: the slab carries the tally on its face */
+        if (arena && arena.damage && !decided) arena.damage(Math.max(tally.a, tally.b));
+        /* a bot that is beating the human cannot help saying so */
+        if (human && by !== human && tally[by] > tally[human] && tally[by] >= 2
+            && Math.random() < 0.55) {
+          const pool = duel.isFinal ? TAUNT.final : TAUNT.ahead;
+          window.setTimeout(() => { if (alive(token)) say(by, pool[Math.floor(Math.random() * pool.length)]); }, 1100);
+        }
         /* the same answer that moves the slab now also plays that seat's film
            beat, so the push the player sees IS their correct answer — except on
            the deciding answer, where breaker() owns the film outright: a shove

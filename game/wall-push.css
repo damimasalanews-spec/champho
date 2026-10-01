@@ -133,6 +133,14 @@
 #wpWall.shattered .wp-cracks{opacity:1;clip-path:inset(0 0 0 0);
   transition:clip-path .5s cubic-bezier(.2,.8,.3,1)}
 
+/* progressive damage: the tally as visible wear. hurt1 shows the hairline
+   spider at the impact face, hurt2 deepens it - the knockout's shatter
+   completes the story on top of these. */
+#wpWall.hurt1 .wp-cracks{opacity:.55;clip-path:inset(66% 0 0 0);
+  transition:clip-path .55s cubic-bezier(.2,.8,.3,1)}
+#wpWall.hurt2 .wp-cracks{opacity:.85;clip-path:inset(30% 0 0 0);
+  transition:clip-path .55s cubic-bezier(.2,.8,.3,1)}
+
 /* the knockout: the slab is knocked but HOLDS. It quakes hard for about a
    second at its own position - shakes and tilts decaying to rest - and stays
    standing cracked exactly where the push left it. It never falls. */
@@ -251,6 +259,22 @@
   text-shadow:0 4px 12px #000,0 0 20px currentColor;font-variant-numeric:tabular-nums}
 #wpOverlay .wp-float.plus{color:#39e08a}
 #wpOverlay .wp-float.minus{color:#ff4d62}
+
+/* the bot taunt: a speech bubble over the bot's film half */
+#wpOverlay .wp-taunt{position:absolute;top:56%;z-index:43;pointer-events:none;
+  padding:10px 18px;border-radius:16px;background:linear-gradient(180deg,#ffffff,#e8eef7);
+  color:#132238;font-size:19px;font-weight:1000;font-style:italic;letter-spacing:.5px;
+  white-space:nowrap;box-shadow:0 10px 24px #000000a6,0 0 0 2px #ffffff2e;
+  transform:translate(-50%,14px) scale(.7);opacity:0;
+  animation:wpTaunt 1.9s cubic-bezier(.2,1.2,.3,1) forwards}
+#wpOverlay .wp-taunt::after{content:"";position:absolute;left:50%;bottom:-9px;width:18px;height:18px;
+  background:inherit;transform:translateX(-50%) rotate(45deg);border-radius:3px;
+  box-shadow:3px 3px 6px #00000059}
+#wpOverlay .wp-taunt.r::after{left:auto;right:26px;transform:rotate(45deg)}
+@keyframes wpTaunt{0%{opacity:0;transform:translate(-50%,16px) scale(.7)}
+  14%{opacity:1;transform:translate(-50%,0) scale(1.04)}
+  24%{transform:translate(-50%,0) scale(1)}78%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-14px) scale(.96)}}
 #wpOverlay .wp-mark{position:absolute;height:5px;border-radius:3px;opacity:0;
   background:linear-gradient(90deg,#00000000,#000000a6 30%,#00000059)}
 #wpOverlay .wp-glow{position:absolute;border-radius:50%;opacity:0;pointer-events:none}
@@ -389,6 +413,38 @@
   30%{transform:translate(-50%,0) scale(1) rotate(0)}
   72%{opacity:1}
   100%{opacity:0;transform:translate(-50%,-64px) scale(1.04)}}
+
+/* the REPLAY stamp over the deciding blow's slow-motion run */
+#wpOverlay .wp-replay{position:absolute;z-index:44;pointer-events:none;
+  top:250px;left:56px;width:280px;text-align:left;
+  animation:wpReplayIn .45s cubic-bezier(.2,1.3,.3,1) both}
+#wpOverlay .wp-replay b{display:block;font-size:44px;font-weight:1000;font-style:italic;
+  letter-spacing:4px;color:#fff;text-shadow:0 4px 0 #b3131f,0 8px 18px #000000c4}
+#wpOverlay .wp-replay i{display:block;margin-top:4px;font-size:12px;font-weight:900;
+  letter-spacing:3px;color:#ffd7da;text-shadow:0 2px 6px #000000a6}
+#wpOverlay .wp-replay::before{content:"";position:absolute;left:-14px;top:6px;width:12px;height:52px;
+  background:#e5142a;box-shadow:0 6px 16px #000000a6;border-radius:3px}
+#wpOverlay .wp-replay.r{left:auto;right:56px;text-align:right}
+#wpOverlay .wp-replay.r::before{left:auto;right:-14px}
+@keyframes wpReplayIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+
+/* ------------------------------------------- the golden final stage
+   The title fight dresses the arena in gold: trim on the slab, gilded meters
+   and rank chips, and a warm bloom on the floor line. */
+#wpStage.final .wp-slab{box-shadow:inset 0 3px 0 #fff3b0,inset 0 -4px 0 #00000080,
+  inset 4px 0 0 #ffe08a59,inset -4px 0 0 #c899224d,
+  0 18px 40px #000000b3,0 0 42px #ffd24a66}
+#wpStage.final #wpWall .wp-seam{background:#ffd24a;box-shadow:0 0 14px #ffd24acc}
+#wpStage.final .wp-floor{background:linear-gradient(90deg,transparent,#ffd24a66 10%,#ffd24a66 90%,transparent)}
+#wpStage.final .wp-meter .mfill{background:linear-gradient(180deg,#fff3b0 0,#ffd24a 45%,#b8791b 100%)}
+#wpStage.final .wp-meter.b .mfill{background:linear-gradient(180deg,#fff3b0 0,#ffd24a 45%,#b8791b 100%);margin-left:auto}
+#wpStage.final .wp-meter .mt{color:#ffd66b}
+#wpStage.final .wp-meter .mt,
+#wpStage.final .wp-meter.a .mt,
+#wpStage.final .wp-meter.b .mt{color:#ffd66b}
+#wpStage.final .wp-rank{background:linear-gradient(180deg,#fff3b0,#ffcf25);color:#1c1600;border:1px solid #fff6cc}
+#wpStage.final .wp-rank.r2{background:linear-gradient(180deg,#fff3b0,#ffcf25);color:#1c1600;border:1px solid #fff6cc}
+#wpStage.final .wd-title{color:#ffd66b}
 
 /* Seat b is seat a mirrored. One clip per fighter covers both players: the
    right-hand seat shoves leftwards and is knocked to the right off the same

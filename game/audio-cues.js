@@ -137,6 +137,7 @@
     try {
       const a = element(name);
       a.loop = true;
+      if (name === "music") { try { a.playbackRate = heatLevel; } catch (e) {} }
       if (looping.indexOf(name) < 0) looping.push(name);
       if (a.paused) {
         a.currentTime = 0;
@@ -174,6 +175,23 @@
       else if (a.paused) { const p = a.play(); if (p && p.catch) p.catch(() => {}); }
     });
   }
+
+  /* ------------------------------------------------------------- music heat
+     The final duel should sound bigger than a pair round, and the music is a
+     single looped bed - so "intensified" is playbackRate. A 1.3x bed is the
+     classic last-lap lift; pitch follows rate on an <audio> element, which is
+     exactly the effect. heat(1) returns the bed to normal and also RESETS the
+     rate of a stopped/never-played element, so the next loop() starts clean. */
+  let heatLevel = 1;
+  function heat(v) {
+    if (v !== undefined) {
+      heatLevel = v;
+      const a = cache.music;
+      if (a) { try { a.playbackRate = v; } catch (e) {} }
+    }
+    return heatLevel;
+  }
+  /* one sweep to find any missed looped cue (currently only music can loop) */
 
   function preload() {
     Object.keys(FILES).forEach(n => { try { element(n); } catch (e) {} });
@@ -233,5 +251,5 @@
     try { SYNTH[name](); return true; } catch (e) { return false; }
   }
 
-  window.ChampCues = { play, loop, stop, syncMute, preload, files: FILES, muted, playAny };
+  window.ChampCues = { play, loop, stop, syncMute, preload, files: FILES, muted, playAny, heat };
 })();

@@ -937,10 +937,14 @@
     E.Banner.querySelector(".bk").textContent = duel.title || "GUESS THE CLIPART";
     E.Banner.querySelector(".bt").textContent = duel.a.name + " vs " + duel.b.name;
     E.Banner.classList.add("on");
+    /* the final is a title fight: the arena dresses for it in gold */
+    root.classList.remove("final");
+    stage.classList.remove("final");
+    if (duel.isFinal) { root.classList.add("final"); stage.classList.add("final"); }
     E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
     E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
     E.PctA.textContent = "100%"; E.PctB.textContent = "100%";
-    E.Wall.classList.remove("cracked", "shattered", "straining", "wp-quake");
+    E.Wall.classList.remove("cracked", "shattered", "straining", "wp-quake", "hurt1", "hurt2");
     fxLayer.innerHTML = "";
     stopShake();
     curKey = [null, null];
@@ -1017,6 +1021,15 @@
       E.MeterB.classList.toggle("dying", pb <= 50);
     }
 
+    /* how battered the slab looks: one correct answer is a hairline, two is
+       deep cracking, and the knockout shatters it - the tally as damage */
+    function damage(n) {
+      if (st.dead) return;
+      E.Wall.classList.remove("hurt1", "hurt2");
+      if (n >= 1) E.Wall.classList.add("hurt1");
+      if (n >= 2) E.Wall.classList.add("hurt2");
+    }
+
     function knock(side, done) {
       if (st.dead) return;
       var adv = side === "a" ? 1 : -1;
@@ -1068,10 +1081,56 @@
         if (st.dead || !run || run.tok !== tok) return;
         if (i >= seq.length) {
           /* No settlement box at all: the green round tab and the deck already
-             tell the story, so the pair moves on after a short breath. */
+             tell the story. After a short breath the WINNING KICK replays once
+             in slow motion - fight-night drama on an asset we already have -
+             and only then is the payout card handed the screen. */
           window.setTimeout(function () {
             if (st.dead || !run || run.tok !== tok) return;
-            if (done) done();
+            var wKey = (adv > 0 ? duel.a : duel.b).key;
+            var wEl = adv > 0 ? E.FilmL : E.FilmR;
+            var c = FILM[wKey] || FILM[FILM_FALLBACK];
+            var src = (c && c.kick) || (FILM[FILM_FALLBACK] || {}).kick;
+            var finished = false;
+            var fin = function () {
+              if (finished || st.dead || !run || run.tok !== tok) return;
+              finished = true;
+              if (wEl && wEl.tagName === "VIDEO") {
+                wEl.classList.remove("replay");
+                try { wEl.playbackRate = 1; } catch (err) {}
+                wEl.onended = null;
+                /* the winner goes back to flexing under the payout card */
+                showFilm(wKey, "win", adv > 0 ? "a" : "b");
+              }
+              if (done) done();
+            };
+            if (wEl && wEl.tagName === "VIDEO" && src) {
+              var stamp = document.createElement("div");
+              stamp.className = "wp-replay " + (adv > 0 ? "l" : "r");
+              stamp.innerHTML = "<b>REPLAY</b><i>THE DECIDING BLOW</i>";
+              stage.appendChild(stamp);
+              window.setTimeout(function () { if (stamp.parentNode) stamp.parentNode.removeChild(stamp); }, 3200);
+              wEl.onended = fin;
+              wEl.loop = false;
+              if (wEl.getAttribute("data-src") !== src) {
+                wEl.setAttribute("data-src", src);
+                wEl.src = src;
+                wEl.load();
+              }
+              wEl.classList.add("replay");
+              var go2 = function () {
+                if (st.dead || !run || run.tok !== tok) return;
+                try { wEl.currentTime = Math.max(0.2, (wEl.duration || 2.6) * 0.55); } catch (err) {}
+                try { wEl.playbackRate = 0.5; } catch (err) {}
+                var p = wEl.play();
+                if (p && p.catch) p.catch(function () {});
+              };
+              if (wEl.readyState >= 2) go2();
+              else wEl.addEventListener("loadeddata", go2, { once: true });
+              /* a replay that never ends must not hold the match hostage */
+              window.setTimeout(fin, 3300);
+            } else {
+              window.setTimeout(function () { if (!finished && !st.dead && run && run.tok === tok) { finished = true; if (done) done(); } }, 300);
+            }
           }, 650);
           return;
         }
@@ -1195,6 +1254,8 @@
       abort = null;
       root.classList.remove("on");
       root.classList.remove("standoff");
+      root.classList.remove("final");
+      stage.classList.remove("final");
       fxLayer.innerHTML = "";
       stopShake();
       stopZoom();
@@ -1381,7 +1442,7 @@
 
     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
              knock: knock, award: award, result: result, teardown: teardown,
-             film: film, breaker: breaker };
+             film: film, breaker: breaker, damage: damage };
   }
 
   /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]
