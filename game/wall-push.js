@@ -34,7 +34,7 @@
   if (window.ChampWallPush) return;
 
   /* ---------------------------------------------------------------- geometry */
-  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 56, RANGE: 100, FULL: 190, KNOCK: 60 };
+  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 65, RANGE: 100, FULL: 190, KNOCK: 60 };
 
   /* the two values chosen on the review build's calibration sliders */
   var CONTACT = -14;     // sprite front edge vs the slab's face, in stage px
@@ -767,6 +767,7 @@
      A seat is drawable if it has a sprite OR a clip. */
   var FILM = {
     "ninja": {
+      idle:    "assets/wallpush/ninja-idle.mp4",
       shove:   "assets/wallpush/ninja-shove.mp4",
       defense: "assets/wallpush/ninja-defense.mp4",
       kick:    "assets/wallpush/ninja-kick.mp4",
@@ -1175,13 +1176,14 @@
       if ((!c || !c[which]) && which !== "fall") c = FILM[FILM_FALLBACK];
       if (!c || !c[which]) return false;
       var src = c[which];
+      var loop = which === "idle";   /* the push stance breathes until the beat replaces it */
       /* seat b is always the mirrored half — it plays the same left-shot footage
          flipped, so both sides of the screen show the same character */
       if (side === "b") el.classList.add("mirror");
       else el.classList.remove("mirror");
       /* always reassign, never leave a stale handler from the previous clip */
       el.onended = onDone || null;
-      el.loop = false;
+      el.loop = loop;
       if (el.getAttribute("data-src") !== src) {
         el.setAttribute("data-src", src);
         el.src = src;
@@ -1214,15 +1216,21 @@
        defense clip exists, so callers can carry on regardless. */
     function defenseFilm(side) {
       var seat = (side === "b" ? duel.b : duel.a) || {};
-      return showFilm(seat.key, "defense", side);
+      return showFilm(seat.key, "defense", side, function () {
+        showFilm(seat.key, "idle", side);
+      });
     }
 
     /* one correct answer: that seat shoves the wall one step while the OTHER
-       seat's defense clip plays — both sides of the screen animate at once. */
+       seat's defense clip plays — both sides of the screen animate at once.
+       The shove fires on the answer (no waiting for the stance loop to end)
+       and each seat settles back into its idle push stance afterwards. */
     function film(side) {
       var seat = (side === "b" ? duel.b : duel.a) || {};
       var oppSide = side === "b" ? "a" : "b";
-      var pushed = showFilm(seat.key, "shove", side);
+      var pushed = showFilm(seat.key, "shove", side, function () {
+        showFilm(seat.key, "idle", side);
+      });
       if (pushed) defenseFilm(oppSide);
       return pushed;
     }
@@ -1253,6 +1261,11 @@
       if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
       return fell || true;
     }
+
+    /* both fighters take their push stance the moment the round mounts, so the
+       arena never shows an empty half while the first clipart is still up */
+    showFilm((duel.a || {}).key, "idle", "a");
+    showFilm((duel.b || {}).key, "idle", "b");
 
     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
              knock: knock, award: award, result: result, teardown: teardown,
