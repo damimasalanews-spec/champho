@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v22';
+const VERSION = 'v23';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -195,7 +195,7 @@ const ART_INDEX = [
   "/assets/wallpush/boy-body.png", "/assets/wallpush/girl-body.png",
   // the ninja film beats: shove / defense / kick / fall (left-shot, right seat mirrors)
   "/assets/wallpush/ninja-idle.mp4", "/assets/wallpush/ninja-shove.mp4", "/assets/wallpush/ninja-defense.mp4",
-  "/assets/wallpush/ninja-kick.mp4", "/assets/wallpush/ninja-fall.mp4",
+  "/assets/wallpush/ninja-kick.mp4", "/assets/wallpush/ninja-fall.mp4", "/assets/wallpush/ninja-win.mp4",
   // the 3D clipart the guessing contest draws - one file per word in
   // game/wall-push-guess.js POOL
   "/assets/clipart/apple.webp", "/assets/clipart/boat.webp", "/assets/clipart/bus.webp",

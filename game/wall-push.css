@@ -20,7 +20,8 @@
   background:radial-gradient(ellipse at 50% 50%,transparent 40%,rgba(0,0,0,.55) 100%)}
 
 #wpStage{position:absolute;width:1600px;height:900px;left:50%;top:50%;
-  transform:translate(-50%,-50%) scale(var(--wp-scale));transform-origin:center;z-index:10}
+  transform:translate(-50%,-50%) scale(calc(var(--wp-scale) * var(--wp-zoom,1)));
+  transform-origin:center;z-index:10;transition:transform .34s cubic-bezier(.2,.8,.3,1)}
 
 /* ------------------------------------------------------------------ the felt */
 /* the arena re-themed to the clips' own navy backdrop: rgb(27,40,57) ->
@@ -62,6 +63,28 @@
 
 #wpShake{position:absolute;inset:0;z-index:20}
 #wpFx{position:absolute;inset:0;pointer-events:none;z-index:30;overflow:hidden}
+
+/* the arena-wide white blink on the frame a knockout blow lands */
+#wpOverlay .wp-hitflash{position:absolute;inset:0;z-index:58;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 55%,rgba(255,255,255,.5),rgba(255,255,255,.14) 55%,transparent 78%);
+  animation:wpHitflash 240ms ease-out forwards}
+@keyframes wpHitflash{0%{opacity:1}100%{opacity:0}}
+
+/* ------------------------------------------------------------ fighter pips
+   Score dots under each seat's name chip: one lights gold per correct answer,
+   so the race to NEED is readable on the arena itself and the final's 3-dot
+   tallies make sense at a glance. */
+#wpOverlay .wp-pips{position:absolute;transform:translateX(-50%);display:flex;gap:7px;z-index:22;
+  padding:4px 10px;border-radius:999px;background:rgba(4,10,18,.72);border:1px solid #ffffff24;
+  box-shadow:0 6px 14px #00000080;transition:left .25s ease,top .25s ease}
+#wpOverlay .wp-pips i{width:12px;height:12px;border-radius:50%;
+  background:#0b1522;border:1.5px solid #ffffff42;transition:transform .18s ease,background .18s ease}
+#wpOverlay .wp-pips i.on{background:linear-gradient(180deg,#ffe08a,#f5b53c);border-color:#ffe9a8;
+  box-shadow:0 0 10px #ffd24a99;transform:scale(1.15)}
+#wpOverlay .wp-pips.a i.on{background:linear-gradient(180deg,#8fd0ff,#39a1ff);border-color:#c4e6ff;
+  box-shadow:0 0 10px #39a1ffaa}
+#wpOverlay .wp-pips.b i.on{background:linear-gradient(180deg,#ffb3bd,#ff4d62);border-color:#ffd0d6;
+  box-shadow:0 0 10px #ff4d62aa}
 
 /* ------------------------------------------------------------------ the slab */
 #wpWall{position:absolute;left:0;top:158px;width:130px;height:520px;margin-left:-65px;
@@ -351,6 +374,20 @@
 @keyframes wpFilmFall {
   to { transform: translateY(64px) rotate(-9deg); opacity: .12; }
 }
+
+/* the hype call flies up through the arena, the way the floating words do */
+#wpOverlay .wp-hype{position:absolute;left:50%;top:44%;z-index:42;pointer-events:none;opacity:0;
+  transform:translate(-50%,20px) scale(.7) rotate(-2deg);
+  font-size:58px;font-weight:1000;font-style:italic;letter-spacing:2px;white-space:nowrap;
+  color:#ffe9a8;text-shadow:0 4px 0 #8a5410,0 8px 0 #5c3708,0 14px 34px #000000c4,0 0 44px #ffd24a59;
+  animation:wpHype calc(1.35s / var(--wp-sp,1)) cubic-bezier(.16,1.1,.3,1) forwards}
+#wpOverlay .wp-hype.final{color:#eaf5ff;
+  text-shadow:0 4px 0 #3d7cc0,0 8px 0 #234f80,0 14px 34px #000000c4,0 0 44px #7cc0ff8f}
+@keyframes wpHype{0%{opacity:0;transform:translate(-50%,26px) scale(.6) rotate(-3deg)}
+  16%{opacity:1;transform:translate(-50%,0) scale(1.06) rotate(-1deg)}
+  30%{transform:translate(-50%,0) scale(1) rotate(0)}
+  72%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-64px) scale(1.04)}}
 
 /* Seat b is seat a mirrored. One clip per fighter covers both players: the
    right-hand seat shoves leftwards and is knocked to the right off the same

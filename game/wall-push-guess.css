@@ -156,6 +156,18 @@
 #wpOverlay .wd-tab.l { left: 224px; top: -14px; transform-origin: left bottom }
 #wpOverlay .wd-tab.r { right: 224px; top: -14px; transform-origin: right bottom }
 
+/* -------------------------------------- countdown urgency on the whole deck
+   The last five seconds of a picture are a different animal from the first
+   twenty-five: the deck pulses red and the clock's scale lifts, so the panic
+   is on the furniture, not just the little number. */
+.wp-deck.urgent { animation: wdUrgent .9s ease-in-out infinite }
+@keyframes wdUrgent {
+  0%, 100% { border-color: #ffffff2e; box-shadow: 0 18px 44px #000000a8, inset 0 1px #ffffff1f }
+  50% { border-color: #ff4d62b3; box-shadow: 0 18px 44px #000000a8, 0 0 26px #ff4d624d, inset 0 1px #ff8a9533 }
+}
+.wp-deck.urgent .wd-clock-top b { color: #ff4d62; animation: wdBeat .5s infinite }
+.wp-deck.urgent .wd-bar i { background: linear-gradient(90deg, #ff8a95, #ff4d62) !important }
+
 /* ------------------------------------------------------------------ picture */
 .wp-deck .wd-art {
   position: relative; flex: 0 0 auto; width: 200px; height: 200px;
@@ -387,6 +399,7 @@
 @media (prefers-reduced-motion: reduce) {
   #wpOverlay .wp-deck,
   .wp-deck.shake,
+  .wp-deck.urgent .wd-clock-top b,
   .wp-deck .wd-art img,
   .wp-deck .wd-blank.on,
   .wp-deck .wd-clock.low .wd-clock-top b,

@@ -117,6 +117,14 @@
     } catch (e) { return false; }
   }
 
+  /* one front door for every cue, recorded or synthesised: callers say "crack"
+     and do not have to know whether the sound came from a file. The synth names
+     are checked first, then the file map. */
+  function playAny(name) {
+    if (playSynth(name)) return true;
+    return play(name);
+  }
+
   /* ------------------------------------------------------------------- loop
      Music is the one cue that is not a one-shot: it runs for as long as the wall
      push does. `looping` is what the mute toggle reaches through, and a repeat
@@ -171,5 +179,59 @@
     Object.keys(FILES).forEach(n => { try { element(n); } catch (e) {} });
   }
 
-  window.ChampCues = { play, loop, stop, syncMute, preload, files: FILES, muted };
+  /* -------------------------------------------------------------- synth cues
+     Four tiny hits that exist only to make the answers physical. There are no
+     files for them, so they are synthesised: a rising two-note ding for a
+     correct answer, a flat descending buzz for a wrong one, a snare-like crack
+     for the wall giving way, and a soft tock for the last five seconds of a
+     clock. They follow the same mute switch as the files, and they silently do
+     nothing when the browser has no AudioContext. */
+  let synthCtx = null;
+  function synth() {
+    if (muted()) return null;
+    try {
+      if (!synthCtx) {
+        const C = window.AudioContext || window.webkitAudioContext;
+        if (!C) return null;
+        synthCtx = new C();
+      }
+      if (synthCtx.state === "suspended") synthCtx.resume();
+      return synthCtx;
+    } catch (e) { return null; }
+  }
+  function blip(freq, freqEnd, dur, type, gain) {
+    const c = synth();
+    if (!c) return;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(freq, c.currentTime);
+    if (freqEnd) o.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), c.currentTime + dur);
+    g.gain.setValueAtTime(0, c.currentTime);
+    g.gain.linearRampToValueAtTime(gain, c.currentTime + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + dur + 0.03);
+  }
+  function noiseBurst(dur, hz, gain) {
+    const c = synth();
+    if (!c) return;
+    const n = Math.floor(c.sampleRate * dur), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.8);
+    const s = c.createBufferSource(); s.buffer = b;
+    const f = c.createBiquadFilter(); f.type = "highpass"; f.frequency.value = hz;
+    const g = c.createGain(); g.gain.value = gain;
+    s.connect(f); f.connect(g); g.connect(c.destination); s.start();
+  }
+  const SYNTH = {
+    correct() { blip(620, null, 0.09, "triangle", 0.16); setTimeout(() => blip(930, null, 0.16, "triangle", 0.16), 90); },
+    wrong()   { blip(220, 110, 0.28, "sawtooth", 0.12); },
+    crack()   { noiseBurst(0.4, 1400, 0.28); blip(150, 60, 0.3, "square", 0.1); },
+    tick()    { blip(1150, null, 0.05, "square", 0.05); }
+  };
+  function playSynth(name) {
+    if (!SYNTH[name] || muted()) return false;
+    try { SYNTH[name](); return true; } catch (e) { return false; }
+  }
+
+  window.ChampCues = { play, loop, stop, syncMute, preload, files: FILES, muted, playAny };
 })();

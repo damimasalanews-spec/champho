@@ -179,6 +179,8 @@
     + '      <i class="wp-seam l"></i><i class="wp-seam r"></i></div></div>'
     + '    <div class="wp-rank r1" id="wpRankA"></div>'
     + '    <div class="wp-rank r2" id="wpRankB"></div>'
+    + '    <div class="wp-pips a" id="wpPipsA"><i></i><i></i><i></i></div>'
+    + '    <div class="wp-pips b" id="wpPipsB"><i></i><i></i><i></i></div>'
     + '    <div class="wp-plate" id="wpPlateA"><span class="pn" id="wpNameA"></span>'
     + '      <span class="pc"><span>🪙</span><b id="wpCoinsA">0</b><small id="wpTeamA"></small></span></div>'
     + '    <div class="wp-plate" id="wpPlateB"><span class="pn" id="wpNameB"></span>'
@@ -212,7 +214,7 @@
     stage = root.querySelector("#wpStage");
     fxLayer = root.querySelector("#wpFx");
     shakeEl = root.querySelector("#wpShake");
-    ["FA","FB","Wall","RankA","RankB","PlateA","PlateB","NameA","NameB","CoinsA","CoinsB",
+    ["FA","FB","Wall","RankA","RankB","PipsA","PipsB","PlateA","PlateB","NameA","NameB","CoinsA","CoinsB",
      "TeamA","TeamB","Banner","Next","MeterA","MeterB","SideA","SideB","PctA","PctB","FillA","FillB",
      "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip","FilmL","FilmR"].forEach(function (k) {
       E[k] = root.querySelector("#wp" + k);
@@ -388,6 +390,48 @@
   }
   function stopShake() { shake.mag = 0; shake.end = 0; if (shakeEl) shakeEl.style.transform = ""; }
 
+  /* HIT-STOP: the beat-em-up freeze on the frame a blow lands. The whole arena
+     is held by dropping RATE - the same clock every phase timer reads - and by
+     pausing the film cards, so nothing keeps moving through the freeze. */
+  function hitstop(ms) {
+    var hold = ms || 240;
+    [E.FilmL, E.FilmR].forEach(function (el) {
+      if (!el || el.tagName !== "VIDEO") return;
+      try { el.pause(); } catch (err) {}
+    });
+    RATE = 0.06;
+    window.setTimeout(function () {
+      RATE = 1;
+      [E.FilmL, E.FilmR].forEach(function (el) {
+        if (!el || el.tagName !== "VIDEO") return;
+        try { var p = el.play(); if (p && p.catch) p.catch(function () {}); } catch (err) {}
+      });
+    }, hold);
+  }
+  /* the white blink over the arena at the moment of impact */
+  function flash(ms) {
+    if (!fxLayer) return;
+    var d = document.createElement("div");
+    d.className = "wp-hitflash";
+    fxLayer.appendChild(d);
+    window.setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, (ms || 240) + 60);
+  }
+  /* a short stage zoom-in on the money shot, easing back out on its own */
+  function zoomStage(mag, ms) {
+    if (!stage) return;
+    stage.style.setProperty("--wp-zoom", (mag || 1.06).toFixed(3));
+    if (stage._zoomT) window.clearTimeout(stage._zoomT);
+    stage._zoomT = window.setTimeout(function () {
+      stage._zoomT = null;
+      if (stage) stage.style.setProperty("--wp-zoom", "1");
+    }, ms || 900);
+  }
+  function stopZoom() {
+    if (!stage) return;
+    if (stage._zoomT) { window.clearTimeout(stage._zoomT); stage._zoomT = null; }
+    stage.style.setProperty("--wp-zoom", "1");
+  }
+
   /* ------------------------------------------------------------------- state */
   var RATE = 1, FX = { shake: true, debris: true, dust: true, spark: true, coins: true, sound: true };
   var run = null, abort = null, sprites = {}, aspect = [1, 1];
@@ -406,7 +450,7 @@
      about how loud anything should be. */
   function cue(name) {
     if (!SOUND) return;
-    try { window.ChampCues?.play?.(name); } catch (e) { /* audio unavailable */ }
+    try { window.ChampCues?.playAny?.(name); } catch (e) { /* audio unavailable */ }
   }
 
   function paramsFor(k, t, isLoser) {
@@ -564,6 +608,11 @@
       plate.style.left = (base + W / 2 - 160) + "px";
       rank.style.left = (base + W / 2) + "px";
       rank.style.top = (S.FLOOR - H - 34) + "px";
+      /* the score pips sit just above the name chip and ride with the fighter,
+         so the tally is always over the head of whoever earned it */
+      var pipsEl = i === 0 ? E.PipsA : E.PipsB;
+      pipsEl.style.left = (base + W / 2) + "px";
+      pipsEl.style.top = (S.FLOOR - H - 76) + "px";
     }
 
     if (shake.mag > 0) {
@@ -600,6 +649,7 @@
       dust(S.CENTER, S.FLOOR - 6, 1, 5);
       kick(11, 260);
       SFX.drop();
+      cue("crack");
     }
     if (ms >= AT.ready && !e.f_ready) {
       e.f_ready = 1;
@@ -616,6 +666,7 @@
       e.f_impact = 1;
       E.Wall.classList.add("shattered");
       var face = S.CENTER + adv * S.FULL - adv * S.WALL_HW;
+      hitstop(240); flash(240); zoomStage(1.06, 900);
       kick(26, 460);
       ring(face, 560, "#ffffff");
       ring(face, 560, adv < 0 ? "#39a1ff" : "#ff4d62");
@@ -775,7 +826,8 @@
       shove:   "assets/wallpush/ninja-shove.mp4",
       defense: "assets/wallpush/ninja-defense.mp4",
       kick:    "assets/wallpush/ninja-kick.mp4",
-      fall:    "assets/wallpush/ninja-fall.mp4"
+      fall:    "assets/wallpush/ninja-fall.mp4",
+      win:     "assets/wallpush/ninja-win.mp4"
     },
     "pumpkin-boy":  { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
     "boy":          { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
@@ -895,6 +947,7 @@
       try { el.load(); } catch (err) {}
     });
     stage.style.setProperty("--fx", "0px");
+    stopZoom();
 
     run = { tok: tok, a: duel.a, b: duel.b, done: false, adv: 1 };
     var st = { lead: 0, target: 0, joltDir: 1, joltUntil: 0, raf: 0, geo: null, paused: false, dead: false };
@@ -1118,6 +1171,7 @@
       root.classList.remove("standoff");
       fxLayer.innerHTML = "";
       stopShake();
+      stopZoom();
       /* drop the film the same way liveMount found the stage, so nothing frozen
          survives this pair into the next one */
       stage.classList.remove("film", "film-fall-a", "film-fall-b");
@@ -1180,7 +1234,7 @@
       if ((!c || !c[which]) && which !== "fall") c = FILM[FILM_FALLBACK];
       if (!c || !c[which]) return false;
       var src = c[which];
-      var loop = which === "idle";   /* the push stance breathes until the beat replaces it */
+      var loop = which === "idle" || which === "win";   /* the idle stance and the victory flex breathe until the next beat */
       /* seat b is always the mirrored half — it plays the same left-shot footage
          flipped, so both sides of the screen show the same character */
       if (side === "b") el.classList.add("mirror");
@@ -1253,6 +1307,18 @@
          about a second, and holds its ground cracked. The loser is what falls. */
       if (E.Wall && E.Wall.classList) {
         E.Wall.classList.add("cracked");
+        cue("crack");
+        /* the kick lands 620ms into the beat: hold the whole stage on the frame
+           just before impact - freeze and zoom - flash ON the frozen frame, then
+           let the quake and the fall go */
+        window.setTimeout(function () {
+          if (st.dead || !run || run.tok !== tok) return;
+          hitstop(300); zoomStage(1.07, 1100);
+        }, 560);
+        window.setTimeout(function () {
+          if (st.dead || !run || run.tok !== tok) return;
+          flash(240);
+        }, 620);
         setTimeout(function () {
           if (!E.Wall || !E.Wall.classList) return;
           E.Wall.classList.remove("cracked", "straining", "wp-quake");
@@ -1261,18 +1327,24 @@
           setTimeout(function () {
             if (E.Wall && E.Wall.classList) E.Wall.classList.remove("wp-quake");
           }, 1200);
-        }, 620);
+        }, 860);
       }
-      if (!showFilm(winner.key, "kick", side)) return false;
-      /* the fall belongs to the losing seat and fires when the kick LANDS, not
-         with its wind-up: the loser is knocked down by the blow, so the film
-         order has to read kick first, fall after. Until then the loser keeps
-         bracing in the idle stance on their own half. */
+      if (!showFilm(winner.key, "kick", side, function () {
+        /* when the kick's own motion runs out, the winner keeps its
+           follow-through on screen: the recut ping-pong flex, looped until the
+           payout card takes the stage */
+        if (st.dead || !run || run.tok !== tok) return;
+        showFilm(winner.key, "win", side);
+      })) return false;
+      /* the fall belongs to the losing seat and fires WITH the quake, just
+         after the hit-stop releases: the loser is knocked down by the blow, so
+         the film order has to read kick, freeze, then fall. Until then the
+         loser keeps bracing in the idle stance on their own half. */
       window.setTimeout(function () {
         if (st.dead || !run || run.tok !== tok) return;
         showFilm(loser.key, "fall", loserSide);
         if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
-      }, 620);
+      }, 860);
       return true;
     }
 

@@ -53,6 +53,13 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
                               card were counted in */
   const CARD_MS = 2200;      /* how long the coin card is held before the next pair */
   const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
+  /* correct answers that have to be answered BACK before the other side wins -
+     the comeback line's trigger. Also the wrong-answer sound cue's name, which
+     shares the constant so the two can never drift apart. */
+  const COMEBACK_AT = 2;
+  const COMEBACK_WORDS = ["NOW OR NEVER!", "DO OR DIE!", "ONE LEFT!"];
+  const HYPE = ["CRUSH 'EM!", "HOLD THE LINE!", "PUSH!!", "WALL POWER!", "NO MERCY!",
+                "HEAVE!!", "BRACE!!", "LET'S GOOO!"];
 
   const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
   const normalize = s => String(s || "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 9);
@@ -103,6 +110,10 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
     const find = {};
     deck.querySelectorAll("[data-x]").forEach(el => { find[el.dataset.x] = el; });
     find.deck = deck;
+    /* the fighter pips live in the arena markup (built by wall-push.js), not in
+       the deck - registered here so the contest can light them like its own */
+    find.pipsA = document.getElementById("wpPipsA");
+    find.pipsB = document.getElementById("wpPipsB");
     ui = find;
     return ui;
   }
@@ -114,6 +125,7 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
 
   /* ================================================================= helpers */
   function pips(host, n) {
+    if (!host || !host.children) return;   /* the arena stubs have no children to light */
     [...host.children].forEach((i, index) => i.classList.toggle("on", index < n));
   }
 
@@ -141,6 +153,20 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
     line.textContent = text;
     ui.feed.prepend(line);
     while (ui.feed.children.length > 3) ui.feed.lastElementChild.remove();
+  }
+
+  /* the hype call flies up through the arena on the seat's film half */
+  let lastHype = -1;
+  function hype(side, text, final) {
+    const stage = ui.deck && ui.deck.parentNode;
+    if (!stage) return;
+    const el = document.createElement("div");
+    el.className = "wp-hype" + (final ? " final" : "");
+    el.style.left = side === "b" ? "76%" : "24%";
+    el.style.transform = "translate(-50%,20px) scale(.7) rotate(-2deg)";
+    el.textContent = text;
+    stage.appendChild(el);
+    window.setTimeout(() => el.remove(), 1500);
   }
 
   /* ================================================================== timing */
@@ -196,6 +222,10 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
     pips(ui.tallyA, 0);
     pips(ui.tallyB, 0);
     pips(ui.rounds, 0);
+    /* the arena's own score dots reset with everything else; stubs from the
+       element map degrade silently if the arena markup ever changes */
+    pips(ui.pipsA, 0);
+    pips(ui.pipsB, 0);
     ui.feed.replaceChildren();
     ui.msg.className = "wd-msg";
 
@@ -236,12 +266,21 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
 
       const started = performance.now();
       let open = true;
+      let lastTickSec = -1;
 
       every(TICK_MS, () => {
         const left = Math.max(0, SLOT_MS - (performance.now() - started));
         ui.secs.textContent = String(Math.ceil(left / 1000));
         ui.fill.style.transform = "scaleX(" + (left / SLOT_MS).toFixed(4) + ")";
+        /* the last five seconds are the urgent ones: the deck itself pulses red
+           and every second is a soft tock, not just a colour change on the clock */
+        const urgent = left <= 5000 && left > 0;
         ui.clock.classList.toggle("low", left <= 10000);
+        ui.deck.classList.toggle("urgent", urgent);
+        if (urgent) {
+          const s = Math.ceil(left / 1000);
+          if (s !== lastTickSec) { lastTickSec = s; window.ChampCues?.play?.("tick"); }
+        }
         if (left <= 0) closeRound(null);
       });
 
@@ -266,6 +305,7 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
         note(`${naming} · ${guess.toUpperCase()}`, "no");
         ui.msg.className = "wd-msg bad";
         ui.msg.textContent = `${naming} guessed ${guess.toUpperCase()} — not it.`;
+        window.ChampCues?.play?.("wrong");
         /* a wrong answer is still an event: one small knock so the deck says so
            even if the message line is the last thing being read */
         ui.deck.classList.remove("shake");
@@ -285,6 +325,7 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
           note(`TIME UP · ${word.toUpperCase()}`, "no");
           ui.msg.className = "wd-msg bad";
           ui.msg.textContent = `Time up — the picture was ${word.toUpperCase()}.`;
+          ui.deck.classList.remove("urgent");
           after(1200, () => advance(false));
           return;
         }
@@ -309,6 +350,20 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
         tab.classList.remove("show");
         void tab.offsetWidth;
         tab.classList.add("show");
+
+        /* the light the pips earn: same rhythm as the tab, and the hype call
+           follows the seat that answered, on their own half of the arena */
+        const pipsRow = by === "a" ? ui.pipsA : ui.pipsB;
+        const lit = Math.min(tally[by], pipsRow.children.length);
+        [...pipsRow.children].forEach((p, i) => p.classList.toggle("on", i < lit));
+        window.ChampCues?.play?.("correct");
+        if (tally[by] >= need) {
+          hype(by, duel.isFinal ? "WINS THE GAME!" : "KNOCKOUT!", duel.isFinal);
+        } else if (duel.isFinal && Math.max(tally.a, tally.b) - Math.min(tally.a, tally.b) === COMEBACK_AT) {
+          hype(by, COMEBACK_WORDS[Math.floor(Math.random() * COMEBACK_WORDS.length)], true);
+        } else {
+          hype(by, HYPE[Math.floor(Math.random() * HYPE.length)]);
+        }
 
         /* net answers in that side's favour: +1 shoves the slab toward the
            opponent, and an answer from the other side shoves it straight back */
