@@ -82,22 +82,24 @@
   transition:clip-path .6s cubic-bezier(.2,.8,.3,1)}
 #wpWall.shattered .wp-cracks{clip-path:inset(0 0 0 0)}
 
-/* the knockout: the broken slab gives way toward the loser's side and drops.
-   Runs ON TOP of the shatter transform, so it is written as an animation and
-   the two halves fall apart as it plays. */
+/* the knockout: the broken slab is knocked TOWARD the loser's side and topples
+   over flat, ending LYING ON THE FLOOR at the loser's feet. The old animation
+   also sank it +150px down, which read as the wall dropping through the floor.
+   --wy and --wrot still enter the keyframes so the animation composes with
+   wherever the sliding slab stands when it breaks. */
 #wpWall.wp-break-a{animation:wpWallBreakL 1.1s cubic-bezier(.34,0,.72,.4) .5s forwards}
 #wpWall.wp-break-b{animation:wpWallBreakR 1.1s cubic-bezier(.34,0,.72,.4) .5s forwards}
 @keyframes wpWallBreakL{
   0%{opacity:1}
   12%{transform:translate3d(calc(var(--wx,800px) - 10px),var(--wy,0px),0) rotate(calc(var(--wrot,0deg) - 3deg));opacity:1}
-  30%{transform:translate3d(calc(var(--wx,800px) - 34px),-16px,0) rotate(-8deg);opacity:1}
-  100%{transform:translate3d(calc(var(--wx,800px) - 150px),150px,0) rotate(-52deg);opacity:0}
+  45%{transform:translate3d(calc(var(--wx,800px) - 120px),var(--wy,0px),0) rotate(-38deg);opacity:1}
+  100%{transform:translate3d(calc(var(--wx,800px) - 252px),var(--wy,0px),0) rotate(-90deg);opacity:.98}
 }
 @keyframes wpWallBreakR{
   0%{opacity:1}
   12%{transform:translate3d(calc(var(--wx,800px) + 10px),var(--wy,0px),0) rotate(calc(var(--wrot,0deg) + 3deg));opacity:1}
-  30%{transform:translate3d(calc(var(--wx,800px) + 34px),-16px,0) rotate(8deg);opacity:1}
-  100%{transform:translate3d(calc(var(--wx,800px) + 150px),150px,0) rotate(52deg);opacity:0}
+  45%{transform:translate3d(calc(var(--wx,800px) + 120px),var(--wy,0px),0) rotate(38deg);opacity:1}
+  100%{transform:translate3d(calc(var(--wx,800px) + 252px),var(--wy,0px),0) rotate(90deg);opacity:.98}
 }
 
 /* --------------------------------------------------------------- the fighters

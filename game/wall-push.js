@@ -876,6 +876,19 @@
     fxLayer.innerHTML = "";
     stopShake();
     curKey = [null, null];
+    /* The stage element OUTLIVES the run (build() mounts it once), so the last
+       duel's frozen knockout frames and its film classes would otherwise greet
+       the next duel's first clipart - which read as "kicking and falling while
+       the first drawing was still up". Every duel starts from a clean stage. */
+    stage.classList.remove("film", "film-fall-a", "film-fall-b");
+    [E.FilmL, E.FilmR].forEach(function (el) {
+      if (!el || !el.tagName || el.tagName !== "VIDEO") return;
+      el.onended = null;
+      try { el.pause(); } catch (err) {}
+      el.removeAttribute("src");
+      el.removeAttribute("data-src");
+      try { el.load(); } catch (err) {}
+    });
 
     run = { tok: tok, a: duel.a, b: duel.b, done: false, adv: 1 };
     var st = { lead: 0, target: 0, joltDir: 1, joltUntil: 0, raf: 0, geo: null, paused: false, dead: false };
@@ -962,7 +975,10 @@
       }
       /* the fall's own cue fires where the fall starts, in the runner below */
 
-      var seq = [["break", 300], ["impact", 520], ["result", 1050], ["settle", 420]], i = 0;
+      /* tightened: the old 2.3s of staged phases left the arena sitting still
+         under the already-playing film, which read as "stuck after the answer".
+         The film carries the knockout; these phases only settle the HUD. */
+      var seq = [["break", 260], ["impact", 380], ["result", 420], ["settle", 240]], i = 0;
       (function step() {
         if (st.dead || !run || run.tok !== tok) return;
         if (i >= seq.length) {
@@ -1025,7 +1041,7 @@
       var ref = {};
       el.querySelectorAll("[data-x]").forEach(function (n) { ref[n.dataset.x] = n; });
 
-      var COUNT_MS = 1500, HOLD_MS = 700, BURST_MS = 420;
+      var COUNT_MS = 1000, HOLD_MS = 300, BURST_MS = 260;
       var live = { dead: false, skip: false, raf: 0 };
       var t0 = performance.now();
 
@@ -1098,6 +1114,17 @@
       root.classList.remove("standoff");
       fxLayer.innerHTML = "";
       stopShake();
+      /* drop the film the same way liveMount found the stage, so nothing frozen
+         survives this pair into the next one */
+      stage.classList.remove("film", "film-fall-a", "film-fall-b");
+      [E.FilmL, E.FilmR].forEach(function (el) {
+        if (!el || !el.tagName || el.tagName !== "VIDEO") return;
+        el.onended = null;
+        try { el.pause(); } catch (err) {}
+        el.removeAttribute("src");
+        el.removeAttribute("data-src");
+        try { el.load(); } catch (err) {}
+      });
     }
 
     abort = function () { if (hooks.onSkip) hooks.onSkip(); };
@@ -1168,6 +1195,14 @@
         var p = el.play();
         if (p && p.catch) p.catch(function () { /* autoplay blocked; still shows */ });
       };
+      /* a clip that never decodes must not hold the stage hostage: if it is not
+         playable within 2.5s, drop the film card and let the drawn arena carry
+         the beat instead of freezing on a black or stale frame */
+      var bail = window.setTimeout(function () {
+        if (el.readyState >= 2) return;
+        stage.classList.remove("film");
+      }, 2500);
+      el.addEventListener("playing", function () { window.clearTimeout(bail); }, { once: true });
       if (el.readyState >= 2) go();
       else el.addEventListener("loadeddata", go, { once: true });
       return true;

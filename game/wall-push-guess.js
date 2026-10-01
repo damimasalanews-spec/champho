@@ -42,15 +42,16 @@
   const SLOT_MS = 30000;     /* 30 seconds for each one */
   const NEED = 2;            /* first to two correct answers takes the wall */
   const TICK_MS = 100;
-  const BOT_SKILL = 0.78;    /* how often a bot actually knows the picture */
+  const BOT_SKILL = 0.9;     /* how often a bot actually knows the picture */
   const SHOVE_MS = 1150;     /* beat between a shove and the next picture */
   /* The knockout is two film beats back to back: the winner's wall-break (~1.0s)
    and then the loser's fall (~1.6s). At the original 1000ms the payout card cut
    in while the loser was still standing, so the hold has to cover both cuts. */
-const FINISH_MS = 4200;    /* beat between the winning answer and the knockout: kick
-                              2.67s + fall 2.5s play together, +1.5s over the old
-                              2.7s so the wall break and the fall read fully */
-  const CARD_MS = 3200;      /* how long the coin card is held before the next pair */
+const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
+                              kick 2.67s + fall 2.75s play together; the old 4200
+                              parked the screen for ~12s once the payout and coin
+                              card were counted in */
+  const CARD_MS = 2200;      /* how long the coin card is held before the next pair */
   const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
 
   const clamp = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
@@ -243,7 +244,7 @@ const FINISH_MS = 4200;    /* beat between the winning answer and the knockout: 
         const who = side === "a" ? A : B;
         if (who.id === "champ") return;
         if (Math.random() > BOT_SKILL) return;
-        const at = 3500 + Math.random() * 22500;
+        const at = 2200 + Math.random() * 16000;
         const other = POOL[Math.floor(Math.random() * POOL.length)];
         /* a wrong guess is only a wrong guess: it used to close the round, which
            cancelled the same bot's pending right answer along with every other
