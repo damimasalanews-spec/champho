@@ -99,14 +99,21 @@
      wins; if the lower-ranked seat wins it doubles, funded from the higher. Both
      branches move the SAME amount — the underdog's balance — so the stake is just
      "what the underdog holds". The cap is reported, never hidden. */
-  function settle(fav, dog, dogWins) {
+  function settle(fav, dog, dogWins, mult) {
     var stake = dog.coins;
     var paid = dogWins ? Math.min(stake, fav.coins) : stake;
+    /* `paid` stays what the LOSER hands over - the stake rule is untouched.
+       `mult` is the winner's streak ladder (1, 1.5, 2): the winner RECEIVES
+       paid x mult, and the difference beyond the stake is house-funded, so no
+       balance can ever be driven below zero by a bonus. */
+    mult = mult || 1;
+    var bonus = Math.round(paid * mult);
     return {
       stake: stake, paid: paid,
+      bonus: bonus,               /* what the winner actually receives */
       favBefore: fav.coins, dogBefore: dog.coins,
-      favAfter: dogWins ? fav.coins - paid : fav.coins + paid,
-      dogAfter: dogWins ? dog.coins + paid : dog.coins - paid,
+      favAfter: dogWins ? fav.coins - paid : fav.coins + bonus,
+      dogAfter: dogWins ? dog.coins + bonus : dog.coins - paid,
       capped: dogWins && paid < stake
     };
   }
@@ -203,6 +210,8 @@
     + '      <div class="lcell" style="text-align:right"><small id="wpLblR">BEFORE</small><b id="wpR">—</b></div></div>'
     + '    <p class="wp-note" id="wpNote"></p></div>'
     + '</div>'
+    + '<div class="wp-rotate" id="wpRotate"><div><b>ROTATE YOUR PHONE</b>'
+    + '<span>\uD83D\uDCF1</span><small>The wall push plays in landscape \u2014 tap to try anyway.</small></div></div>'
     + '<button id="wpSkip" type="button">SKIP ▶</button>';
 
   function build() {
@@ -216,7 +225,7 @@
     shakeEl = root.querySelector("#wpShake");
     ["FA","FB","Wall","RankA","RankB","PipsA","PipsB","PlateA","PlateB","NameA","NameB","CoinsA","CoinsB",
      "TeamA","TeamB","Banner","Next","MeterA","MeterB","SideA","SideB","PctA","PctB","FillA","FillB",
-     "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip","FilmL","FilmR"].forEach(function (k) {
+     "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip","FilmL","FilmR","Rotate"].forEach(function (k) {
       E[k] = root.querySelector("#wp" + k);
     });
 
@@ -242,6 +251,8 @@
        };
      });
     E.Skip.addEventListener("click", function () { if (abort) abort(); });
+    /* the portrait hint blocks the view until tapped - it is a hint, not a lock */
+    E.Rotate.addEventListener("click", function () { E.Rotate.classList.add("off"); });
     window.addEventListener("resize", fit, { passive: true });
     if (window.visualViewport) window.visualViewport.addEventListener("resize", fit, { passive: true });
     fit();
@@ -1010,7 +1021,22 @@
       if (st.dead) return;
       var adv = side === "a" ? 1 : -1;
       e.dogWins = adv < 0;
-      e.st = settle(fav, dog, e.dogWins);
+      /* the winner's streak ladder multiplies what they receive; the bonus is
+         house-funded, so the loser's stake rule reads exactly as before */
+      var winMult = 1;
+      try {
+        var winnerId = (side === "a" ? duel.a : duel.b).id;
+        if (window.ChampWallGuess && window.ChampWallGuess.streak) winMult = window.ChampWallGuess.streak(winnerId) || 1;
+      } catch (err) { winMult = 1; }
+      e.st = settle(fav, dog, e.dogWins, winMult);
+      if (winMult > 1 && e.st.bonus > e.st.paid) {
+        window.setTimeout(function () {
+          if (st.dead || !run || run.tok !== tok) return;
+          var g = st.geo ? st.geo[adv > 0 ? 0 : 1] : null;
+          floatNum(g ? g.cx : S.CENTER + adv * 300, 380,
+                   "🔥 STREAK ×" + winMult + "  +" + fmt(e.st.bonus - e.st.paid), "mult plus");
+        }, 600 / RATE);
+      }
       run.adv = adv;
       st.paused = true;                    // the live loop yields to this
       st.lead = st.target = adv * S.FULL;
@@ -1106,8 +1132,8 @@
         ref.num.textContent = fmt(Math.round(v));
       }
       paint(0);
-      ref.wa.textContent = "+" + fmt(paid);
-      ref.lo.textContent = "-" + fmt(paid);
+      ref.wa.textContent = "+" + fmt(st2.paid);
+      ref.lo.textContent = "-" + fmt(st2.paid);
 
       if (paid <= 0) {
         /* nothing to perform: the loser finished on zero, and flying coins in

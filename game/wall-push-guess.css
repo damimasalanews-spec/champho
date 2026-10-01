@@ -381,6 +381,40 @@
 #wpFinal .wf-foot { margin-top: 20px; font-size: 13px; letter-spacing: 2px; color: #cfe0d699; animation: wfBlink 1.6s infinite }
 @keyframes wfBlink { 50% { opacity: .35 } }
 
+/* --------------------------------------------------------- champion moment
+   The final's winner is a crowned card: spotlight behind it, gold border,
+   the medal on their line. The whole grid dims so the champion reads first. */
+#wpFinal .wf-grid.champ-in { position: relative; z-index: 1 }
+#wpFinal .wf-grid.champ-in .wf-p { opacity: .38; transition: opacity .5s ease }
+#wpFinal .wf-grid.champ-in .wf-p.champ { opacity: 1 }
+#wpFinal .wf-p.champ {
+  position: relative; border-color: #ffd66b; background: linear-gradient(180deg, #1d3a17f2, #0b2410fa);
+  box-shadow: 0 0 26px #ffd24a3d, inset 0 0 18px #ffd24a14;
+}
+#wpFinal .wf-p.champ::after {
+  content: "CHAMPION"; position: absolute; right: 14px; top: -11px;
+  padding: 4px 14px; border-radius: 999px;
+  font-size: 10px; font-weight: 1000; letter-spacing: 2.6px; font-style: italic;
+  color: #25170a; background: linear-gradient(180deg, #ffe08a, #f5b53c);
+  box-shadow: 0 4px 12px #000000a6, inset 0 1px 0 #fff6cc;
+}
+#wpFinal .wf-p.champ .wf-role { color: #ffd66b }
+#wpFinal .wf-p.champ .wf-flames { color: #ffb84d; font-size: 12px; margin-left: 6px; letter-spacing: 0 }
+#wpFinal .wf-p.champ { animation: wfChampIn .6s cubic-bezier(.2, 1.2, .3, 1) both }
+@keyframes wfChampIn { from { transform: translateY(10px) scale(.97); opacity: 0 } to { transform: none; opacity: 1 } }
+#wpFinal .wf-spotlight {
+  /* z 0 with the grid lifted to 1: the glow paints over the card background
+     but under the player rows, all in the card's own stacking context */
+  position: absolute; z-index: 0; pointer-events: none;
+  width: 560px; height: 560px; left: 50%; top: 50%; transform: translate(-50%, -46%);
+  background: radial-gradient(circle, #ffd24a2b 0%, #ffd24a12 34%, transparent 66%);
+  animation: wfSpot 1.2s ease-out both;
+}
+@keyframes wfSpot { from { opacity: 0; transform: translate(-50%, -40%) scale(.6) } to { opacity: 1; transform: translate(-50%, -46%) scale(1) } }
+
+/* replay flames next to a receipt line that ended the match on a streak */
+#wpFinal .wf-flames { font-size: 12px; margin-left: 6px }
+
 #wpFinal .wf-spray { position: absolute; inset: 0; z-index: 1; pointer-events: none }
 #wpFinal .wf-spray i {
   position: absolute; width: 26px; height: 26px; border-radius: 50%; opacity: 0;
@@ -407,6 +441,10 @@
   .wp-award .wa-tier.pop,
   #wpFinal .wf-card,
   #wpFinal .wf-tier.pop,
+  #wpFinal .wf-p.champ,
+  #wpFinal .wf-spotlight,
   #wpFinal .wf-foot { animation: none; transition: none }
+  #wpFinal .wf-grid.champ-in .wf-p { opacity: 1 }
+  #wpFinal .wf-spotlight { opacity: 1 }
   #wpFinal .wf-spray { display: none }
 }

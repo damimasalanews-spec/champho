@@ -271,7 +271,10 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
     if (!round || !s) return;
     const win = round.scores[s.winnerId], lose = round.scores[s.loserId];
     if (!win || !lose) return;
-    win.coins += s.paid;
+    /* s.paid is the stake the loser hands over; s.bonus is the winner's
+       house-funded streak extra (x1.5 / x2 ladder), so the scoreboard agrees
+       with the payout receipt the player just watched */
+    win.coins += s.paid + (s.bonus || 0);
     lose.coins -= s.paid;
     renderScores();
   }
