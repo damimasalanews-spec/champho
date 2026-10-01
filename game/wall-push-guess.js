@@ -40,7 +40,7 @@
 
   const ROUNDS = 4;          /* four cliparts in a duel */
   const SLOT_MS = 30000;     /* 30 seconds for each one */
-  const NEED = 2;            /* first to two correct answers takes the wall */
+  const NEED = 2;            /* correct answers a PAIR round needs; the final needs 3 */
   const TICK_MS = 100;
   const BOT_SKILL = 0.9;     /* how often a bot actually knows the picture */
   const SHOVE_MS = 1150;     /* beat between a shove and the next picture */
@@ -70,6 +70,8 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
       '<div class="wd-art"><span class="wd-chip">CLIPART <b data-x="n">1</b>/' + ROUNDS + '</span>' +
         '<img alt="" data-x="img"></div>' +
       '<div class="wd-mid">' +
+        '<div class="wd-tab l" data-x="tabA">GOT IT!</div>' +
+        '<div class="wd-tab r" data-x="tabB">GOT IT!</div>' +
         '<div class="wd-head">' +
           '<span class="wd-side" data-x="sideA"><b data-x="nameA">—</b>' +
             '<i class="wd-coins" data-x="coinsA">0</i>' +
@@ -183,6 +185,7 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
     const human = A.id === "champ" ? "a" : B.id === "champ" ? "b" : null;
     let round = 0;
 
+    const need = duel.isFinal ? 3 : NEED;   /* the final is played to three */
     ui.nameA.textContent = A.name;
     ui.nameB.textContent = B.name;
     ui.coinsA.textContent = fmt(A.coins);
@@ -219,6 +222,8 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
       pips(ui.rounds, round);
       ui.img.classList.remove("solved");
       ui.img.classList.remove("pop");
+      ui.tabA.classList.remove("show");
+      ui.tabB.classList.remove("show");
       void ui.img.offsetWidth;
       ui.img.src = ART(word);
       ui.img.classList.add("pop");
@@ -295,6 +300,16 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
         ui.msg.className = "wd-msg good";
         ui.msg.textContent = `${naming} has it — the wall takes a shove!`;
 
+        /* the green tab pops over the answerer's side of the deck: GOT IT! on
+           every correct answer, and on the round-winner it says what they won */
+        const tab = by === "a" ? ui.tabA : ui.tabB;
+        tab.textContent = tally[by] >= need
+          ? (duel.isFinal ? "WINS THE GAME!" : "WINS THE ROUND!")
+          : `GOT IT! ${tally[by]}`;
+        tab.classList.remove("show");
+        void tab.offsetWidth;
+        tab.classList.add("show");
+
         /* net answers in that side's favour: +1 shoves the slab toward the
            opponent, and an answer from the other side shoves it straight back */
         const net = tally.a - tally.b;
@@ -304,7 +319,7 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
         if (arena && arena.film) arena.film(by);
         if (arena && arena.charge) arena.charge(tally.a, tally.b);
 
-        const decided = tally[by] >= NEED;
+        const decided = tally[by] >= need;
         if (decided) {
           /* reaching NEED is the knockout: the wall gives way on film and the
              losing seat drops */
@@ -336,7 +351,7 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
       if (!alive(token)) return;
       if (decided) return settle();
       round++;
-      if (round > ROUNDS || tally.a >= NEED || tally.b >= NEED) return settle();
+      if (round > ROUNDS || tally.a >= need || tally.b >= need) return settle();
       runRound(words[round - 1]);
     }
 

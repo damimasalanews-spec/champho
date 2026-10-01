@@ -988,12 +988,10 @@
       (function step() {
         if (st.dead || !run || run.tok !== tok) return;
         if (i >= seq.length) {
-          /* No settlement pop-up: the verdict strip and the coin card already
-             carry the numbers, so the award card only parked the screen between
-             the fall and the next round. A short breath, then the ledger. */
+          /* No settlement box at all: the green round tab and the deck already
+             tell the story, so the pair moves on after a short breath. */
           window.setTimeout(function () {
             if (st.dead || !run || run.tok !== tok) return;
-            ledger(e);
             if (done) done();
           }, 650);
           return;
