@@ -7,7 +7,7 @@
    =========================================================================== */
 
 #wpOverlay{position:fixed;inset:0;z-index:9000;display:none;
-  background:radial-gradient(circle at 50% 45%,#172338 0,#080b14 55%,#04050a 100%);
+  background:radial-gradient(circle at 50% 45%,#28354f 0,#1b2939 55%,#0a0e14 100%);
   font-family:Inter,"Segoe UI",Nunito,Arial,sans-serif;color:#fff;
   -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
   --wp-sp:1;                        /* playback rate; every duration is divided by it */
@@ -23,12 +23,38 @@
   transform:translate(-50%,-50%) scale(var(--wp-scale));transform-origin:center;z-index:10}
 
 /* ------------------------------------------------------------------ the felt */
+/* the arena re-themed to the clips' own navy backdrop: rgb(27,40,57) ->
+   rgb(40,53,79) centre glow, near-black corners, so the film cards blend into
+   the stage and the green gap between the fighters disappears entirely */
 #wpOverlay .wp-felt{position:absolute;inset:0;border-radius:34px;overflow:hidden;
-  background:radial-gradient(ellipse at center,#0d8155 0,#086c48 43%,#07583d 72%,#064631 100%);
+  background:radial-gradient(ellipse at 50% 42%,#2d3a56 0,#232f47 40%,#1b2434 68%,#10161f 100%);
   border:1px solid #fff2;
-  box-shadow:inset 0 0 0 2px #0002,inset 0 0 100px #00170e80,0 35px 100px #0009}
+  box-shadow:inset 0 0 0 2px #0002,inset 0 0 100px #00000066,0 35px 100px #0009}
 #wpOverlay .wp-felt-glow{position:absolute;width:1150px;height:470px;left:50%;top:56%;
-  transform:translate(-50%,-50%);background:#20d98a18;filter:blur(60px);border-radius:50%}
+  transform:translate(-50%,-50%);background:#7fa8ff14;filter:blur(60px);border-radius:50%}
+
+/* 3D flying words drifting through the arena background, the way the clipart
+   cards float their letters - tilting planes in perspective, not flat text */
+.wp-words{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none;
+  perspective:900px}
+.wp-words b{position:absolute;font-weight:1000;font-style:italic;letter-spacing:2px;
+  color:#8fa7cc;opacity:0;white-space:nowrap;
+  text-shadow:0 2px 0 #46536e,0 4px 0 #333d54,0 6px 0 #232b3d,0 10px 24px #00000073;
+  animation:wpWordFly 14s linear infinite}
+.wp-words b:nth-child(1){font-size:64px;left:6%;animation-delay:0s;--wdx:60px;--wr:-14deg}
+.wp-words b:nth-child(2){font-size:44px;left:58%;animation-delay:2.2s;--wdx:-70px;--wr:12deg}
+.wp-words b:nth-child(3){font-size:52px;left:30%;animation-delay:4.6s;--wdx:90px;--wr:-8deg}
+.wp-words b:nth-child(4){font-size:38px;left:74%;animation-delay:6.9s;--wdx:-55px;--wr:16deg}
+.wp-words b:nth-child(5){font-size:56px;left:16%;animation-delay:9.1s;--wdx:75px;--wr:-11deg}
+.wp-words b:nth-child(6){font-size:42px;left:64%;animation-delay:11.3s;--wdx:-80px;--wr:9deg}
+.wp-words b:nth-child(7){font-size:48px;left:42%;animation-delay:5.8s;--wdx:65px;--wr:-15deg}
+.wp-words b:nth-child(8){font-size:36px;left:78%;animation-delay:12.6s;--wdx:-60px;--wr:13deg}
+@keyframes wpWordFly{
+  0%{transform:translate3d(0,700px,var(--wz,-260px)) rotateX(52deg) rotate(var(--wr,0deg));opacity:0}
+  8%{opacity:.4}
+  88%{opacity:.4}
+  100%{transform:translate3d(var(--wdx,0px),-780px,var(--wz,-260px)) rotateX(52deg) rotate(var(--wr,0deg));opacity:0}
+}
 #wpOverlay .wp-floor{position:absolute;left:90px;right:90px;top:624px;height:2px;
   background:linear-gradient(90deg,transparent,#ffffff36 10%,#ffffff36 90%,transparent)}
 #wpOverlay .wp-floor::after{content:"";position:absolute;left:0;right:0;top:2px;height:70px;
@@ -270,23 +296,24 @@
   height: 520px;
   width: 720px;                  /* 1:1 with the 720x520 clips — no scaling */
   object-fit: fill;
-
-/* a beat clip freezes on its own last frame when it ends (the pusher returns
-   to stance via onended; the knockout holds the fallen body) */
-#wpFilmL.wp-hold, #wpFilmR.wp-hold { opacity: 1 !important; }
   opacity: 0;
   z-index: 1;
   pointer-events: none;
   border-radius: 26px;
-  /* spotlight card: a soft dark pool so the green felt still reads around it */
-  background: radial-gradient(ellipse at 50% 62%, #0b1626 0%, #081018 58%, transparent 78%);
+  /* the card's pool matches the clip backdrop exactly, so the film melts into
+     the themed stage and no seam or gap reads between the two halves */
+  background: radial-gradient(ellipse at 50% 62%, #28354f 0%, #1b2434 58%, transparent 78%);
   box-shadow: 0 0 0 1px #ffffff14, 0 18px 60px #00000073;
   transition: opacity .35s ease;
 }
+
+/* a beat clip freezes on its own last frame when it ends (the pusher returns
+   to stance via onended; the knockout holds the fallen body) */
+#wpFilmL.wp-hold, #wpFilmR.wp-hold { opacity: 1 !important; }
 /* the film cards ride with the slab via --fx, so the fighters move WITH the
    wall wherever it is pushed; --fx is 0px before the first render pass */
-#wpFilmL { left: calc(24px + var(--fx, 0px)); }
-#wpFilmR { left: calc(856px + var(--fx, 0px)); }      /* seam spans x=744..856; the wall axis (800) is
+#wpFilmL { left: calc(8px + var(--fx, 0px)); }
+#wpFilmR { left: calc(872px + var(--fx, 0px)); }      /* seam spans x=728..872; the wall axis (800) is
                                   inside the seam, so the slab stands between them */
 #wpStage.film #wpFilmL,
 #wpStage.film #wpFilmR { opacity: 1; }
@@ -295,6 +322,11 @@
    it is the one real wall the whole beat is about, and it keeps sliding */
 #wpStage.film .wp-felt-glow,
 #wpStage.film .wp-fighter { opacity: 0; transition: opacity .35s ease; }
+
+/* with film up, the themed backdrop and the flying words take over the stage
+   entirely - the felt gradient is already the clips' own navy, so the cards
+   melt into it and the old green gap cannot read anymore */
+#wpStage.film .wp-words b{animation-play-state:running}
 
 /* the walls the plates sit on would otherwise fight the film */
 #wpStage.film .wp-plate,

@@ -164,6 +164,7 @@
   var MARKUP = ''
     + '<div id="wpStage">'
     + '  <div class="wp-felt"><div class="wp-felt-glow"></div></div>'
+    + '  <div class="wp-words" aria-hidden="true"><b>WALL</b><b>PUSH</b><b>CHAMP</b><b>WORD</b><b>POWER</b><b>CLASH</b><b>WIN</b><b>GO!</b></div>'
     + '  <div class="wp-floor"></div>'
     /* the avatars now ship as pre-rendered film, ONE HALF PER SEAT: the left
        video carries seat a and the right video carries seat b (mirrored), so
@@ -1260,11 +1261,16 @@
         }, 620);
       }
       if (!showFilm(winner.key, "kick", side)) return false;
-      /* the loser's fall starts right away on its own half; the plate-drop class
-         still lands after the kick so the HUD matches the film */
-      var fell = showFilm(loser.key, "fall", loserSide);
-      if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
-      return fell || true;
+      /* the fall belongs to the losing seat and fires when the kick LANDS, not
+         with its wind-up: the loser is knocked down by the blow, so the film
+         order has to read kick first, fall after. Until then the loser keeps
+         bracing in the idle stance on their own half. */
+      window.setTimeout(function () {
+        if (st.dead || !run || run.tok !== tok) return;
+        showFilm(loser.key, "fall", loserSide);
+        if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
+      }, 620);
+      return true;
     }
 
     /* both fighters take their push stance the moment the round mounts, so the
