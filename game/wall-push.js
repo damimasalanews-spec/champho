@@ -877,7 +877,7 @@
     E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
     E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
     E.PctA.textContent = "100%"; E.PctB.textContent = "100%";
-    E.Wall.classList.remove("cracked", "shattered", "straining", "wp-break-a", "wp-break-b");
+    E.Wall.classList.remove("cracked", "shattered", "straining", "wp-quake");
     fxLayer.innerHTML = "";
     stopShake();
     curKey = [null, null];
@@ -1251,13 +1251,18 @@
       var winner = (side === "b" ? duel.b : duel.a) || {};
       var loser = (side === "b" ? duel.a : duel.b) || {};
       var loserSide = side === "b" ? "a" : "b";
-      /* the wall cracks first, then shatters toward the losing side */
+      /* the wall is knocked but it does NOT go down: it cracks, quakes hard for
+         about a second, and holds its ground cracked. The loser is what falls. */
       if (E.Wall && E.Wall.classList) {
         E.Wall.classList.add("cracked");
         setTimeout(function () {
           if (!E.Wall || !E.Wall.classList) return;
-          E.Wall.classList.remove("cracked", "straining");
-          E.Wall.classList.add("shattered", "wp-break-" + loserSide);
+          E.Wall.classList.remove("cracked", "straining", "wp-quake");
+          void E.Wall.offsetWidth;               /* restart the quake from rest */
+          E.Wall.classList.add("shattered", "wp-quake");
+          setTimeout(function () {
+            if (E.Wall && E.Wall.classList) E.Wall.classList.remove("wp-quake");
+          }, 1200);
         }, 620);
       }
       if (!showFilm(winner.key, "kick", side)) return false;
