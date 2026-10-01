@@ -485,6 +485,9 @@
     wall.style.setProperty("--wx", wallX.toFixed(2) + "px");
     wall.style.setProperty("--wrot", wallRot.toFixed(3) + "deg");
     wall.style.setProperty("--wy", wallY.toFixed(2) + "px");
+    /* the film cards ride with the slab: the fighters stay glued to the wall
+       wherever it is pushed, instead of standing still while it slides away */
+    if (stage) stage.style.setProperty("--fx", (wallX - S.CENTER).toFixed(2) + "px");
 
     var faceL = wallX - S.WALL_HW, faceR = wallX + S.WALL_HW;
     var H = SIZE, geo = [];
@@ -890,6 +893,7 @@
       el.removeAttribute("data-src");
       try { el.load(); } catch (err) {}
     });
+    stage.style.setProperty("--fx", "0px");
 
     run = { tok: tok, a: duel.a, b: duel.b, done: false, adv: 1 };
     var st = { lead: 0, target: 0, joltDir: 1, joltUntil: 0, raf: 0, geo: null, paused: false, dead: false };
@@ -983,14 +987,14 @@
       (function step() {
         if (st.dead || !run || run.tok !== tok) return;
         if (i >= seq.length) {
-          /* the payout gets its own beat before the receipt: coins fly, both
-             sides show their + and -, and then the card itemises it */
-          try {
-            award(side, function () { ledger(e); if (done) done(); });
-          } catch (err) {
-            console.warn("wall-push: payout animation failed", err);
-            ledger(e); if (done) done();
-          }
+          /* No settlement pop-up: the verdict strip and the coin card already
+             carry the numbers, so the award card only parked the screen between
+             the fall and the next round. A short breath, then the ledger. */
+          window.setTimeout(function () {
+            if (st.dead || !run || run.tok !== tok) return;
+            ledger(e);
+            if (done) done();
+          }, 650);
           return;
         }
         var ph = seq[i++], t0 = performance.now();
@@ -1126,6 +1130,7 @@
         el.removeAttribute("data-src");
         try { el.load(); } catch (err) {}
       });
+      stage.style.setProperty("--fx", "0px");
     }
 
     abort = function () { if (hooks.onSkip) hooks.onSkip(); };
