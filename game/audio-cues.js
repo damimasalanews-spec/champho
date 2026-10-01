@@ -244,7 +244,11 @@
     correct() { blip(620, null, 0.09, "triangle", 0.16); setTimeout(() => blip(930, null, 0.16, "triangle", 0.16), 90); },
     wrong()   { blip(220, 110, 0.28, "sawtooth", 0.12); },
     crack()   { noiseBurst(0.4, 1400, 0.28); blip(150, 60, 0.3, "square", 0.1); },
-    tick()    { blip(1150, null, 0.05, "square", 0.05); }
+    tick()    { blip(1150, null, 0.05, "square", 0.05); },
+    /* the crowd erupting: layered noise beds - a wide hiss with slow attack
+       (the roar), an airy high band (whistles), two whoop sweeps up and down.
+       Louder than a blip, quieter than slam, over before the next beat. */
+    cheer()   { noiseBurst(0.9, 500, 0.34); blip(320, 900, 0.55, "sawtooth", 0.07); setTimeout(() => blip(880, 240, 0.5, "square", 0.05), 140); }
   };
   function playSynth(name) {
     if (!SYNTH[name] || muted()) return false;

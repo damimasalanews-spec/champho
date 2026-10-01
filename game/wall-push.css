@@ -65,6 +65,22 @@
 #wpOverlay .wp-floor::after{content:"";position:absolute;left:0;right:0;top:2px;height:70px;
   background:linear-gradient(180deg,#00000042,transparent)}
 
+#wpOverlay .wp-crowd{position:absolute;left:0;right:0;top:640px;height:56px;z-index:2;
+  pointer-events:none;display:flex;justify-content:space-evenly;align-items:flex-start;overflow:hidden}
+#wpOverlay .wp-crowd i{font-style:normal;font-size:34px;line-height:1;color:#0c1520;
+  text-shadow:0 -2px 0 #1f2b3d;opacity:.85;animation:wpBob 1.7s ease-in-out infinite}
+#wpOverlay .wp-crowd i:nth-child(2n){font-size:30px;animation-delay:-.4s}
+#wpOverlay .wp-crowd i:nth-child(3n){font-size:37px;animation-delay:-.9s}
+#wpOverlay .wp-crowd i:nth-child(5n){font-size:27px;animation-delay:-1.3s}
+@keyframes wpBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+#wpOverlay .wp-chant{position:absolute;left:50%;top:-8px;transform:translateX(-50%);
+  font-size:30px;font-weight:1000;font-style:italic;letter-spacing:3px;white-space:nowrap;
+  color:#ffd66b;text-shadow:0 3px 0 #7a4a06,0 0 24px #ffd24a4d;opacity:0;pointer-events:none}
+#wpOverlay .wp-chant.on{animation:wpChant 2.4s ease-out forwards}
+@keyframes wpChant{0%{opacity:0;transform:translateX(-50%) translateY(10px) scale(.9)}
+  15%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+  75%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-8px)}}
+
 #wpShake{position:absolute;inset:0;z-index:20}
 #wpFx{position:absolute;inset:0;pointer-events:none;z-index:30;overflow:hidden}
 
@@ -321,6 +337,8 @@
 @media (prefers-reduced-motion:reduce){
   #wpWall.straining .wp-seam{animation:none}
   #wpOverlay .wp-fighter{filter:none}
+  #wpOverlay .wp-crowd i{animation:none}
+  #wpOverlay .wp-chant.on{animation:none;opacity:1}
 }
 /* a player who has reduced motion on should not be made to sit through a 6.5s
    performance, so the duel is skipped entirely in that case (see wall-push.js) */

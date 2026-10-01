@@ -34,7 +34,8 @@
   if (window.ChampWallPush) return;
 
   /* ---------------------------------------------------------------- geometry */
-  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 65, RANGE: 100, FULL: 190, KNOCK: 60 };
+  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 65, RANGE: 100, FULL: 190, KNOCK: 60, DRAIN: 50, DRAIN_SPEED: 70 };
+  var POWER_UPS = true;                 /* golden pictures: on for the arena, off only for tests */
 
   /* the two values chosen on the review build's calibration sliders */
   var CONTACT = -14;     // sprite front edge vs the slab's face, in stage px
@@ -99,7 +100,7 @@
      wins; if the lower-ranked seat wins it doubles, funded from the higher. Both
      branches move the SAME amount — the underdog's balance — so the stake is just
      "what the underdog holds". The cap is reported, never hidden. */
-  function settle(fav, dog, dogWins, mult) {
+  function settle(fav, dog, dogWins, mult, kicker) {
     var stake = dog.coins;
     var paid = dogWins ? Math.min(stake, fav.coins) : stake;
     /* `paid` stays what the LOSER hands over - the stake rule is untouched.
@@ -107,7 +108,7 @@
        paid x mult, and the difference beyond the stake is house-funded, so no
        balance can ever be driven below zero by a bonus. */
     mult = mult || 1;
-    var bonus = Math.round(paid * mult);
+    var bonus = Math.round(paid * mult) + (kicker || 0);   /* speed-bonus kicker rides with the streak bonus */
     return {
       stake: stake, paid: paid,
       bonus: bonus,               /* what the winner actually receives */
@@ -173,6 +174,10 @@
     + '  <div class="wp-felt"><div class="wp-felt-glow"></div></div>'
     + '  <div class="wp-words" aria-hidden="true"><b>WALL</b><b>PUSH</b><b>CHAMP</b><b>WORD</b><b>POWER</b><b>CLASH</b><b>WIN</b><b>GO!</b></div>'
     + '  <div class="wp-floor"></div>'
+    + '  <div class="wp-crowd" aria-hidden="true">'
+    + '    <i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i>'
+    + '    <span class="wp-chant" id="wpChant"></span>'
+    + '  </div>'
     /* the avatars now ship as pre-rendered film, ONE HALF PER SEAT: the left
        video carries seat a and the right video carries seat b (mirrored), so
        the same ninja footage plays on both sides of the screen and the drawn
@@ -261,6 +266,14 @@
     if (!root) return;
     var s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
     root.style.setProperty("--wp-scale", s.toFixed(4));
+    /* the rivalry board: today's record, so the banner says these two have
+       met before and one of them is ahead */
+    if (root._rivalryEl) {
+      try {
+        var R = window.ChampRivalry ? window.ChampRivalry.get(root._rivalryA, root._rivalryB) : null;
+        root._rivalryEl.textContent = R && (R.a + R.b) > 0 ? "H2H " + root._rivalryA + " " + R.a + " \u2014 " + R.b + " " + root._rivalryB : "";
+      } catch (err) { root._rivalryEl.textContent = ""; }
+    }
   }
 
   /* --------------------------------------------------------------------- FX */
@@ -941,6 +954,15 @@
     root.classList.remove("final");
     stage.classList.remove("final");
     if (duel.isFinal) { root.classList.add("final"); stage.classList.add("final"); }
+    /* the rivalry board under the headline, when these two have met before */
+    if (root._rivalryEl) {
+      root._rivalryA = duel.a.name; root._rivalryB = duel.b.name;
+      try {
+        var R = window.ChampRivalry ? window.ChampRivalry.get(root._rivalryA, root._rivalryB) : null;
+        root._rivalryEl.textContent = R && (R.a + R.b) > 0
+          ? "H2H " + duel.a.name + " " + R.a + " \u2014 " + R.b + " " + duel.b.name : "";
+      } catch (err) { root._rivalryEl.textContent = ""; }
+    }
     E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
     E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
     E.PctA.textContent = "100%"; E.PctB.textContent = "100%";
@@ -1011,10 +1033,11 @@
 
     /* the meters read 'how much of the wall you still hold': every answer the
        other side lands costs you half of it */
-    function charge(a, b) {
+    function charge(a, b, drain) {
       if (st.dead) return;
-      var pa = clamp(100 - Math.max(0, b - a) * 50, 0, 100);
-      var pb = clamp(100 - Math.max(0, a - b) * 50, 0, 100);
+      var cut = drain || S.DRAIN;
+      var pa = clamp(100 - Math.max(0, b - a) * cut, 0, 100);
+      var pb = clamp(100 - Math.max(0, a - b) * cut, 0, 100);
       E.FillA.style.width = pa + "%"; E.PctA.textContent = pa + "%";
       E.FillB.style.width = pb + "%"; E.PctB.textContent = pb + "%";
       E.MeterA.classList.toggle("dying", pa <= 50);
@@ -1030,8 +1053,9 @@
       if (n >= 2) E.Wall.classList.add("hurt2");
     }
 
-    function knock(side, done) {
+    function knock(side, done, opts) {
       if (st.dead) return;
+      opts = opts || {};
       var adv = side === "a" ? 1 : -1;
       e.dogWins = adv < 0;
       /* the winner's streak ladder multiplies what they receive; the bonus is
@@ -1041,7 +1065,7 @@
         var winnerId = (side === "a" ? duel.a : duel.b).id;
         if (window.ChampWallGuess && window.ChampWallGuess.streak) winMult = window.ChampWallGuess.streak(winnerId) || 1;
       } catch (err) { winMult = 1; }
-      e.st = settle(fav, dog, e.dogWins, winMult);
+      e.st = settle(fav, dog, e.dogWins, winMult, opts.kicker);
       if (winMult > 1 && e.st.bonus > e.st.paid) {
         window.setTimeout(function () {
           if (st.dead || !run || run.tok !== tok) return;
@@ -1060,10 +1084,13 @@
       E.FillB.style.width = (adv < 0 ? 100 : 0) + "%"; E.PctB.textContent = (adv < 0 ? 100 : 0) + "%";
       (adv > 0 ? E.MeterB : E.MeterA).classList.add("dying");
       kick(26, 460);
+      cue("cheer");                       /* the crowd erupts on the knockout */
       var face = S.CENTER + adv * S.FULL - adv * S.WALL_HW;
-      ring(face, 560, "#ffffff");
-      ring(face, 560, adv < 0 ? "#39a1ff" : "#ff4d62");
-      debris(face, 560, adv, 18);
+      if (!opts.quiet) {                   /* a power-up settling itself skips the impact FX */
+        ring(face, 560, "#ffffff");
+        ring(face, 560, adv < 0 ? "#39a1ff" : "#ff4d62");
+        debris(face, 560, adv, 18);
+      }
       var loser = st.geo ? st.geo[adv < 0 ? 0 : 1] : null;
       if (loser) {
         dust(loser.cx, S.FLOOR - 4, adv, 12);
@@ -1131,7 +1158,7 @@
             } else {
               window.setTimeout(function () { if (!finished && !st.dead && run && run.tok === tok) { finished = true; if (done) done(); } }, 300);
             }
-          }, 650);
+          }, opts.holdMs || 650);
           return;
         }
         var ph = seq[i++], t0 = performance.now();
@@ -1282,7 +1309,7 @@
     /* what settle() worked out, for a caller that has to move real balances */
     function result() {
       if (!e.st) return null;
-      return { paid: e.st.paid, capped: e.st.capped,
+      return { paid: e.st.paid, capped: e.st.capped, bonus: e.st.bonus || 0,
                a: { before: e.st.favBefore, after: e.st.favAfter },
                b: { before: e.st.dogBefore, after: e.st.dogAfter } };
     }
@@ -1442,7 +1469,7 @@
 
     return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
              knock: knock, award: award, result: result, teardown: teardown,
-             film: film, breaker: breaker, damage: damage };
+             film: film, breaker: breaker, damage: damage, KICKER_MS: 1200 };
   }
 
   /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]

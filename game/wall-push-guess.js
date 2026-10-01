@@ -82,6 +82,11 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
   let run = null;            /* the live run: { token, timers, arena } */
   let streaks = new Map();   /* id -> consecutive duel wins, for the payout multiplier */
 
+  /* =============================== rivalry + titles (from champ-rivalry.js) == */
+  const RIV = () => window.ChampRivalry || null;
+  const chipTitle = name => { try { return RIV() ? RIV().title(name) : ""; } catch (e) { return ""; } };
+  const POWERUPS = true;   /* golden pictures on */
+
   /* ============================================================== the deck UI */
   function buildDeck(stage) {
     const deck = document.createElement("div");
@@ -96,9 +101,12 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
           '<span class="wd-side" data-x="sideA"><b data-x="nameA">—</b>' +
             '<i class="wd-coins" data-x="coinsA">0</i>' +
             '<span class="wd-pips" data-x="tallyA"><i></i><i></i></span>' +
-            '<span class="wd-flames" data-x="flameA"></span></span>' +
-          '<span class="wd-title">GUESS THE WORD</span>' +
-          '<span class="wd-side" data-x="sideB"><span class="wd-pips" data-x="tallyB"><i></i><i></i></span>' +
+            '<span class="wd-flames" data-x="flameA"></span>' +
+            '<span class="wd-tchip" data-x="titleA"></span></span>' +
+          '<span class="wd-midhead"><span class="wd-title">GUESS THE WORD</span>' +
+            '<span class="wd-rivalry" data-x="rivalry"></span></span>' +
+          '<span class="wd-side" data-x="sideB"><span class="wd-tchip" data-x="titleB"></span>' +
+            '<span class="wd-pips" data-x="tallyB"><i></i><i></i></span>' +
             '<span class="wd-flames" data-x="flameB"></span>' +
             '<i class="wd-coins" data-x="coinsB">0</i>' +
             '<b data-x="nameB">—</b></span>' +
@@ -129,6 +137,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
        the deck - registered here so the contest can light them like its own */
     find.pipsA = document.getElementById("wpPipsA");
     find.pipsB = document.getElementById("wpPipsB");
+    find.chant = document.getElementById("wpChant");   /* the crowd, in the arena markup */
     ui = find;
     return ui;
   }
@@ -241,11 +250,27 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     let round = 0;
     let knocked = false;      /* has the deciding blow (or the expiry knockout) fired yet */
     let isSudden = false;     /* the duel is past its pictures and playing sudden death */
+    let speedKicker = 0;      /* house-funded coin extra for fast wins, added at settle */
 
     const need = duel.isFinal ? 3 : NEED;   /* the final is played to three */
     /* the title fight sounds bigger: the music bed runs at 1.3x for the final,
        back to normal for everything else */
     window.ChampCues?.heat?.(duel.isFinal ? 1.3 : 1);
+    /* the golden picture: one per duel, a real prize on the line */
+    const powerUp = POWERUPS && Math.random() < 0.65
+      ? { word: words[Math.floor(Math.random() * words.length)], kind: Math.random() < 0.5 ? "double" : "shield" }
+      : null;
+    const usedShield = { a: false, b: false };   /* the shield spends itself on the next hit taken */
+    const hasShield = side => powerUp && powerUp.kind === "shield" && !usedShield[side];
+    /* the rivalry board: today's record in the deck header, and titles on the chips */
+    try {
+      const R = RIV() ? RIV().get(A.name, B.name) : null;
+      if (ui.rivalry && R && (R.a + R.b) > 0)
+        ui.rivalry.textContent = "H2H " + A.name + " " + R.a + " \u2014 " + R.b + " " + B.name;
+    } catch (e) {}
+    const tA = chipTitle(A.name), tB = chipTitle(B.name);
+    if (tA) ui.titleA.textContent = tA;
+    if (tB) ui.titleB.textContent = tB;
     /* the champion's medal + crown render on their finale line; flames render on
        the fighter pips, so both reset here and the streak comes from the map */
     const flameRow = which => { const f = which === "a" ? ui.flameA : ui.flameB;
@@ -291,6 +316,10 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
       pips(ui.rounds, Math.min(round, ui.rounds.children ? ui.rounds.children.length : round));
       ui.img.classList.remove("solved");
       ui.img.classList.remove("pop");
+      /* the golden picture makes itself known the moment it arrives */
+      ui.img.classList.toggle("golden", !!powerUp && powerUp.word === word);
+      ui.blanks.classList.toggle("golden", !!powerUp && powerUp.word === word);
+      if (ui.img.parentNode && ui.img.parentNode.classList) ui.img.parentNode.classList.toggle("golden-art", !!powerUp && powerUp.word === word);
       ui.tabA.classList.remove("show");
       ui.tabB.classList.remove("show");
       void ui.img.offsetWidth;
@@ -342,7 +371,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         if (other !== word && Math.random() < 0.45) {
           after(Math.max(1400, at - 2600), () => wrongGuess(side, other));
         }
-        after(at, () => closeRound({ side, guess: word }));
+        after(at, () => closeRound({ side, guess: word, ms: at }));
       });
 
       function wrongGuess(side, guess) {
@@ -379,6 +408,22 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         const by = result.side;
         tally[by]++;
         pips(by === "a" ? ui.tallyA : ui.tallyB, tally[by]);
+
+        /* ---- what this answer is worth -------------------------------------
+           The golden picture pays its power-up, and speed pays its shove:
+           both stack, so a fast golden answer is the jackpot. */
+        const SPEED_MS = 5000;
+        const fast = (result.ms || 0) <= SPEED_MS;
+        let winPower = 0;
+        if (powerUp && powerUp.word === word) {
+          winPower = powerUp.kind === "double" ? 2 : 1;
+          const label = powerUp.kind === "double" ? "DOUBLE SHOVED!" : "SHIELDED UP!";
+          if (powerUp.kind === "double") hype(by, label, false);
+          else { ui.deck.classList.remove("shielded"); void ui.deck.offsetWidth; ui.deck.classList.add("shielded"); }
+        } else if (fast) {
+          winPower = 1;
+          hype(by, "SPEED SHOVE!", false);
+        }
         ui.img.classList.add("solved");
         revealBlanks(ui.blanks, true);
 
@@ -411,6 +456,13 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         const lit = Math.min(tally[by], pipsRow.children.length);
         [...pipsRow.children].forEach((p, i) => p.classList.toggle("on", i < lit));
         window.ChampCues?.play?.("correct");
+        /* the crowd chants for whoever is out in front */
+        const leader = tally.a === tally.b ? null : tally.a > tally.b ? "a" : "b";
+        if (leader) {
+          const n = (leader === "a" ? A.name : B.name).split(/\s+/)[0].toUpperCase();
+          const chantEl = ui.chant;
+          if (chantEl) { chantEl.textContent = n + "! " + n + "! " + n + "!"; chantEl.classList.remove("on"); void chantEl.offsetWidth; chantEl.classList.add("on"); }
+        }
         if (tally[by] >= need) {
           hype(by, duel.isFinal ? "WINS THE GAME!" : "KNOCKOUT!", duel.isFinal);
         } else if (duel.isFinal && Math.max(tally.a, tally.b) - Math.min(tally.a, tally.b) === COMEBACK_AT) {
@@ -423,6 +475,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
            opponent, and an answer from the other side shoves it straight back */
         const decided = tally[by] >= need;
         if (decided) knocked = true;
+        if (fast && decided) speedKicker = 150;   /* the house pays for the highlight-reel finish */
         const net = tally.a - tally.b;
         if (arena && arena.steps) arena.steps(net);
         /* the score as damage: the slab carries the tally on its face */
@@ -438,7 +491,16 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
            the deciding answer, where breaker() owns the film outright: a shove
            clip started here would fight the kick for the same video element */
         if (arena && arena.film && !decided) arena.film(by);
-        if (arena && arena.charge) arena.charge(tally.a, tally.b);
+        /* the hit each meter takes: normal 50, SPEED/DOUBLE SHOVE 70 - and the
+           shield spends itself instead of the meter */
+        if (decided) {
+          if (arena && arena.charge) arena.charge(tally.a, tally.b);
+        } else if (hasShield(by === "a" ? "b" : "a")) {
+          usedShield[by === "a" ? "b" : "a"] = true;   /* spent: no drain this hit */
+          note((by === "a" ? B.name : A.name) + " · SHIELD!", "no");
+        } else {
+          if (arena && arena.charge) arena.charge(tally.a, tally.b, winPower > 0 ? 70 : undefined);
+        }
 
         if (decided) {
           /* reaching NEED is the knockout: the wall gives way on film and the
@@ -519,7 +581,8 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
       const winner = tally.b > tally.a ? "b" : "a";
       onSettled({
         rankA: duel.rankA, rankB: duel.rankB, winner,
-        correctA: tally.a, correctB: tally.b
+        correctA: tally.a, correctB: tally.b,
+        speedKicker: speedKicker          /* fast wins pay a little extra, funded by the house */
       });
     }
 
@@ -564,6 +627,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
                 '<span class="wf-role">' + (p.role || (p.won ? "TOOK THE WALL" : "PAID THE STAKE")) + '</span>' +
                 /* the streak that closed the match shows on the champion's line */
                 '<span class="wf-flames">' + (p.champ && p.streak >= 2 ? "\uD83D\uDD25".repeat(Math.min(p.streak, 3)) : "") + '</span>' +
+                '<span class="wf-h2h" data-x="h2h-' + p.id + '"></span>' +
               '</div>' +
             '</div>').join("") +
         '</div>' +
@@ -574,6 +638,19 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
 
     const ref = {};
     el.querySelectorAll("[data-x]").forEach(n => { ref[n.dataset.x] = n; });
+
+    /* the ladder: each line gets its H2H record and, for a newly promoted
+       player, what they just became */
+    list.forEach(p => {
+      const cell = ref["h2h-" + p.id];
+      if (!cell) return;
+      try {
+        if (!RIV()) return;
+        const t = RIV().nextTitle(p.name);
+        const total = RIV().wins(p.name);
+        cell.textContent = total + "W \u00B7 " + t.now;
+      } catch (err) {}
+    });
 
     /* gold from all sides, the way the payout video fills its screen */
     let spray = "";
@@ -763,6 +840,10 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
                     bonus: bonus            /* house-funded streak extra the winner also received */
                   });
                 }
+                /* history: this pair's head-to-head now has another chapter */
+                try {
+                  if (RIV()) RIV().record(duel.a.name, duel.b.name, aWon ? duel.a.name : duel.b.name);
+                } catch (err) {}
                 /* a finalist appears in two duels, so the receipt is summed per
                    player: the delta adds up, the before is their first and the
                    after is their last */
@@ -806,7 +887,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
                 settled = true;
                 book();
                 after(CARD_MS, function () { if (alive(token)) advancePair(); });
-              });
+              }, { kicker: verdict.speedKicker });
               /* The knock-out, the payout and the coin card are three chained
                  animations in another module. If any of them throws or never
                  reports back, the player would be left staring at the arena with
