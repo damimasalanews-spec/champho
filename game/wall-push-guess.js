@@ -210,6 +210,7 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
     const tally = { a: 0, b: 0 };
     const human = A.id === "champ" ? "a" : B.id === "champ" ? "b" : null;
     let round = 0;
+    let knocked = false;      /* has the deciding blow (or the expiry knockout) fired yet */
 
     const need = duel.isFinal ? 3 : NEED;   /* the final is played to three */
     ui.nameA.textContent = A.name;
@@ -367,14 +368,17 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
 
         /* net answers in that side's favour: +1 shoves the slab toward the
            opponent, and an answer from the other side shoves it straight back */
+        const decided = tally[by] >= need;
+        if (decided) knocked = true;
         const net = tally.a - tally.b;
         if (arena && arena.steps) arena.steps(net);
         /* the same answer that moves the slab now also plays that seat's film
-           beat, so the push the player sees IS their correct answer */
-        if (arena && arena.film) arena.film(by);
+           beat, so the push the player sees IS their correct answer — except on
+           the deciding answer, where breaker() owns the film outright: a shove
+           clip started here would fight the kick for the same video element */
+        if (arena && arena.film && !decided) arena.film(by);
         if (arena && arena.charge) arena.charge(tally.a, tally.b);
 
-        const decided = tally[by] >= need;
         if (decided) {
           /* reaching NEED is the knockout: the wall gives way on film and the
              losing seat drops */
@@ -406,7 +410,31 @@ const FINISH_MS = 3000;    /* beat between the winning answer and the knockout:
       if (!alive(token)) return;
       if (decided) return settle();
       round++;
-      if (round > ROUNDS || tally.a >= need || tally.b >= need) return settle();
+      if (round > ROUNDS || tally.a >= need || tally.b >= need) {
+        /* The pictures ran out with nobody landing the deciding blow — very
+           possible in the final, which asks for THREE correct in only four
+           pictures, so a 2-1 or 2-0 finish expires. The louder tally still
+           takes the wall, and it takes it ON FILM: play the knockout for the
+           leader instead of cutting straight to the settlement, which read as
+           "no kick animation in the final wall push round". */
+        const winner = tally.b > tally.a ? "b" : "a";
+        if (arena && arena.breaker && !knocked) {
+          knocked = true;
+          const tab = winner === "a" ? ui.tabA : ui.tabB;
+          tab.textContent = duel.isFinal ? "WINS THE GAME!" : "WINS THE ROUND!";
+          tab.classList.remove("show");
+          void tab.offsetWidth;
+          tab.classList.add("show");
+          ui.sideA.classList.toggle("win", winner === "a");
+          ui.sideB.classList.toggle("win", winner === "b");
+          hype(winner, duel.isFinal ? "WINS THE GAME!" : "KNOCKOUT!", duel.isFinal);
+          window.ChampCues?.play?.("correct");
+          arena.breaker(winner);
+          after(FINISH_MS, () => settle());
+          return;
+        }
+        return settle();
+      }
       runRound(words[round - 1]);
     }
 
