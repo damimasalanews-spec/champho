@@ -10,6 +10,7 @@
      yeah       the player's own reaction as those coins land
      push       a correct answer driving the slab at the opponent
      brake      a shove bringing the slab back toward its own side
+     kick       the deciding blow landing on the wall
      fall       the losing avatar going down at the end of a duel
      superWin   the pop-up that closes the post-match
      music      the loop under the wall push, first round to last
@@ -52,7 +53,8 @@
     music: "assets/audio/music.mp3",
     push: "assets/audio/push.mp3",
     brake: "assets/audio/brake.mp3",
-    fall: "assets/audio/avatar-fall.mp3"
+    kick: "assets/audio/kick.mp3",
+    fall: "assets/audio/fall.mp3"
   };
   /* The mix, now that every file peaks at the same level. The coin beat plays
      coins and yeah together and the two peaks can land on the same frame, so
@@ -76,7 +78,8 @@
      9 dB under push and fall, which is where a background loop stops competing
      with the hits it plays under. */
   const VOLUME = { throwWord: 0.55, coins: 0.55, yeah: 0.66, superWin: 0.75,
-                   bounce: 0.68, push: 0.8, brake: 0.75, fall: 0.85, music: 0.36 };
+                   bounce: 0.68, push: 0.8, brake: 0.75, kick: 0.8, fall: 0.85,
+                   music: 0.36 };
 
   const cache = {};
 

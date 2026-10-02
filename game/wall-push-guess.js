@@ -48,11 +48,12 @@
   /* The knockout is two film beats back to back: the winner's wall-break (~1.0s)
    and then the loser's fall (~1.6s). At the original 1000ms the payout card cut
    in while the loser was still standing, so the hold has to cover both cuts. */
-const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
-                              kick 2.67s + fall 2.75s play together, and the
-                              deciding blow now replays in slow motion after the
-                              breath, so the hold covers film + replay */
-  const CARD_MS = 2200;      /* how long the coin card is held before the next pair */
+const FINISH_MS = 7400;    /* beat between the winning answer and the knockout:
+                              the kick lands at full speed then the blow and the
+                              fall play in slow motion (0.45x), so the hold
+                              covers the slowed footage to its last frame */
+  const CARD_MS = 700;       /* a short settle after the knockout books, then the
+                                next round starts - the fall ends, the fight goes on */
   const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
   /* correct answers that have to be answered BACK before the other side wins -
      the comeback line's trigger. Also the wrong-answer sound cue's name, which
@@ -180,10 +181,8 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     while (ui.feed.children.length > 3) ui.feed.lastElementChild.remove();
   }
 
-  /* the hype call flies up through the arena on the seat's film half - and the
-     fight's voice reads it aloud */
+  /* the hype call flies up through the arena on the seat's film half */
   let lastHype = -1;
-  const speak = text => { try { window.WallVoice && window.WallVoice.say(text); } catch (e) {} };
   function hype(side, text, final) {
     const stage = ui.deck && ui.deck.parentNode;
     if (!stage) return;
@@ -193,7 +192,6 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     el.style.transform = "translate(-50%,20px) scale(.7) rotate(-2deg)";
     el.textContent = text;
     stage.appendChild(el);
-    speak(text);                        /* the fight has a voice: the call reads aloud */
     window.setTimeout(() => el.remove(), 2500);
   }
 
@@ -208,7 +206,6 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     el.style.left = side === "b" ? "76%" : "24%";
     el.textContent = text;
     stage.appendChild(el);
-    speak(text);
     window.setTimeout(() => el.remove(), 2900);
   }
 
@@ -450,7 +447,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         ui.msg.textContent = `${naming} has it — the wall takes a shove!`;
 
         /* a sudden-death picture is announced, not slipped in */
-        if (isSudden) { speak("SUDDEN DEATH!");
+        if (isSudden) {
           const tabS = by === "a" ? ui.tabA : ui.tabB;
           tabS.textContent = "SUDDEN DEATH!";
           tabS.classList.remove("show"); void tabS.offsetWidth; tabS.classList.add("show");
@@ -479,9 +476,6 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
           const n = (leader === "a" ? A.name : B.name).split(/\s+/)[0].toUpperCase();
           const chantEl = ui.chant;
           if (chantEl) { chantEl.textContent = n + "! " + n + "! " + n + "!"; chantEl.classList.remove("on"); void chantEl.offsetWidth; chantEl.classList.add("on"); }
-          /* the crowd's chant gets the voice while the round is still open; on
-             the deciding answer the KNOCKOUT call speaks instead */
-          if (tally[by] < need) speak(n + "! " + n + "! " + n + "!");
         }
         if (tally[by] >= need) {
           hype(by, duel.isFinal ? "WINS THE GAME!" : "KNOCKOUT!", duel.isFinal);
@@ -799,7 +793,6 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         /* covers SKIP, a round reset, and the normal close - the music must never
            outlive the wall push it belongs to, and neither may the voice */
         window.ChampCues?.stop?.("music");
-        try { window.WallVoice && window.WallVoice.hush(); } catch (e) {}
         if (run && run.arena) run.arena.teardown();
         clearTimers();
         dropDeck();
@@ -975,7 +968,6 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
          down or it would sit over the next board */
       const fin = document.getElementById("wpFinal");
       if (fin) fin.remove();
-      try { window.WallVoice && window.WallVoice.hush(); } catch (e) {}
       /* a round reset is still the end of this post-match: the ladder goes too */
       streaks.clear();
       run = null;

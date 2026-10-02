@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v29';
+const VERSION = 'v30';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -75,7 +75,7 @@ const SHELL_ASSETS = [
   '/game/wall-push-guess.css',
   // the recorded sound cues the grid and the arena both play
   '/game/audio-cues.js',
-  '/game/wall-voice.js',
+
   '/assets/island-table-bg.webp',
   '/assets/icons/icon-192.png',
   '/assets/icons/icon-512.png',
@@ -210,8 +210,8 @@ const ART_INDEX = [
   // them, the push and the brake, the fall, and the closing pop-up
   "/assets/audio/wordsthrow1.mp3", "/assets/audio/bounce.mp3",
   "/assets/audio/coins.mp3", "/assets/audio/yeah.mp3", "/assets/audio/music.mp3",
-  "/assets/audio/super-win.mp3",
-  "/assets/audio/push.mp3", "/assets/audio/brake.mp3", "/assets/audio/avatar-fall.mp3",
+  "/assets/audio/super-win.mp3", "/assets/audio/kick.mp3", "/assets/audio/fall.mp3",
+  "/assets/audio/push.mp3", "/assets/audio/brake.mp3",
   "/assets/frames/cosmos.webp", "/assets/frames/cosmos_hole.webp", "/assets/frames/crystal.webp",
   "/assets/frames/crystal_hole.webp", "/assets/frames/emerald.webp", "/assets/frames/emerald_hole.webp",
   "/assets/frames/pearl.webp", "/assets/frames/pearl_hole.webp", "/assets/frames/prism.webp",

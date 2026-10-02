@@ -1068,10 +1068,10 @@
       (adv > 0 ? E.MeterB : E.MeterA).classList.add("dying");
       kick(26, 460);
       cue("cheer");                       /* the crowd erupts on the knockout */
+      /* no expanding rings over the aftermath: the knockout already played on
+         the film, and a second circle show over the fallen loser read as noise */
       var face = S.CENTER + adv * S.FULL - adv * S.WALL_HW;
       if (!opts.quiet) {                   /* a power-up settling itself skips the impact FX */
-        ring(face, 560, "#ffffff");
-        ring(face, 560, adv < 0 ? "#39a1ff" : "#ff4d62");
         debris(face, 560, adv, 18);
       }
       var loser = st.geo ? st.geo[adv < 0 ? 0 : 1] : null;
@@ -1083,10 +1083,9 @@
       }
       /* the fall's own cue fires where the fall starts, in the runner below */
 
-      /* tightened: the old 2.3s of staged phases left the arena sitting still
-         under the already-playing film, which read as "stuck after the answer".
-         The film carries the knockout; these phases only settle the HUD. */
-      var seq = [["break", 260], ["impact", 380], ["result", 420], ["settle", 240]], i = 0;
+      /* tightened again: the film carries the whole knockout now, so these
+         phases only settle the HUD - a fast beat, then the next round. */
+      var seq = [["break", 120], ["impact", 180], ["result", 220], ["settle", 120]], i = 0;
       (function step() {
         if (st.dead || !run || run.tok !== tok) return;
         if (i >= seq.length) {
@@ -1106,13 +1105,13 @@
               showFilm(wKey, "win", adv > 0 ? "a" : "b");
             }
             if (done) done();
-          }, opts.holdMs || 650);
+          }, opts.holdMs || 250);
           return;
         }
         var ph = seq[i++], t0 = performance.now();
         /* the loser is driven back and begins to topple during impact, which is
            the moment being scored - not the shatter that precedes it */
-        if (ph[0] === "impact") cue("fall");
+        /* the fall sound fired with the film fall in breaker(); no repeat here */
         (function sub() {
           if (st.dead || !run || run.tok !== tok) return;
           var t = clamp((performance.now() - t0) / (ph[1] / RATE), 0, 1);
@@ -1398,23 +1397,30 @@
         if (st.dead || !run || run.tok !== tok) return;
         showFilm(winner.key, "win", side);
       })) return false;
-      /* BULLET TIME: the deciding kick and the loser's fall both run in slow
-         motion - playbackRate on the already-playing film is free drama. The
-         rate returns to 1x when the victory flex takes over in knock's tail,
-         and on every fresh duel mount. */
-      [E.FilmL, E.FilmR].forEach(function (el) {
-        if (!el || el.tagName !== "VIDEO") return;
-        try { el.playbackRate = 0.45; } catch (err) {}
-      });
-      /* the fall belongs to the losing seat and fires WITH the quake, just
-         after the hit-stop releases: the loser is knocked down by the blow, so
-         the film order has to read kick, freeze, then fall. Until then the
-         loser keeps bracing in the idle stance on their own half. */
+      /* the kick runs at FULL SPEED so the blow lands on the answer (620ms in,
+         straight through the hit-stop) - the winner must not look late. Only
+         the blow itself and the fall go slow: as the frozen frame releases,
+         the film drops to 0.45x - bullet time exactly on the hit. Rates return
+         to 1x in knock's tail and on every fresh duel mount. */
+      window.setTimeout(function () {
+        if (st.dead || !run || run.tok !== tok) return;
+        cue("kick");                          /* the deciding blow lands */
+        [E.FilmL, E.FilmR].forEach(function (el) {
+          if (!el || el.tagName !== "VIDEO") return;
+          try { el.playbackRate = 0.45; } catch (err) {}
+        });
+      }, 880);
+      /* the fall fires only AFTER the kick has landed - 120ms into the bullet
+         time - so the loser is thrown by the blow instead of falling beside
+         it. The fall's own sound rides the film. */
       window.setTimeout(function () {
         if (st.dead || !run || run.tok !== tok) return;
         showFilm(loser.key, "fall", loserSide);
+        var fallEl = side === "b" ? E.FilmL : E.FilmR;
+        try { if (fallEl && fallEl.tagName === "VIDEO") fallEl.playbackRate = 0.45; } catch (err) {}
         if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
-      }, 860);
+        cue("fall");                          /* the supplied fall sound */
+      }, 980);
       return true;
     }
 
