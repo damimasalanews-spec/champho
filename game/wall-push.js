@@ -543,7 +543,8 @@
     }
 
     wall.style.setProperty("--wx", wallX.toFixed(2) + "px");
-    wall.style.setProperty("--wrot", wallRot.toFixed(3) + "deg");
+    /* the wall never bends: dead straight, it only slides as it is pushed */
+    wall.style.setProperty("--wrot", "0deg");
     wall.style.setProperty("--wy", wallY.toFixed(2) + "px");
     /* the film cards ride with the slab: the fighters stay glued to the wall
        wherever it is pushed, instead of standing still while it slides away */
