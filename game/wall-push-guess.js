@@ -33,7 +33,8 @@
   const ART = w => `assets/clipart/${w}.webp`;
   const HEADS = {
     boy: "assets/avatars/pumpkin-boy.webp",
-    girl: "assets/avatars/pumpkin-girl.webp"
+    girl: "assets/avatars/pumpkin-girl.webp",
+    ninja: "assets/avatars/ninja.webp"
   };
   /* the payout video's own ladder: the badge changes word as the total grows */
   const TIERS = [[2400, "SUPER WIN", "super"], [1000, "BIG WIN", "big"], [0, "WIN", ""]];
@@ -251,6 +252,12 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     let knocked = false;      /* has the deciding blow (or the expiry knockout) fired yet */
     let isSudden = false;     /* the duel is past its pictures and playing sudden death */
     let speedKicker = 0;      /* house-funded coin extra for fast wins, added at settle */
+    /* the round watchdog's clock: every real step of the round touches it, and
+       the watchdog below recovers the match when nothing has touched it for far
+       longer than a legitimate round can last */
+    let progressAt = performance.now();
+    let stall = 0;
+    let recover = null;       /* the live round's time-up close, re-armed per round */
 
     const need = duel.isFinal ? 3 : NEED;   /* the final is played to three */
     /* the title fight sounds bigger: the music bed runs at 1.3x for the final,
@@ -311,6 +318,8 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     function runRound(word) {
       clearTimers();
       if (!alive(token)) return;
+      progressAt = performance.now();
+      recover = () => closeRound(null);   /* the watchdog's way out of this round */
 
       ui.n.textContent = isSudden ? "SD" : String(round);
       pips(ui.rounds, Math.min(round, ui.rounds.children ? ui.rounds.children.length : round));
@@ -394,6 +403,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         if (!open) return;
         open = false;
         clearTimers();
+        progressAt = performance.now();
 
         if (!result) {
           revealBlanks(ui.blanks, false);
@@ -414,16 +424,19 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
            both stack, so a fast golden answer is the jackpot. */
         const SPEED_MS = 5000;
         const fast = (result.ms || 0) <= SPEED_MS;
-        let winPower = 0;
+        /* what the answer is worth: DOUBLE SHOVE (the golden prize) hits twice
+           as hard as the 50 the answer already costs, SPEED SHOVE (the speed
+           prize) only a little harder - speed pays its coins as the kicker, the
+           golden picture pays its force */
+        const isDouble = !!(powerUp && powerUp.word === word && powerUp.kind === "double");
+        let drain;                       /* the meter hit this answer lands */
         if (powerUp && powerUp.word === word) {
-          winPower = powerUp.kind === "double" ? 2 : 1;
-          const label = powerUp.kind === "double" ? "DOUBLE SHOVED!" : "SHIELDED UP!";
-          if (powerUp.kind === "double") hype(by, label, false);
+          if (isDouble) hype(by, "DOUBLE SHOVED!", false);
           else { ui.deck.classList.remove("shielded"); void ui.deck.offsetWidth; ui.deck.classList.add("shielded"); }
         } else if (fast) {
-          winPower = 1;
           hype(by, "SPEED SHOVE!", false);
         }
+        drain = isDouble ? 90 : fast ? 70 : undefined;
         ui.img.classList.add("solved");
         revealBlanks(ui.blanks, true);
 
@@ -499,7 +512,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
           usedShield[by === "a" ? "b" : "a"] = true;   /* spent: no drain this hit */
           note((by === "a" ? B.name : A.name) + " · SHIELD!", "no");
         } else {
-          if (arena && arena.charge) arena.charge(tally.a, tally.b, winPower > 0 ? 70 : undefined);
+          if (arena && arena.charge) arena.charge(tally.a, tally.b, drain);
         }
 
         if (decided) {
@@ -531,6 +544,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
        directly - entering at 0 rendered "CLIPART 0 / 4" with no pip lit. */
     function advance(decided) {
       if (!alive(token)) return;
+      progressAt = performance.now();
       if (decided) return settle();
       round++;
       if (round > words.length || tally.a >= need || tally.b >= need) {
@@ -574,6 +588,8 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
 
     function settle() {
       clearTimers();
+      progressAt = performance.now();
+      window.clearInterval(wdId);   /* this duel is over; its watchdog retires */
       ui.form.onsubmit = null;
       /* no coin flip and no invented winner: the louder tally takes the wall,
          and a dead heat goes to the higher seed, which is at least a rule a
@@ -585,6 +601,28 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         speedKicker: speedKicker          /* fast wins pay a little extra, funded by the house */
       });
     }
+
+    /* the round watchdog: this file's tracked timers are what makes a round
+       move, and twice on the live site a whole round's set of them died silently
+       — the picture sat frozen at its clock with no error anywhere. This loop is
+       deliberately scheduled OUTSIDE run.timers (so closeRound's clearTimers()
+       cannot kill it, exactly what killed the round it guards) and outside the
+       capture list (so an old duel's watchdog can never kill a new duel's
+       round). It fires only when nothing has touched `progressAt` for longer
+       than a legitimate round can last, and closes the round as a time-up. */
+    const STALL_MS = SLOT_MS + 20000;
+    let wdId = 0;
+    (function watchdog() {
+      if (!alive(token)) return;
+      const idle = performance.now() - progressAt;
+      if (idle > STALL_MS && recover) {
+        const r = recover; recover = null;
+        console.warn("wall-push: round stalled with no timers in flight; recovering");
+        r();
+        progressAt = performance.now();
+      }
+      wdId = window.setTimeout(watchdog, 2500);
+    })();
 
     preload(words, () => { if (alive(token)) advance(false); });
   }

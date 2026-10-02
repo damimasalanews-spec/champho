@@ -68,6 +68,7 @@
 #wpOverlay .wp-crowd{position:absolute;left:0;right:0;top:640px;height:56px;z-index:2;
   pointer-events:none;display:flex;justify-content:space-evenly;align-items:flex-start;overflow:hidden}
 #wpOverlay .wp-crowd i{font-style:normal;font-size:34px;line-height:1;color:#0c1520;
+  filter:brightness(0);/* emoji glyphs ignore colour: flatten every one to the same silhouette */
   text-shadow:0 -2px 0 #1f2b3d;opacity:.85;animation:wpBob 1.7s ease-in-out infinite}
 #wpOverlay .wp-crowd i:nth-child(2n){font-size:30px;animation-delay:-.4s}
 #wpOverlay .wp-crowd i:nth-child(3n){font-size:37px;animation-delay:-.9s}

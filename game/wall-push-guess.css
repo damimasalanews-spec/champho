@@ -181,6 +181,24 @@
 }
 .wp-deck .wd-art img.pop { animation: wdPop .44s cubic-bezier(.2, .9, .25, 1) both }
 .wp-deck .wd-art img.solved { animation: wdSolved .5s ease both }
+/* the golden picture: a real prize with a glow you can see across the room */
+.wp-deck .wd-art img.golden { animation: wdGolden 1.6s ease-in-out infinite }
+@keyframes wdGolden {
+  0%, 100% { filter: drop-shadow(0 8px 14px #000000a0) drop-shadow(0 0 6px #ffd24a00) }
+  50% { filter: drop-shadow(0 8px 14px #000000a0) drop-shadow(0 0 22px #ffd24acc) }
+}
+.wp-deck .wd-art::after {
+  /* the chip that names the prize while the picture is golden */
+  content: "POWER UP!"; position: absolute; right: 10px; top: 10px; z-index: 2;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 9px; font-weight: 1000; letter-spacing: 1.2px;
+  color: #25170a; background: linear-gradient(180deg, #ffe08a, #f5b53c);
+  box-shadow: 0 3px 8px #000000a6; opacity: 0; transition: opacity .3s ease;
+}
+.wp-deck .wd-art.golden-art::after { opacity: 1 }
+.wp-deck .wd-blanks.golden .wd-blank { border-color: #ffd66b; background: #0c3a29 }
+.wp-deck .wd-side.shielded { border-color: #7cc0ff; background: #072a40aa; animation: wdShield .5s ease 3 }
+@keyframes wdShield { 50% { box-shadow: 0 0 18px #7cc0ffaa } }
 @keyframes wdPop { from { opacity: 0; transform: scale(.8) } to { opacity: 1; transform: scale(1) } }
 @keyframes wdSolved { 0%, 100% { transform: scale(1) } 45% { transform: scale(1.08) } }
 .wp-deck .wd-chip {
@@ -198,6 +216,21 @@
 .wp-deck .wd-title {
   flex: 1 1 auto; text-align: center; font-size: 10px;
   letter-spacing: 2px; color: #9fe8c6; white-space: nowrap;
+}
+/* the rivalry line sits under the title inside the header's middle column */
+.wp-deck .wd-midhead {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  flex: 1 1 auto; min-width: 0;
+}
+.wp-deck .wd-rivalry {
+  font-size: 8px; letter-spacing: 1.4px; color: #cfe0d6;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+/* the title chip a player's wins have earned */
+.wp-deck .wd-tchip {
+  font-size: 8px; font-weight: 1000; letter-spacing: 1px; color: #ffd66b;
+  padding: 2px 7px; border-radius: 999px; background: #3a2a05; border: 1px solid #ffd66b59;
+  white-space: nowrap;
 }
 .wp-deck .wd-side {
   display: flex; align-items: center; gap: 8px; padding: 5px 11px;
@@ -414,6 +447,8 @@
 
 /* replay flames next to a receipt line that ended the match on a streak */
 #wpFinal .wf-flames { font-size: 12px; margin-left: 6px }
+/* the ladder line: total wins and the title they have earned */
+#wpFinal .wf-h2h { display: block; font-size: 10px; letter-spacing: 1.6px; color: #ffd66b; opacity: .85 }
 
 #wpFinal .wf-spray { position: absolute; inset: 0; z-index: 1; pointer-events: none }
 #wpFinal .wf-spray i {
@@ -435,6 +470,7 @@
   .wp-deck.shake,
   .wp-deck.urgent .wd-clock-top b,
   .wp-deck .wd-art img,
+  .wp-deck .wd-art img.golden,
   .wp-deck .wd-blank.on,
   .wp-deck .wd-clock.low .wd-clock-top b,
   .wp-award .wa-card,

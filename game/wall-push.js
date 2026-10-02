@@ -34,8 +34,7 @@
   if (window.ChampWallPush) return;
 
   /* ---------------------------------------------------------------- geometry */
-  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 65, RANGE: 100, FULL: 190, KNOCK: 60, DRAIN: 50, DRAIN_SPEED: 70 };
-  var POWER_UPS = true;                 /* golden pictures: on for the arena, off only for tests */
+  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 65, RANGE: 100, FULL: 190, KNOCK: 60, DRAIN: 50 };
 
   /* the two values chosen on the review build's calibration sliders */
   var CONTACT = -14;     // sprite front edge vs the slab's face, in stage px
@@ -175,7 +174,7 @@
     + '  <div class="wp-words" aria-hidden="true"><b>WALL</b><b>PUSH</b><b>CHAMP</b><b>WORD</b><b>POWER</b><b>CLASH</b><b>WIN</b><b>GO!</b></div>'
     + '  <div class="wp-floor"></div>'
     + '  <div class="wp-crowd" aria-hidden="true">'
-    + '    <i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i><i>Ԡ</i>'
+    + '    <i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i>'
     + '    <span class="wp-chant" id="wpChant"></span>'
     + '  </div>'
     /* the avatars now ship as pre-rendered film, ONE HALF PER SEAT: the left
@@ -266,14 +265,6 @@
     if (!root) return;
     var s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
     root.style.setProperty("--wp-scale", s.toFixed(4));
-    /* the rivalry board: today's record, so the banner says these two have
-       met before and one of them is ahead */
-    if (root._rivalryEl) {
-      try {
-        var R = window.ChampRivalry ? window.ChampRivalry.get(root._rivalryA, root._rivalryB) : null;
-        root._rivalryEl.textContent = R && (R.a + R.b) > 0 ? "H2H " + root._rivalryA + " " + R.a + " \u2014 " + R.b + " " + root._rivalryB : "";
-      } catch (err) { root._rivalryEl.textContent = ""; }
-    }
   }
 
   /* --------------------------------------------------------------------- FX */
@@ -954,15 +945,6 @@
     root.classList.remove("final");
     stage.classList.remove("final");
     if (duel.isFinal) { root.classList.add("final"); stage.classList.add("final"); }
-    /* the rivalry board under the headline, when these two have met before */
-    if (root._rivalryEl) {
-      root._rivalryA = duel.a.name; root._rivalryB = duel.b.name;
-      try {
-        var R = window.ChampRivalry ? window.ChampRivalry.get(root._rivalryA, root._rivalryB) : null;
-        root._rivalryEl.textContent = R && (R.a + R.b) > 0
-          ? "H2H " + duel.a.name + " " + R.a + " \u2014 " + R.b + " " + duel.b.name : "";
-      } catch (err) { root._rivalryEl.textContent = ""; }
-    }
     E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
     E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
     E.PctA.textContent = "100%"; E.PctB.textContent = "100%";
