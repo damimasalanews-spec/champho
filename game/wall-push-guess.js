@@ -48,10 +48,11 @@
   /* The knockout is two film beats back to back: the winner's wall-break (~1.0s)
    and then the loser's fall (~1.6s). At the original 1000ms the payout card cut
    in while the loser was still standing, so the hold has to cover both cuts. */
-const FINISH_MS = 7400;    /* beat between the winning answer and the knockout:
-                              the kick lands at full speed then the blow and the
-                              fall play in slow motion (0.45x), so the hold
-                              covers the slowed footage to its last frame */
+const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
+                              sized so the settle beats finish just as the fall
+                              film reaches the ground - the payout card lands
+                              when the fall ends and the next round goes at once,
+                              with nothing staged over the fallen loser */
   const CARD_MS = 700;       /* a short settle after the knockout books, then the
                                 next round starts - the fall ends, the fight goes on */
   const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
@@ -103,13 +104,11 @@ const FINISH_MS = 7400;    /* beat between the winning answer and the knockout:
           '<span class="wd-side" data-x="sideA"><b data-x="nameA">—</b>' +
             '<i class="wd-coins" data-x="coinsA">0</i>' +
             '<span class="wd-pips" data-x="tallyA"><i></i><i></i></span>' +
-            '<span class="wd-flames" data-x="flameA"></span>' +
             '<span class="wd-tchip" data-x="titleA"></span></span>' +
           '<span class="wd-midhead"><span class="wd-title">GUESS THE WORD</span>' +
             '<span class="wd-rivalry" data-x="rivalry"></span></span>' +
           '<span class="wd-side" data-x="sideB"><span class="wd-tchip" data-x="titleB"></span>' +
             '<span class="wd-pips" data-x="tallyB"><i></i><i></i></span>' +
-            '<span class="wd-flames" data-x="flameB"></span>' +
             '<i class="wd-coins" data-x="coinsB">0</i>' +
             '<b data-x="nameB">—</b></span>' +
         '</div>' +
@@ -279,11 +278,8 @@ const FINISH_MS = 7400;    /* beat between the winning answer and the knockout:
     const tA = chipTitle(A.name), tB = chipTitle(B.name);
     if (tA) ui.titleA.textContent = tA;
     if (tB) ui.titleB.textContent = tB;
-    /* the champion's medal + crown render on their finale line; flames render on
-       the fighter pips, so both reset here and the streak comes from the map */
-    const flameRow = which => { const f = which === "a" ? ui.flameA : ui.flameB;
-      f.textContent = "🔥".repeat(Math.min(streaks.get((which === "a" ? A : B).id) || 0, 3)); };
-    flameRow("a"); flameRow("b");
+    /* the champion's medal + crown render on their finale line; the fighter
+       pips reset here and the streak comes from the map */
     ui.nameA.textContent = A.name;
     ui.nameB.textContent = B.name;
     ui.coinsA.textContent = fmt(A.coins);

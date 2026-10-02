@@ -1050,14 +1050,6 @@
         if (window.ChampWallGuess && window.ChampWallGuess.streak) winMult = window.ChampWallGuess.streak(winnerId) || 1;
       } catch (err) { winMult = 1; }
       e.st = settle(fav, dog, e.dogWins, winMult, opts.kicker);
-      if (winMult > 1 && e.st.bonus > e.st.paid) {
-        window.setTimeout(function () {
-          if (st.dead || !run || run.tok !== tok) return;
-          var g = st.geo ? st.geo[adv > 0 ? 0 : 1] : null;
-          floatNum(g ? g.cx : S.CENTER + adv * 300, 380,
-                   "🔥 STREAK ×" + winMult + "  +" + fmt(e.st.bonus - e.st.paid), "mult plus");
-        }, 600 / RATE);
-      }
       run.adv = adv;
       st.paused = true;                    // the live loop yields to this
       st.lead = st.target = adv * S.FULL;
@@ -1076,12 +1068,7 @@
         debris(face, 560, adv, 18);
       }
       var loser = st.geo ? st.geo[adv < 0 ? 0 : 1] : null;
-      if (loser) {
-        dust(loser.cx, S.FLOOR - 4, adv, 12);
-        streaks(loser.cx, 560, adv, 5);
-        skid(loser.cx, S.FLOOR + 2, adv);
-        sweat(loser.cx, S.FLOOR - loser.H * .92, 6);
-      }
+      if (loser) { dust(loser.cx, S.FLOOR - 4, adv, 12); skid(loser.cx, S.FLOOR + 2, adv); }
       /* the fall's own cue fires where the fall starts, in the runner below */
 
       /* tightened again: the film carries the whole knockout now, so these
@@ -1420,7 +1407,6 @@
         var fallEl = side === "b" ? E.FilmL : E.FilmR;
         try { if (fallEl && fallEl.tagName === "VIDEO") fallEl.playbackRate = 0.45; } catch (err) {}
         if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
-        cue("fall");                          /* the supplied fall sound */
       }, 980);
       return true;
     }
