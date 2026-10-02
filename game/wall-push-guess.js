@@ -180,8 +180,10 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     while (ui.feed.children.length > 3) ui.feed.lastElementChild.remove();
   }
 
-  /* the hype call flies up through the arena on the seat's film half */
+  /* the hype call flies up through the arena on the seat's film half - and the
+     fight's voice reads it aloud */
   let lastHype = -1;
+  const speak = text => { try { window.WallVoice && window.WallVoice.say(text); } catch (e) {} };
   function hype(side, text, final) {
     const stage = ui.deck && ui.deck.parentNode;
     if (!stage) return;
@@ -191,7 +193,8 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     el.style.transform = "translate(-50%,20px) scale(.7) rotate(-2deg)";
     el.textContent = text;
     stage.appendChild(el);
-    window.setTimeout(() => el.remove(), 1500);
+    speak(text);                        /* the fight has a voice: the call reads aloud */
+    window.setTimeout(() => el.remove(), 2500);
   }
 
   /* a bot's taunt: a speech bubble over their film half. The tail flips for the
@@ -205,7 +208,8 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
     el.style.left = side === "b" ? "76%" : "24%";
     el.textContent = text;
     stage.appendChild(el);
-    window.setTimeout(() => el.remove(), 1900);
+    speak(text);
+    window.setTimeout(() => el.remove(), 2900);
   }
 
   /* ================================================================== timing */
@@ -446,7 +450,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
         ui.msg.textContent = `${naming} has it — the wall takes a shove!`;
 
         /* a sudden-death picture is announced, not slipped in */
-        if (isSudden) {
+        if (isSudden) { speak("SUDDEN DEATH!");
           const tabS = by === "a" ? ui.tabA : ui.tabB;
           tabS.textContent = "SUDDEN DEATH!";
           tabS.classList.remove("show"); void tabS.offsetWidth; tabS.classList.add("show");
@@ -475,6 +479,9 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
           const n = (leader === "a" ? A.name : B.name).split(/\s+/)[0].toUpperCase();
           const chantEl = ui.chant;
           if (chantEl) { chantEl.textContent = n + "! " + n + "! " + n + "!"; chantEl.classList.remove("on"); void chantEl.offsetWidth; chantEl.classList.add("on"); }
+          /* the crowd's chant gets the voice while the round is still open; on
+             the deciding answer the KNOCKOUT call speaks instead */
+          if (tally[by] < need) speak(n + "! " + n + "! " + n + "!");
         }
         if (tally[by] >= need) {
           hype(by, duel.isFinal ? "WINS THE GAME!" : "KNOCKOUT!", duel.isFinal);
@@ -790,8 +797,9 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
 
       function cleanup() {
         /* covers SKIP, a round reset, and the normal close - the music must never
-           outlive the wall push it belongs to */
+           outlive the wall push it belongs to, and neither may the voice */
         window.ChampCues?.stop?.("music");
+        try { window.WallVoice && window.WallVoice.hush(); } catch (e) {}
         if (run && run.arena) run.arena.teardown();
         clearTimers();
         dropDeck();
@@ -967,6 +975,7 @@ const FINISH_MS = 4500;    /* beat between the winning answer and the knockout:
          down or it would sit over the next board */
       const fin = document.getElementById("wpFinal");
       if (fin) fin.remove();
+      try { window.WallVoice && window.WallVoice.hush(); } catch (e) {}
       /* a round reset is still the end of this post-match: the ladder goes too */
       streaks.clear();
       run = null;

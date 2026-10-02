@@ -960,6 +960,7 @@
     [E.FilmL, E.FilmR].forEach(function (el) {
       if (!el || !el.tagName || el.tagName !== "VIDEO") return;
       el.onended = null;
+      try { el.playbackRate = 1; } catch (err) {}
       try { el.pause(); } catch (err) {}
       el.removeAttribute("src");
       el.removeAttribute("data-src");
@@ -1090,56 +1091,21 @@
         if (st.dead || !run || run.tok !== tok) return;
         if (i >= seq.length) {
           /* No settlement box at all: the green round tab and the deck already
-             tell the story. After a short breath the WINNING KICK replays once
-             in slow motion - fight-night drama on an asset we already have -
-             and only then is the payout card handed the screen. */
+             tell the story. A short breath - the slow-motion kick and fall have
+             been playing since the breaker - the winner returns to its victory
+             flex at normal speed, and only then is the payout card handed the
+             screen. */
           window.setTimeout(function () {
             if (st.dead || !run || run.tok !== tok) return;
             var wKey = (adv > 0 ? duel.a : duel.b).key;
             var wEl = adv > 0 ? E.FilmL : E.FilmR;
-            var c = FILM[wKey] || FILM[FILM_FALLBACK];
-            var src = (c && c.kick) || (FILM[FILM_FALLBACK] || {}).kick;
-            var finished = false;
-            var fin = function () {
-              if (finished || st.dead || !run || run.tok !== tok) return;
-              finished = true;
-              if (wEl && wEl.tagName === "VIDEO") {
-                wEl.classList.remove("replay");
-                try { wEl.playbackRate = 1; } catch (err) {}
-                wEl.onended = null;
-                /* the winner goes back to flexing under the payout card */
-                showFilm(wKey, "win", adv > 0 ? "a" : "b");
-              }
-              if (done) done();
-            };
-            if (wEl && wEl.tagName === "VIDEO" && src) {
-              var stamp = document.createElement("div");
-              stamp.className = "wp-replay " + (adv > 0 ? "l" : "r");
-              stamp.innerHTML = "<b>REPLAY</b><i>THE DECIDING BLOW</i>";
-              stage.appendChild(stamp);
-              window.setTimeout(function () { if (stamp.parentNode) stamp.parentNode.removeChild(stamp); }, 3200);
-              wEl.onended = fin;
-              wEl.loop = false;
-              if (wEl.getAttribute("data-src") !== src) {
-                wEl.setAttribute("data-src", src);
-                wEl.src = src;
-                wEl.load();
-              }
-              wEl.classList.add("replay");
-              var go2 = function () {
-                if (st.dead || !run || run.tok !== tok) return;
-                try { wEl.currentTime = Math.max(0.2, (wEl.duration || 2.6) * 0.55); } catch (err) {}
-                try { wEl.playbackRate = 0.5; } catch (err) {}
-                var p = wEl.play();
-                if (p && p.catch) p.catch(function () {});
-              };
-              if (wEl.readyState >= 2) go2();
-              else wEl.addEventListener("loadeddata", go2, { once: true });
-              /* a replay that never ends must not hold the match hostage */
-              window.setTimeout(fin, 3300);
-            } else {
-              window.setTimeout(function () { if (!finished && !st.dead && run && run.tok === tok) { finished = true; if (done) done(); } }, 300);
+            if (wEl && wEl.tagName === "VIDEO") {
+              try { wEl.playbackRate = 1; } catch (err) {}
+              wEl.onended = null;
+              /* the winner goes back to flexing under the payout card */
+              showFilm(wKey, "win", adv > 0 ? "a" : "b");
             }
+            if (done) done();
           }, opts.holdMs || 650);
           return;
         }
@@ -1432,6 +1398,14 @@
         if (st.dead || !run || run.tok !== tok) return;
         showFilm(winner.key, "win", side);
       })) return false;
+      /* BULLET TIME: the deciding kick and the loser's fall both run in slow
+         motion - playbackRate on the already-playing film is free drama. The
+         rate returns to 1x when the victory flex takes over in knock's tail,
+         and on every fresh duel mount. */
+      [E.FilmL, E.FilmR].forEach(function (el) {
+        if (!el || el.tagName !== "VIDEO") return;
+        try { el.playbackRate = 0.45; } catch (err) {}
+      });
       /* the fall belongs to the losing seat and fires WITH the quake, just
          after the hit-stop releases: the loser is knocked down by the blow, so
          the film order has to read kick, freeze, then fall. Until then the
