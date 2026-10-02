@@ -212,11 +212,10 @@
   flex: 1 1 auto; min-width: 0;
   display: flex; flex-direction: column; gap: 7px; justify-content: center;
 }
-.wp-deck .wd-head { display: flex; align-items: center; gap: 8px }
+.wp-deck .wd-head { display: flex; align-items: center; gap: 10px }
 .wp-deck .wd-title {
   flex: 1 1 auto; text-align: center; font-size: 10px;
   letter-spacing: 2px; color: #9fe8c6; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
 /* the rivalry line sits under the title inside the header's middle column */
 .wp-deck .wd-midhead {
@@ -231,23 +230,20 @@
 .wp-deck .wd-tchip {
   font-size: 8px; font-weight: 1000; letter-spacing: 1px; color: #ffd66b;
   padding: 2px 7px; border-radius: 999px; background: #3a2a05; border: 1px solid #ffd66b59;
-  white-space: nowrap; max-width: 88px; overflow: hidden; text-overflow: ellipsis;
-  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .wp-deck .wd-side {
-  display: flex; align-items: center; gap: 6px; padding: 5px 11px;
+  display: flex; align-items: center; gap: 8px; padding: 5px 11px;
   border-radius: 999px; font-size: 13px; font-weight: 800; white-space: nowrap;
   background: #04241a99; border: 1px solid #ffffff24;
-  flex: 0 0 auto; min-width: 0;
 }
-.wp-deck .wd-side b { max-width: 118px; overflow: hidden; text-overflow: ellipsis }
+.wp-deck .wd-side b { max-width: 156px; overflow: hidden; text-overflow: ellipsis }
 .wp-deck .wd-side.win { border-color: #20d98a; background: #07402baa }
 .wp-deck .wd-coins {
   font-style: normal; font-size: 12px; font-weight: 900;
   color: #ffd66b; font-variant-numeric: tabular-nums;
 }
-.wp-deck .wd-side .wd-pips { display: flex; gap: 4px; flex: 0 0 auto }
-.wp-deck .wd-flames { flex: 0 0 auto; max-width: 46px; overflow: hidden }
+.wp-deck .wd-side .wd-pips { display: flex; gap: 4px }
 .wp-deck .wd-side .wd-pips i {
   width: 15px; height: 7px; border-radius: 99px;
   background: #0b3a29; border: 1px solid #ffffff24;

@@ -181,8 +181,8 @@
        video carries seat a and the right video carries seat b (mirrored), so
        the same ninja footage plays on both sides of the screen and the drawn
        wall stays the real, sliding wall in the middle. */
-    + '  <video class="wp-film" id="wpFilmL" playsinline preload="auto"></video>'
-    + '  <video class="wp-film" id="wpFilmR" playsinline preload="auto"></video>'
+    + '  <video class="wp-film" id="wpFilmL" muted playsinline preload="auto"></video>'
+    + '  <video class="wp-film" id="wpFilmR" muted playsinline preload="auto"></video>'
     + '  <div id="wpShake">'
     + '    <img class="wp-fighter" id="wpFA" alt="">'
     + '    <img class="wp-fighter" id="wpFB" alt="">'
@@ -623,12 +623,12 @@
       var rank = i === 0 ? E.RankA : E.RankB;
       plate.style.left = (base + W / 2 - 160) + "px";
       rank.style.left = (base + W / 2) + "px";
-      rank.style.top = (S.FLOOR - H - 30) + "px";
+      rank.style.top = (S.FLOOR - H - 34) + "px";
       /* the score pips sit just above the name chip and ride with the fighter,
          so the tally is always over the head of whoever earned it */
       var pipsEl = i === 0 ? E.PipsA : E.PipsB;
       pipsEl.style.left = (base + W / 2) + "px";
-      pipsEl.style.top = (S.FLOOR - H - 74) + "px";
+      pipsEl.style.top = (S.FLOOR - H - 76) + "px";
     }
 
     if (shake.mag > 0) {
@@ -1309,9 +1309,6 @@
         el.src = src;
         el.load();
       }
-      /* the knock and the fall carry the footage's own sound: only those two
-         beats are unmuted, everything else stays silent under the cue bed */
-      el.muted = (which !== "kick" && which !== "fall");
       if (stage) stage.classList.add("film");
       /* never poke currentTime before metadata exists: that stranded the element
          in NETWORK_LOADING at readyState 0 and the arena rendered black */
