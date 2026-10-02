@@ -112,12 +112,12 @@
   transform:translate3d(var(--wx,800px),var(--wy,0px),0) rotate(var(--wrot,0deg));
   transform-origin:50% 100%;will-change:transform;z-index:5}
 #wpOverlay .wp-slab{position:absolute;inset:0;border-radius:12px;
-  /* one clean face, no brick-seam grid: the dark repeating lines read as black
-     lines drawn over the wall */
+  /* one clean face, no brick-seam grid and no dark edge bars: the black inset
+     lines read as stripes drawn over the wall. Edges are lit, never dark. */
   background:
-    linear-gradient(180deg,#a8b6cc 0,#7d8fa8 14%,#5b6b84 46%,#48566c 78%,#333f52 100%);
-  box-shadow:inset 0 3px 0 #ffffff66,inset 0 -4px 0 #00000080,
-    inset 4px 0 0 #ffffff26,inset -4px 0 0 #00000052,
+    linear-gradient(180deg,#a8b6cc 0,#7d8fa8 14%,#5b6b84 46%,#48566c 78%,#5e6f88 100%);
+  box-shadow:inset 0 3px 0 #ffffff66,inset 0 -3px 0 #ffffff2e,
+    inset 4px 0 0 #ffffff26,
     0 18px 40px #000000b3,0 0 30px #7fd7ff33}
 /* bolts; the ::before box is 112x502 = 130x520 minus the 9px inset */
 #wpOverlay .wp-slab::before{content:"";position:absolute;inset:9px;border-radius:7px;opacity:.8;
@@ -133,8 +133,7 @@
     radial-gradient(circle at 12px 206px,#cdd8e8 0 3px,#0000 3.5px),
     radial-gradient(circle at 54px 206px,#cdd8e8 0 3px,#0000 3.5px);
   pointer-events:none}
-#wpOverlay .wp-seam{position:absolute;top:16px;bottom:16px;width:3px;border-radius:3px;
-  background:#7fd7ff;box-shadow:0 0 14px #7fd7ffcc;opacity:.22;transition:opacity .25s}
+#wpOverlay .wp-seam{display:none}
 #wpOverlay .wp-seam.l{left:-1px}
 #wpOverlay .wp-seam.r{right:-1px}
 #wpWall.straining .wp-seam{opacity:1;animation:wpSeam .16s steps(2) infinite}
@@ -452,8 +451,8 @@
    warm bloom on the floor line, and a gold glow around the wall. The wall's
    FACE itself stays exactly the pair rounds' wall - the bright/dark edge trim
    the final used to add read as stripes painted on the wall. */
-#wpStage.final .wp-slab{box-shadow:inset 0 3px 0 #ffffff66,inset 0 -4px 0 #00000080,
-  inset 4px 0 0 #ffffff26,inset -4px 0 0 #00000052,
+#wpStage.final .wp-slab{box-shadow:inset 0 3px 0 #ffffff66,inset 0 -3px 0 #ffffff2e,
+  inset 4px 0 0 #ffffff26,
   0 18px 40px #000000b3,0 0 42px #ffd24a66}
 #wpStage.final #wpWall .wp-seam{background:#ffd24a;box-shadow:0 0 14px #ffd24acc}
 #wpStage.final .wp-floor{background:linear-gradient(90deg,transparent,#ffd24a66 10%,#ffd24a66 90%,transparent)}
