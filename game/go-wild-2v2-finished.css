@@ -1416,3 +1416,13 @@
 @keyframes giftToast{0%,12%{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.8)}
   20%,80%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
   100%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.94)}}
+
+/* ---- animated Lottie emojis (dashboard emoji menu + tap-avatar board) ----- */
+.alo-rail{display:flex;gap:4px;padding:3px 5px 5px;border-top:1px solid #ffffff17;margin-top:4px}
+.alo-tile{width:39px;height:39px;padding:0!important;border-radius:9px;font-size:21px!important;background:#ffffff0d}
+.alo-tile:hover{transform:translateY(-2px);background:#ffffff2b}
+.alo-poster{width:100%;height:100%;display:grid;place-items:center}
+.alo-poster svg{width:100%;height:100%}
+.alo-fx{position:absolute;left:50%;top:50%;width:112px;height:112px;transform:translate(-50%,-58%);z-index:40;pointer-events:none;filter:drop-shadow(0 10px 26px #0009);animation:aloPop .3s cubic-bezier(.2,1.6,.4,1)}
+.alo-fx svg{width:100%;height:100%}
+@keyframes aloPop{from{transform:translate(-50%,-58%) scale(.3)}}

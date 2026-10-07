@@ -599,6 +599,14 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
         grid.appendChild(b);
       });
       pk.appendChild(grid);
+      /* the three Lottie animations ride the board: press one and it performs
+         over the seat for its length, plus a fresh animation inside the tile */
+      window.__champLottieEmojis?.decorateBoard(pk, entry => {
+        closePickers();
+        const seat = document.querySelector(`.gwx-seat[data-player="${playerId}"]`);
+        window.__champLottieEmojis.playOnSeat(seat, entry);
+        if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent a ' + entry.name + ' animation at ' + nameOf(playerId));
+      });
     }
     document.body.appendChild(pk);
     const r = anchorEl.getBoundingClientRect();
@@ -972,6 +980,12 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   emojiMenu.addEventListener('click', event => {
     const button = event.target.closest('[data-emoji]');
     if (button) showChampReaction(button.dataset.emoji, true);
+  });
+  /* the dashboard's animated emojis ride the same menu: three Lottie tiles whose
+     performance plays over Champ's seat */
+  window.__champLottieEmojis?.decorateBoard(emojiMenu, entry => {
+    closeSocialMenus();
+    window.__champLottieEmojis.playOnSeat(document.querySelector('.gwx-seat[data-player="champ"]'), entry);
   });
   document.addEventListener('click', event => {
     if (!event.target.closest('.champ-social-controls')) closeSocialMenus();
