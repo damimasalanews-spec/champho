@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Go Wild Word Grid 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=lot-1">
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=emoji-2">
 <link rel="stylesheet" href="game/go-wild-2v2-motion.css?v=motion-1">
 <link rel="stylesheet" href="game/go-wild-2v2-coins.css?v=coins-12">
 <style>/* the seat avatars are CSS-drawn heads and bodies; when a real portrait is present it takes over and they are hidden */.gwx-avatar-art.has-portrait .avatar-head,.gwx-avatar-art.has-portrait .avatar-body{display:none}.gwx-avatar-art img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;position:relative;z-index:1}</style></head>
@@ -52,15 +52,7 @@
     <section class="gwx-center">
       <div class="gwx-status-line"><div id="turnLabel" class="gwx-turn-label">FIND THE WORDS</div><div id="colorLabel" class="gwx-color-label"><i></i> 7×6 LETTER GRID</div></div>
       <div class="gwx-board-row">
-        <section class="gwx-word-panel" aria-label="Hidden words">
-          <h2 class="gwx-side-heading">HIDDEN WORDS</h2>
-          <div id="wordSlots" class="gwx-word-slots" aria-label="Hidden word lengths"></div>
-        </section>
         <div class="gwx-letter-grid-shell"><div id="letterGrid" class="gwx-letter-grid" role="grid" aria-label="letter grid"></div></div>
-        <section class="gwx-leaderboard" aria-label="Player leaderboard">
-          <h2 class="gwx-side-heading">LEADERBOARD</h2>
-          <ol id="leaderboardRows" class="gwx-leaderboard-rows"></ol>
-        </section>
       </div>
       <form id="guessForm" class="gwx-guess-form"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="10" placeholder="Type your word" aria-label="Word guess"><button type="submit">GUESS</button></form>
       <div id="guessMessage" class="gwx-message" aria-live="polite">Tap neighboring letters or type a word.</div>
@@ -70,11 +62,9 @@
     <section class="gwx-seat bottom" data-player="champ">
       <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>YOU</span><div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div></div></div>
       <div class="champ-social-controls" aria-label="Quick chat and reactions">
-        <button id="emojiToggle" class="social-toggle" type="button" aria-expanded="false" aria-controls="emojiMenu" title="Choose an emoji">😊</button>
+        <button id="emojiToggle" class="social-toggle vid-toggle" type="button" aria-expanded="false" aria-controls="emojiMenu" title="Send the haha emoji"><video class="vid-toggle-video" src="./game/emoji/haha-2s.webm" autoplay loop muted playsinline"></video></button>
         <button id="chatToggle" class="social-toggle chat-toggle" type="button" aria-expanded="false" aria-controls="tableChatPanel" title="Open table chat">💬</button>
-        <div id="emojiMenu" class="champ-dropdown emoji-menu" hidden aria-label="Choose an emoji">
-          <button type="button" data-emoji="😀">😀</button><button type="button" data-emoji="😂">😂</button><button type="button" data-emoji="😎">😎</button><button type="button" data-emoji="🔥">🔥</button><button type="button" data-emoji="👏">👏</button><button type="button" data-emoji="💯">💯</button>
-        </div>
+        <div id="emojiMenu" class="champ-dropdown emoji-menu" hidden aria-label="Choose an emoji"></div>
         <div id="tableChatPanel" class="table-chat-panel" role="dialog" aria-label="Table chat" hidden>
           <header class="table-chat-header"><div><strong>TABLE CHAT</strong><small id="chatConnection">Connecting…</small></div><button id="copyRoomLink" type="button" title="Copy invite link">↗</button><button id="closeChat" type="button" aria-label="Close chat">×</button></header>
           <div id="chatMessages" class="table-chat-messages" aria-live="polite" aria-relevant="additions"></div>
@@ -94,8 +84,8 @@
 
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">CHAMP WINS</h2><p id="resultText"></p><ol id="resultBoard" class="gwx-modal-board" aria-label="Player leaderboard"></ol><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=lot-1"></script>
-<script src="game/audio-cues.js?v=4"></script><script src="vendor/lottie.min.js?v=lot-1"></script><script src="game/lottie-emojis.js?v=lot-1"></script><script src="game/emojis.js?v=social-4"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=emoji-2"></script>
+<script src="game/audio-cues.js?v=5"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
 <script src="game/go-wild-2v2-coins.js?v=coins-13" defer></script>
 </body>
 </html>

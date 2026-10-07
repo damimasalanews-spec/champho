@@ -80,7 +80,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
 
   function renderSlots() {
     const host = $('wordSlots');
-    host.replaceChildren();
+    /* the hidden-words rail is retired from the table; the level rail still paints */
+    if (!host) { paintLevelRail(); return; }
     const targets = round.layout.words.slice().sort((a, b) => a.word.length - b.word.length);
     paintLevelRail();
     targets.forEach(target => {
@@ -108,35 +109,6 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     }
     const totalCoins = $('totalCoins');
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
-    renderLeaderboard();
-  }
-
-  function renderLeaderboard() {
-    const host = $('leaderboardRows');
-    if (!host) return;
-    const ranking = PLAYERS.slice().sort((a, b) =>
-      round.scores[b.id].coins - round.scores[a.id].coins || round.scores[b.id].words - round.scores[a.id].words
-    );
-    host.replaceChildren();
-    ranking.forEach((player, index) => {
-      const row = document.createElement('li');
-      row.className = 'gwx-leader-row' + (index === 0 && round.scores[player.id].coins > 0 ? ' leading' : '');
-      const rank = document.createElement('span');
-      rank.className = 'gwx-leader-rank';
-      rank.textContent = String(index + 1).padStart(2, '0');
-      const identity = document.createElement('span');
-      identity.className = 'gwx-leader-identity';
-      const name = document.createElement('strong');
-      name.textContent = player.name;
-      const role = document.createElement('small');
-      role.textContent = player.id === 'champ' ? 'YOU' : 'RIVAL';
-      identity.append(name, role);
-      const coins = document.createElement('b');
-      coins.className = 'gwx-leader-coins';
-      coins.textContent = String(round.scores[player.id].coins);
-      row.append(rank, identity, coins);
-      host.appendChild(row);
-    });
   }
 
   function renderPath() {
@@ -474,9 +446,68 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     { id: 'bear',    art: '\uD83E\uDDF8', name: 'Teddy bear', cost: 400 },
     { id: 'cake',    art: '\uD83C\uDF70', name: 'Cake slice', cost: 800 }
   ];
-  const EMOJIS = ['\uD83D\uDE04', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDE2D', '\uD83D\uDE21', '\uD83E\uDD14', '\uD83D\uDE0E', '\uD83E\uDD73', '\uD83D\uDC4F', '\uD83D\uDC4D', '\u2764\uFE0F', '\uD83C\uDF89'];
-  const THANK_LINES = ['thanks! \uD83D\uDE04', '\uD83D\uDE02', '\uD83D\uDC4C', 'right back at you!'];
+  const THANK_LINES = ['thanks!', 'haha!', 'right back at you!'];
   let giftTimer = 0, ambienceTimer = 0;
+
+  /* ---- the one emoji: haha, greenscreen keyed out -------------------------
+     Every emoji surface on the table is this single looping clip. The video is
+     the uploaded greenscreen haha, keyed to alpha (haha-2s.webm, exactly 2s) so
+     it can sit INSIDE a chat bubble instead of a green box, and the laugh is
+     the uploaded m4a trimmed to haha-sound.mp3 (0.77s). The stage stays on
+     screen for whole 2s loops only, so the animation and the sound both end
+     together at a loop boundary. */
+  const VIDEO_EMOJI = {
+    name: 'Haha',
+    src: './game/emoji/haha-2s.webm',
+    sound: './game/emoji/haha-sound.mp3',
+    LOOP_MS: 2000,
+    SOUND_MS: 770
+  };
+
+  function playVideoEmoji(seat) {
+    if (!seat) return;
+    document.querySelectorAll('.vid-emoji-stage').forEach(el => el.remove());
+    const stage = document.createElement('div');
+    stage.className = 'vid-emoji-stage';
+    /* hang the chat bubble on the avatar itself so the gap to the profile is exact */
+    const avatar = seat.querySelector('.gwx-avatar');
+    (avatar || seat).appendChild(stage);
+    /* an aliased holder paints the chat bubble: tinted card, dashed rim, tail */
+    const holder = document.createElement('div');
+    holder.className = 'vid-emoji-holder';
+    stage.appendChild(holder);
+    const video = document.createElement('video');
+    video.className = 'vid-emoji-video';
+    video.src = VIDEO_EMOJI.src;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('aria-hidden', 'true');
+    holder.appendChild(video);
+    /* the 2s asset is the laugh slowed down; at this rate the full laugh lands
+       exactly when the recorded sound ends, so both stop together */
+    video.playbackRate = +(2 / (VIDEO_EMOJI.SOUND_MS / 1000)).toFixed(3);
+    const play = video.play();
+    if (play && play.catch) play.catch(() => {});
+    /* backstop at a loop boundary so cancelled timers can never strand the stage */
+    window.setTimeout(() => stage.remove(), VIDEO_EMOJI.LOOP_MS + 220);
+    return stage;
+  }
+
+  /* one emoji performance: the laugh starts with the clip, the bubble pops at
+     the next whole loop so animation and sound always end together. */
+  function showBubble(id) {
+    const seat = document.querySelector(`.gwx-seat[data-player="${id}"]`);
+    if (!seat) return;
+    playVideoEmoji(seat);
+    try { window.ChampCues && window.ChampCues.play('haha'); } catch (e) {}
+    /* the show lasts exactly the laugh: sound and animation end together */
+    window.clearTimeout(seat._vidEmojiTimer);
+    seat._vidEmojiTimer = window.setTimeout(() => {
+      const stage = seat.querySelector('.vid-emoji-stage');
+      if (stage) stage.remove();
+    }, VIDEO_EMOJI.SOUND_MS);
+  }
 
   function nameOf(id) { return (PLAYERS.find(p => p.id === id) || { name: id }).name; }
 
@@ -500,48 +531,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     try { appendChatMessage(who + ' ' + text, who === nameOf('champ') ? 'champ' : 'bot'); } catch (e) {}
   }
 
-  function showBubble(id, emoji) {
-    const seat = document.querySelector(`.gwx-seat[data-player="${id}"]`);
-    if (!seat) return;
-    let b = seat.querySelector('.bubble');
-    if (!b) {
-      b = document.createElement('span');
-      b.className = 'bubble';
-      seat.appendChild(b);
-    }
-    b.textContent = emoji;
-    b.classList.remove('show');
-    void b.offsetWidth;
-    b.classList.add('show');
-    clearTimeout(b._t);
-    b._t = window.setTimeout(() => b.classList.remove('show'), 1900);
-  }
 
-  /* the classic mode's drawn emote set ships in game/emojis.js as classic-script
-     globals; guarded so this page still works if it ever fails to load */
-  const RB_SET = () => (typeof RABBIT_EMOTES === 'undefined' ? [] : RABBIT_EMOTES);
-  const RB_SVG = look => (typeof rabbitSVG === 'undefined' ? '\uD83D\uDC30' : rabbitSVG(look));
 
-  /* the classic drawn rabbit emote performs over a seat for its 2 seconds */
-  function playEmote(id, emoId) {
-    const emo = RB_SET().find(e => e.id === emoId);
-    const pt = seatPoint(id);
-    if (!emo || !pt) return;
-    document.querySelectorAll(`.rb-msg[data-seat="${id}"]`).forEach(m => m.remove());
-    const st = document.createElement('div');
-    st.className = 'rb-msg';
-    st.dataset.seat = id;
-    if (pt.x > window.innerWidth * 0.55) st.classList.add('flip');
-    const box = document.createElement('div');
-    box.className = 'box';
-    box.innerHTML = RB_SVG(emo.look);
-    st.appendChild(box);
-    st.style.left = Math.round(pt.x - 30) + 'px';
-    st.style.top = Math.round(pt.y - 74) + 'px';
-    document.body.appendChild(st);
-    clearTimeout(st._t);
-    st._t = window.setTimeout(() => st.remove(), 2000);
-  }
 
   /* ---------------- pickers: classic gift tray + emoji/rabbit board ------- */
   function closePickers() {
@@ -572,41 +563,32 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       });
       pk.appendChild(grid);
     } else {
-      const row = document.createElement('div');
-      row.className = 'rb-row';
-      const cap = document.createElement('span');
-      cap.className = 'rb-cap';
-      cap.textContent = 'CHAMPWORD EMOTES · 2s';
-      row.appendChild(cap);
-      (RB_SET()).forEach(e => {
-        const b = document.createElement('button');
-        b.className = 'rb-btn';
-        b.title = e.name + ' - ' + e.line;
-        b.innerHTML = RB_SVG(e.look);
-        b.addEventListener('click', ev => {
-          ev.stopPropagation(); closePickers(); playEmote(playerId, e.id);
-          if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent a ' + e.name + ' emote at ' + nameOf(playerId));
-        });
-        row.appendChild(b);
-      });
-      pk.appendChild(row);
+      /* the one video emoji: a single large looping tile */
       const grid = document.createElement('div');
       grid.className = 'emo-grid';
-      EMOJIS.forEach(e => {
-        const b = document.createElement('button');
-        b.textContent = e;
-        b.addEventListener('click', ev => { ev.stopPropagation(); closePickers(); showBubble(playerId, e); });
-        grid.appendChild(b);
-      });
-      pk.appendChild(grid);
-      /* the three Lottie animations ride the board: press one and it performs
-         over the seat for its length, plus a fresh animation inside the tile */
-      window.__champLottieEmojis?.decorateBoard(pk, entry => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'emo-tile vid-tile';
+      b.title = 'HAHA emoji';
+      b.setAttribute('aria-label', 'Send the haha video emoji');
+      const vid = document.createElement('video');
+      vid.className = 'vid-poster';
+      vid.src = VIDEO_EMOJI.src;
+      vid.loop = true;
+      vid.muted = true;
+      vid.autoplay = true;
+      vid.playsInline = true;
+      const attempt = vid.play();
+      if (attempt && attempt.catch) attempt.catch(() => {});
+      b.appendChild(vid);
+      b.addEventListener('click', ev => {
+        ev.stopPropagation();
         closePickers();
-        const seat = document.querySelector(`.gwx-seat[data-player="${playerId}"]`);
-        window.__champLottieEmojis.playOnSeat(seat, entry);
-        if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent a ' + entry.name + ' animation at ' + nameOf(playerId));
+        showBubble(playerId);
+        if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent the ' + VIDEO_EMOJI.name + ' emoji at ' + nameOf(playerId));
       });
+      grid.appendChild(b);
+      pk.appendChild(grid);
     }
     document.body.appendChild(pk);
     const r = anchorEl.getBoundingClientRect();
@@ -688,7 +670,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       window.setTimeout(() => pt.el.classList.remove('gift-hit'), 640);
       sparks(pt);
     }
-    showBubble(toId, g.art);
+    /* the gift lands as sparks on the avatar — no emoji reaction on top */
     if (toId === 'champ') socialToast('\uD83C\uDF81 ' + nameOf(fromId) + ' threw a ' + g.name.toLowerCase() + ' at you!');
     else if (Math.random() < 0.8) {
       window.setTimeout(() => chatSay(nameOf(toId), THANK_LINES[Math.floor(Math.random() * THANK_LINES.length)]), 800 + Math.random() * 900);
@@ -714,17 +696,10 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
           openPicker(id === 'champ' ? 'champ' : id, avatar, id === 'champ' ? 'emoji' : 'gift');
         });
       }
-      /* the seat's little emote button opens the emoji board for that seat */
-      const emoteBtn = document.createElement('button');
-      emoteBtn.type = 'button';
-      emoteBtn.className = 'emote-btn';
-      emoteBtn.textContent = '\uD83D\uDE0A';
-      emoteBtn.title = 'Send an emote';
-      emoteBtn.addEventListener('click', ev => { ev.stopPropagation(); openPicker(id, emoteBtn, 'emoji'); });
-      seat.appendChild(emoteBtn);
+      /* tapping the avatar opens that seat's board — no per-seat emote button */
     });
     document.addEventListener('click', event => {
-      if (!event.target.closest('.gw-picker') && !event.target.closest('.gwx-avatar') && !event.target.closest('.emote-btn')) closePickers();
+      if (!event.target.closest('.gw-picker') && !event.target.closest('.gwx-avatar')) closePickers();
     });
   }
 
@@ -745,9 +720,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     ambienceTimer = window.setTimeout(() => {
       if (round && !round.ended) {
         const who = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
-        const emotes = RB_SET();
-        if (emotes.length && Math.random() < 0.55) playEmote(who, emotes[Math.floor(Math.random() * emotes.length)].id);
-        else showBubble(who, EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
+        showBubble(who);
       }
       scheduleBotAmbience();
     }, 14000 + Math.random() * 6000);
@@ -880,14 +853,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     menu.hidden = !opening;
     button.setAttribute('aria-expanded', String(opening));
   }
-  function showChampReaction(value, isEmoji = false) {
-    reaction.textContent = value;
-    reaction.classList.toggle('emoji-reaction', isEmoji);
-    reaction.classList.add('visible');
-    clearTimeout(reactionTimer);
-    reactionTimer = window.setTimeout(() => reaction.classList.remove('visible'), 2200);
-    closeSocialMenus();
-  }
+
   function appendChatMessage(text, playerId, at = new Date().toISOString()) {
     const bubble = document.createElement('div');
     bubble.className = `table-chat-bubble${playerId === chatPlayerId ? ' mine' : ''}`;
@@ -977,16 +943,30 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       setChatStatus('Copy the page link to invite players');
     }
   });
-  emojiMenu.addEventListener('click', event => {
-    const button = event.target.closest('[data-emoji]');
-    if (button) showChampReaction(button.dataset.emoji, true);
-  });
-  /* the dashboard's animated emojis ride the same menu: three Lottie tiles whose
-     performance plays over Champ's seat */
-  window.__champLottieEmojis?.decorateBoard(emojiMenu, entry => {
-    closeSocialMenus();
-    window.__champLottieEmojis.playOnSeat(document.querySelector('.gwx-seat[data-player="champ"]'), entry);
-  });
+  /* the dashboard's one emoji: the same video tile, playing over Champ's seat */
+  {
+    const dashTile = document.createElement('button');
+    dashTile.type = 'button';
+    dashTile.className = 'vid-tile dash';
+    dashTile.title = 'HAHA video emoji - 2s loop';
+    dashTile.setAttribute('aria-label', 'Send the haha video emoji');
+    const vid = document.createElement('video');
+    vid.className = 'vid-poster';
+    vid.src = VIDEO_EMOJI.src;
+    vid.loop = true;
+    vid.muted = true;
+    vid.autoplay = true;
+    vid.playsInline = true;
+    const attempt = vid.play();
+    if (attempt && attempt.catch) attempt.catch(() => {});
+    dashTile.appendChild(vid);
+    dashTile.addEventListener('click', ev => {
+      ev.stopPropagation();
+      closeSocialMenus();
+      showBubble('champ');
+    });
+    emojiMenu.appendChild(dashTile);
+  }
   document.addEventListener('click', event => {
     if (!event.target.closest('.champ-social-controls')) closeSocialMenus();
   });
