@@ -22,21 +22,24 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
      always had - carrying its own seven hidden words. On top of the hidden
      words, ANY dictionary word of 2-10 letters that traces through
      neighbouring letters on the board scores 100 coins a letter. Players
-     answer one at a time with 15 seconds each. One random player answers
-     first, then the turn always passes the same way round the table,
-     clockwise seat to seat - champ, kalkal, poker, jess - whoever the opener
-     is. A correct word books the coins, the word dances into coins and they arc
-     onto the scorer's avatar - only when they land does the clock pass to the
-     next player, who gets a fresh exact 15 seconds. A player who fails to
-     answer keeps the full 15 seconds, then the turn passes too. The
+     answer one at a time with 15 seconds each. The player holding the most
+     coins always answers first, then the turn travels the seat cycle —
+     champ, jess, kalkal, poker, back to champ. A correct word is PAID BY THE
+     GRID the first time; from then on every correct answer takes its coins
+     out of the previous scorer's purse. The word dances into coins and they
+     arc onto the scorer's avatar - only when they land does the clock pass to
+     the next player, who gets a fresh exact 15 seconds. A player who fails to
+     answer keeps the full 15 seconds, then the turn passes too. Skip and
+     reverse action words can burn or flip the direction of travel. The
      leaderboard prints after level 30 and the top coin scorer wins: no teams. */
   const LEVELS = 30;
   const TURN_MS = 15000;
-  /* the seats clockwise round the table: champ bottom, kalkal left, poker
-     top, jess right. A random player opens, then the turn keeps passing
-     clockwise seat to seat for the whole match. */
-  const SEATS_CLOCKWISE = ['champ', 'kalkal', 'poker', 'jess'];
-  let TURN_ORDER = SEATS_CLOCKWISE.slice();
+  /* the seats round the table in play order: champ bottom-left, jess
+     bottom-right, kalkal top-right, poker top-left. The player holding the
+     most coins always opens the round, then the turn keeps travelling this
+     cycle — from each seat to the next one round the table. */
+  const SEAT_CYCLE = ['champ', 'jess', 'kalkal', 'poker'];
+  let TURN_ORDER = SEAT_CYCLE.slice();
   const BOT_SKILL = 0.85;
   let turnState = null;   /* { index, endsAt, tick, botTimer } */
   let passStreak = 0;
@@ -45,6 +48,19 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
      table is "settling": the clock is parked, nobody's 15 seconds are running */
   let settling = false;
   let handoverTimer = 0;
+  /* direction of travel around SEAT_CYCLE (+1 forward, -1 reversed), the skip
+     and reverse cards played during the current turn, and the last scorer —
+     the grid pays the first correct answer, then every later correct answer
+     is paid out of the previous scorer's purse. */
+  let turnDir = 1;
+  let pendingSkip = false;
+  let pendingReverse = false;
+  let lastScorer = null;
+  /* the coin shield: whoever plays a SKIP or REVERSE keeps their purse safe —
+     no later scorer can take from them — until the card player's next turn
+     comes around and they get to guess again. */
+  let shieldedPlayer = null;
+  let cardHands = {};
 
   function shuffle(list) {
     const result = [...list];
@@ -171,7 +187,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
 
   function submitGuess(value, playerId) {
     if (!round || round.ended || !turnState || settling) return false;
-    if (TURN_ORDER[turnState.index] !== playerId) return false;   /* strict clockwise turns */
+    if (TURN_ORDER[turnState.index] !== playerId) return false;   /* strict seat turns */
     const result = scoreWord(round.layout.words, value, round.scored, playerId, round.layout);
     if (!result) {
       const normalized = normalizeGuess(value);
@@ -182,17 +198,38 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     round.scored.add(result.word);
     if (result.hidden) round.found.add(result.word);
     round.foundPaths.push(result.path);
-    round.scores[playerId].coins += result.coins;
+    /* the coin chain: the FIRST correct answer of the round is paid by the
+       grid itself; every later correct answer is paid out of the previous
+       scorer's purse — take what they hold, the grid adds nothing. */
+    /* shielded scorers keep their purse: the grid pays this find instead */
+    const fromId = (lastScorer && lastScorer !== shieldedPlayer) ? lastScorer : null;
+    const credited = fromId ? Math.min(result.coins, round.scores[fromId].coins) : result.coins;
+    if (fromId) round.scores[fromId].coins -= credited;
+    round.scores[playerId].coins += credited;
     round.scores[playerId].words++;
+    lastScorer = playerId;
     path = [];
     $('guessInput').value = '';
     $('guessMessage').classList.remove('bad');
     $('guessMessage').classList.add('good');
-    $('guessMessage').textContent = `${result.word.toUpperCase()} found! +${result.coins} coins to ${PLAYERS.find(item => item.id === playerId).name}.`;
+    $('guessMessage').textContent = fromId
+      ? `${result.word.toUpperCase()} found! +${credited} coins taken from ${PLAYERS.find(item => item.id === fromId).name}${credited < result.coins ? ' — their purse ran dry' : ''}.`
+      : `${result.word.toUpperCase()} found! +${credited} coins from the grid to ${PLAYERS.find(item => item.id === playerId).name}.`;
     renderSlots();
     renderScores();
     renderPath();
-    const revealAfter = animateCoins(playerId, result.coins, result.word, result.path);
+    /* the celebration shows what actually changed hands; the donor wears the bill */
+    if (fromId && credited > 0) {
+      const donorPanel = document.querySelector(`.gwx-seat[data-player="${fromId}"]`);
+      if (donorPanel) {
+        const bill = document.createElement('div');
+        bill.className = 'coin-floater donor';
+        bill.textContent = `-${credited} ✦`;
+        donorPanel.appendChild(bill);
+        window.setTimeout(() => bill.remove(), 1250);
+      }
+    }
+    const revealAfter = animateCoins(playerId, credited, result.word, result.path);
     const levelDone = round.found.size === round.layout.words.length;
     if (levelDone && round.level >= LEVELS) { finishRound('complete', revealAfter); return true; }
     if (levelDone) {
@@ -231,8 +268,20 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     if (seat) { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); }
     seatRings().forEach(ring => ring.remove());
     passStreak = 0;
-    turnState.index = (turnState.index + 1) % TURN_ORDER.length;
+    advanceTurnIndex();
     startTurn();
+  }
+
+  /* the turn handoff, shaped by any card the finishing player used: a SKIP
+     jumps two seats round the cycle, a REVERSE lets the current direction
+     carry this one handoff and flips the direction for everything after it —
+     the table keeps running that way until another REVERSE is played. */
+  function advanceTurnIndex() {
+    const step = (pendingSkip ? 2 : 1) * turnDir;
+    if (pendingReverse) turnDir = -turnDir;
+    pendingSkip = false;
+    pendingReverse = false;
+    turnState.index = ((turnState.index + step) % TURN_ORDER.length + TURN_ORDER.length) % TURN_ORDER.length;
   }
 
   function finishRound(reason, wait = 0) {
@@ -326,6 +375,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   function startTurn() {
     if (!round || round.ended) return;
     const id = TURN_ORDER[turnState.index];
+    /* the shield ends the moment its holder sits down to guess again */
+    if (shieldedPlayer === id) { shieldedPlayer = null; shieldBadge(id, true); }
     const seat = activeSeatEl(id);
     if (seat) {
       seat.classList.add('active');
@@ -351,6 +402,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
         ringEl.style.setProperty('--orbit-ms', String(turnMs));
       }
     }
+    renderTurnArrows();
+    renderCards();
     turnState.endsAt = performance.now() + turnMs;
     turnState.tick = window.setInterval(tickTurn, 100);
     const player = PLAYERS.find(item => item.id === id);
@@ -365,6 +418,11 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       $('guessInput').focus({ preventScroll: true });
     } else {
       $('guessMessage').textContent = player.name + ' is thinking…';
+      /* bots burn their action words now and then, announced in table chat */
+      if ((cardHands[id] || []).length && Math.random() < 0.3) {
+        const hand = cardHands[id];
+        playCard(id, hand[Math.floor(Math.random() * hand.length)]);
+      }
       if (Math.random() < BOT_SKILL) {
         const hidden = round.layout.words.filter(item => !round.found.has(item.word));
         let word = null;
@@ -409,13 +467,150 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       dealLevel();
       passStreak = 0;
     }
-    turnState.index = (turnState.index + 1) % TURN_ORDER.length;
+    advanceTurnIndex();
     startTurn();
   }
 
   function updateTimer(msLeft) {
     const total = Math.max(0, Math.ceil(msLeft / 1000));
     $('timer').textContent = '0:' + String(total).padStart(2, '0');
+  }
+
+  /* ---- action words: skip & reverse ----------------------------------------
+     Eight cards — four SKIP, four REVERSE — are shuffled and dealt two to each
+     player at the round's start. A SKIP burns the next player's turn (the turn
+     jumps two seats); a REVERSE flips the direction of travel, and the table
+     keeps running that way until another REVERSE is played. You can only play
+     yours during your own turn. */
+  function dealCards() {
+    const deck = shuffle(['reverse', 'reverse', 'reverse', 'reverse', 'skip', 'skip', 'skip', 'skip']);
+    cardHands = {};
+    PLAYERS.forEach((player, i) => { cardHands[player.id] = [deck[i * 2], deck[i * 2 + 1]]; });
+  }
+
+  function playCard(playerId, kind) {
+    if (!round || round.ended || !turnState || settling) return false;
+    if (TURN_ORDER[turnState.index] !== playerId) return false;
+    const hand = cardHands[playerId] || [];
+    const at = hand.indexOf(kind);
+    if (at < 0) return false;
+    hand.splice(at, 1);
+    if (kind === 'skip') pendingSkip = true;
+    else pendingReverse = true;
+    /* playing an action word shields this seat's coins until they guess again */
+    shieldedPlayer = playerId;
+    shieldBadge(playerId);
+    cardFloater(playerId, kind);
+    if (kind === 'reverse') {
+      const arrow = document.querySelector('.gw-arrow[data-player="' + playerId + '"]');
+      if (arrow) { arrow.classList.add('spin'); window.setTimeout(() => arrow.classList.remove('spin'), 850); }
+    }
+    flashMessage(kind === 'skip'
+      ? 'SKIP! ' + nameOf(playerId) + ' burns the next player — the turn jumps ahead.'
+      : 'REVERSE! ' + nameOf(playerId) + ' flips the direction of play.', 'good');
+    chatSay(nameOf(playerId), 'played the ' + kind.toUpperCase() + ' word!');
+    renderCards();
+    renderTurnArrows();
+    return true;
+  }
+
+  /* the coin-shield badge: pinned above a protected seat's portrait while
+     their coins can't be taken; removed the moment their next turn begins */
+  function shieldBadge(playerId, off) {
+    const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
+    if (!seat) return;
+    const badge = seat.querySelector('.gw-shield');
+    if (off) { if (badge) badge.remove(); return; }
+    if (!badge) {
+      const mark = document.createElement('i');
+      mark.className = 'gw-shield';
+      mark.textContent = 'SHIELD';
+      seat.appendChild(mark);
+    }
+  }
+
+  /* the card slam: a stamped REVERSE!/SKIP! pops over the player's avatar so
+     the play is unmistakable even though the message line is hidden */
+  function cardFloater(playerId, kind) {
+    const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
+    if (!seat) return;
+    const slam = document.createElement('b');
+    slam.className = 'card-floater ' + kind;
+    slam.textContent = kind.toUpperCase() + '!';
+    seat.appendChild(slam);
+    window.setTimeout(() => slam.remove(), 1550);
+  }
+
+  function renderCards() {
+    const tray = $('cardTray');
+    if (!tray) return;
+    const hand = cardHands.champ || [];
+    const myTurn = !!(turnState && TURN_ORDER[turnState.index] === 'champ' && !settling && round && !round.ended);
+    tray.replaceChildren();
+    ['skip', 'reverse'].forEach(kind => {
+      const count = hand.filter(item => item === kind).length;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gwx-card-btn' + (count ? '' : ' empty');
+      b.innerHTML = kind.toUpperCase() + ' <b>\u00D7' + count + '</b>';
+      b.title = kind === 'skip' ? 'Burn the next player — the turn jumps two seats' : 'Flip the direction of play';
+      b.disabled = !count || !myTurn;
+      b.addEventListener('click', () => playCard('champ', kind));
+      tray.appendChild(b);
+    });
+  }
+
+  /* four bold 3D orange arrows, one aimed at each seat; the next player's
+     arrow ignites and marches toward them, so everybody can read where the
+     turn is going — even after a skip or a reverse. The arrows live on a
+     fixed overlay anchored to the shell's viewport box, pixel-tracked and
+     re-measured on every resize, because the shell's clip-path trims
+     anything appended inside it and its edge shape is reshaped per media. */
+  function renderTurnArrows() {
+    let holder = document.querySelector('.gw-arrows');
+    if (!holder) {
+      holder = document.createElement('div');
+      holder.className = 'gw-arrows';
+      SEAT_CYCLE.forEach(id => {
+        const a = document.createElement('i');
+        a.className = 'gw-arrow';
+        a.dataset.player = id;
+        const b = document.createElement('span');
+        a.appendChild(b);
+        holder.appendChild(a);
+        /* the three-piece arrow anchors on resize so it keeps pointing at
+           the moving board */
+        window.addEventListener('resize', () => positionTurnArrow(a));
+      });
+      document.body.appendChild(holder);
+    }
+    SEAT_CYCLE.forEach(id => positionTurnArrow(holder.querySelector(`.gw-arrow[data-player="${id}"]`)));
+    const nextId = turnState ? TURN_ORDER[turnState.index] : null;
+    holder.querySelectorAll('.gw-arrow').forEach(a => a.classList.toggle('aim', a.dataset.player === nextId));
+  }
+  function positionTurnArrow(arrow) {
+    if (!arrow) return;
+    const shell = document.querySelector('.gwx-letter-grid-shell');
+    if (!shell) return;
+    const box = shell.getBoundingClientRect();
+    const id = arrow.dataset.player;
+    /* each beacon blasts out from its measured seat bearing: the seats sit
+       on a wide diamond (champ lower-left across from jess lower-right,
+       poker upper-left across from kalkal upper-right per the live table)
+       with a different edge margin per side */
+    const bearing = {
+      champ: { fx: 'left', edge: -30 },
+      jess: { fx: 'right', edge: -30 },
+      kalkal: { fx: 'right', edge: -34 },
+      poker: { fx: 'left', edge: -34 }
+    }[id];
+    const rise = { champ: 26, jess: 26, kalkal: -30, poker: -30 }[id];
+    arrow.style.left = bearing.fx === 'left'
+      ? Math.round(box.left + bearing.edge) + 'px'
+      : Math.round(box.right - bearing.edge - arrow.offsetWidth) + 'px';
+    arrow.style.top = rise > 0
+      ? Math.round(box.bottom - rise - arrow.offsetHeight) + 'px'
+      : Math.round(box.top - rise) + 'px';
   }
 
   /* the sample avatar frames and filters from the account dashboard: every bot
@@ -789,8 +984,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     $('resultModal').setAttribute('aria-hidden', 'true');
     $('guessInput').value = '';
     $('guessMessage').classList.remove('good', 'bad');
-    $('guessMessage').textContent = '30 levels, 15 seconds a turn, clockwise. Hidden words pay 100 coins a letter.';
-    $('roundMessage').textContent = 'Everyone starts on ' + START_COINS.toLocaleString('en-US') + ' coins. A correct word earns 100 coins per letter.';
+    $('guessMessage').textContent = '30 levels, 15 seconds a turn. Hidden words pay 100 coins a letter.';
+    $('roundMessage').textContent = 'Everyone starts on ' + START_COINS.toLocaleString('en-US') + ' coins. The top purse opens; the grid pays the first find, then every find is paid by the scorer before you.';
     path = [];
     round = {
       level: 1,
@@ -806,11 +1001,22 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     renderScores();
     applyBotFx();
     passStreak = 0;
-    /* draw the opener at random, then rotate the clockwise seating to match:
-       e.g. kalkal opens -> kalkal, poker, jess, champ */
-    const opener = Math.floor(Math.random() * SEATS_CLOCKWISE.length);
-    TURN_ORDER = SEATS_CLOCKWISE.map((_, i) => SEATS_CLOCKWISE[(opener + i) % SEATS_CLOCKWISE.length]);
+    dealCards();
+    /* the richest purse always opens the round; the turn then travels the
+       seat cycle from there — champ, jess, kalkal, poker, back to champ. */
+    const maxCoins = Math.max(...PLAYERS.map(player => round.scores[player.id].coins));
+    const opener = SEAT_CYCLE.find(id => round.scores[id].coins === maxCoins);
+    const at = SEAT_CYCLE.indexOf(opener);
+    TURN_ORDER = SEAT_CYCLE.map((_, i) => SEAT_CYCLE[(at + i) % SEAT_CYCLE.length]);
+    turnDir = 1;
+    pendingSkip = false;
+    pendingReverse = false;
+    lastScorer = null;
+    shieldedPlayer = null;
+    document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
     turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };
+    renderCards();
+    renderTurnArrows();
     startTurn();
   }
 
@@ -986,6 +1192,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       scores: structuredClone(round.scores),
       active: turnState ? TURN_ORDER[turnState.index] : null,
       secondsLeft: turnState ? Math.max(0, Math.round((turnState.endsAt - performance.now()) / 1000)) : 0,
+      order: TURN_ORDER.slice(), dir: turnDir, pendingSkip, pendingReverse, lastScorer, shieldedPlayer,
+      hands: Object.fromEntries(Object.entries(cardHands).map(([id, hand]) => [id, hand.slice()])),
       ended: round.ended
     }),
     guess: (word, player = 'champ') => submitGuess(word, player),

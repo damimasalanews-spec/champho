@@ -1453,3 +1453,66 @@
   .emo-grid{grid-template-columns:repeat(2,72px)!important;gap:7px!important;padding:7px!important}
   .vid-tile,.vid-tile.dash{width:72px!important;height:72px!important}
 }
+
+.gwx-card-tray{display:flex;gap:8px;justify-content:center;margin:8px 0 0}
+.gwx-card-btn{padding:7px 14px;border-radius:12px;border:2px solid #ffdf80!important;background:linear-gradient(145deg,#54bd40,#278c31)!important;color:#fff!important;font-weight:1000;font-size:11px;letter-spacing:.6px;box-shadow:0 4px 0 #216425!important;cursor:pointer;text-shadow:0 1px 2px #17491d;transition:transform .15s,filter .15s}
+.gwx-card-btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
+.gwx-card-btn:disabled{filter:grayscale(.75) brightness(.65);cursor:default;box-shadow:0 3px 0 #123c15!important}
+.gwx-card-btn b{color:#ffe28c}
+.coin-floater.donor{color:#ff8a94}
+
+/* ---- v2 turn beacons: bold 3D orange arrows on a clean ID overlay ------
+   A fullscreen overlay OUTSIDE the letter-grid shell (its clip-path trims
+   everything appended inside), so the beacons can march out beyond the
+   frame. Each beacon: thick extruded orange arrow (top face + dark side
+   + glossy highlight), heavy drop shadow, pulsing halo. The holder is
+   oriented at the game iframe's center and offset in px so the beacons
+   track the letter-grid shell in both lobby and desktop layouts, and
+   update on resize. The NEXT player's beacon ignites: it rams outward
+   toward their seat and rings in orange fire; the others stay dark. */
+.gw-arrows{position:fixed;inset:0!important;z-index:2147000000;pointer-events:none!important}
+.gw-arrow{position:absolute!important;width:92px!important;height:92px!important;opacity:0;transform:scale(.6)}
+.gw-arrow>span{position:absolute;inset:0;display:block;clip-path:polygon(0 24%,44% 24%,44% 0,100% 50%,44% 100%,44% 76%,0 76%)}
+.gw-arrow>span::before{content:"";position:absolute;inset:0;border-radius:8px;background:linear-gradient(180deg,#ffbf00 0%,#ff9210 55%,#e2640a 100%);filter:drop-shadow(0 9px 11px #000000b3) drop-shadow(0 0 16px #ff7a00b0)}
+.gw-arrow>span::after{content:"";position:absolute;left:12%;right:14%;top:9%;height:30%;background:linear-gradient(180deg,#ffffffcc,transparent);border-radius:50%;clip-path:polygon(8% 0,42% 0,30% 100%,0 100%);pointer-events:none}
+.gw-arrow.aim{opacity:1;transform:scale(1);animation:gwArrowAim .62s cubic-bezier(.36,1.55,.45,1) infinite alternate, gwArrowHalo 1.9s ease-in-out infinite}
+@keyframes gwArrowAim{from{transform:scale(1) rotate(0deg)}to{transform:translate(var(--tx),var(--ty)) scale(1.24) rotate(3deg)}}
+@keyframes gwArrowHalo{0%,100%{filter:brightness(1)}50%{filter:brightness(1.24)}}
+/* seat geometry measured live: the four portraits sit on a wide diamond
+   around the board (champ 150deg, jess 30deg, kalkal 332deg, poker 208deg,
+   +/-536px x, +/-283..309px y from center) — the beacons follow those exact
+   bearings so every arrow points at its real seat. */
+.gw-arrow[data-player="champ"]{--tx:-20px;--ty:22px;--gw-rot:150deg;rotate:var(--gw-rot)}
+.gw-arrow[data-player="jess"]{--tx:20px;--ty:22px;--gw-rot:30deg;rotate:var(--gw-rot)}
+.gw-arrow[data-player="kalkal"]{--tx:22px;--ty:-23px;--gw-rot:332deg;rotate:var(--gw-rot)}
+.gw-arrow[data-player="poker"]{--tx:-22px;--ty:-23px;--gw-rot:208deg;rotate:var(--gw-rot)}
+/* a REVERSE play spins the player's arrow a full lap so the flip reads as action */
+.gw-arrow.spin{animation:gwArrowSpin .8s cubic-bezier(.45,0,.2,1), gwArrowHalo 1.9s ease-in-out infinite!important}
+@keyframes gwArrowSpin{to{rotate:calc(var(--gw-rot) + 360deg)}}
+
+/* the coin shield: whoever plays SKIP/REVERSE wears this badge until their
+   next turn — their purse can't be robbed while it shows */
+.gw-shield{position:absolute;left:50%;top:-14px;transform:translateX(-50%);z-index:80;
+  padding:4px 10px;border-radius:999px;border:2px solid #ffe9a8;
+  background:linear-gradient(165deg,#ffe9a2,#f5b73e 60%,#c47f12);
+  box-shadow:0 4px 10px #00000073,0 0 14px #ffd76b99,inset 0 1px 0 #ffffffd9;
+  color:#4a2f06;font-size:10px;font-weight:1000;font-style:normal;letter-spacing:.6px;
+  white-space:nowrap;pointer-events:none;animation:gwShieldPulse 1.4s ease-in-out infinite}
+@keyframes gwShieldPulse{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.09)}}
+
+/* the card slam: stamped word popping over the avatar of whoever played it */
+.card-floater{position:absolute;left:50%;top:-10px;transform:translateX(-50%);z-index:85;
+  padding:6px 12px;border-radius:12px;border:2px solid #fff;font-weight:1000;font-size:13px;
+  letter-spacing:1px;color:#fff;pointer-events:none;white-space:nowrap;
+  animation:cardSlam 1.5s cubic-bezier(.2,1.4,.4,1) forwards}
+.card-floater.reverse{background:linear-gradient(160deg,#ff9d1c,#e85400);border-color:#ffd08a;text-shadow:0 1px 3px #7a2b00;box-shadow:0 6px 16px #0000008c,0 0 18px #ff7a00b0}
+.card-floater.skip{background:linear-gradient(160deg,#4fc3f7,#1976d2);border-color:#b3e5fc;text-shadow:0 1px 3px #0d3c66;box-shadow:0 6px 16px #0000008c,0 0 18px #42a5f5b0}
+@keyframes cardSlam{0%{transform:translateX(-50%) scale(.3);opacity:0}18%{transform:translateX(-50%) scale(1.18);opacity:1}30%{transform:translateX(-50%) scale(1)}78%{transform:translateX(-50%) scale(1);opacity:1}100%{transform:translateX(-50%) translateY(-16px) scale(.92);opacity:0}}
+@media(prefers-reduced-motion:reduce){.gw-arrow.aim{animation:none!important}}
+
+.gwx-card-tray{display:flex;gap:8px;justify-content:center;margin:8px 0 0}
+.gwx-card-btn{padding:7px 14px;border-radius:12px;border:2px solid #ffdf80!important;background:linear-gradient(145deg,#54bd40,#278c31)!important;color:#fff!important;font-weight:1000;font-size:11px;letter-spacing:.6px;box-shadow:0 4px 0 #216425!important;cursor:pointer;text-shadow:0 1px 2px #17491d;transition:transform .15s,filter .15s}
+.gwx-card-btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
+.gwx-card-btn:disabled{filter:grayscale(.75) brightness(.65);cursor:default;box-shadow:0 3px 0 #123c15!important}
+.gwx-card-btn b{color:#ffe28c}
+.coin-floater.donor{color:#ff8a94}
