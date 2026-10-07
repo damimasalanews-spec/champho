@@ -22,17 +22,21 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
      always had - carrying its own seven hidden words. On top of the hidden
      words, ANY dictionary word of 2-10 letters that traces through
      neighbouring letters on the board scores 100 coins a letter. Players
-     answer one at a time with 15 seconds each. Champ always opens; the other
-     three draw lots for their order, and that order holds for the whole match.
-     A correct word books the coins, the word dances into coins and they arc
+     answer one at a time with 15 seconds each. One random player answers
+     first, then the turn always passes the same way round the table,
+     clockwise seat to seat - champ, kalkal, poker, jess - whoever the opener
+     is. A correct word books the coins, the word dances into coins and they arc
      onto the scorer's avatar - only when they land does the clock pass to the
      next player, who gets a fresh exact 15 seconds. A player who fails to
      answer keeps the full 15 seconds, then the turn passes too. The
      leaderboard prints after level 30 and the top coin scorer wins: no teams. */
   const LEVELS = 30;
   const TURN_MS = 15000;
-  /* champ first, then the bots in a random draw that sticks for the match */
-  const TURN_ORDER = ['champ', ...shuffle(BOT_IDS)];
+  /* the seats clockwise round the table: champ bottom, kalkal left, poker
+     top, jess right. A random player opens, then the turn keeps passing
+     clockwise seat to seat for the whole match. */
+  const SEATS_CLOCKWISE = ['champ', 'kalkal', 'poker', 'jess'];
+  let TURN_ORDER = SEATS_CLOCKWISE.slice();
   const BOT_SKILL = 0.85;
   let turnState = null;   /* { index, endsAt, tick, botTimer } */
   let passStreak = 0;
@@ -819,6 +823,10 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     renderScores();
     applyBotFx();
     passStreak = 0;
+    /* draw the opener at random, then rotate the clockwise seating to match:
+       e.g. kalkal opens -> kalkal, poker, jess, champ */
+    const opener = Math.floor(Math.random() * SEATS_CLOCKWISE.length);
+    TURN_ORDER = SEATS_CLOCKWISE.map((_, i) => SEATS_CLOCKWISE[(opener + i) % SEATS_CLOCKWISE.length]);
     turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };
     startTurn();
   }
