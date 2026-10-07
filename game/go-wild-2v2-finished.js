@@ -326,6 +326,15 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
         }
         avatar.appendChild(ring);
       }
+      /* the orbit is the clock: exactly one lap per turn, restarted at 0 so the
+         arrows always finish the circuit as the 15 seconds run out */
+      const ringEl = seat.querySelector('.turn-ring');
+      if (ringEl) {
+        ringEl.style.animation = 'none';
+        void ringEl.offsetWidth;
+        ringEl.style.animation = '';
+        ringEl.style.setProperty('--orbit-ms', String(turnMs));
+      }
     }
     turnState.endsAt = performance.now() + turnMs;
     turnState.tick = window.setInterval(tickTurn, 100);
@@ -408,15 +417,24 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   }
 
   /* ---------------------------------------------------------------- gifting ---
-     Players can send gifts to each other: coins fly across the table with the
-     gift, the receiver pops it over their avatar, the table chat logs it, and
-     a toast announces it. Bots occasionally gift the player back. */
+     The social system is the classic mode's own: tap a rival's avatar to open
+     the gift tray (six classic gifts at this table's prices), tap your own
+     avatar or a seat's emote button for the emoji + rabbit-emote board. Gifts
+     fly a real arc, shake the receiver, spark, bubble, get thanked in chat,
+     and rivals often lob one straight back. */
   const GIFTS = [
-    { icon: '\uD83C\uDF39', name: 'ROSE', cost: 100 },
-    { icon: '\uD83E\uDDF8', name: 'TEDDY', cost: 250 },
-    { icon: '\uD83C\uDFC6', name: 'TROPHY', cost: 500 }
+    { id: 'cupcake', art: '\uD83E\uDD67', name: 'Cupcake',    cost: 100 },
+    { id: 'egg',     art: '\uD83E\uDD5A', name: 'Golden egg', cost: 100, gold: true },
+    { id: 'tomato',  art: '\uD83C\uDF45', name: 'Tomato',     cost: 200 },
+    { id: 'rose',    art: '\uD83C\uDF39', name: 'Rose',       cost: 300 },
+    { id: 'bear',    art: '\uD83E\uDDF8', name: 'Teddy bear', cost: 400 },
+    { id: 'cake',    art: '\uD83C\uDF70', name: 'Cake slice', cost: 800 }
   ];
-  let giftTimer = 0;
+  const EMOJIS = ['\uD83D\uDE04', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDE2D', '\uD83D\uDE21', '\uD83E\uDD14', '\uD83D\uDE0E', '\uD83E\uDD73', '\uD83D\uDC4F', '\uD83D\uDC4D', '\u2764\uFE0F', '\uD83C\uDF89'];
+  const THANK_LINES = ['thanks! \uD83D\uDE04', '\uD83D\uDE02', '\uD83D\uDC4C', 'right back at you!'];
+  let giftTimer = 0, ambienceTimer = 0;
+
+  function nameOf(id) { return (PLAYERS.find(p => p.id === id) || { name: id }).name; }
 
   function seatPoint(id) {
     const avatar = document.querySelector(`.gwx-seat[data-player="${id}"] .gwx-avatar`);
@@ -425,115 +443,262 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: avatar };
   }
 
-  function sendGift(fromId, toId, gift) {
-    if (!round || round.ended || fromId === toId || !gift) return false;
-    const from = round.scores[fromId], to = round.scores[toId];
-    if (!from || !to) return false;
-    if (from.coins < gift.cost) {
-      if (fromId === 'champ') {
-        $('guessMessage').textContent = 'Not enough coins for a ' + gift.name.toLowerCase() + '.';
-        $('guessMessage').classList.add('bad');
-      }
-      return false;
-    }
-    from.coins -= gift.cost;
-    to.coins += gift.cost;
-    renderScores();
-
-    const a = seatPoint(fromId), b = seatPoint(toId);
-    if (a && b) {
-      const fly = document.createElement('i');
-      fly.className = 'gift-fly';
-      fly.textContent = gift.icon;
-      fly.style.left = a.x + 'px';
-      fly.style.top = a.y + 'px';
-      fly.style.setProperty('--fx', '0px');
-      fly.style.setProperty('--fy', '0px');
-      fly.style.setProperty('--tx', (b.x - a.x) + 'px');
-      fly.style.setProperty('--ty', (b.y - a.y) + 'px');
-      document.body.appendChild(fly);
-      window.setTimeout(() => fly.remove(), 1000);
-      setTimeout(() => {
-        const pop = document.createElement('b');
-        pop.className = 'gift-pop';
-        pop.textContent = gift.icon;
-        const seatEl = document.querySelector(`.gwx-seat[data-player="${toId}"]`);
-        seatEl?.appendChild(pop);
-        window.setTimeout(() => pop.remove(), 1500);
-      }, 620);
-    }
-    const nameOf = id => (PLAYERS.find(p => p.id === id) || { name: id }).name;
+  function socialToast(msg, ms = 1900) {
+    document.querySelectorAll('.gift-toast').forEach(t => t.remove());
     const toast = document.createElement('div');
     toast.className = 'gift-toast';
-    toast.textContent = '🎁 ' + nameOf(fromId).toUpperCase() + ' sent ' + nameOf(toId).toUpperCase() + ' a ' + gift.icon + ' ' + gift.name + '!';
+    toast.textContent = msg;
     document.body.appendChild(toast);
-    window.setTimeout(() => toast.remove(), 2100);
-    try {
-      appendChatMessage(nameOf(fromId) + ' sent ' + nameOf(toId) + ' a ' + gift.icon + ' ' + gift.name, toId);
-    } catch (e) {}
+    window.setTimeout(() => toast.remove(), ms + 120);
+  }
+
+  function chatSay(who, text) {
+    try { appendChatMessage(who + ' ' + text, who === nameOf('champ') ? 'champ' : 'bot'); } catch (e) {}
+  }
+
+  function showBubble(id, emoji) {
+    const seat = document.querySelector(`.gwx-seat[data-player="${id}"]`);
+    if (!seat) return;
+    let b = seat.querySelector('.bubble');
+    if (!b) {
+      b = document.createElement('span');
+      b.className = 'bubble';
+      seat.appendChild(b);
+    }
+    b.textContent = emoji;
+    b.classList.remove('show');
+    void b.offsetWidth;
+    b.classList.add('show');
+    clearTimeout(b._t);
+    b._t = window.setTimeout(() => b.classList.remove('show'), 1900);
+  }
+
+  /* the classic mode's drawn emote set ships in game/emojis.js as classic-script
+     globals; guarded so this page still works if it ever fails to load */
+  const RB_SET = () => (typeof RABBIT_EMOTES === 'undefined' ? [] : RABBIT_EMOTES);
+  const RB_SVG = look => (typeof rabbitSVG === 'undefined' ? '\uD83D\uDC30' : rabbitSVG(look));
+
+  /* the classic drawn rabbit emote performs over a seat for its 2 seconds */
+  function playEmote(id, emoId) {
+    const emo = RB_SET().find(e => e.id === emoId);
+    const pt = seatPoint(id);
+    if (!emo || !pt) return;
+    document.querySelectorAll(`.rb-msg[data-seat="${id}"]`).forEach(m => m.remove());
+    const st = document.createElement('div');
+    st.className = 'rb-msg';
+    st.dataset.seat = id;
+    if (pt.x > window.innerWidth * 0.55) st.classList.add('flip');
+    const box = document.createElement('div');
+    box.className = 'box';
+    box.innerHTML = RB_SVG(emo.look);
+    st.appendChild(box);
+    st.style.left = Math.round(pt.x - 30) + 'px';
+    st.style.top = Math.round(pt.y - 74) + 'px';
+    document.body.appendChild(st);
+    clearTimeout(st._t);
+    st._t = window.setTimeout(() => st.remove(), 2000);
+  }
+
+  /* ---------------- pickers: classic gift tray + emoji/rabbit board ------- */
+  function closePickers() {
+    document.querySelectorAll('.gw-picker').forEach(p => p.remove());
+  }
+
+  function openPicker(playerId, anchorEl, mode) {
+    closePickers();
+    const pk = document.createElement('div');
+    pk.className = 'gw-picker';
+    if (mode === 'gift') {
+      const purse = round ? round.scores.champ.coins : 0;
+      const head = document.createElement('div');
+      head.className = 'gp-head';
+      head.innerHTML = '<span class="gp-who">Gift <b>' + nameOf(playerId).split('.')[0] + '</b></span>' +
+        '<span class="gp-purse">\uD83E\uDE99 ' + purse + '</span>';
+      pk.appendChild(head);
+      const grid = document.createElement('div');
+      grid.className = 'gp-grid';
+      GIFTS.forEach(g => {
+        const b = document.createElement('button');
+        b.className = 'gift-tile' + (g.cost > purse ? ' poor' : '');
+        b.innerHTML = '<span class="gt-art' + (g.gold ? ' gt-gold' : '') + '">' + g.art + '</span>' +
+          '<span class="gt-cost">\uD83E\uDE99 ' + g.cost + '</span>';
+        b.title = g.name + ' \u2014 ' + g.cost + ' coins';
+        b.addEventListener('click', ev => { ev.stopPropagation(); const ok = sendGift('champ', playerId, g); if (ok) closePickers(); });
+        grid.appendChild(b);
+      });
+      pk.appendChild(grid);
+    } else {
+      const row = document.createElement('div');
+      row.className = 'rb-row';
+      const cap = document.createElement('span');
+      cap.className = 'rb-cap';
+      cap.textContent = 'CHAMPWORD EMOTES · 2s';
+      row.appendChild(cap);
+      (RB_SET()).forEach(e => {
+        const b = document.createElement('button');
+        b.className = 'rb-btn';
+        b.title = e.name + ' - ' + e.line;
+        b.innerHTML = RB_SVG(e.look);
+        b.addEventListener('click', ev => {
+          ev.stopPropagation(); closePickers(); playEmote(playerId, e.id);
+          if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent a ' + e.name + ' emote at ' + nameOf(playerId));
+        });
+        row.appendChild(b);
+      });
+      pk.appendChild(row);
+      const grid = document.createElement('div');
+      grid.className = 'emo-grid';
+      EMOJIS.forEach(e => {
+        const b = document.createElement('button');
+        b.textContent = e;
+        b.addEventListener('click', ev => { ev.stopPropagation(); closePickers(); showBubble(playerId, e); });
+        grid.appendChild(b);
+      });
+      pk.appendChild(grid);
+    }
+    document.body.appendChild(pk);
+    const r = anchorEl.getBoundingClientRect();
+    const w = pk.offsetWidth, h = pk.offsetHeight;
+    pk.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)) + 'px';
+    let top = r.bottom + 10;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 10);
+    pk.style.top = top + 'px';
+  }
+
+  /* ---------------- one gift, one arc -------------------------------------- */
+  function sendGift(fromId, toId, g) {
+    if (!round || round.ended || !g || fromId === toId) return false;
+    const from = round.scores[fromId], to = round.scores[toId];
+    if (!from || !to) return false;
+    if (from.coins < g.cost) {
+      if (fromId === 'champ') socialToast('Not enough coins \u2014 find words to earn more \uD83E\uDE99');
+      return false;
+    }
+    from.coins -= g.cost;
+    to.coins += g.cost;
+    renderScores();
+    throwGift(fromId, toId, g);
+    if (fromId === 'champ') {
+      chatSay(nameOf('champ'), 'sent a ' + g.name.toLowerCase() + ' to ' + nameOf(toId) + ' ' + g.art);
+      socialToast(g.art + ' ' + g.name + ' \u2192 ' + nameOf(toId) + '   \u2212' + g.cost + ' \uD83E\uDE99');
+    }
     return true;
   }
 
-  function buildGiftUI() {
-    const seat = document.querySelector('.gwx-seat[data-player="champ"]');
-    if (!seat || seat.querySelector('.gift-btn')) return;
-    const menu = document.createElement('div');
-    menu.className = 'gift-menu';
-    menu.setAttribute('aria-label', 'Send a gift');
-    BOT_IDS.forEach(id => {
-      const row = document.createElement('div');
-      row.className = 'gift-row';
-      const label = document.createElement('span');
-      label.textContent = (PLAYERS.find(p => p.id === id) || { name: id }).name.toUpperCase();
-      row.appendChild(label);
-      GIFTS.forEach(gift => {
-        const g = document.createElement('button');
-        g.type = 'button';
-        g.textContent = gift.icon;
-        g.title = gift.name + ' · ' + gift.cost + ' coins';
-        g.dataset.cost = String(gift.cost);
-        g.addEventListener('click', () => {
-          if (sendGift('champ', id, gift)) menu.classList.remove('open');
-        });
-        row.appendChild(g);
+  function throwGift(fromId, toId, g) {
+    const a = seatPoint(fromId), b = seatPoint(toId);
+    if (!a || !b) return;
+    const el = document.createElement('span');
+    el.className = 'gift-fly';
+    el.textContent = g.art;
+    if (g.gold) el.classList.add('gt-gold');
+    el.style.left = a.x + 'px';
+    el.style.top = a.y + 'px';
+    document.body.appendChild(el);
+    const dur = 620, t0 = performance.now();
+    const lift = Math.min(200, Math.max(70, Math.abs(b.y - a.y) * 0.4 + 90));
+    const cx = (a.x + b.x) / 2, cy = Math.min(a.y, b.y) - lift;
+    const step = now => {
+      const t = Math.min(1, (now - t0) / dur), u = 1 - t;
+      const x = u * u * a.x + 2 * u * t * cx + t * t * b.x;
+      const y = u * u * a.y + 2 * u * t * cy + t * t * b.y;
+      const sc = 1 + Math.sin(Math.PI * t) * 0.6;
+      el.style.transform = 'translate(' + (x - a.x).toFixed(1) + 'px,' + (y - a.y).toFixed(1) + 'px)' +
+        ' rotate(' + Math.round(t * 400) + 'deg) scale(' + sc.toFixed(3) + ')';
+      if (t < 1) requestAnimationFrame(step);
+      else { el.remove(); giftImpact(fromId, toId, g); }
+    };
+    requestAnimationFrame(step);
+  }
+
+  function sparks(pt) {
+    for (let i = 0; i < 7; i++) {
+      const s = document.createElement('span');
+      s.className = 'gift-spark';
+      s.style.left = pt.x + 'px';
+      s.style.top = pt.y + 'px';
+      document.body.appendChild(s);
+      const ang = (i / 7) * Math.PI * 2, d = 44 + Math.random() * 32;
+      requestAnimationFrame(() => {
+        s.style.transform = 'translate(' + (Math.cos(ang) * d).toFixed(1) + 'px,' + (Math.sin(ang) * d).toFixed(1) + 'px) scale(.3)';
+        s.style.opacity = '0';
       });
-      menu.appendChild(row);
-    });
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'gift-btn';
-    btn.textContent = '\uD83C\uDF81';
-    btn.title = 'Send a gift';
-    btn.setAttribute('aria-expanded', 'false');
-    btn.addEventListener('click', () => {
-      const open = !menu.classList.contains('open');
-      menu.classList.toggle('open', open);
-      btn.setAttribute('aria-expanded', String(open));
-      if (open) {
-        const coins = round ? round.scores.champ.coins : 0;
-        menu.querySelectorAll('button[data-cost]').forEach(g => { g.disabled = Number(g.dataset.cost) > coins; });
+      window.setTimeout(() => s.remove(), 700);
+    }
+  }
+
+  function giftImpact(fromId, toId, g) {
+    const pt = seatPoint(toId);
+    if (pt) {
+      pt.el.classList.remove('gift-hit');
+      void pt.el.offsetWidth;
+      pt.el.classList.add('gift-hit');
+      window.setTimeout(() => pt.el.classList.remove('gift-hit'), 640);
+      sparks(pt);
+    }
+    showBubble(toId, g.art);
+    if (toId === 'champ') socialToast('\uD83C\uDF81 ' + nameOf(fromId) + ' threw a ' + g.name.toLowerCase() + ' at you!');
+    else if (Math.random() < 0.8) {
+      window.setTimeout(() => chatSay(nameOf(toId), THANK_LINES[Math.floor(Math.random() * THANK_LINES.length)]), 800 + Math.random() * 900);
+    }
+    /* a rival often lobs something straight back, so the arc is seen both ways */
+    if (fromId === 'champ' && Math.random() < 0.42) {
+      const back = GIFTS[Math.floor(Math.random() * 4)];
+      window.setTimeout(() => { if (round && !round.ended) throwGift(toId, 'champ', back); }, 1500 + Math.random() * 900);
+    }
+  }
+
+  /* ------------- wiring: tap avatars like the classic table --------------- */
+  function wireSeatSocial() {
+    document.querySelectorAll('.gwx-seat').forEach(seat => {
+      const id = seat.dataset.player;
+      if (!id || seat.dataset.socialWired) return;
+      seat.dataset.socialWired = '1';
+      const avatar = seat.querySelector('.gwx-avatar');
+      if (avatar) {
+        avatar.style.cursor = 'pointer';
+        avatar.addEventListener('click', ev => {
+          ev.stopPropagation();
+          openPicker(id === 'champ' ? 'champ' : id, avatar, id === 'champ' ? 'emoji' : 'gift');
+        });
       }
+      /* the seat's little emote button opens the emoji board for that seat */
+      const emoteBtn = document.createElement('button');
+      emoteBtn.type = 'button';
+      emoteBtn.className = 'emote-btn';
+      emoteBtn.textContent = '\uD83D\uDE0A';
+      emoteBtn.title = 'Send an emote';
+      emoteBtn.addEventListener('click', ev => { ev.stopPropagation(); openPicker(id, emoteBtn, 'emoji'); });
+      seat.appendChild(emoteBtn);
     });
-    seat.appendChild(btn);
-    seat.appendChild(menu);
     document.addEventListener('click', event => {
-      if (!event.target.closest('.gift-btn') && !event.target.closest('.gift-menu')) {
-        menu.classList.remove('open');
-        btn.setAttribute('aria-expanded', 'false');
-      }
+      if (!event.target.closest('.gw-picker') && !event.target.closest('.gwx-avatar') && !event.target.closest('.emote-btn')) closePickers();
     });
   }
 
-  /* bots occasionally send the player a gift back, unasked */
+  /* bots gift the player now and then, and emote among themselves */
   function scheduleBotGift() {
     window.clearTimeout(giftTimer);
     giftTimer = window.setTimeout(() => {
       if (round && !round.ended && turnState && turnState.tick) {
         const from = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
-        sendGift(from, 'champ', GIFTS[Math.floor(Math.random() * GIFTS.length)]);
+        sendGift(from, 'champ', GIFTS[Math.floor(Math.random() * 4)]);
       }
       scheduleBotGift();
     }, 35000 + Math.random() * 40000);
+  }
+
+  function scheduleBotAmbience() {
+    window.clearTimeout(ambienceTimer);
+    ambienceTimer = window.setTimeout(() => {
+      if (round && !round.ended) {
+        const who = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
+        const emotes = RB_SET();
+        if (emotes.length && Math.random() < 0.55) playEmote(who, emotes[Math.floor(Math.random() * emotes.length)].id);
+        else showBubble(who, EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
+      }
+      scheduleBotAmbience();
+    }, 14000 + Math.random() * 6000);
   }
 
   function buildLevelRail() {
@@ -763,8 +928,9 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   });
   connectTableChat();
   resetRound();
-  buildGiftUI();
+  wireSeatSocial();
   scheduleBotGift();
+  scheduleBotAmbience();
 
   window.__champWordGrid = {
     state: () => ({
@@ -777,7 +943,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       ended: round.ended
     }),
     guess: (word, player = 'champ') => submitGuess(word, player),
-    gift: (toId, name) => sendGift('champ', toId, GIFTS.find(g => g.name === String(name || '').toUpperCase() || g.icon === name)),
+    gift: (toId, id) => sendGift('champ', toId, GIFTS.find(g => g.id === id || g.art === id || g.name.toUpperCase() === String(id || '').toUpperCase())),
     setTurnSpeed: ms => { turnMs = Math.max(400, Math.min(TURN_MS, Number(ms) || TURN_MS)); },
     skipToLevel: n => { if (round && !round.ended) { round.level = Math.max(1, Math.min(LEVELS, Number(n) || 1)); dealLevel(); } },
     reset: resetRound
