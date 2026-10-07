@@ -484,3 +484,11 @@
   #wpFinal .wf-spotlight { opacity: 1 }
   #wpFinal .wf-spray { display: none }
 }
+
+/* ===========================================================================
+   THE CONTEST WITHOUT THE WALL
+   The arena is gone: the deck centres on the stage, the banner names the
+   duel, and the taunts and hype calls fly above the deck. */
+#wpOverlay.wg-quiz .wp-deck { top: 337px }
+#wpOverlay.wg-quiz .wp-taunt { top: 24% }
+#wpOverlay.wg-quiz .wp-hype { top: 15% }

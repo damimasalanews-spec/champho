@@ -36,11 +36,22 @@ test('guess normalization accepts case and punctuation', () => {
 });
 
 test('correct words award 100 coins per letter and cannot score twice', () => {
-  const targets = [{ word: 'cat' }, { word: 'river' }];
+  const targets = [{ word: 'cat', path: [0, 1, 2] }, { word: 'river', path: [7, 8, 9, 10, 11] }];
   const found = new Set();
-  assert.deepEqual(scoreWord(targets, 'CAT', found, 'champ'), { word: 'cat', playerId: 'champ', coins: 300, length: 3 });
+  assert.deepEqual(scoreWord(targets, 'CAT', found, 'champ'), { word: 'cat', playerId: 'champ', coins: 300, length: 3, path: [0, 1, 2], hidden: true });
   found.add('cat');
   assert.equal(scoreWord(targets, 'cat', found, 'jess'), null);
   assert.equal(scoreWord(targets, 'nope', found, 'jess'), null);
   assert.equal(scoreWord(targets, 'river', found, 'jess').coins, 500);
+});
+
+test('a dictionary word that is not hidden still scores when it traces through the board', () => {
+  /* a 2x2 board: c t across the top, a s across the bottom */
+  const layout = { grid: ['c', 't', 'a', 's'], cols: 2, rows: 2 };
+  const traced = scoreWord([], 'CATS', new Set(), 'champ', layout);
+  assert.equal(traced.coins, 400);
+  assert.equal(traced.hidden, false);
+  assert.deepEqual(traced.path, [0, 2, 1, 3]);
+  assert.equal(scoreWord([], 'c', new Set(), 'champ', layout), null);   /* one letter is too short */
+  assert.equal(scoreWord([], 'ax', new Set(), 'champ', layout), null);  /* not on the board */
 });

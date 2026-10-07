@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Go Wild Word Grid 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=garden-concept-preview-fixed-gap-2">
+<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=turns-2">
 <link rel="stylesheet" href="game/go-wild-2v2-motion.css?v=motion-1">
 <link rel="stylesheet" href="game/go-wild-2v2-coins.css?v=coins-12">
-<link rel="stylesheet" href="game/wall-push.css?v=36"><link rel="stylesheet" href="game/wall-push-guess.css?v=36"><style>/* the seat avatars are CSS-drawn heads and bodies; when a real portrait is present it takes over and they are hidden */.gwx-avatar-art.has-portrait .avatar-head,.gwx-avatar-art.has-portrait .avatar-body{display:none}.gwx-avatar-art img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;position:relative;z-index:1}</style></head>
+<style>/* the seat avatars are CSS-drawn heads and bodies; when a real portrait is present it takes over and they are hidden */.gwx-avatar-art.has-portrait .avatar-head,.gwx-avatar-art.has-portrait .avatar-body{display:none}.gwx-avatar-art img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;position:relative;z-index:1}</style></head>
 <body>
 <div id="app" class="gwx-app">
   <div class="gwx-ambient gwx-a1"></div><div class="gwx-ambient gwx-a2"></div><div class="gwx-ambient gwx-a3"></div>
@@ -16,11 +16,10 @@
     <div class="gwx-matchbar"><span class="team-dot blue"></span><strong>TEAM A</strong><em>2v2</em><strong>TEAM B</strong><span class="team-dot red"></span></div>
     <section class="gwx-level-rail" aria-label="Word hunt progress">
       <strong>WORD HUNT</strong>
-      <div class="gwx-level-track" role="progressbar" aria-label="Words found" aria-valuemin="0" aria-valuemax="7" aria-valuenow="0">
+      <div class="gwx-level-track" role="progressbar" aria-label="Words found" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0">
         <span id="wordProgress"></span>
-        <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </div>
-      <b id="wordProgressLabel">0 / 7</b>
+      <b id="wordProgressLabel">LV 1/30</b>
     </section>
     <div class="gwx-top-coins" aria-label="Combined coins"><span>¢</span><b id="totalCoins">0</b></div>
     <div class="gwx-tools"><button id="restartBtn" aria-label="Restart round">↻</button></div>
@@ -53,17 +52,17 @@
     <section class="gwx-center">
       <div class="gwx-status-line"><div id="turnLabel" class="gwx-turn-label">FIND THE WORDS</div><div id="colorLabel" class="gwx-color-label"><i></i> 7×6 LETTER GRID</div></div>
       <div class="gwx-board-row">
-        <section class="gwx-word-panel" aria-label="Seven hidden words">
-          <h2 class="gwx-side-heading">SEVEN WORDS</h2>
-          <div id="wordSlots" class="gwx-word-slots" aria-label="Seven word lengths"></div>
+        <section class="gwx-word-panel" aria-label="Hidden words">
+          <h2 class="gwx-side-heading">HIDDEN WORDS</h2>
+          <div id="wordSlots" class="gwx-word-slots" aria-label="Hidden word lengths"></div>
         </section>
-        <div class="gwx-letter-grid-shell"><div id="letterGrid" class="gwx-letter-grid" role="grid" aria-label="Seven by six letter grid"></div></div>
+        <div class="gwx-letter-grid-shell"><div id="letterGrid" class="gwx-letter-grid" role="grid" aria-label="letter grid"></div></div>
         <section class="gwx-leaderboard" aria-label="Player leaderboard">
           <h2 class="gwx-side-heading">LEADERBOARD</h2>
           <ol id="leaderboardRows" class="gwx-leaderboard-rows"></ol>
         </section>
       </div>
-      <form id="guessForm" class="gwx-guess-form"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="9" placeholder="Type your word" aria-label="Word guess"><select id="playerSelect" aria-label="Choose player"><option value="champ">Champ</option><option value="poker">Poker</option><option value="kalkal">Kalkal</option><option value="jess">Jess</option></select><button type="submit">GUESS</button></form>
+      <form id="guessForm" class="gwx-guess-form"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="10" placeholder="Type your word" aria-label="Word guess"><button type="submit">GUESS</button></form>
       <div id="guessMessage" class="gwx-message" aria-live="polite">Tap neighboring letters or type a word.</div>
       <div id="roundMessage" class="gwx-round-message" aria-live="polite">Correct word: 100 coins per letter.</div>
     </section>
@@ -93,10 +92,10 @@
     <div class="gwx-team-score"><span class="blue-dot"></span><b>TEAM A</b><strong id="teamCoinsA">0</strong><span class="red-dot"></span><b>TEAM B</b><strong id="teamCoinsB">0</strong></div>
   </footer>
 
-  <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">TEAM A WINS</h2><p id="resultText"></p><button id="playAgainBtn">PLAY AGAIN</button></div></div>
+  <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">TEAM A WINS</h2><p id="resultText"></p><ol id="resultBoard" class="gwx-modal-board" aria-label="Player leaderboard"></ol><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=coins-13"></script>
-<script src="game/audio-cues.js?v=4"></script><script src="game/champ-rivalry.js?v=1"></script><script src="game/wall-push.js?v=36"></script><script src="game/wall-push-guess.js?v=36"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=turns-2"></script>
+<script src="game/audio-cues.js?v=4"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
 <script src="game/go-wild-2v2-coins.js?v=coins-12" defer></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
-import { WORD_BANK } from './english-word-bank.js?v=coins-11';
-import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rules.js?v=coins-12';
+import { WORD_BANK } from './english-word-bank.js?v=turns-1';
+import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength } from './word-grid-rules.js?v=turns-2';
 
 (() => {
   'use strict';
@@ -14,11 +14,24 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
   const gridEl = $('letterGrid');
   const tiles = [];
   let round = null;
-  let timer = null;
-  let botTimers = [];
   let resultReveal = 0;   /* pending reveal of the round-end modal */
-  let secondsLeft = 120;
   let path = [];
+  /* ---- the level loop ------------------------------------------------------
+     Thirty levels. Each level deals one 7x6 board - the same grid the game
+     always had - carrying its own seven hidden words. On top of the hidden
+     words, ANY dictionary word of 2-10 letters that traces through
+     neighbouring letters on the board scores 100 coins a letter. Players
+     answer one at a time in clockwise seat order - Champ at the bottom, then
+     Kalkal left, Poker top, Jess right - with 15 seconds per turn. A correct
+     word books the coins and passes the turn on; the clock running out passes
+     it too. The leaderboard prints after level 30. */
+  const LEVELS = 30;
+  const TURN_MS = 15000;
+  const TURN_ORDER = ['champ', 'kalkal', 'poker', 'jess'];
+  const BOT_SKILL = 0.85;
+  let turnState = null;   /* { index, endsAt, tick, botTimer } */
+  let passStreak = 0;
+  let turnMs = TURN_MS;   /* the dev hook can speed the clock up */
 
   function shuffle(list) {
     const result = [...list];
@@ -32,14 +45,19 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
   function buildGrid() {
     gridEl.replaceChildren();
     tiles.length = 0;
+    gridEl.style.setProperty('--gwx-cols', String(round.layout.cols));
+    gridEl.style.setProperty('--gwx-rows', String(round.layout.rows));
+    gridEl.setAttribute('aria-label', `${round.layout.cols} by ${round.layout.rows} letter grid`);
+    const colorLabel = $('colorLabel');
+    if (colorLabel) colorLabel.innerHTML = '<i></i> ' + round.layout.cols + '×' + round.layout.rows + ' LETTER GRID';
     round.layout.grid.forEach((letter, index) => {
       const tile = document.createElement('button');
       tile.type = 'button';
       tile.className = 'letter-tile';
       tile.setAttribute('role', 'gridcell');
       tile.textContent = letter.toUpperCase();
-      tile.setAttribute('aria-label', `Letter ${letter.toUpperCase()}, row ${Math.floor(index / COLS) + 1}, column ${index % COLS + 1}`);
-      tile.style.animationDelay = `${(index % COLS) * 32 + Math.floor(index / COLS) * 22}ms`;
+      tile.setAttribute('aria-label', `Letter ${letter.toUpperCase()}, row ${Math.floor(index / round.layout.cols) + 1}, column ${index % round.layout.cols + 1}`);
+      tile.style.animationDelay = `${(index % round.layout.cols) * 12 + Math.floor(index / round.layout.cols) * 8}ms`;
       tile.dataset.index = String(index);
       tile.addEventListener('click', () => selectCell(index));
       gridEl.appendChild(tile);
@@ -51,13 +69,7 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
     const host = $('wordSlots');
     host.replaceChildren();
     const targets = round.layout.words.slice().sort((a, b) => a.word.length - b.word.length);
-    const progress = Math.round(round.found.size / targets.length * 100);
-    const progressBar = $('wordProgress');
-    const progressTrack = progressBar?.parentElement;
-    if (progressBar) progressBar.style.width = `${progress}%`;
-    if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(round.found.size));
-    const progressLabel = $('wordProgressLabel');
-    if (progressLabel) progressLabel.textContent = `${round.found.size} / ${targets.length}`;
+    paintLevelRail();
     targets.forEach(target => {
       const slot = document.createElement('div');
       const solved = round.found.has(target.word);
@@ -71,9 +83,8 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
     });
   }
 
-  /* Every seat opens the round with a stake already in it, so the post-match
-     wall push always has something to play for - a player who finds no words
-     would otherwise hold nothing and the payout would be nothing. */
+  /* Every seat opens the round with coins already on the board, so the
+     leaderboard always has something to rank. */
   const START_COINS = 500;
 
   function renderScores() {
@@ -129,8 +140,9 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
   }
 
   function isNeighbor(a, b) {
-    const rowA = Math.floor(a / COLS), colA = a % COLS;
-    const rowB = Math.floor(b / COLS), colB = b % COLS;
+    const cols = round.layout.cols;
+    const rowA = Math.floor(a / cols), colA = a % cols;
+    const rowB = Math.floor(b / cols), colB = b % cols;
     return Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB)) === 1;
   }
 
@@ -177,17 +189,18 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
   }
 
   function submitGuess(value, playerId) {
-    if (!round || round.ended) return false;
-    const result = scoreWord(round.layout.words, value, round.found, playerId);
+    if (!round || round.ended || !turnState) return false;
+    if (TURN_ORDER[turnState.index] !== playerId) return false;   /* strict clockwise turns */
+    const result = scoreWord(round.layout.words, value, round.scored, playerId, round.layout);
     if (!result) {
       const normalized = normalizeGuess(value);
       const known = round.layout.words.some(item => item.word === normalized);
       flashMessage(!normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the hidden words. Try another path.', 'bad');
       return false;
     }
-    round.found.add(result.word);
-    const target = round.layout.words.find(item => item.word === result.word);
-    round.foundPaths.push(target.path);
+    round.scored.add(result.word);
+    if (result.hidden) round.found.add(result.word);
+    round.foundPaths.push(result.path);
     round.scores[playerId].coins += result.coins;
     round.scores[playerId].words++;
     path = [];
@@ -198,148 +211,240 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
     renderSlots();
     renderScores();
     renderPath();
-    const revealAfter = animateCoins(playerId, result.coins, result.word, target.path);
-    if (round.found.size === round.layout.words.length) finishRound('all-found', revealAfter);
+    const revealAfter = animateCoins(playerId, result.coins, result.word, result.path);
+    const levelDone = round.found.size === round.layout.words.length;
+    if (levelDone && round.level >= LEVELS) { finishRound('complete', revealAfter); return true; }
+    if (levelDone) {
+      round.level++;
+      dealLevel();
+      $('roundMessage').textContent = 'LEVEL ' + (round.level - 1) + ' CLEAR! Level ' + round.level + ' board is up.';
+    }
+    endTurn(true);
     return true;
-  }
-
-  function scheduleBots() {
-    botTimers.forEach(id => window.clearTimeout(id));
-    botTimers = [];
-    if (!round || round.ended) return;
-    const open = round.layout.words.filter(item => !round.found.has(item.word));
-    if (!open.length) return;
-    const playerId = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
-    const target = open[Math.floor(Math.random() * open.length)];
-    const delay = 8500 + Math.random() * 15500;
-    botTimers.push(window.setTimeout(() => {
-      if (round && !round.ended) {
-        if (submitGuess(target.word, playerId)) scheduleBots();
-        else scheduleBots();
-      }
-    }, delay));
   }
 
   function finishRound(reason, wait = 0) {
     if (!round || round.ended) return;
     round.ended = true;
-    window.clearInterval(timer);
-    botTimers.forEach(id => window.clearTimeout(id));
+    stopTurns();
     const totals = { A: 0, B: 0 };
     PLAYERS.forEach(player => { totals[player.team] += round.scores[player.id].coins; });
     const winner = totals.A === totals.B ? null : totals.A > totals.B ? 'A' : 'B';
     $('resultTitle').textContent = winner ? `TEAM ${winner} WINS` : 'IT’S A TIE';
-    $('resultText').textContent = `Team A ${totals.A} coins · Team B ${totals.B} coins. ${reason === 'all-found' ? `All ${round.layout.words.length} words found!` : `${round.found.size} of ${round.layout.words.length} words found.`}`;
+    $('resultText').textContent = `Team A ${totals.A} coins · Team B ${totals.B} coins. ${reason === 'complete' ? 'All 30 levels cleared!' : reason === 'passed' ? 'Called at level ' + round.level + '.' : `${round.found.size} of ${round.layout.words.length} words found on level ${round.level}.`}`;
     /* The round normally ends on the word that was just found, so its celebration
        is still on screen. Hold the modal - and the cascade - back until that
        celebration has landed its coins, or the player never sees the word that
        won them the round: it plays behind the blur. A clock expiry has no
        celebration, so wait is 0 and the modal opens at once. */
+    /* the round ends straight into the leaderboard: the four players ranked by
+       the coins they finished the round with, words as the tiebreak */
+    const renderResultBoard = () => {
+      const host = $('resultBoard');
+      if (!host) return;
+      const ranking = PLAYERS.slice().sort((a, b) =>
+        round.scores[b.id].coins - round.scores[a.id].coins || round.scores[b.id].words - round.scores[a.id].words
+      );
+      host.replaceChildren();
+      ranking.forEach((player, index) => {
+        const row = document.createElement('li');
+        row.className = 'gwx-leader-row' + (index === 0 && round.scores[player.id].coins > 0 ? ' leading' : '');
+        const rank = document.createElement('span');
+        rank.className = 'gwx-leader-rank';
+        rank.textContent = String(index + 1).padStart(2, '0');
+        const identity = document.createElement('span');
+        identity.className = 'gwx-leader-identity';
+        const name = document.createElement('strong');
+        name.textContent = player.name;
+        const team = document.createElement('small');
+        team.textContent = `TEAM ${player.team}`;
+        identity.append(name, team);
+        const coins = document.createElement('b');
+        coins.className = 'gwx-leader-coins';
+        coins.textContent = String(round.scores[player.id].coins);
+        row.append(rank, identity, coins);
+        host.appendChild(row);
+      });
+    };
     const showResult = () => {
       resultReveal = 0;
       if (!round) return;
+      renderResultBoard();
       $('resultModal').classList.add('open');
       $('resultModal').setAttribute('aria-hidden', 'false');
       /* presentation only: the round-win cascade, once per round, obeying the mute toggle */
       window.__champCoins?.winStinger?.();
     };
 
-    /* ---- WALL PUSH --------------------------------------------------------
-       The series runs BEFORE the result card: TOP 1 vs TOP 2, then TOP 3 vs
-       TOP 4. `wait` has already delayed us past the word celebration, so the
-       duel also lands after it rather than on top of it.
-
-       Ranking comes from the round scores that are already on screen - coins
-       first, words as the tiebreak. The stake is each seat's displayed coin
-       count, so the numbers in the duel are real in-game numbers rather than
-       invented ones.
-
-       The stake rule is the one the game asked for, and it is symmetric: the
-       loser pays their OWN balance. So when TOP 1 wins he takes everything TOP 2
-       holds, and when TOP 2 wins he doubles - TOP 1 funds exactly TOP 2's
-       balance, capped by what TOP 1 actually has. settle() already does this.
-
-       The duel DISPLAYS the settlement and deliberately writes to no balance:
-       this game's coins are per-round scores, and treating them as a persistent
-       wallet is a game-design decision, not an animation one. */
-    /* The wall push settles in real coins. The winner takes the loser's stake and
-     the loser keeps whatever the winner's balance could not reach, so a 1,500
-     against 1,300 ends either 2,800 to nil or 2,600 to 200 - never below zero,
-     which is why nothing here needs a floor. This module owns the scores, so the
-     transfer lands here and the standings behind the animation redraw at once. */
-  function settleStake(s) {
-    if (!round || !s) return;
-    const win = round.scores[s.winnerId], lose = round.scores[s.loserId];
-    if (!win || !lose) return;
-    /* s.paid is the stake the loser hands over; s.bonus is the winner's
-       house-funded streak extra (x1.5 / x2 ladder), so the scoreboard agrees
-       with the payout receipt the player just watched */
-    win.coins += s.paid + (s.bonus || 0);
-    lose.coins -= s.paid;
-    renderScores();
+    /* No post-match section any more: the wall-push duel and the clipart
+       contest are gone from the game entirely. When the round ends the
+       leaderboard modal opens — the `wait` that held it back past the word
+       celebration still applies. */
+    resultReveal = wait > 0 ? window.setTimeout(showResult, wait) : 0;
+    if (wait <= 0) showResult();
   }
 
-  const reveal = () => {
-      if (!round) { showResult(); return; }
-      const wp = window.ChampWallPush;
-      const guess = window.ChampWallGuess;
-      const canPush = !!wp && typeof wp.play === 'function';
-      const canContest = !!guess && typeof guess.play === 'function';
-      if (!canPush && !canContest) { showResult(); return; }
-      const ranked = [...PLAYERS].sort((a, b) => {
-        const sa = round.scores[a.id], sb = round.scores[b.id];
-        return (sb.coins - sa.coins) || (sb.words - sa.words);
-      });
-      /* Which fighter art each seat wears. The clip set is complete for ninja
-         only (shove + kick + fall), and the intended read is that the SAME
-         fighter appears on both sides with the right-hand seat mirrored, so a
-         duel shows that fighter shoving the wall back and forth and then going
-         down. Swap the values as the remaining avatar clips land — 'boy' and
-         'girl' still work off the original sprites. */
-      const WEAR = { champ: 'ninja', poker: 'ninja', kalkal: 'ninja', jess: 'ninja' };
-      const side = p => ({
-        name: p.name,
-        coins: round.scores[p.id].coins,
-        team: p.team === 'A' ? 'TEAM WILD' : 'TEAM FLAME',
-        id: p.id,
-        /* ninja is the default fighter: it is the only avatar with a complete
-           shove + kick + fall set, so an unmapped seat falls back to it rather
-           than to a body sprite with no clips behind it */
-        key: WEAR[p.id] || 'ninja'
-      });
-      const duels = [
-        { rankA: 1, rankB: 2, a: side(ranked[0]), b: side(ranked[1]) },
-        { rankA: 3, rankB: 4, a: side(ranked[2]), b: side(ranked[3]) }
-      ];
-      try {
-        /* The clipart contest runs the guessing and hands each duel back WITH a
-           verdict, so the post-match reel plays a duel it did not decide. Each
-           side carries its player id because the contest has to know which seat
-           the human answers for. If the contest module is missing this falls
-           straight back to the old coin-flip push. */
-        if (canContest) guess.play(duels, {
-          push: canPush ? wp : null,
-          /* The post-match closes on its own receipt, so a contest that ran
-             does NOT open the TEAM A / TEAM B card. That card is still the
-             fallback when nothing could be played at all: an empty verdict
-             list means the contest bailed, and then there is nothing else. */
-          onDone: function (results) { if (!results || !results.length) showResult(); },
-          onSettled: settleStake
-        });
-        else wp.play(duels, { onDone: showResult });
-      } catch (e) {
-        console.warn('wall push failed, showing the result card anyway', e);
-        showResult();
+  /* ---- the turn engine ------------------------------------------------------
+     One active seat at a time. The avatar wears a glowing countdown ring and the
+     seat card lights up, so everybody can see whose 15 seconds are running. */
+  function activeSeatEl(id) {
+    return document.querySelector(`.gwx-seat[data-player="${id}"]`);
+  }
+
+  function stopTurns() {
+    if (!turnState) return;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); }
+    seatRings().forEach(ring => ring.remove());
+    turnState = null;
+    $('guessInput').disabled = true;
+    const submit = document.querySelector('#guessForm button');
+    if (submit) submit.disabled = true;
+  }
+
+  function seatRings() {
+    return document.querySelectorAll('.gwx-avatar .turn-ring');
+  }
+
+  function startTurn() {
+    if (!round || round.ended) return;
+    const id = TURN_ORDER[turnState.index];
+    const seat = activeSeatEl(id);
+    if (seat) {
+      seat.classList.add('active');
+      const avatar = seat.querySelector('.gwx-avatar');
+      if (avatar && !avatar.querySelector('.turn-ring')) {
+        const ring = document.createElement('i');
+        ring.className = 'turn-ring';
+        avatar.appendChild(ring);
       }
-    };
-    resultReveal = wait > 0 ? window.setTimeout(reveal, wait) : 0;
-    if (wait <= 0) reveal();
+    }
+    turnState.endsAt = performance.now() + turnMs;
+    turnState.tick = window.setInterval(tickTurn, 100);
+    const player = PLAYERS.find(item => item.id === id);
+    const human = id === 'champ';
+    $('turnLabel').textContent = human ? 'YOUR TURN — FIND A WORD' : player.name.toUpperCase() + "'S TURN";
+    $('guessInput').disabled = !human;
+    const submit = document.querySelector('#guessForm button');
+    if (submit) submit.disabled = !human;
+    $('guessInput').placeholder = human ? 'Type your word' : 'Waiting for ' + player.name + '…';
+    if (human) {
+      $('guessMessage').textContent = 'Tap neighboring letters or type a word — 15 seconds.';
+      $('guessInput').focus({ preventScroll: true });
+    } else {
+      $('guessMessage').textContent = player.name + ' is thinking…';
+      if (Math.random() < BOT_SKILL) {
+        const hidden = round.layout.words.filter(item => !round.found.has(item.word));
+        let word = null;
+        if (hidden.length && Math.random() < 0.8) word = hidden[Math.floor(Math.random() * hidden.length)].word;
+        else {
+          const open = round.traceable.filter(item => !round.scored.has(item.word));
+          if (open.length) word = open[Math.floor(Math.random() * open.length)].word;
+        }
+        if (word) {
+          turnState.botTimer = window.setTimeout(() => {
+            if (round && !round.ended && turnState && TURN_ORDER[turnState.index] === id) submitGuess(word, id);
+          }, turnMs * (0.15 + Math.random() * 0.5));
+        }
+      }
+    }
+    tickTurn();
   }
 
-  function updateTimer() {
-    const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
-    const seconds = String(secondsLeft % 60).padStart(2, '0');
-    $('timer').textContent = `${minutes}:${seconds}`;
+  function tickTurn() {
+    if (!turnState) return;
+    const left = Math.max(0, turnState.endsAt - performance.now());
+    updateTimer(left);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) seat.style.setProperty('--turn-pct', String(left / turnMs));
+    if (left <= 0) endTurn(false);
+  }
+
+  function endTurn(found) {
+    if (!turnState || !round || round.ended) return;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); }
+    seatRings().forEach(ring => ring.remove());
+    passStreak = found ? 0 : passStreak + 1;
+    if (passStreak >= TURN_ORDER.length) {
+      /* a full cycle with no find moves the game on: deal the next level, or
+         close the match when the last board is on the table */
+      if (round.level >= LEVELS) { stopTurns(); finishRound('passed'); return; }
+      round.level++;
+      dealLevel();
+      passStreak = 0;
+    }
+    turnState.index = (turnState.index + 1) % TURN_ORDER.length;
+    startTurn();
+  }
+
+  function updateTimer(msLeft) {
+    const total = Math.max(0, Math.ceil(msLeft / 1000));
+    $('timer').textContent = '0:' + String(total).padStart(2, '0');
+  }
+
+  /* the sample avatar frames and filters from the account dashboard: every bot
+     rolls a fresh frame + filter combo at the start of each round */
+  const FX_FRAMES = ['fx-frame-cyber', 'fx-frame-sheriff', 'fx-frame-neon', 'fx-frame-vine'];
+  const FX_FILTERS = ['fx-filter-warm', 'fx-filter-cool', 'fx-filter-mono', 'fx-filter-pop'];
+  function applyBotFx() {
+    for (const id of BOT_IDS) {
+      const avatar = document.querySelector(`.gwx-seat[data-player="${id}"] .gwx-avatar`);
+      if (!avatar) continue;
+      avatar.classList.remove(...FX_FRAMES, ...FX_FILTERS);
+      avatar.classList.add(FX_FRAMES[Math.floor(Math.random() * FX_FRAMES.length)]);
+      avatar.classList.add(FX_FILTERS[Math.floor(Math.random() * FX_FILTERS.length)]);
+    }
+  }
+
+  function buildLevelRail() {
+    const track = document.querySelector('.gwx-level-track');
+    if (!track) return;
+    track.setAttribute('aria-valuemax', String(LEVELS));
+    track.querySelectorAll('i').forEach(pip => pip.remove());
+    for (let i = 0; i < LEVELS; i++) {
+      const pip = document.createElement('i');
+      pip.style.left = ((i + 1) / (LEVELS + 1) * 100).toFixed(2) + '%';
+      track.appendChild(pip);
+    }
+  }
+
+  /* the rail reads LEVEL n/30: filled pips are cleared levels, the bar covers
+     the whole hunt, and hidden-word progress sits in the label */
+  function paintLevelRail() {
+    const track = document.querySelector('.gwx-level-track');
+    const bar = $('wordProgress');
+    const overall = ((round.level - 1) * 7 + round.found.size) / (LEVELS * 7);
+    if (bar) bar.style.width = (Math.max(0, Math.min(1, overall)) * 100).toFixed(2) + '%';
+    if (track) {
+      track.setAttribute('aria-valuenow', String(round.level));
+      track.querySelectorAll('i').forEach((pip, index) => pip.classList.toggle('on', index < round.level - 1));
+    }
+    const label = $('wordProgressLabel');
+    if (label) label.textContent = 'LV ' + round.level + '/' + LEVELS;
+  }
+
+  /* deal the next level: a fresh 7x6 board - the same grid the game always
+     had - with its own seven hidden words, plus the dictionary words that
+     trace through it for the bots to hunt */
+  function dealLevel() {
+    round.layout = createWordGrid(WORD_BANK);
+    round.found = new Set();
+    round.foundPaths = [];
+    round.scored = new Set();
+    round.traceable = [...wordsByLength(WORD_BANK, 2, 10).values()].flat()
+      .map(word => ({ word, path: findWordPath(round.layout, word) }))
+      .filter(item => item.path);
+    buildLevelRail();
+    buildGrid();
+    renderSlots();
+    renderPath();
+    $('roundLabel').textContent = String(round.level).padStart(2, '0');
+    $('roundMessage').textContent = 'Level ' + round.level + ' of ' + LEVELS + ' - hidden words pay 100 coins a letter, and so does any dictionary word you can trace.';
   }
 
   function resetRound() {
@@ -347,39 +452,33 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
        replaced. Without this its letters keep floating over the new grid at the
        old coordinates until their own timers expire. */
     window.__champCoins?.cancel?.();
-    /* an unanswered contest bot must not fire onto the next board */
-    window.ChampWallGuess?.cancel?.();
     window.clearTimeout(resultReveal);
     resultReveal = 0;
-    window.clearInterval(timer);
-    botTimers.forEach(id => window.clearTimeout(id));
+    stopTurns();
+    document.querySelectorAll('.gwx-seat').forEach(seat => { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); });
     $('resultModal').classList.remove('open');
     $('resultModal').setAttribute('aria-hidden', 'true');
     $('guessInput').value = '';
     $('guessMessage').classList.remove('good', 'bad');
-    $('guessMessage').textContent = 'Any player can guess, in any order.';
+    $('guessMessage').textContent = '30 levels, 15 seconds a turn, clockwise. Hidden words pay 100 coins a letter.';
     $('roundMessage').textContent = 'Everyone starts on ' + START_COINS.toLocaleString('en-US') + ' coins. A correct word earns 100 coins per letter.';
     path = [];
     round = {
-      layout: createWordGrid(WORD_BANK),
+      level: 1,
+      layout: null,
       found: new Set(),
       foundPaths: [],
+      scored: new Set(),
+      traceable: [],
       scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: START_COINS, words: 0 }])),
       ended: false
     };
-    secondsLeft = 120;
-    buildGrid();
-    renderSlots();
+    dealLevel();
     renderScores();
-    renderPath();
-    updateTimer();
-    timer = window.setInterval(() => {
-      if (!round || round.ended) return;
-      secondsLeft--;
-      updateTimer();
-      if (secondsLeft <= 0) finishRound('time');
-    }, 1000);
-    scheduleBots();
+    applyBotFx();
+    passStreak = 0;
+    turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };
+    startTurn();
   }
 
   $('guessForm').addEventListener('submit', event => {
@@ -387,7 +486,7 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
     /* No cue here: a word that lands is thrown into the grid by the
        celebration itself, which owns that beat and would otherwise double this
        one up. A word that misses never reaches the grid, so it is silent. */
-    submitGuess($('guessInput').value, $('playerSelect').value);
+    submitGuess($('guessInput').value, turnState ? TURN_ORDER[turnState.index] : 'champ');
   });
   $('guessInput').addEventListener('input', () => {
     path = [];
@@ -531,8 +630,18 @@ import { createWordGrid, normalizeGuess, scoreWord, COLS } from './word-grid-rul
   resetRound();
 
   window.__champWordGrid = {
-    state: () => ({ grid: [...round.layout.grid], words: round.layout.words.map(item => item.word), found: [...round.found], scores: structuredClone(round.scores), secondsLeft, ended: round.ended }),
+    state: () => ({
+      grid: [...round.layout.grid], cols: round.layout.cols, rows: round.layout.rows,
+      words: round.layout.words.map(item => item.word), found: [...round.found],
+      level: round.level, levels: LEVELS,
+      scores: structuredClone(round.scores),
+      active: turnState ? TURN_ORDER[turnState.index] : null,
+      secondsLeft: turnState ? Math.max(0, Math.round((turnState.endsAt - performance.now()) / 1000)) : 0,
+      ended: round.ended
+    }),
     guess: (word, player = 'champ') => submitGuess(word, player),
+    setTurnSpeed: ms => { turnMs = Math.max(400, Math.min(TURN_MS, Number(ms) || TURN_MS)); },
+    skipToLevel: n => { if (round && !round.ended) { round.level = Math.max(1, Math.min(LEVELS, Number(n) || 1)); dealLevel(); } },
     reset: resetRound
   };
 })();

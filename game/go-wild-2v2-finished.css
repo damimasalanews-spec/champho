@@ -663,7 +663,7 @@
 .gwx-center{width:min(620px,calc(100vw - 300px));top:50%;transform:translate(-50%,-48%);text-align:center;z-index:4}
 .gwx-center .gwx-status-line{margin-bottom:9px}
 .gwx-letter-grid-shell{position:relative;width:min(420px,100%);margin:0 auto 10px;perspective:1000px}
-.gwx-letter-grid{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;width:100%;aspect-ratio:7/6;padding:10px;border:1px solid #92ffe16b;border-radius:22px;background:linear-gradient(145deg,#075b43,#06452f 52%,#043b2d);box-shadow:inset 0 2px 0 #ffffff35,inset 0 -12px 25px #001d165c,0 10px 0 #03291d,0 16px 28px #00190f99;transform:rotateX(4deg);transform-style:preserve-3d;overflow:hidden}
+.gwx-letter-grid{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(var(--gwx-cols,7),minmax(0,1fr));gap:4px;width:100%;aspect-ratio:var(--gwx-cols,7)/var(--gwx-rows,6);padding:10px;border:1px solid #92ffe16b;border-radius:22px;background:linear-gradient(145deg,#075b43,#06452f 52%,#043b2d);box-shadow:inset 0 2px 0 #ffffff35,inset 0 -12px 25px #001d165c,0 10px 0 #03291d,0 16px 28px #00190f99;transform:rotateX(4deg);transform-style:preserve-3d;overflow:hidden}
 .gwx-letter-grid:before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 15% 8%,#caffd820,transparent 32%),linear-gradient(125deg,transparent 36%,#ffffff0c 49%,transparent 61%);animation:gridGlint 7s ease-in-out infinite alternate;pointer-events:none}
 .letter-tile{position:relative;min-width:0;min-height:0;border:1px solid #d9fff354;border-radius:10px;background:linear-gradient(145deg,#f1fff1,#c6f4d3 44%,#85dcb1);color:#093c2d;font:800 clamp(17px,2.2vw,27px) 'Space Grotesk',Inter,sans-serif;text-shadow:0 1px 0 #fff;box-shadow:inset 0 2px 0 #ffffffb0,inset 0 -4px 0 #55a77a,0 4px 0 #043725,0 7px 9px #001d1766;cursor:pointer;touch-action:manipulation;transition:transform .16s,filter .16s,box-shadow .16s,background .16s;animation:tileDeal .42s backwards}
 .letter-tile:hover{z-index:2;transform:translateY(-3px) translateZ(8px);filter:brightness(1.05);box-shadow:inset 0 2px 0 #fff,0 6px 0 #043725,0 10px 15px #00e88a38}
@@ -1295,3 +1295,35 @@
   .gwx-seat.right{right:10px!important;bottom:42px!important}
   .gwx-seat.bottom{left:10px!important;bottom:42px!important}
 }
+
+/* the round-end modal carries the four-player leaderboard itself */
+.gwx-modal .gwx-modal-board{margin:16px auto 2px;padding:0;display:grid;gap:8px;list-style:none;width:min(340px,86%)}
+.gwx-modal .gwx-modal-board .gwx-leader-row{padding:10px 14px}
+.gwx-modal .gwx-modal-board .gwx-leader-rank{font-size:13px}
+.gwx-modal .gwx-modal-board .gwx-leader-identity{gap:4px}
+.gwx-modal .gwx-modal-board .gwx-leader-identity strong{font-size:16px}
+.gwx-modal .gwx-modal-board .gwx-leader-identity small{font-size:9px}
+.gwx-modal .gwx-modal-board .gwx-leader-coins{font-size:16px}
+
+/* ---- the turn clock: a glowing ring sweeps down around the active avatar -- */
+.turn-ring{position:absolute;inset:-8px;border-radius:26px;z-index:2;pointer-events:none;
+  background:conic-gradient(var(--gold) calc(var(--turn-pct,1)*360deg),#ffffff1c 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
+  filter:drop-shadow(0 0 8px #ffd66b88)}
+.gwx-seat.active .gwx-player-card{border-color:#ffd45c88;box-shadow:0 0 0 1px #ffd45c55,0 0 30px #ffd66b3d,0 15px 35px #0007}
+.gwx-level-track>i.on{background:linear-gradient(145deg,#fff,#ffd66b);border-color:#7c4a12;box-shadow:0 2px 0 #552b17,0 0 8px #ffd66b}
+
+/* ---- sample avatar frames + filters (from the account dashboard) ----------
+   Bots roll one frame and one filter at the start of every round. */
+.gwx-avatar.fx-frame-cyber{background:radial-gradient(circle at center,#2e1065,#0f172a)!important;box-shadow:0 0 15px #00f0ff80,0 8px 20px #0009,0 0 0 3px #00f0ff,inset 0 0 10px #00f0ff4d}
+.gwx-avatar.fx-frame-cyber:before{content:"LIVE";position:absolute;top:-9px;right:-9px;z-index:3;background:#ff0055;color:#fff;font-size:7px;font-weight:900;letter-spacing:1px;padding:2px 5px;border-radius:6px;border:1px solid #fff}
+.gwx-avatar.fx-frame-sheriff{background:radial-gradient(circle at center,#78350f,#451a03)!important;box-shadow:0 0 20px #ffaa00aa,0 8px 20px #0009,0 0 0 3px #ffcc00,inset 0 0 12px #ffc80066;animation:fxGlint 2.5s infinite linear}
+.gwx-avatar.fx-frame-sheriff:before{content:"⭐";position:absolute;top:-11px;left:-11px;z-index:3;font-size:15px;filter:drop-shadow(0 3px 5px #0008)}
+@keyframes fxGlint{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
+.gwx-avatar.fx-frame-neon{box-shadow:0 0 18px #ff2bd699,0 8px 20px #0009,0 0 0 3px #ff2bd6,inset 0 0 12px #ff2bd666}
+.gwx-avatar.fx-frame-vine{box-shadow:0 0 16px #20d98a88,0 8px 20px #0009,0 0 0 3px #20d98a,inset 0 0 12px #20d98a55}
+.gwx-avatar-art.fx-filter-warm{filter:sepia(.3) saturate(1.35) brightness(1.05)}
+.gwx-avatar-art.fx-filter-cool{filter:hue-rotate(165deg) saturate(1.2)}
+.gwx-avatar-art.fx-filter-mono{filter:grayscale(1) contrast(1.15)}
+.gwx-avatar-art.fx-filter-pop{filter:saturate(1.7) contrast(1.08)}

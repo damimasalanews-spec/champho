@@ -13,11 +13,11 @@ export function normalizeGuess(value) {
   return String(value ?? '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
-export function wordsByLength(bank) {
+export function wordsByLength(bank, minLen = 3, maxLen = 9) {
   const groups = new Map();
   for (const entry of new Set(bank || [])) {
     const word = normalizeGuess(entry);
-    if (word.length < 3 || word.length > 9) continue;
+    if (word.length < minLen || word.length > maxLen) continue;
     if (!groups.has(word.length)) groups.set(word.length, []);
     if (!groups.get(word.length).includes(word)) groups.get(word.length).push(word);
   }
@@ -89,7 +89,7 @@ function placeWords(bank, random, attempts = 32) {
 
     const grid = Array(TOTAL).fill(null);
     for (const item of words) item.path.forEach((cell, index) => { grid[cell] = item.word[index]; });
-    return { grid, words };
+    return { grid, words, cols: COLS, rows: ROWS };
   }
   throw new Error('Could not build a ' + COLS + 'x' + ROWS + ' word grid.');
 }
@@ -98,10 +98,116 @@ export function createWordGrid(bank, random = Math.random) {
   return placeWords(bank, random);
 }
 
-export function scoreWord(targets, guess, foundWords, playerId) {
+export function scoreWord(targets, guess, foundWords, playerId, layout) {
   const normalized = normalizeGuess(guess);
-  if (!normalized || foundWords.has(normalized)) return null;
+  if (!normalized || normalized.length < 2 || normalized.length > 10) return null;
+  if (foundWords.has(normalized)) return null;
   const target = targets.find(item => item.word === normalized);
-  if (!target) return null;
-  return { word: target.word, playerId, coins: target.word.length * 100, length: target.word.length };
+  const path = target ? target.path : (layout ? findWordPath(layout, normalized) : null);
+  if (!path) return null;
+  return { word: normalized, playerId, coins: normalized.length * 100, length: normalized.length, path, hidden: !!target };
+}
+
+/* A dictionary word only counts when its letters can be traced through
+   neighbouring cells of the board. Depth-first walk from every cell that
+   holds the first letter; 10 letters is the cap, so the search is tiny. */
+export function findWordPath(layout, word) {
+  const letters = normalizeGuess(word);
+  const cols = layout.cols, rows = layout.rows, grid = layout.grid;
+  if (!letters || letters.length < 2 || letters.length > 10 || letters.length > grid.length) return null;
+  const step = (cell, index, path, used) => {
+    if (index === letters.length) return path;
+    const row = Math.floor(cell / cols), col = cell % cols;
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const r = row + dr, c = col + dc;
+      if (r < 0 || r >= rows || c < 0 || c >= cols) continue;
+      const next = r * cols + c;
+      if (used.has(next) || grid[next] !== letters[index]) continue;
+      used.add(next);
+      path.push(next);
+      const done = step(next, index + 1, path, used);
+      if (done) return done;
+      used.delete(next);
+      path.pop();
+    }
+    return null;
+  };
+  for (let cell = 0; cell < grid.length; cell++) {
+    if (grid[cell] !== letters[0]) continue;
+    const path = step(cell, 1, [cell], new Set([cell]));
+    if (path) return path;
+  }
+  return null;
+}
+
+/* -------------------------------------------------------------------------
+   THE WORD HUNT BOARD
+   Thirty hidden words, 2-10 letters, scattered across a wide letter grid the
+   way a word search lays them out: straight lines in any of the eight
+   directions, and words may share letters where they cross. Leftover cells
+   get filler letters, so a finished board no longer highlights every tile.
+   ------------------------------------------------------------------------- */
+const HUNT_COLS = 14;
+const HUNT_DIRS = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+
+function huntLengths(random, count) {
+  const lengths = [];
+  for (let length = 2; length <= 10; length++) {
+    for (let i = 0; i < 3; i++) lengths.push(length);
+  }
+  while (lengths.length < count) lengths.push(2 + Math.floor(random() * 9));
+  return shuffled(lengths, random).slice(0, count);
+}
+
+export function createWordSearchGrid(bank, random = Math.random, opts = {}) {
+  const count = opts.count ?? 30;
+  const cols = opts.cols ?? HUNT_COLS;
+  const byLength = wordsByLength(bank, 2, 10);
+  for (let attempt = 0; attempt < 48; attempt++) {
+    const lengths = huntLengths(random, count);
+    const total = lengths.reduce((n, length) => n + length, 0);
+    const rows = Math.max(12, Math.ceil(total / cols) + 1);
+    const grid = Array(cols * rows).fill(null);
+    const words = [];
+    const used = new Set();
+    let stuck = false;
+    for (const length of [...lengths].sort((a, b) => b - a)) {
+      const options = shuffled(byLength.get(length) || [], random).filter(word => !used.has(word));
+      let placed = false;
+      for (const word of options.slice(0, 16)) {
+        if (placeStraight(word)) { placed = true; break; }
+      }
+      if (!placed) { stuck = true; break; }
+    }
+    if (stuck) continue;
+    const ALPHA = 'eeeaaaiioonnrtssttllccuuddppmnhgbyfvrwkjxqz';
+    for (let i = 0; i < grid.length; i++) {
+      if (!grid[i]) grid[i] = ALPHA[Math.floor(random() * ALPHA.length)];
+    }
+    return { grid, words, cols, rows };
+
+    function placeStraight(word) {
+      for (let t = 0; t < 80; t++) {
+        const dir = HUNT_DIRS[Math.floor(random() * HUNT_DIRS.length)];
+        const row0 = Math.floor(random() * rows), col0 = Math.floor(random() * cols);
+        const path = [];
+        let ok = true;
+        for (let i = 0; i < word.length; i++) {
+          const r = row0 + dir[0] * i, c = col0 + dir[1] * i;
+          if (r < 0 || r >= rows || c < 0 || c >= cols) { ok = false; break; }
+          const cell = r * cols + c;
+          if (grid[cell] && grid[cell] !== word[i]) { ok = false; break; }
+          path.push(cell);
+        }
+        if (!ok) continue;
+        path.forEach((cell, i) => { grid[cell] = word[i]; });
+        used.add(word);
+        words.push({ word, path });
+        return true;
+      }
+      return false;
+    }
+  }
+  throw new Error('Could not build the word-hunt grid.');
 }

@@ -1,20 +1,15 @@
 /* ===========================================================================
-   WALL PUSH — THE STANDOFF
+   CLIPART CONTEST — the post-match guessing duel
    ---------------------------------------------------------------------------
-   The wall push and the clipart contest, on one screen.
-
-   The duel module used to decide its winner with Math.random() and play the
-   result as a separate 6.5 second reel. Neither happens now. This module mounts
-   the same arena in a "standoff" mode - both fighters leaning on the slab, no
-   timeline - and puts the guessing deck underneath it, so the picture that moves
-   the wall and the wall moving are in the same view at the same time.
+   The wall-push arena is gone from the game entirely. What remains is the
+   guessing contest on its own screen: the same stage scaffold (navy overlay,
+   1600x900 board, banner, taunts, hype) with the deck centred on it.
 
      - four 3D clipart pictures of words per duel, 30 seconds each
-     - a correct answer shoves the slab one step toward the opponent, lives, and
-       drains half of the opponent's push power with it
-     - a correct answer from the other side shoves it straight back
-     - the first duelist to TWO correct answers drives it into the opponent's
-       corner, that opponent goes down, and the coin card prints
+     - the first duelist to TWO correct answers wins the round (three in the
+       grand final); the winner is whoever holds the louder tally
+     - the coin stake settles straight into the scoreboard: the winner takes
+       the underdog's balance, an underdog win doubles it, capped fairly
 
    Every word in POOL was checked against game/english-word-bank.js, so the
    contest can only ask for words a player could also have met on the board.
@@ -45,29 +40,23 @@
   const TICK_MS = 100;
   const BOT_SKILL = 0.9;     /* how often a bot actually knows the picture */
   const SHOVE_MS = 1150;     /* beat between a shove and the next picture */
-  /* The knockout is two film beats back to back: the winner's wall-break (~1.0s)
-   and then the loser's fall (~1.6s). At the original 1000ms the payout card cut
-   in while the loser was still standing, so the hold has to cover both cuts. */
-const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
-                              sized so the settle beats finish just as the fall
-                              film reaches the ground - the payout card lands
-                              when the fall ends and the next round goes at once,
-                              with nothing staged over the fallen loser */
-  const CARD_MS = 700;       /* a short settle after the knockout books, then the
-                                next round starts - the fall ends, the fight goes on */
-  const KNOCK_CEILING_MS = 14000;  /* longest a knockout + payout + card may take */
+const FINISH_MS = 1600;    /* beat between the winning answer and the result:
+                              the WINS THE ROUND! tab and the hype call get a
+                              moment to read before the coins book */
+  const CARD_MS = 700;       /* a short settle after the result books, then the
+                                next round starts */
   /* correct answers that have to be answered BACK before the other side wins -
      the comeback line's trigger. Also the wrong-answer sound cue's name, which
      shares the constant so the two can never drift apart. */
   const COMEBACK_AT = 2;
   const COMEBACK_WORDS = ["NOW OR NEVER!", "DO OR DIE!", "ONE LEFT!"];
-  const HYPE = ["CRUSH 'EM!", "HOLD THE LINE!", "PUSH!!", "WALL POWER!", "NO MERCY!",
-                "HEAVE!!", "BRACE!!", "LET'S GOOO!"];
+  const HYPE = ["CRUSH 'EM!", "HOLD THE LINE!", "ON FIRE!", "WORD POWER!", "NO MERCY!",
+                "UNSTOPPABLE!", "BRACE!!", "LET'S GOOO!"];
   /* the bots have opinions: taunts after they answer, and while they are
      beating you. `final` ones only fire in the title fight, and areNaughty
      taunts (with your name in them) only fire when YOU are losing. */
   const TAUNT = {
-    after:  ["HA!", "TOO EASY!", "MY WALL NOW!", "WATCH THIS!"],
+    after:  ["HA!", "TOO EASY!", "TOO SLOW!", "WATCH THIS!"],
     ahead:  ["IS THAT ALL?", "GO HOME!", "CATCH UP!", "NOT TODAY!"],
     final:  ["NO MERCY!", "THE WALL IS MINE!", "THIS ENDS NOW!"]
   };
@@ -82,7 +71,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
   const easeOut = t => 1 - Math.pow(1 - t, 3);
 
   let ui = null;             /* the deck while it is mounted */
-  let run = null;            /* the live run: { token, timers, arena } */
+  let run = null;            /* the live run: { token, timers } */
   let streaks = new Map();   /* id -> consecutive duel wins, for the payout multiplier */
 
   /* =============================== rivalry + titles (from champ-rivalry.js) == */
@@ -148,6 +137,45 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
     ui = null;
   }
 
+  /* ============================================================ the stage ====
+     The contest keeps the arena's screen scaffold - the navy overlay, the
+     1600x900 board, the banner - but builds none of the wall, fighters or
+     meters. The deck centres on the stage (wg-quiz overrides in CSS) and the
+     taunts and hype calls fly over it, exactly as they did over the standoff. */
+  let wgFitStage = null;
+  function wgFit() {
+    if (!wgFitStage) return;
+    const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    wgFitStage.style.setProperty("--wp-scale", String(s));
+  }
+  window.addEventListener("resize", wgFit);
+
+  function buildStage(duel) {
+    const overlay = document.createElement("div");
+    overlay.id = "wpOverlay";
+    overlay.className = "on standoff wg-quiz";
+    const stage = document.createElement("div");
+    stage.id = "wpStage";
+    if (duel.isFinal) stage.classList.add("final");
+    overlay.appendChild(stage);
+    document.body.appendChild(overlay);
+    const banner = document.createElement("div");
+    banner.className = "wp-banner on";
+    banner.innerHTML =
+      '<span class="bk">POST MATCH</span>' +
+      '<span class="bt">' + (duel.isFinal ? "GRAND FINAL" : "TOP " + duel.rankA + " vs TOP " + duel.rankB) + "</span>";
+    stage.appendChild(banner);
+    wgFitStage = stage;
+    wgFit();
+    return stage;
+  }
+
+  function dropStage() {
+    wgFitStage = null;
+    const overlay = document.getElementById("wpOverlay");
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+
   /* ================================================================= helpers */
   function pips(host, n) {
     if (!host || !host.children) return;   /* the arena stubs have no children to light */
@@ -180,7 +208,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
     while (ui.feed.children.length > 3) ui.feed.lastElementChild.remove();
   }
 
-  /* the hype call flies up through the arena on the seat's film half */
+  /* the hype call flies up over the deck on the answering seat's half */
   let lastHype = -1;
   function hype(side, text, final) {
     const stage = ui.deck && ui.deck.parentNode;
@@ -244,7 +272,6 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
   /* ==================================================================== duel */
   function runDuel(duel, token, onSettled) {
     const A = duel.a, B = duel.b;
-    const arena = run.arena;
     let words = [...POOL].sort(() => Math.random() - 0.5).slice(0, ROUNDS);
     const tally = { a: 0, b: 0 };
     const human = A.id === "champ" ? "a" : B.id === "champ" ? "b" : null;
@@ -336,7 +363,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
       ui.secs.textContent = String(Math.round(SLOT_MS / 1000));
       ui.fill.style.transform = "scaleX(1)";
       ui.msg.className = "wd-msg";        ui.msg.textContent = isSudden
-          ? `SUDDEN DEATH — the next correct answer takes the wall!`
+          ? `SUDDEN DEATH — the next correct answer wins it all!`
           : `Picture ${round} of ${ROUNDS} — only ${A.name} and ${B.name} can answer.`;
 
       const started = performance.now();
@@ -426,7 +453,6 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
            prize) only a little harder - speed pays its coins as the kicker, the
            golden picture pays its force */
         const isDouble = !!(powerUp && powerUp.word === word && powerUp.kind === "double");
-        let drain;                       /* the meter hit this answer lands */
         if (powerUp && powerUp.word === word) {
           if (isDouble) hype(by, "DOUBLE SHOVED!", false);
           else { ui.deck.classList.remove("shielded"); void ui.deck.offsetWidth; ui.deck.classList.add("shielded"); }
@@ -440,7 +466,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
         const naming = by === "a" ? A.name : B.name;
         note(`${naming} · ${word.toUpperCase()}`, "ok");
         ui.msg.className = "wd-msg good";
-        ui.msg.textContent = `${naming} has it — the wall takes a shove!`;
+        ui.msg.textContent = `${naming} has it!`;
 
         /* a sudden-death picture is announced, not slipped in */
         if (isSudden) {
@@ -463,8 +489,10 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
         /* the light the pips earn: same rhythm as the tab, and the hype call
            follows the seat that answered, on their own half of the arena */
         const pipsRow = by === "a" ? ui.pipsA : ui.pipsB;
-        const lit = Math.min(tally[by], pipsRow.children.length);
-        [...pipsRow.children].forEach((p, i) => p.classList.toggle("on", i < lit));
+        if (pipsRow) {
+          const lit = Math.min(tally[by], pipsRow.children.length);
+          [...pipsRow.children].forEach((p, i) => p.classList.toggle("on", i < lit));
+        }
         window.ChampCues?.play?.("correct");
         /* the crowd chants for whoever is out in front */
         const leader = tally.a === tally.b ? null : tally.a > tally.b ? "a" : "b";
@@ -474,7 +502,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
           if (chantEl) { chantEl.textContent = n + "! " + n + "! " + n + "!"; chantEl.classList.remove("on"); void chantEl.offsetWidth; chantEl.classList.add("on"); }
         }
         if (tally[by] >= need) {
-          hype(by, duel.isFinal ? "WINS THE GAME!" : "KNOCKOUT!", duel.isFinal);
+          hype(by, duel.isFinal ? "WINS THE GAME!" : "ROUND WON!", duel.isFinal);
         } else if (duel.isFinal && Math.max(tally.a, tally.b) - Math.min(tally.a, tally.b) === COMEBACK_AT) {
           hype(by, COMEBACK_WORDS[Math.floor(Math.random() * COMEBACK_WORDS.length)], true);
         } else {
@@ -486,39 +514,22 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
         const decided = tally[by] >= need;
         if (decided) knocked = true;
         if (fast && decided) speedKicker = 150;   /* the house pays for the highlight-reel finish */
-        const net = tally.a - tally.b;
-        if (arena && arena.steps) arena.steps(net);
-        /* the score as damage: the slab carries the tally on its face */
-        if (arena && arena.damage && !decided) arena.damage(Math.max(tally.a, tally.b));
         /* a bot that is beating the human cannot help saying so */
         if (human && by !== human && tally[by] > tally[human] && tally[by] >= 2
             && Math.random() < 0.55) {
           const pool = duel.isFinal ? TAUNT.final : TAUNT.ahead;
           window.setTimeout(() => { if (alive(token)) say(by, pool[Math.floor(Math.random() * pool.length)]); }, 1100);
         }
-        /* the same answer that moves the slab now also plays that seat's film
-           beat, so the push the player sees IS their correct answer — except on
-           the deciding answer, where breaker() owns the film outright: a shove
-           clip started here would fight the kick for the same video element */
-        if (arena && arena.film && !decided) arena.film(by);
-        /* the hit each meter takes: normal 50, SPEED/DOUBLE SHOVE 70 - and the
-           shield spends itself instead of the meter */
-        if (decided) {
-          if (arena && arena.charge) arena.charge(tally.a, tally.b);
-        } else if (hasShield(by === "a" ? "b" : "a")) {
-          usedShield[by === "a" ? "b" : "a"] = true;   /* spent: no drain this hit */
+        /* the shield still spends itself on a hit, even with no meter to drain */
+        if (!decided && hasShield(by === "a" ? "b" : "a")) {
+          usedShield[by === "a" ? "b" : "a"] = true;
           note((by === "a" ? B.name : A.name) + " · SHIELD!", "no");
-        } else {
-          if (arena && arena.charge) arena.charge(tally.a, tally.b, drain);
         }
 
         if (decided) {
-          /* reaching NEED is the knockout: the wall gives way on film and the
-             losing seat drops */
-          if (arena && arena.breaker) arena.breaker(by);
           ui.sideA.classList.toggle("win", by === "a");
           ui.sideB.classList.toggle("win", by === "b");
-          ui.msg.textContent = `${naming} takes the wall ${Math.max(tally.a, tally.b)} — ${Math.min(tally.a, tally.b)}.`;
+          ui.msg.textContent = `${naming} wins the round ${Math.max(tally.a, tally.b)} — ${Math.min(tally.a, tally.b)}.`;
         }
         after(decided ? FINISH_MS : SHOVE_MS, () => advance(decided));
       }
@@ -549,7 +560,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
            which asks for three correct in four. Rather than handing the wall to
            the higher seed on a bookkeeping rule, keep playing sudden-death
            pictures: the next correct answer anywhere settles it on film. */
-        if (tally.a === tally.b && arena && arena.breaker) {
+        if (tally.a === tally.b) {
           isSudden = true;
           const p = POOL[Math.floor(Math.random() * POOL.length)];
           words.push(p);
@@ -557,13 +568,11 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
           return;
         }
         /* The pictures ran out with a leader and nobody landed the deciding
-           blow - possible in the final, which asks for THREE correct in four
-           pictures, so a 2-1 or 2-0 finish expires. The louder tally still
-           takes the wall, and it takes it ON FILM: play the knockout for the
-           leader instead of cutting straight to the settlement, which read as
-           "no kick animation in the final wall push round". */
+           blow - possible in the grand final, which asks for THREE correct in
+           four pictures, so a 2-1 or 2-0 finish expires. The louder tally
+           takes the round: announce it, then settle. */
         const winner = tally.b > tally.a ? "b" : "a";
-        if (arena && arena.breaker && !knocked) {
+        if (!knocked) {
           knocked = true;
           const tab = winner === "a" ? ui.tabA : ui.tabB;
           tab.textContent = duel.isFinal ? "WINS THE GAME!" : "WINS THE ROUND!";
@@ -572,9 +581,8 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
           tab.classList.add("show");
           ui.sideA.classList.toggle("win", winner === "a");
           ui.sideB.classList.toggle("win", winner === "b");
-          hype(winner, duel.isFinal ? "WINS THE GAME!" : "KNOCKOUT!", duel.isFinal);
+          hype(winner, duel.isFinal ? "WINS THE GAME!" : "ROUND WON!", duel.isFinal);
           window.ChampCues?.play?.("correct");
-          arena.breaker(winner);
           after(FINISH_MS, () => settle());
           return;
         }
@@ -659,7 +667,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
                 '<span class="wf-flow">' + fmt(p.before) + " → " + fmt(p.after) + '</span>' +
                 /* the role is booked per duel, so a finalist reads CHAMPION or
                    RUNNER-UP rather than being called a play-off winner twice */
-                '<span class="wf-role">' + (p.role || (p.won ? "TOOK THE WALL" : "PAID THE STAKE")) + '</span>' +
+                '<span class="wf-role">' + (p.role || (p.won ? "WON THE DUEL" : "PAID THE STAKE")) + '</span>' +
                 /* the streak that closed the match shows on the champion's line */
                 '<span class="wf-flames">' + (p.champ && p.streak >= 2 ? "\uD83D\uDD25".repeat(Math.min(p.streak, 3)) : "") + '</span>' +
                 '<span class="wf-h2h" data-x="h2h-' + p.id + '"></span>' +
@@ -746,23 +754,19 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
   window.ChampWallGuess = {
     pool: POOL,
     rounds: ROUNDS,
-    seconds: SLOT_MS / 1000,
+    seconds: SLOT_MS / 1000,    /* duels: [{ rankA, rankB, a:{id,name,coins,team,key}, b:{...} }, ...]
+       opts:   { onDone, onSettled, sound }
 
-    /* duels: [{ rankA, rankB, a:{id,name,coins,team,key}, b:{...} }, ...]
-       opts:   { push, onDone, sound }
-
-       Each duel is raced on the shared screen and handed to `push.knock` with a
-       verdict, so the arena no longer picks its own winner. When it is given the
-       two play-offs, their winners are paired for one more match - the final - and
-       only then does the post-match close on the receipt. */
+       Each duel is raced on the shared screen and settled on its tally - the
+       winner is whoever answered more, never a coin flip. When it is given the
+       two play-offs, their winners are paired for one more match - the grand
+       final - and only then does the post-match close on the receipt. */
     play: function (duels, opts) {
       opts = opts || {};
       const done = opts.onDone || function () {};
-      const push = opts.push;
       const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
       if (!duels || !duels.length || reduced) { done([]); return; }
-      if (!push || typeof push.standoff !== "function") { done([]); return; }
 
       /* The music belongs to the fights, so it starts with the first round and runs
          until the last one ends. loop() and not play(): it is a bed, not an event,
@@ -770,7 +774,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
       window.ChampCues?.loop?.("music");
 
       const token = {};
-      run = { token, timers: [], arena: null };
+      run = { token, timers: [] };
 
       /* The queue starts as the two play-offs and grows by one: their winners
          meet in a final before the post-match closes. Balances are tracked here
@@ -786,23 +790,16 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
       duels.forEach(d => { balance.set(d.a.id, d.a.coins); balance.set(d.b.id, d.b.coins); });
 
       function cleanup() {
-        /* covers SKIP, a round reset, and the normal close - the music must never
-           outlive the wall push it belongs to, and neither may the voice */
+        /* covers a round reset and the normal close - the music must never
+           outlive the contest it belongs to, and neither may the voice */
         window.ChampCues?.stop?.("music");
-        if (run && run.arena) run.arena.teardown();
+        dropStage();
         clearTimers();
         dropDeck();
         /* the streak ladder belongs to one post-match: a fresh one starts
            everyone back at zero */
         streaks.clear();
         run = null;
-      }
-
-      function bail() {                       /* sprite load failed, or SKIP */
-        if (!alive(token)) return;
-        const sofar = results.slice();
-        cleanup();
-        done(sofar);
       }
 
       function nextDuel() {
@@ -816,7 +813,7 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
           queue.push({
             rankA: 1, rankB: 2,
             labelA: "FINALIST 1", labelB: "FINALIST 2",
-            title: "FINAL WALL PUSH",
+            title: "GRAND FINAL",
             isFinal: true,
             a: Object.assign({}, pairWinners[0], { coins: balance.get(pairWinners[0].id) }),
             b: Object.assign({}, pairWinners[1], { coins: balance.get(pairWinners[1].id) })
@@ -836,37 +833,35 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
           return;
         }
         const duel = queue[idx];
-        let opened = false;
-        push.standoff(duel, {
-          sound: opts.sound,
-          onSkip: bail,
-          onReady: function (handle) {
-            if (!alive(token)) { if (handle) handle.teardown(); return; }
-            if (!handle) { bail(); return; }
-            opened = true;
-            run.arena = handle;
-            buildDeck(handle.stage);
-            runDuel(duel, token, function (verdict) {
+        buildDeck(buildStage(duel));
+        runDuel(duel, token, function (verdict) {
               if (!alive(token)) return;
               results.push(verdict);
               const advancePair = function () {
-                handle.teardown();
-                run.arena = null;
+                dropStage();
                 dropDeck();
                 idx++;
                 nextDuel();
               };
-              /* the knockout belongs to the arena and it is told the verdict,
+              /* the settlement books the stake straight from the verdict,
                  so there is no second place a winner could be chosen */
-              /* Book the pair's settlement: tell the game so it can move the real
-                 balances, and keep the figures for the finale's receipt. `result()`
-                 comes from the arena's own settle(), so the numbers shown, the
-                 numbers paid and the numbers on the receipt are all one source. */
               const book = function () {
-                const st = handle.result ? handle.result() : null;
+                /* the stake rule the arena used to settle: the stake is the
+                   underdog's (seat b) balance, the winner takes it, and an
+                   underdog win doubles it out of the favourite's balance,
+                   capped at what the favourite actually holds */
                 const aWon = verdict.winner === "a";
-                const paid = st ? st.paid : 0;
-                const bonus = st ? Math.max(0, (st.bonus || 0) - st.paid) : 0;
+                const dogWins = !aWon;
+                const stake = duel.b.coins;
+                const paid = dogWins ? Math.min(stake, duel.a.coins) : stake;
+                const payout = Math.round(paid * STREAK_MULT((streaks.get(aWon ? duel.a.id : duel.b.id) || 0) + 1))
+                  + (verdict.speedKicker || 0);
+                const st = {
+                  paid: paid, capped: dogWins && paid < stake, bonus: payout,
+                  a: { before: duel.a.coins, after: dogWins ? duel.a.coins - paid : duel.a.coins + payout },
+                  b: { before: duel.b.coins, after: dogWins ? duel.b.coins + payout : duel.b.coins - paid }
+                };
+                const bonus = Math.max(0, payout - paid);
                 if (opts.onSettled) {
                   opts.onSettled({
                     winnerId: aWon ? duel.a.id : duel.b.id,
@@ -916,33 +911,12 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
                 if (!duel.isFinal) pairWinners.push(aWon ? duel.a : duel.b);
               };
 
-              let settled = false;
-              handle.knock(verdict.winner, function () {
-                if (settled || !alive(token)) return;
-                settled = true;
-                book();
-                after(CARD_MS, function () { if (alive(token)) advancePair(); });
-              }, { kicker: verdict.speedKicker });
-              /* The knock-out, the payout and the coin card are three chained
-                 animations in another module. If any of them throws or never
-                 reports back, the player would be left staring at the arena with
-                 no way forward, so the pair advances on a ceiling regardless. */
-              after(KNOCK_CEILING_MS, function () {
-                if (settled) return;
-                settled = true;
-                console.warn("wall-push: the post-match beat never finished; moving on");
-                book();          /* the coins still move, even if the show did not */
-                if (alive(token)) advancePair();
-              });
-            });
-          }
+              /* no knockout film to wait for any more: the beat after the
+                 deciding answer already played inside the round, so the coins
+                 book and the pair advances at once */
+              book();
+              after(CARD_MS, function () { if (alive(token)) advancePair(); });
         });
-        /* the arena builds synchronously and preloads both bodies; if that
-           preload never resolves the whole post-match would hang, so a hard
-           ceiling hands the round back to the result card */
-        window.setTimeout(function () {
-          if (alive(token) && !opened) bail();
-        }, 6000);
       }
 
       nextDuel();
@@ -950,14 +924,14 @@ const FINISH_MS = 6300;    /* beat between the winning answer and the knockout:
 
     /* the multiplier a win RIGHT NOW would earn: the ladder applies to the win
        that completes the streak, so 0 prior wins -> x1, 1 prior (this would be
-       the 2nd in a row) -> x1.5, 2+ prior -> x2. The arena reads this at each
-       knockout to size the house-funded bonus, so the float and the receipt
-       quote the same ladder. */
+       the 2nd in a row) -> x1.5, 2+ prior -> x2. The settlement reads this at
+       each result to size the house-funded bonus, so the payout and the
+       receipt quote the same ladder. */
     streak: function (id) { return STREAK_MULT((streaks.get(id) || 0) + 1); },
 
     /* a round reset must not leave a bot's answer queued for the next board */
     cancel: function () {
-      if (run && run.arena) run.arena.teardown();
+      dropStage();
       clearTimers();
       dropDeck();
       /* the receipt no longer dismisses itself, so a round reset has to take it
