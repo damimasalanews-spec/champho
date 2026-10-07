@@ -524,7 +524,8 @@
          returns before the cue below, so it gets one of its own. Nothing
          flies in this branch, so the reaction lands on the same beat. */
       cue("coins");
-      cue("yeah");
+      /* the yeah voice on this beat is gone by request - the coin jingle carries
+         the moment on its own */
       if (!raf) raf = window.requestAnimationFrame(frame);
       return;
     }
@@ -554,7 +555,7 @@
        arrive, so the reaction is scheduled there instead of stacked on the
        throw: two sounds on one frame just read as one louder sound. */
     cue("coins");
-    seq(FLIGHT_MS, () => cue("yeah"));
+    /* no yeah voice after the flight either - coins land in silence */
 
     for (let i = 0; i < count; i++) {
       const tang = (Math.random() - 0.5) * 1.6;
