@@ -689,11 +689,13 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       if (!id || seat.dataset.socialWired) return;
       seat.dataset.socialWired = '1';
       const avatar = seat.querySelector('.gwx-avatar');
-      if (avatar) {
+      /* own profile: nothing pops from the avatar — the emoji icon is the way in.
+         Rivals keep the gift tray on their avatar. */
+      if (avatar && id !== 'champ') {
         avatar.style.cursor = 'pointer';
         avatar.addEventListener('click', ev => {
           ev.stopPropagation();
-          openPicker(id === 'champ' ? 'champ' : id, avatar, id === 'champ' ? 'emoji' : 'gift');
+          openPicker(id, avatar, 'gift');
         });
       }
       /* tapping the avatar opens that seat's board — no per-seat emote button */
