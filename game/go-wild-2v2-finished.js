@@ -1,15 +1,16 @@
 import { WORD_BANK } from './english-word-bank.js?v=turns-1';
-import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength } from './word-grid-rules.js?v=turns-2';
+import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength } from './word-grid-rules.js?v=compact-1';
 
 (() => {
   'use strict';
   const PLAYERS = [
-    { id: 'champ', name: 'Champ', team: 'A', color: '#50e8ef' },
-    { id: 'poker', name: 'Poker', team: 'A', color: '#54a8ff' },
-    { id: 'kalkal', name: 'Kalkal', team: 'B', color: '#bd78ff' },
-    { id: 'jess', name: 'Jess', team: 'B', color: '#ff9b59' }
+    { id: 'champ', name: 'Champ', color: '#50e8ef' },
+    { id: 'poker', name: 'Poker', color: '#54a8ff' },
+    { id: 'kalkal', name: 'Kalkal', color: '#bd78ff' },
+    { id: 'jess', name: 'Jess', color: '#ff9b59' }
   ];
   const BOT_IDS = ['poker', 'kalkal', 'jess'];
+
   const $ = id => document.getElementById(id);
   const gridEl = $('letterGrid');
   const tiles = [];
@@ -21,13 +22,16 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
      always had - carrying its own seven hidden words. On top of the hidden
      words, ANY dictionary word of 2-10 letters that traces through
      neighbouring letters on the board scores 100 coins a letter. Players
-     answer one at a time in clockwise seat order - Champ at the bottom, then
-     Kalkal left, Poker top, Jess right - with 15 seconds per turn. A correct
-     word books the coins and passes the turn on; the clock running out passes
-     it too. The leaderboard prints after level 30. */
+     answer one at a time with 15 seconds each. Champ always opens; the other
+     three draw lots for their order, and that order holds for the whole match.
+     A correct word books the coins and hands the clock to the next player
+     immediately - a fresh 15 seconds, exactly. The clock running out passes the
+     turn too. The leaderboard prints after level 30 and the top coin scorer
+     wins: there are no teams. */
   const LEVELS = 30;
   const TURN_MS = 15000;
-  const TURN_ORDER = ['champ', 'kalkal', 'poker', 'jess'];
+  /* champ first, then the bots in a random draw that sticks for the match */
+  const TURN_ORDER = ['champ', ...shuffle(BOT_IDS)];
   const BOT_SKILL = 0.85;
   let turnState = null;   /* { index, endsAt, tick, botTimer } */
   let passStreak = 0;
@@ -93,12 +97,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       $(`coins-${player.id}`).textContent = String(score.coins);
       $(`words-${player.id}`).textContent = `${score.words} ${score.words === 1 ? 'word' : 'words'}`;
     }
-    const teams = { A: 0, B: 0 };
-    PLAYERS.forEach(player => { teams[player.team] += round.scores[player.id].coins; });
-    $('teamCoinsA').textContent = String(teams.A);
-    $('teamCoinsB').textContent = String(teams.B);
     const totalCoins = $('totalCoins');
-    if (totalCoins) totalCoins.textContent = String(teams.A + teams.B);
+    if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
     renderLeaderboard();
   }
 
@@ -119,9 +119,9 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       identity.className = 'gwx-leader-identity';
       const name = document.createElement('strong');
       name.textContent = player.name;
-      const team = document.createElement('small');
-      team.textContent = `TEAM ${player.team}`;
-      identity.append(name, team);
+      const role = document.createElement('small');
+      role.textContent = player.id === 'champ' ? 'YOU' : 'RIVAL';
+      identity.append(name, role);
       const coins = document.createElement('b');
       coins.className = 'gwx-leader-coins';
       coins.textContent = String(round.scores[player.id].coins);
@@ -219,19 +219,38 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       dealLevel();
       $('roundMessage').textContent = 'LEVEL ' + (round.level - 1) + ' CLEAR! Level ' + round.level + ' board is up.';
     }
-    endTurn(true);
+    /* a correct word passes the turn on at once: the next player gets their
+       own exact 15 seconds, starting now */
+    passTurn(true);
     return true;
+  }
+
+  /* clean handover used by a correct answer: the old turn's timers die here,
+     and startTurn() reads the clock fresh for the next seat */
+  function passTurn(found) {
+    if (!turnState || !round || round.ended) return;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); }
+    seatRings().forEach(ring => ring.remove());
+    passStreak = 0;
+    turnState.index = (turnState.index + 1) % TURN_ORDER.length;
+    startTurn();
   }
 
   function finishRound(reason, wait = 0) {
     if (!round || round.ended) return;
     round.ended = true;
     stopTurns();
-    const totals = { A: 0, B: 0 };
-    PLAYERS.forEach(player => { totals[player.team] += round.scores[player.id].coins; });
-    const winner = totals.A === totals.B ? null : totals.A > totals.B ? 'A' : 'B';
-    $('resultTitle').textContent = winner ? `TEAM ${winner} WINS` : 'IT’S A TIE';
-    $('resultText').textContent = `Team A ${totals.A} coins · Team B ${totals.B} coins. ${reason === 'complete' ? 'All 30 levels cleared!' : reason === 'passed' ? 'Called at level ' + round.level + '.' : `${round.found.size} of ${round.layout.words.length} words found on level ${round.level}.`}`;
+    /* no teams: the player holding the most coins wins outright */
+    const ranking = PLAYERS.slice().sort((a, b) =>
+      round.scores[b.id].coins - round.scores[a.id].coins || round.scores[b.id].words - round.scores[a.id].words
+    );
+    const topScore = round.scores[ranking[0].id].coins;
+    const tied = ranking.filter(player => round.scores[player.id].coins === topScore);
+    $('resultTitle').textContent = tied.length > 1 ? 'IT’S A TIE' : ranking[0].name.toUpperCase() + ' WINS';
+    $('resultText').textContent = `${ranking[0].name} ${topScore.toLocaleString('en-US')} coins · ${ranking[1].name} ${round.scores[ranking[1].id].coins.toLocaleString('en-US')} · ${ranking[2].name} ${round.scores[ranking[2].id].coins.toLocaleString('en-US')} · ${ranking[3].name} ${round.scores[ranking[3].id].coins.toLocaleString('en-US')}. ${reason === 'complete' ? 'All 30 levels cleared!' : reason === 'passed' ? 'Called at level ' + round.level + '.' : `${round.found.size} of ${round.layout.words.length} words found on level ${round.level}.`}`;
     /* The round normally ends on the word that was just found, so its celebration
        is still on screen. Hold the modal - and the cascade - back until that
        celebration has landed its coins, or the player never sees the word that
@@ -256,9 +275,9 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
         identity.className = 'gwx-leader-identity';
         const name = document.createElement('strong');
         name.textContent = player.name;
-        const team = document.createElement('small');
-        team.textContent = `TEAM ${player.team}`;
-        identity.append(name, team);
+        const role = document.createElement('small');
+        role.textContent = index === 0 ? 'WINNER' : 'RIVAL';
+        identity.append(name, role);
         const coins = document.createElement('b');
         coins.className = 'gwx-leader-coins';
         coins.textContent = String(round.scores[player.id].coins);
@@ -374,6 +393,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     updateTimer(left);
     const seat = activeSeatEl(TURN_ORDER[turnState.index]);
     if (seat) seat.style.setProperty('--turn-pct', String(left / turnMs));
+    if (!round || round.ended) return;
     if (left <= 0) endTurn(false);
   }
 

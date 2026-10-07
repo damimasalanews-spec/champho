@@ -66,12 +66,31 @@ function hamiltonian(random) {
   return walk(Math.floor(random() * TOTAL)) ? path : null;
 }
 
-function placeWords(bank, random, attempts = 32) {
+/* How sprawled a deal is: for each word, the area of the rectangle around its
+   letters minus the letter count. A tight blob scores 0-3; the old serpentine
+   deals could lay one long word right across the board and score 20+. */
+function spreadOf(words) {
+  let worst = 0;
+  for (const item of words) {
+    const rows = item.path.map(cell => Math.floor(cell / COLS));
+    const cols = item.path.map(cell => cell % COLS);
+    const area = (Math.max(...rows) - Math.min(...rows) + 1) * (Math.max(...cols) - Math.min(...cols) + 1);
+    worst = Math.max(worst, area - item.word.length);
+  }
+  return worst;
+}
+
+/* A word's letters must sit next to each other: its box may exceed its length
+   by at most this much. Deals that sprawl are thrown back. */
+const SPREAD_MAX = 5;
+
+function placeWords(bank, random, attempts = 64) {
   const byLength = wordsByLength(bank);
   if (LENGTHS.some(length => !(byLength.get(length)?.length))) {
     throw new Error('Word bank must include words of 3 through 9 letters.');
   }
 
+  let best = null, bestSpread = Infinity;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const path = hamiltonian(random);
     if (!path) continue;
@@ -87,11 +106,20 @@ function placeWords(bank, random, attempts = 32) {
     }
     if (stuck) continue;
 
-    const grid = Array(TOTAL).fill(null);
-    for (const item of words) item.path.forEach((cell, index) => { grid[cell] = item.word[index]; });
-    return { grid, words, cols: COLS, rows: ROWS };
+    /* keep the tightest deal seen; the first one inside the compactness bound
+       ships at once, and the best-so-far is the safety net so a board always
+       comes back even on a run of unlucky walks */
+    const spread = spreadOf(words);
+    if (spread < bestSpread) {
+      bestSpread = spread;
+      const grid = Array(TOTAL).fill(null);
+      for (const item of words) item.path.forEach((cell, index) => { grid[cell] = item.word[index]; });
+      best = { grid, words, cols: COLS, rows: ROWS };
+    }
+    if (spread <= SPREAD_MAX) return best;
   }
-  throw new Error('Could not build a ' + COLS + 'x' + ROWS + ' word grid.');
+  if (!best) throw new Error('Could not build a ' + COLS + 'x' + ROWS + ' word grid.');
+  return best;
 }
 
 export function createWordGrid(bank, random = Math.random) {
