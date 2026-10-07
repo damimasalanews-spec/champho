@@ -84,10 +84,12 @@ function spreadOf(words) {
    by at most this much. Deals that sprawl are thrown back. */
 const SPREAD_MAX = 5;
 
-function placeWords(bank, random, attempts = 64) {
+function placeWords(bank, random, attempts = 64, opts = {}) {
+  const lengths = opts.lengths ?? LENGTHS;
+  const exclude = opts.exclude ?? null;
   const byLength = wordsByLength(bank);
-  if (LENGTHS.some(length => !(byLength.get(length)?.length))) {
-    throw new Error('Word bank must include words of 3 through 9 letters.');
+  if (lengths.some(length => !(byLength.get(length)?.length))) {
+    throw new Error('Word bank must include words of ' + lengths.join(', ') + ' letters.');
   }
 
   let best = null, bestSpread = Infinity;
@@ -97,8 +99,8 @@ function placeWords(bank, random, attempts = 64) {
 
     const picked = new Set(), words = [];
     let cursor = 0, stuck = false;
-    for (const length of LENGTHS) {
-      const options = shuffled(byLength.get(length), random).filter(word => !picked.has(word));
+    for (const length of lengths) {
+      const options = shuffled(byLength.get(length), random).filter(word => !picked.has(word) && !(exclude && exclude.has(word)));
       if (!options.length) { stuck = true; break; }
       picked.add(options[0]);
       words.push({ word: options[0], path: path.slice(cursor, cursor + length) });
@@ -122,8 +124,8 @@ function placeWords(bank, random, attempts = 64) {
   return best;
 }
 
-export function createWordGrid(bank, random = Math.random) {
-  return placeWords(bank, random);
+export function createWordGrid(bank, random = Math.random, opts = {}) {
+  return placeWords(bank, random, 64, opts);
 }
 
 export function scoreWord(targets, guess, foundWords, playerId, layout) {
@@ -133,7 +135,7 @@ export function scoreWord(targets, guess, foundWords, playerId, layout) {
   const target = targets.find(item => item.word === normalized);
   const path = target ? target.path : (layout ? findWordPath(layout, normalized) : null);
   if (!path) return null;
-  return { word: normalized, playerId, coins: normalized.length * 100, length: normalized.length, path, hidden: !!target };
+  return { word: normalized, playerId, coins: normalized.length * 100, length: normalized.length, path, hidden: !!target, ...(target && target.champ ? { champ: true } : {}) };
 }
 
 /* A dictionary word only counts when its letters can be traced through

@@ -1454,11 +1454,7 @@
   .vid-tile,.vid-tile.dash{width:72px!important;height:72px!important}
 }
 
-.gwx-card-tray{display:flex;gap:8px;justify-content:center;margin:8px 0 0}
-.gwx-card-btn{padding:7px 14px;border-radius:12px;border:2px solid #ffdf80!important;background:linear-gradient(145deg,#54bd40,#278c31)!important;color:#fff!important;font-weight:1000;font-size:11px;letter-spacing:.6px;box-shadow:0 4px 0 #216425!important;cursor:pointer;text-shadow:0 1px 2px #17491d;transition:transform .15s,filter .15s}
-.gwx-card-btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
-.gwx-card-btn:disabled{filter:grayscale(.75) brightness(.65);cursor:default;box-shadow:0 3px 0 #123c15!important}
-.gwx-card-btn b{color:#ffe28c}
+.coin-floater.donor{color:#ff8a94}
 .coin-floater.donor{color:#ff8a94}
 
 /* ---- v2 turn beacons: bold 3D orange arrows on a clean ID overlay ------
@@ -1486,9 +1482,6 @@
 .gw-arrow[data-player="jess"]{--tx:20px;--ty:22px;--gw-rot:30deg;rotate:var(--gw-rot)}
 .gw-arrow[data-player="kalkal"]{--tx:22px;--ty:-23px;--gw-rot:332deg;rotate:var(--gw-rot)}
 .gw-arrow[data-player="poker"]{--tx:-22px;--ty:-23px;--gw-rot:208deg;rotate:var(--gw-rot)}
-/* a REVERSE play spins the player's arrow a full lap so the flip reads as action */
-.gw-arrow.spin{animation:gwArrowSpin .8s cubic-bezier(.45,0,.2,1), gwArrowHalo 1.9s ease-in-out infinite!important}
-@keyframes gwArrowSpin{to{rotate:calc(var(--gw-rot) + 360deg)}}
 
 /* the coin shield: whoever plays SKIP/REVERSE wears this badge until their
    next turn — their purse can't be robbed while it shows */
@@ -1505,14 +1498,9 @@
   padding:6px 12px;border-radius:12px;border:2px solid #fff;font-weight:1000;font-size:13px;
   letter-spacing:1px;color:#fff;pointer-events:none;white-space:nowrap;
   animation:cardSlam 1.5s cubic-bezier(.2,1.4,.4,1) forwards}
-.card-floater.reverse{background:linear-gradient(160deg,#ff9d1c,#e85400);border-color:#ffd08a;text-shadow:0 1px 3px #7a2b00;box-shadow:0 6px 16px #0000008c,0 0 18px #ff7a00b0}
-.card-floater.skip{background:linear-gradient(160deg,#4fc3f7,#1976d2);border-color:#b3e5fc;text-shadow:0 1px 3px #0d3c66;box-shadow:0 6px 16px #0000008c,0 0 18px #42a5f5b0}
+.card-floater.champ{background:linear-gradient(160deg,#ffe9a2,#f5b73e 55%,#c47f12);border-color:#fff3c4;color:#4a2f06;text-shadow:0 1px 0 #ffffffb3;box-shadow:0 6px 16px #0000008c,0 0 20px #ffd76bb3}
 @keyframes cardSlam{0%{transform:translateX(-50%) scale(.3);opacity:0}18%{transform:translateX(-50%) scale(1.18);opacity:1}30%{transform:translateX(-50%) scale(1)}78%{transform:translateX(-50%) scale(1);opacity:1}100%{transform:translateX(-50%) translateY(-16px) scale(.92);opacity:0}}
 @media(prefers-reduced-motion:reduce){.gw-arrow.aim{animation:none!important}}
 
-.gwx-card-tray{display:flex;gap:8px;justify-content:center;margin:8px 0 0}
-.gwx-card-btn{padding:7px 14px;border-radius:12px;border:2px solid #ffdf80!important;background:linear-gradient(145deg,#54bd40,#278c31)!important;color:#fff!important;font-weight:1000;font-size:11px;letter-spacing:.6px;box-shadow:0 4px 0 #216425!important;cursor:pointer;text-shadow:0 1px 2px #17491d;transition:transform .15s,filter .15s}
-.gwx-card-btn:hover:not(:disabled){transform:translateY(-2px);filter:brightness(1.08)}
-.gwx-card-btn:disabled{filter:grayscale(.75) brightness(.65);cursor:default;box-shadow:0 3px 0 #123c15!important}
-.gwx-card-btn b{color:#ffe28c}
+.coin-floater.donor{color:#ff8a94}
 .coin-floater.donor{color:#ff8a94}
