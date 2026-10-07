@@ -318,6 +318,12 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       if (avatar && !avatar.querySelector('.turn-ring')) {
         const ring = document.createElement('i');
         ring.className = 'turn-ring';
+        /* four red arrows chase each other around the portrait in 3D */
+        for (let i = 0; i < 4; i++) {
+          const arrow = document.createElement('b');
+          arrow.style.setProperty('--a', (i * 90) + 'deg');
+          ring.appendChild(arrow);
+        }
         avatar.appendChild(ring);
       }
     }
@@ -399,6 +405,135 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       avatar.classList.add(FX_FRAMES[Math.floor(Math.random() * FX_FRAMES.length)]);
       avatar.classList.add(FX_FILTERS[Math.floor(Math.random() * FX_FILTERS.length)]);
     }
+  }
+
+  /* ---------------------------------------------------------------- gifting ---
+     Players can send gifts to each other: coins fly across the table with the
+     gift, the receiver pops it over their avatar, the table chat logs it, and
+     a toast announces it. Bots occasionally gift the player back. */
+  const GIFTS = [
+    { icon: '\uD83C\uDF39', name: 'ROSE', cost: 100 },
+    { icon: '\uD83E\uDDF8', name: 'TEDDY', cost: 250 },
+    { icon: '\uD83C\uDFC6', name: 'TROPHY', cost: 500 }
+  ];
+  let giftTimer = 0;
+
+  function seatPoint(id) {
+    const avatar = document.querySelector(`.gwx-seat[data-player="${id}"] .gwx-avatar`);
+    if (!avatar) return null;
+    const r = avatar.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: avatar };
+  }
+
+  function sendGift(fromId, toId, gift) {
+    if (!round || round.ended || fromId === toId || !gift) return false;
+    const from = round.scores[fromId], to = round.scores[toId];
+    if (!from || !to) return false;
+    if (from.coins < gift.cost) {
+      if (fromId === 'champ') {
+        $('guessMessage').textContent = 'Not enough coins for a ' + gift.name.toLowerCase() + '.';
+        $('guessMessage').classList.add('bad');
+      }
+      return false;
+    }
+    from.coins -= gift.cost;
+    to.coins += gift.cost;
+    renderScores();
+
+    const a = seatPoint(fromId), b = seatPoint(toId);
+    if (a && b) {
+      const fly = document.createElement('i');
+      fly.className = 'gift-fly';
+      fly.textContent = gift.icon;
+      fly.style.left = a.x + 'px';
+      fly.style.top = a.y + 'px';
+      fly.style.setProperty('--fx', '0px');
+      fly.style.setProperty('--fy', '0px');
+      fly.style.setProperty('--tx', (b.x - a.x) + 'px');
+      fly.style.setProperty('--ty', (b.y - a.y) + 'px');
+      document.body.appendChild(fly);
+      window.setTimeout(() => fly.remove(), 1000);
+      setTimeout(() => {
+        const pop = document.createElement('b');
+        pop.className = 'gift-pop';
+        pop.textContent = gift.icon;
+        const seatEl = document.querySelector(`.gwx-seat[data-player="${toId}"]`);
+        seatEl?.appendChild(pop);
+        window.setTimeout(() => pop.remove(), 1500);
+      }, 620);
+    }
+    const nameOf = id => (PLAYERS.find(p => p.id === id) || { name: id }).name;
+    const toast = document.createElement('div');
+    toast.className = 'gift-toast';
+    toast.textContent = '🎁 ' + nameOf(fromId).toUpperCase() + ' sent ' + nameOf(toId).toUpperCase() + ' a ' + gift.icon + ' ' + gift.name + '!';
+    document.body.appendChild(toast);
+    window.setTimeout(() => toast.remove(), 2100);
+    try {
+      appendChatMessage(nameOf(fromId) + ' sent ' + nameOf(toId) + ' a ' + gift.icon + ' ' + gift.name, toId);
+    } catch (e) {}
+    return true;
+  }
+
+  function buildGiftUI() {
+    const seat = document.querySelector('.gwx-seat[data-player="champ"]');
+    if (!seat || seat.querySelector('.gift-btn')) return;
+    const menu = document.createElement('div');
+    menu.className = 'gift-menu';
+    menu.setAttribute('aria-label', 'Send a gift');
+    BOT_IDS.forEach(id => {
+      const row = document.createElement('div');
+      row.className = 'gift-row';
+      const label = document.createElement('span');
+      label.textContent = (PLAYERS.find(p => p.id === id) || { name: id }).name.toUpperCase();
+      row.appendChild(label);
+      GIFTS.forEach(gift => {
+        const g = document.createElement('button');
+        g.type = 'button';
+        g.textContent = gift.icon;
+        g.title = gift.name + ' · ' + gift.cost + ' coins';
+        g.dataset.cost = String(gift.cost);
+        g.addEventListener('click', () => {
+          if (sendGift('champ', id, gift)) menu.classList.remove('open');
+        });
+        row.appendChild(g);
+      });
+      menu.appendChild(row);
+    });
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gift-btn';
+    btn.textContent = '\uD83C\uDF81';
+    btn.title = 'Send a gift';
+    btn.setAttribute('aria-expanded', 'false');
+    btn.addEventListener('click', () => {
+      const open = !menu.classList.contains('open');
+      menu.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', String(open));
+      if (open) {
+        const coins = round ? round.scores.champ.coins : 0;
+        menu.querySelectorAll('button[data-cost]').forEach(g => { g.disabled = Number(g.dataset.cost) > coins; });
+      }
+    });
+    seat.appendChild(btn);
+    seat.appendChild(menu);
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.gift-btn') && !event.target.closest('.gift-menu')) {
+        menu.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  /* bots occasionally send the player a gift back, unasked */
+  function scheduleBotGift() {
+    window.clearTimeout(giftTimer);
+    giftTimer = window.setTimeout(() => {
+      if (round && !round.ended && turnState && turnState.tick) {
+        const from = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
+        sendGift(from, 'champ', GIFTS[Math.floor(Math.random() * GIFTS.length)]);
+      }
+      scheduleBotGift();
+    }, 35000 + Math.random() * 40000);
   }
 
   function buildLevelRail() {
@@ -628,6 +763,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   });
   connectTableChat();
   resetRound();
+  buildGiftUI();
+  scheduleBotGift();
 
   window.__champWordGrid = {
     state: () => ({
@@ -640,6 +777,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       ended: round.ended
     }),
     guess: (word, player = 'champ') => submitGuess(word, player),
+    gift: (toId, name) => sendGift('champ', toId, GIFTS.find(g => g.name === String(name || '').toUpperCase() || g.icon === name)),
     setTurnSpeed: ms => { turnMs = Math.max(400, Math.min(TURN_MS, Number(ms) || TURN_MS)); },
     skipToLevel: n => { if (round && !round.ended) { round.level = Math.max(1, Math.min(LEVELS, Number(n) || 1)); dealLevel(); } },
     reset: resetRound

@@ -1305,13 +1305,18 @@
 .gwx-modal .gwx-modal-board .gwx-leader-identity small{font-size:9px}
 .gwx-modal .gwx-modal-board .gwx-leader-coins{font-size:16px}
 
-/* ---- the turn clock: a glowing ring sweeps down around the active avatar -- */
-.turn-ring{position:absolute;inset:-8px;border-radius:26px;z-index:2;pointer-events:none;
-  background:conic-gradient(var(--gold) calc(var(--turn-pct,1)*360deg),#ffffff1c 0);
-  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  mask:radial-gradient(farthest-side,transparent calc(100% - 7px),#000 calc(100% - 6px));
-  filter:drop-shadow(0 0 8px #ffd66b88)}
-.gwx-seat.active .gwx-player-card{border-color:#ffd45c88;box-shadow:0 0 0 1px #ffd45c55,0 0 30px #ffd66b3d,0 15px 35px #0007}
+/* ---- the turn clock: red 3D arrows orbit the active avatar ---------------- */
+.turn-ring{position:absolute;inset:-11px;border-radius:50%;z-index:3;pointer-events:none;
+  perspective:420px;transform-style:preserve-3d;animation:gwxOrbit 1.5s linear infinite}
+.turn-ring:before{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid #ff1e3c33;
+  border-top-color:#ff2b3dcc;box-shadow:0 0 18px #ff1e3c66,inset 0 0 12px #ff1e3c33}
+.turn-ring b{position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px;
+  background:linear-gradient(180deg,#ff8a8a,#ff1e3c 68%);clip-path:polygon(0 0,100% 50%,0 100%);
+  filter:drop-shadow(0 0 7px #ff1e3c);animation:gwxArrowFlip 1.15s ease-in-out infinite alternate}
+@keyframes gwxOrbit{to{transform:rotate(1turn)}}
+@keyframes gwxArrowFlip{from{transform:rotate(var(--a,0deg)) translateY(-52px) rotateY(-60deg) rotateZ(90deg)}to{transform:rotate(var(--a,0deg)) translateY(-52px) rotateY(60deg) rotateZ(90deg)}}
+.gwx-seat.active .gwx-player-card{border-color:#ff5c6e99;box-shadow:0 0 0 1px #ff5c6e66,0 0 32px #ff2b3d4d,0 15px 35px #0007}
+.gwx-seat.active .status-dot{background:#ff2b3d;box-shadow:0 0 0 4px rgba(255,43,61,.16),0 0 18px #ff2b3d}
 .gwx-level-track>i.on{background:linear-gradient(145deg,#fff,#ffd66b);border-color:#7c4a12;box-shadow:0 2px 0 #552b17,0 0 8px #ffd66b}
 
 /* ---- sample avatar frames + filters (from the account dashboard) ----------
@@ -1327,3 +1332,57 @@
 .gwx-avatar-art.fx-filter-cool{filter:hue-rotate(165deg) saturate(1.2)}
 .gwx-avatar-art.fx-filter-mono{filter:grayscale(1) contrast(1.15)}
 .gwx-avatar-art.fx-filter-pop{filter:saturate(1.7) contrast(1.08)}
+
+/* ---- classic-mode avatars: round portraits in a gold-cyan halo ring ------- */
+.gwx-player-card>.gwx-avatar,.gwx-local-meta>.gwx-avatar{
+  border-radius:50%!important;width:72px!important;height:72px!important;padding:4px!important;
+  background:conic-gradient(from 200deg,#ffe44d,#25d9ff,#ffdc3d,#25d9ff,#ffe44d)!important;
+  box-shadow:0 0 0 4px rgba(3,31,47,.9),0 0 22px rgba(53,220,255,.55),0 10px 22px rgba(0,0,0,.5)!important;
+  animation:none!important}
+.gwx-player-card>.gwx-avatar:after,.gwx-local-meta>.gwx-avatar:after{content:none!important}
+.gwx-player-card>.gwx-avatar .gwx-avatar-art,.gwx-local-meta>.gwx-avatar .gwx-avatar-art{border-radius:50%!important;overflow:hidden;border:2px solid rgba(4,25,40,.85);width:100%;height:100%}
+.turn-ring{border-radius:50%!important;inset:-9px!important}
+.gwx-avatar.fx-frame-cyber:before,.gwx-avatar.fx-frame-sheriff:before{display:none}
+
+/* ---- gifts: pick a player, a gift flies over with its coin cost ----------- */
+.gift-btn{position:absolute;right:10px;bottom:12px;width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,#ff586c,#b82039);border:1px solid #ffacb5;color:#fff;font-size:19px;
+  display:grid;place-items:center;box-shadow:0 8px 24px #d7193f55;z-index:9;
+  transition:transform .18s ease,filter .18s ease}
+.gift-btn:hover{transform:scale(1.08) rotate(-6deg)}
+.gift-menu{position:absolute;right:8px;bottom:64px;display:none;flex-direction:column;gap:6px;z-index:60}
+.gift-menu.open{display:flex}
+.gift-menu button{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:13px;
+  background:#0a1724f5;border:1px solid #ffffff22;color:#ffd85b;font-size:12px;font-weight:800;
+  box-shadow:0 10px 24px #0008;cursor:pointer;white-space:nowrap}
+.gift-menu button b{display:block;font-size:9px;color:#8fa1b7;letter-spacing:1px}
+.gift-menu button:hover{border-color:#ffd85b66;background:#13263a}
+.gift-menu button:disabled{opacity:.4;cursor:not-allowed}
+.gift-fly{position:fixed;z-index:9998;font-size:34px;pointer-events:none;filter:drop-shadow(0 6px 14px #0008);
+  animation:giftFly .95s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes giftFly{
+  0%{transform:translate(var(--fx),var(--fy)) scale(.4) rotate(-30deg);opacity:0}
+  18%{opacity:1}
+  60%{transform:translate(var(--tx),var(--ty)) scale(1.25) rotate(10deg)}
+  78%{transform:translate(var(--tx),var(--ty)) scale(1) rotate(0)}
+  88%{opacity:1}
+  100%{transform:translate(var(--tx),calc(var(--ty) - 46px)) scale(.7);opacity:0}}
+.gift-row{display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:13px;
+  background:#0a1724f5;border:1px solid #ffffff22;color:#b9c5d1;font-size:10px;font-weight:900;letter-spacing:1px}
+.gift-row span{min-width:64px;color:#ffd85b}
+.gift-row button{width:36px;height:36px;padding:0;font-size:18px;border-radius:10px;
+  background:#13263a;border:1px solid #ffffff22;display:grid;place-items:center;cursor:pointer}
+.gift-row button:hover{border-color:#ffd85b99;background:#1a3552}
+.gift-row button:disabled{opacity:.35;cursor:not-allowed}
+.gift-pop{position:absolute;left:50%;top:-22px;transform:translateX(-50%);font-size:26px;
+  z-index:12;pointer-events:none;animation:giftPop 1.4s ease forwards}
+@keyframes giftPop{0%{opacity:0;transform:translateX(-50%) scale(.5)}
+  20%{opacity:1;transform:translateX(-50%) scale(1.2)}70%{opacity:1;transform:translateX(-50%) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-26px) scale(.8)}}
+.gift-toast{position:fixed;z-index:9999;left:50%;top:20%;transform:translateX(-50%);
+  padding:10px 18px;border-radius:16px;background:linear-gradient(135deg,#ff586c,#b82039);
+  border:1px solid #ffacb5;color:#fff;font-weight:1000;font-size:13px;letter-spacing:.5px;
+  box-shadow:0 14px 34px #0009;animation:giftToast 2s ease forwards}
+@keyframes giftToast{0%,12%{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.8)}
+  20%,80%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.94)}}
