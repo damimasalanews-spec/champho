@@ -24,10 +24,11 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
      neighbouring letters on the board scores 100 coins a letter. Players
      answer one at a time with 15 seconds each. Champ always opens; the other
      three draw lots for their order, and that order holds for the whole match.
-     A correct word books the coins and hands the clock to the next player
-     immediately - a fresh 15 seconds, exactly. The clock running out passes the
-     turn too. The leaderboard prints after level 30 and the top coin scorer
-     wins: there are no teams. */
+     A correct word books the coins, the word dances into coins and they arc
+     onto the scorer's avatar - only when they land does the clock pass to the
+     next player, who gets a fresh exact 15 seconds. A player who fails to
+     answer keeps the full 15 seconds, then the turn passes too. The
+     leaderboard prints after level 30 and the top coin scorer wins: no teams. */
   const LEVELS = 30;
   const TURN_MS = 15000;
   /* champ first, then the bots in a random draw that sticks for the match */
@@ -36,6 +37,10 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   let turnState = null;   /* { index, endsAt, tick, botTimer } */
   let passStreak = 0;
   let turnMs = TURN_MS;   /* the dev hook can speed the clock up */
+  /* between a correct answer and the coins landing on the scorer's avatar the
+     table is "settling": the clock is parked, nobody's 15 seconds are running */
+  let settling = false;
+  let handoverTimer = 0;
 
   function shuffle(list) {
     const result = [...list];
@@ -189,7 +194,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   }
 
   function submitGuess(value, playerId) {
-    if (!round || round.ended || !turnState) return false;
+    if (!round || round.ended || !turnState || settling) return false;
     if (TURN_ORDER[turnState.index] !== playerId) return false;   /* strict clockwise turns */
     const result = scoreWord(round.layout.words, value, round.scored, playerId, round.layout);
     if (!result) {
@@ -219,16 +224,31 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       dealLevel();
       $('roundMessage').textContent = 'LEVEL ' + (round.level - 1) + ' CLEAR! Level ' + round.level + ' board is up.';
     }
-    /* a correct word passes the turn on at once: the next player gets their
-       own exact 15 seconds, starting now */
-    passTurn(true);
+    /* the scorer's moment: park the clock while the word dances into coins
+       and they fly onto this avatar. When the coins land, the next player
+       gets their own exact 15 seconds - not a millisecond of it spent during
+       the celebration. */
+    settling = true;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const activeSeat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (activeSeat) {
+      activeSeat.style.setProperty('--turn-pct', '1');
+      /* the turn is decided: the ring retires and the coin arc has the stage */
+      seatRings().forEach(ring => ring.remove());
+    }
+    handoverTimer = window.setTimeout(() => {
+      settling = false;
+      if (round && !round.ended) passTurn(true);
+    }, Math.max(400, revealAfter || 0));
     return true;
   }
 
-  /* clean handover used by a correct answer: the old turn's timers die here,
+  /* clean handover once the coins have landed: the old turn's timers die here,
      and startTurn() reads the clock fresh for the next seat */
   function passTurn(found) {
     if (!turnState || !round || round.ended) return;
+    settling = false;
     window.clearInterval(turnState.tick);
     window.clearTimeout(turnState.botTimer);
     const seat = activeSeatEl(TURN_ORDER[turnState.index]);
@@ -388,7 +408,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   }
 
   function tickTurn() {
-    if (!turnState) return;
+    if (!turnState || settling) return;
     const left = Math.max(0, turnState.endsAt - performance.now());
     updateTimer(left);
     const seat = activeSeatEl(TURN_ORDER[turnState.index]);
@@ -774,6 +794,8 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     window.__champCoins?.cancel?.();
     window.clearTimeout(resultReveal);
     resultReveal = 0;
+    window.clearTimeout(handoverTimer);
+    settling = false;
     stopTurns();
     document.querySelectorAll('.gwx-seat').forEach(seat => { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); });
     $('resultModal').classList.remove('open');
