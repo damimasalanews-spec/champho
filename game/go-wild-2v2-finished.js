@@ -449,23 +449,20 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
   const THANK_LINES = ['thanks!', 'haha!', 'right back at you!'];
   let giftTimer = 0, ambienceTimer = 0;
 
-  /* ---- the one emoji: haha, greenscreen keyed out -------------------------
-     Every emoji surface on the table is this single looping clip. The video is
-     the uploaded greenscreen haha, keyed to alpha (haha-2s.webm, exactly 2s) so
-     it can sit INSIDE a chat bubble instead of a green box, and the laugh is
-     the uploaded m4a trimmed to haha-sound.mp3 (0.77s). The stage stays on
-     screen for whole 2s loops only, so the animation and the sound both end
-     together at a loop boundary. */
-  const VIDEO_EMOJI = {
-    name: 'Haha',
-    src: './game/emoji/haha-2s.webm',
-    sound: './game/emoji/haha-sound.mp3',
-    LOOP_MS: 2000,
-    SOUND_MS: 770
-  };
+  /* ---- the emoji set: uploaded clips, greenscreens keyed out --------------
+     Each emoji is a looping alpha webm cut to exactly 2s from the uploaded
+     greenscreen mp4, with its own recorded laugh (uploaded m4a, silence
+     trimmed) registered in audio-cues. Every emoji surface on the table shows
+     these two, in this order. The stage stays on screen for exactly the sound
+     length: the clip plays at natural laugh speed so the full animation lands
+     when the laugh ends. */
+  const EMOJIS = [
+    { name: 'Haha', src: './game/emoji/haha-2s.webm', cue: 'haha', LOOP_MS: 2000, SOUND_MS: 770 },
+    { name: 'Ahha', src: './game/emoji/ahha-2s.webm', cue: 'ahha', LOOP_MS: 2000, SOUND_MS: 1680 }
+  ];
 
-  function playVideoEmoji(seat) {
-    if (!seat) return;
+  function playVideoEmoji(seat, emoji) {
+    if (!seat || !emoji) return;
     document.querySelectorAll('.vid-emoji-stage').forEach(el => el.remove());
     const stage = document.createElement('div');
     stage.className = 'vid-emoji-stage';
@@ -478,7 +475,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     stage.appendChild(holder);
     const video = document.createElement('video');
     video.className = 'vid-emoji-video';
-    video.src = VIDEO_EMOJI.src;
+    video.src = emoji.src;
     video.loop = true;
     video.muted = true;
     video.playsInline = true;
@@ -486,27 +483,28 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     holder.appendChild(video);
     /* the 2s asset is the laugh slowed down; at this rate the full laugh lands
        exactly when the recorded sound ends, so both stop together */
-    video.playbackRate = +(2 / (VIDEO_EMOJI.SOUND_MS / 1000)).toFixed(3);
+    video.playbackRate = +(2 / (emoji.SOUND_MS / 1000)).toFixed(3);
     const play = video.play();
     if (play && play.catch) play.catch(() => {});
     /* backstop at a loop boundary so cancelled timers can never strand the stage */
-    window.setTimeout(() => stage.remove(), VIDEO_EMOJI.LOOP_MS + 220);
+    window.setTimeout(() => stage.remove(), emoji.LOOP_MS + 220);
     return stage;
   }
 
   /* one emoji performance: the laugh starts with the clip, the bubble pops at
-     the next whole loop so animation and sound always end together. */
-  function showBubble(id) {
+     the sound's end so animation and sound always stop together. */
+  function showBubble(id, emojiIndex) {
     const seat = document.querySelector(`.gwx-seat[data-player="${id}"]`);
     if (!seat) return;
-    playVideoEmoji(seat);
-    try { window.ChampCues && window.ChampCues.play('haha'); } catch (e) {}
+    const emoji = EMOJIS[Math.max(0, Math.min(EMOJIS.length - 1, emojiIndex || 0))];
+    playVideoEmoji(seat, emoji);
+    try { window.ChampCues && window.ChampCues.play(emoji.cue); } catch (e) {}
     /* the show lasts exactly the laugh: sound and animation end together */
     window.clearTimeout(seat._vidEmojiTimer);
     seat._vidEmojiTimer = window.setTimeout(() => {
       const stage = seat.querySelector('.vid-emoji-stage');
       if (stage) stage.remove();
-    }, VIDEO_EMOJI.SOUND_MS);
+    }, emoji.SOUND_MS);
   }
 
   function nameOf(id) { return (PLAYERS.find(p => p.id === id) || { name: id }).name; }
@@ -563,31 +561,33 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       });
       pk.appendChild(grid);
     } else {
-      /* the one video emoji: a single large looping tile */
+      /* the emoji board: one small looping tile per emoji, in order */
       const grid = document.createElement('div');
       grid.className = 'emo-grid';
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'emo-tile vid-tile';
-      b.title = 'HAHA emoji';
-      b.setAttribute('aria-label', 'Send the haha video emoji');
-      const vid = document.createElement('video');
-      vid.className = 'vid-poster';
-      vid.src = VIDEO_EMOJI.src;
-      vid.loop = true;
-      vid.muted = true;
-      vid.autoplay = true;
-      vid.playsInline = true;
-      const attempt = vid.play();
-      if (attempt && attempt.catch) attempt.catch(() => {});
-      b.appendChild(vid);
-      b.addEventListener('click', ev => {
-        ev.stopPropagation();
-        closePickers();
-        showBubble(playerId);
-        if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent the ' + VIDEO_EMOJI.name + ' emoji at ' + nameOf(playerId));
+      EMOJIS.forEach((emoji, index) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'emo-tile vid-tile';
+        b.title = emoji.name + ' emoji';
+        b.setAttribute('aria-label', 'Send the ' + emoji.name.toLowerCase() + ' emoji');
+        const vid = document.createElement('video');
+        vid.className = 'vid-poster';
+        vid.src = emoji.src;
+        vid.loop = true;
+        vid.muted = true;
+        vid.autoplay = true;
+        vid.playsInline = true;
+        const attempt = vid.play();
+        if (attempt && attempt.catch) attempt.catch(() => {});
+        b.appendChild(vid);
+        b.addEventListener('click', ev => {
+          ev.stopPropagation();
+          closePickers();
+          showBubble(playerId, index);
+          if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent the ' + emoji.name + ' emoji at ' + nameOf(playerId));
+        });
+        grid.appendChild(b);
       });
-      grid.appendChild(b);
       pk.appendChild(grid);
     }
     document.body.appendChild(pk);
@@ -722,7 +722,7 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     ambienceTimer = window.setTimeout(() => {
       if (round && !round.ended) {
         const who = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
-        showBubble(who);
+        showBubble(who, Math.floor(Math.random() * EMOJIS.length));
       }
       scheduleBotAmbience();
     }, 14000 + Math.random() * 6000);
@@ -945,16 +945,16 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
       setChatStatus('Copy the page link to invite players');
     }
   });
-  /* the dashboard's one emoji: the same video tile, playing over Champ's seat */
-  {
+  /* the dashboard's emoji tray: the same small tiles, in order, over Champ */
+  EMOJIS.forEach((emoji, index) => {
     const dashTile = document.createElement('button');
     dashTile.type = 'button';
     dashTile.className = 'vid-tile dash';
-    dashTile.title = 'HAHA video emoji - 2s loop';
-    dashTile.setAttribute('aria-label', 'Send the haha video emoji');
+    dashTile.title = emoji.name + ' emoji';
+    dashTile.setAttribute('aria-label', 'Send the ' + emoji.name.toLowerCase() + ' emoji');
     const vid = document.createElement('video');
     vid.className = 'vid-poster';
-    vid.src = VIDEO_EMOJI.src;
+    vid.src = emoji.src;
     vid.loop = true;
     vid.muted = true;
     vid.autoplay = true;
@@ -965,10 +965,10 @@ import { createWordGrid, findWordPath, normalizeGuess, scoreWord, wordsByLength 
     dashTile.addEventListener('click', ev => {
       ev.stopPropagation();
       closeSocialMenus();
-      showBubble('champ');
+      showBubble('champ', index);
     });
     emojiMenu.appendChild(dashTile);
-  }
+  });
   document.addEventListener('click', event => {
     if (!event.target.closest('.champ-social-controls')) closeSocialMenus();
   });

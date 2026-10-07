@@ -55,8 +55,9 @@
     brake: "assets/audio/brake.mp3",
     kick: "assets/audio/kick.mp3",
     fall: "assets/audio/fall.mp3",
-    /* the one emoji's own laugh, recorded by the player (game/emoji/) */
-    haha: "game/emoji/haha-sound.mp3"
+    /* the emoji set's own laughs, recorded by the player (game/emoji/) */
+    haha: "game/emoji/haha-sound.mp3",
+    ahha: "game/emoji/ahha-sound.mp3"
   };
   /* The mix, now that every file peaks at the same level. The coin beat plays
      coins and yeah together and the two peaks can land on the same frame, so
@@ -81,7 +82,7 @@
      with the hits it plays under. */
   const VOLUME = { throwWord: 0.55, coins: 0.55, yeah: 0.66, superWin: 0.75,
                    bounce: 0.68, push: 0.8, brake: 0.75, kick: 0.8, fall: 0.85,
-                   music: 0.36, haha: 0.8 };
+                   music: 0.36, haha: 0.8, ahha: 0.8 };
 
   const cache = {};
 

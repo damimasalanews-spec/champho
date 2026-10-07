@@ -197,8 +197,9 @@ const ART_INDEX = [
   // the ninja film beats: shove / defense / kick / fall (left-shot, right seat mirrors)
   "/assets/wallpush/ninja-idle.mp4", "/assets/wallpush/ninja-shove.mp4", "/assets/wallpush/ninja-defense.mp4",
   "/assets/wallpush/ninja-kick.mp4", "/assets/wallpush/ninja-fall.mp4", "/assets/wallpush/ninja-win.mp4",
-  // the one emoji: the greenscreen-keyed haha loop and its recorded laugh
+  // the emoji set: keyed loops and their recorded laughs
   "/game/emoji/haha-2s.webm", "/game/emoji/haha-sound.mp3",
+  "/game/emoji/ahha-2s.webm", "/game/emoji/ahha-sound.mp3",
   // the 3D clipart the guessing contest draws - one file per word in
   // game/wall-push-guess.js POOL
   "/assets/clipart/apple.webp", "/assets/clipart/boat.webp", "/assets/clipart/bus.webp",
