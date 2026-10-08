@@ -2028,4 +2028,253 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 </script>
     <script src="cw2-home.js?v=4" defer></script>
     <script src="game/pwa.js" defer></script>
+
+<style id="cw2ProfilePolish">
+/* =====================================================================
+   MIDNIGHT AURORA — Profile & Dashboard polish (Buffy layer)
+   Retires the artwork-overlay profile mode (CSS-only: every id, file and
+   handler stays). Backdrop, glass surfaces, gold avatar ring, stat tiles.
+   ===================================================================== */
+
+/* ---------- backdrop: kill the JPEG artwork, paint coded aurora ---------- */
+#profile.profile-screen{
+  background:
+    radial-gradient(1100px 560px at 85% -8%, rgba(64,140,255,.26), transparent 60%),
+    radial-gradient(900px 520px at -8% 108%, rgba(255,140,60,.13), transparent 55%),
+    linear-gradient(165deg,#040a1e 0%,#081633 46%,#050d24 100%) !important;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+#profile .profile-dashboard-art{display:none!important}
+#profile .profile-shell{background:transparent!important}
+body.profile-open #profile .profile-shell{background:transparent!important}
+
+/* ---------- sidebar: glass rail ---------- */
+#profile .profile-sidebar,
+body.profile-open #profile .profile-sidebar{
+  position:relative!important; inset:auto!important; width:18.25%!important; min-width:200px!important; height:100%!important;
+  top:auto!important; left:auto!important; padding:64px 10px 16px!important;
+  background:linear-gradient(180deg,rgba(13,26,58,.92),rgba(7,15,38,.9))!important;
+  border-right:1px solid rgba(255,198,61,.14)!important;
+  box-shadow:10px 0 46px rgba(0,0,0,.38)!important;
+}
+#profile .profile-back{
+  left:14px!important; top:12px!important; width:44px!important; height:44px!important; border-radius:13px!important;
+  background:rgba(255,255,255,.06)!important; border:1px solid rgba(255,255,255,.13)!important;
+  color:#ffd76a!important; font-size:22px!important; line-height:1; text-shadow:none!important;
+  display:grid!important; place-items:center; transition:transform .18s,background .18s;
+}
+#profile .profile-back:hover{background:rgba(255,198,61,.16)!important; transform:translateX(-2px)}
+#profile .profile-side-title,
+body.profile-open #profile .profile-side-title{
+  position:static!important; width:auto!important; height:auto!important;
+  padding:14px 18px 12px!important; background:transparent!important;
+  color:#ffd76a!important; font-size:19px!important; font-weight:900!important;
+  letter-spacing:.22em; text-shadow:none!important;
+}
+body.profile-open #profile .profile-side-nav{
+  position:static!important; inset:auto!important; width:auto!important; height:auto!important;
+  display:flex!important; flex-direction:column!important; gap:9px!important; padding:0 4px!important;
+}
+#profile .profile-side-link,
+body.profile-open #profile .profile-side-link{
+  position:static!important; width:100%!important; height:52px!important; margin:0!important;
+  border-radius:13px!important; padding:0 16px!important; gap:13px!important;
+  background:rgba(255,255,255,.045)!important; border:1px solid rgba(255,255,255,.07)!important;
+  box-shadow:none!important; color:#dbe7ff!important; font-size:15px!important; font-weight:800; letter-spacing:.03em;
+  display:flex!important; align-items:center!important; text-shadow:none!important;
+  transition:background .18s,border-color .18s,transform .18s;
+}
+#profile .profile-side-link span,
+body.profile-open #profile .profile-side-link span{font-size:13px!important; color:inherit!important; visibility:visible!important; letter-spacing:.1em}
+#profile .profile-side-link:hover{background:rgba(255,255,255,.09)!important; transform:translateX(2px)}
+#profile .profile-side-link.active,
+body.profile-open #profile .profile-side-link.active{
+  background:linear-gradient(90deg,rgba(255,198,61,.24),rgba(255,157,28,.1))!important;
+  border-color:rgba(255,198,61,.5)!important; color:#ffd76a!important;
+  box-shadow:inset 0 0 26px rgba(255,157,28,.1)!important;
+}
+
+/* ---------- main flow back to normal (undo artwork-anchored absolutes) ---------- */
+body.profile-open #profile .profile-main{
+  position:relative!important; inset:auto!important; width:auto!important; height:auto!important;
+  display:flex!important; flex-direction:column!important; overflow:auto!important;
+  padding:16px clamp(14px,2vw,34px) 20px!important; background:transparent!important;
+}
+body.profile-open #profile .profile-top{
+  position:relative!important; inset:auto!important; width:auto!important; height:auto!important;
+  display:flex!important; align-items:flex-end!important; justify-content:space-between!important;
+  gap:16px!important; flex:0 0 auto!important; padding:0 2px 12px!important; margin:0!important; z-index:2!important;
+}
+body.profile-open #profile .profile-tabs{
+  position:static!important; width:auto!important; height:auto!important; display:flex!important; gap:8px!important; align-items:center!important;
+}
+body.profile-open #profile .profile-tab{
+  height:42px!important; min-width:0!important; flex:0 0 auto; padding:0 18px!important;
+  border:1px solid rgba(255,255,255,.13)!important; border-radius:999px!important;
+  background:rgba(255,255,255,.05)!important; color:#dbe7ff!important; font-size:14px!important; font-weight:800;
+  letter-spacing:.03em; box-shadow:none!important; text-shadow:none!important; cursor:pointer;
+  transition:background .18s,border-color .18s,color .18s;
+}
+body.profile-open #profile .profile-tab.active{
+  background:linear-gradient(120deg,rgba(255,198,61,.26),rgba(255,157,28,.12))!important;
+  border-color:rgba(255,198,61,.55)!important; color:#ffd76a!important;
+}
+body.profile-open #profile .profile-wallets{
+  position:static!important; inset:auto!important; width:auto!important; height:auto!important;
+  display:flex!important; gap:10px!important; padding:0!important; align-items:center!important;
+}
+body.profile-open #profile .profile-wallet{
+  height:46px!important; min-width:0!important; flex:0 0 auto;
+  display:flex!important; align-items:center; gap:9px; padding:0 6px 0 14px!important;
+  border-radius:999px!important; border:1px solid rgba(255,255,255,.14)!important;
+  background:linear-gradient(120deg,rgba(20,34,72,.88),rgba(12,22,50,.88))!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.07)!important;
+  color:#fff!important;
+}
+body.profile-open #profile .profile-wallet span{visibility:visible!important; font-size:20px}
+body.profile-open #profile .profile-wallet b{visibility:visible!important; font-size:15px!important; color:#fff!important; letter-spacing:.03em}
+body.profile-open #profile .profile-wallet button{
+  width:30px!important; height:30px!important; margin-left:2px!important; padding:0!important;
+  border-radius:9px!important; border:0!important;
+  background:linear-gradient(180deg,#ffd76a,#ff9d1c)!important; color:#3a2400!important;
+  font-size:20px!important; line-height:1; font-weight:900; box-shadow:none!important; cursor:pointer;
+}
+body.profile-open #profile .profile-view{
+  position:relative!important; inset:auto!important; width:auto!important; height:auto!important;
+  display:flex!important; align-items:flex-start!important; justify-content:center!important;
+  padding:14px 0 10px!important; overflow:visible!important; z-index:auto!important;
+}
+body.profile-open #profile #profileBasicView>.profile-card{display:grid!important}
+body.profile-open #profile .profile-card-left{position:static!important; inset:auto!important; z-index:auto!important; pointer-events:auto!important}
+body.profile-open #profile .profile-card-left>*{pointer-events:auto!important}
+body.profile-open #profile .profile-stats{display:block!important}
+
+/* ---------- profile card: glass + gold avatar ring ---------- */
+#profile .profile-card{
+  min-height:0!important;
+  border:1px solid rgba(255,255,255,.1)!important; border-radius:22px!important;
+  background:linear-gradient(150deg,rgba(17,32,70,.88),rgba(9,18,42,.92))!important;
+  box-shadow:0 30px 70px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.07)!important;
+}
+#profile .profile-card-left{border-right:1px solid rgba(255,255,255,.08)!important; padding:34px 30px 26px!important}
+#profile .profile-avatar-large{
+  width:148px!important; height:148px!important; border-radius:50%!important; border:0!important; padding:4px!important;
+  background:conic-gradient(from 210deg,#ffd76a,#ff9d1c,#ffe9b0,#ff9d1c,#ffd76a)!important;
+  box-shadow:0 12px 36px rgba(255,157,28,.35), 0 0 0 1px rgba(255,255,255,.08)!important;
+  animation:cw2AvaGlow 3.4s ease-in-out infinite;
+}
+#profile .profile-avatar-large img{border-radius:50%!important; background:#0a1a3c}
+@keyframes cw2AvaGlow{
+  0%,100%{box-shadow:0 12px 36px rgba(255,157,28,.35), 0 0 0 1px rgba(255,255,255,.08)}
+  50%{box-shadow:0 16px 52px rgba(255,157,28,.55), 0 0 0 1px rgba(255,255,255,.12)}
+}
+#profile .profile-name-row h1{font-size:30px; letter-spacing:.02em; color:#fff}
+#profile .profile-smile{background:#2ee6a8!important; color:#04241a!important; font-size:12px; box-shadow:0 0 14px rgba(46,230,168,.8)!important}
+#profile .profile-id-row span{background:rgba(46,230,168,.14)!important; color:#7dffcf!important; border:1px solid rgba(46,230,168,.4)!important; box-shadow:none!important}
+#profile .profile-id-row b{color:#cfe0ff}
+#profile .profile-copy{background:rgba(255,255,255,.07)!important; color:#dbe7ff!important; border:1px solid rgba(255,255,255,.14)!important; cursor:pointer}
+#profile .profile-edit{background:rgba(255,198,61,.16)!important; color:#ffd76a!important; border:1px solid rgba(255,198,61,.4)!important; cursor:pointer}
+#profile .profile-club b{color:#e7ecff}
+#profile .club-gem{color:#c99bff!important; text-shadow:0 0 12px rgba(155,92,255,.6)!important}
+#profile .profile-level-track{background:rgba(255,255,255,.1)!important; border-radius:99px}
+#profile .profile-level-track i{background:linear-gradient(90deg,#ffd76a,#ff9d1c)!important; border-radius:99px; box-shadow:0 0 12px rgba(255,157,28,.55)}
+#profile .profile-level-row>b{color:#cfe0ff}
+#profile .level-badge{background:linear-gradient(180deg,#ffd76a,#ff9d1c)!important; color:#3a2400!important; box-shadow:0 4px 14px rgba(255,157,28,.4)!important; text-shadow:none}
+#profile .vip-button{
+  border-radius:999px!important; border:0!important;
+  background:linear-gradient(180deg,#ffe03a,#ffbf1c)!important; color:#3a2400!important;
+  font-weight:900!important; letter-spacing:.04em;
+  box-shadow:0 10px 26px rgba(255,176,28,.35), inset 0 1px 0 rgba(255,255,255,.6)!important;
+  cursor:pointer; transition:transform .18s;
+}
+#profile .vip-button:hover{transform:translateY(-2px)}
+#profile .share-button{
+  border-radius:999px!important; border:1px solid rgba(255,255,255,.18)!important;
+  background:rgba(255,255,255,.07)!important; color:#e7ecff!important; font-weight:800!important;
+  cursor:pointer; transition:background .18s;
+}
+#profile .share-button:hover{background:rgba(255,255,255,.12)!important}
+
+/* ---------- leagues + stats: glass tiles ---------- */
+#profile .league-icon{border-radius:16px!important; border:0!important; box-shadow:0 12px 28px rgba(0,0,0,.4)!important; text-shadow:none!important}
+#profile .league-icon.current{background:linear-gradient(145deg,#8b4bff,#5d2bd6)!important}
+#profile .league-icon.highest{background:linear-gradient(145deg,#ffd76a,#ff9d1c)!important; color:#3a2400!important}
+#profile .league-block small{color:#8ea6d8!important; text-transform:uppercase; letter-spacing:.1em; font-size:13px!important}
+#profile .league-block b{color:#ffd76a!important}
+#profile .stats-grid{gap:12px!important}
+#profile .profile-stat{
+  background:rgba(255,255,255,.045)!important; border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:14px!important; padding:12px 14px!important;
+  transition:background .18s,border-color .18s,transform .18s;
+}
+#profile .profile-stat:hover{background:rgba(255,198,61,.08)!important; border-color:rgba(255,198,61,.32)!important; transform:translateY(-2px)}
+#profile .profile-stat small{color:#8ea6d8!important; font-size:12px!important; text-transform:uppercase; letter-spacing:.08em}
+#profile .profile-stat strong{color:#fff!important}
+
+/* ---------- detail (medals) view ---------- */
+#profile .profile-detail-card{
+  background:linear-gradient(150deg,rgba(17,32,70,.88),rgba(9,18,42,.92))!important;
+  border:1px solid rgba(255,255,255,.1)!important; border-radius:22px!important;
+  box-shadow:0 30px 70px rgba(0,0,0,.45)!important;
+}
+#profile .profile-detail-grid>div{background:rgba(255,255,255,.045)!important; border:1px solid rgba(255,255,255,.08)!important; border-radius:14px!important}
+#profile .profile-detail-grid small{color:#8ea6d8!important}
+
+/* ---------- avatar studio ---------- */
+#profile .avatar-studio .panel,
+#profile .profile-studio-view .panel{
+  background:linear-gradient(150deg,rgba(17,32,70,.88),rgba(9,18,42,.92))!important;
+  border:1px solid rgba(255,255,255,.1)!important; border-radius:22px!important;
+  box-shadow:0 26px 60px rgba(0,0,0,.42)!important;
+}
+#profile .profile-studio-heading h2{color:#fff; letter-spacing:.02em}
+#profile .profile-studio-heading .eyebrow{color:#ffd76a!important; letter-spacing:.2em}
+#profile .profile-studio-back{
+  border-radius:999px!important; border:1px solid rgba(255,255,255,.16)!important;
+  background:rgba(255,255,255,.06)!important; color:#e7ecff!important; font-weight:800!important;
+  transition:background .18s;
+}
+#profile .profile-studio-back:hover{background:rgba(255,198,61,.14)!important}
+#profile .studio-tab{
+  border-radius:999px!important; border:1px solid rgba(255,255,255,.12)!important;
+  background:rgba(255,255,255,.05)!important; color:#dbe7ff!important; font-weight:800!important;
+  transition:background .18s,border-color .18s,color .18s;
+}
+#profile .studio-tab.active{
+  background:linear-gradient(120deg,rgba(255,198,61,.26),rgba(255,157,28,.12))!important;
+  border-color:rgba(255,198,61,.55)!important; color:#ffd76a!important;
+}
+#profile .primary-btn{
+  border-radius:999px!important; border:0!important;
+  background:linear-gradient(180deg,#ffd76a,#ff9d1c)!important; color:#3a2400!important; font-weight:900!important;
+  box-shadow:0 10px 26px rgba(255,176,28,.35)!important; cursor:pointer;
+}
+#profile .style-grid>button{
+  transition:transform .18s,box-shadow .18s,border-color .18s;
+}
+#profile .style-grid>button:hover{transform:translateY(-3px)}
+#profile #studioAvatar h3, #profile .avatar-studio h3{color:#fff}
+
+/* personalize chrome (#cwPers) — glass over aurora */
+#profile #cwPers .cwMain{background:linear-gradient(150deg,rgba(17,32,70,.88),rgba(9,18,42,.92))!important;box-shadow:0 26px 60px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.07)!important;border:1px solid rgba(255,255,255,.1)!important}
+#profile #cwPers .cwLeft,#profile #cwPers .cwRight{background:rgba(255,255,255,.04)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important}
+#profile #cwPers .cwTabs button{background:rgba(255,255,255,.06)!important;border:1px solid rgba(255,255,255,.14)!important;color:#dbe7ff!important;text-shadow:none!important}
+#profile #cwPers .cwTabs button.active{background:linear-gradient(120deg,rgba(255,198,61,.26),rgba(255,157,28,.12))!important;color:#ffd76a!important;border-color:rgba(255,198,61,.5)!important;box-shadow:inset 0 2px rgba(255,255,255,.25)!important}
+#profile #cwPers .cwSideBtn{background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.1)!important;box-shadow:none!important;color:#dbe7ff!important;text-shadow:none!important}
+#profile #cwPers .cwSideBtn.active{background:linear-gradient(120deg,rgba(255,198,61,.3),rgba(255,157,28,.12))!important;color:#ffd76a!important;border-color:rgba(255,198,61,.55)!important}
+
+/* ---------- dashboard: premium micro-polish ---------- */
+#finalDashboard .cw2-ava{animation:cw2AvaGlow 3.4s ease-in-out infinite}
+#finalDashboard .cw2-dot{animation:cw2DotPulse 2.4s ease-in-out infinite}
+@keyframes cw2DotPulse{
+  0%,100%{box-shadow:0 3px 8px rgba(0,0,0,.4)}
+  50%{box-shadow:0 3px 8px rgba(0,0,0,.4),0 0 12px rgba(255,93,110,.8)}
+}
+#finalDashboard .cw2-card:hover{border-color:rgba(255,216,106,.55)!important}
+#finalDashboard .cw2-dockbtn:hover .cw2-dockicon{filter:drop-shadow(0 0 10px rgba(255,198,61,.45))}
+@media (prefers-reduced-motion:reduce){
+  #profile .profile-avatar-large, #finalDashboard .cw2-ava, #finalDashboard .cw2-dot{animation:none!important}
+}
+</style>
+
 </body></html>
