@@ -1703,7 +1703,8 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   function champSave(){
     try{
       localStorage.setItem(CHAMP_KEY, JSON.stringify(champState));
-      localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(champState));
+      var __prev={};try{__prev=JSON.parse(localStorage.getItem('wordunoLocalProfile_guest_local'))||{}}catch(e){}
+      localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(Object.assign({},__prev,champState)));
     }catch(e){}
   }
   function champRender(){
@@ -2027,6 +2028,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 })();
 </script>
     <script src="cw2-home.js?v=4" defer></script>
+    <script src="cw2-avatar-sync.js?v=2" defer></script>
     <script src="game/pwa.js" defer></script>
 
 <style id="cw2ProfilePolish">
@@ -2164,6 +2166,7 @@ body.profile-open #profile .profile-stats{display:block!important}
   animation:cw2AvaGlow 3.4s ease-in-out infinite;
 }
 #profile .profile-avatar-large img{border-radius:50%!important; background:#0a1a3c}
+#profile .profile-avatar-large .avatar-wrap{width:100%!important;height:100%!important;border-radius:50%!important;overflow:hidden}
 @keyframes cw2AvaGlow{
   0%,100%{box-shadow:0 12px 36px rgba(255,157,28,.35), 0 0 0 1px rgba(255,255,255,.08)}
   50%{box-shadow:0 16px 52px rgba(255,157,28,.55), 0 0 0 1px rgba(255,255,255,.12)}
