@@ -296,7 +296,8 @@ function seatArt(p) {
          '--hy:' + ((f[2] - f[0] / 200) * 100).toFixed(3) + '%;--hw:' + f[0] + '%;' +
          '--hm:url(../assets/frames/' + p.frame + '_hole.webp)"';
   }
-  h += '><img src="../assets/avatars/' + p.portrait + '.webp" alt=""></span>';
+  const img = ['alien','genie','ghost','knight','ninja','pirate','pumpkin-boy','pumpkin-girl','robot','scholar','vampire','wizard','yeti'].includes(p.portrait) ? p.portrait : 'pumpkin-boy';
+  h += '><img src="../assets/avatars/' + img + '.webp" alt=""></span>';
   if (p.frame) h += '<img class="aframe" src="../assets/frames/' + p.frame + '.webp" alt="">';
   return h;
 }

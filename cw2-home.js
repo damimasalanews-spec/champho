@@ -54,6 +54,7 @@
     });
     // currency chips open the shop
     document.querySelectorAll('.cw2-chip[data-cw2]').forEach(el=>{
+      if(el.id==='homeBank')return; // bank routes to the season pass via the map above
       el.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();go('shop')});
     });
     // free rewards store -> shop (featured)
