@@ -12,13 +12,18 @@
        The inline champ scripts own #homeCoins/#homeGems/#homeName;
        we mirror the profile name into the visible header. */
     function paintHeader(){
+      /* Prefer the identity recorded by this page's own guest flow. The gzip
+         bundle keeps its own 'Player' default in `profile`, which used to
+         overwrite a guest's name in the header. */
+      let name='Guest';
       try{
+        const u=JSON.parse(localStorage.getItem('wordunoLocalUser')||'null')||{};
         const p=(typeof profile!=='undefined'&&profile)?profile:{};
-        const name=p.displayName||'Guest';
-        const vis=$('fdName'),hid=$('homeName');
-        if(vis&&vis.textContent!==name)vis.textContent=name;
-        if(hid&&hid.textContent!==name)hid.textContent=name;
+        name=u.displayName||p.displayName||'Guest';
       }catch(e){}
+      const vis=$('fdName'),hid=$('homeName');
+      if(vis&&vis.textContent!==name)vis.textContent=name;
+      if(hid&&hid.textContent!==name)hid.textContent=name;
     }
     paintHeader();
     new MutationObserver(paintHeader).observe(document.body,{subtree:true,childList:true,characterData:true});

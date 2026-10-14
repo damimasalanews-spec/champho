@@ -1875,7 +1875,12 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   }
   document.addEventListener('DOMContentLoaded',function(){
     var g=document.getElementById('guestBtn');
-    if(g) g.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(typeof window.enterGuest==='function') window.enterGuest(); else enterGuestFallback();},true);
+    // The gzip bundle still exports an old window.enterGuest which mints a new
+    // uid on every click ('guest_<timestamp>') and jumps straight into the game
+    // screen, so a returning guest loses their saved coins and a fresh guest
+    // lands on a broken screen. This page owns guest entry: the fallback seeds
+    // the stable 'guest_local' identity once and keeps every save consistent.
+    if(g) g.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(typeof window.enterGuestFallback==='function') window.enterGuestFallback(); else if(typeof window.enterGuest==='function') window.enterGuest();},true);
 
     document.addEventListener('click',function(e){
       var id=e.target && e.target.id;
@@ -2401,6 +2406,6 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .rpass-tier{grid-template-columns:44px 1.2fr 1.2fr 74px 86px}
 @media(max-width:640px){.rpass-tier{grid-template-columns:34px 1fr 1fr 60px 66px;padding:8px 7px}}
 </style>
-    <script src="cw2-home.js?v=3" defer></script>
+    <script src="cw2-home.js?v=4" defer></script>
     <script src="game/pwa.js" defer></script>
 </body></html>
