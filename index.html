@@ -1846,7 +1846,21 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       localStorage.setItem('champwordLocalUser', JSON.stringify(guest));
       // seed the starting balance only on the very first run. Re-seeding on every
       // entry is what reset a guest's earned coins back to the starting figure.
-      if(!localStorage.getItem(CHAMP_KEY)){
+      // The gate is "virgin save", not just "save missing": an earlier build
+      // could leave an all-zero profile behind (the stale bundle's unload
+      // handler re-saved a fresh champState after a wipe), and key-existence
+      // alone would keep such a visitor locked at 0 coins forever. A profile
+      // with any xp, wins, games or activity is real; only a fully untouched
+      // one gets the starter balance.
+      var virgin=true;
+      try{
+        var cur=JSON.parse(localStorage.getItem(CHAMP_KEY)||'null');
+        if(cur && typeof cur==='object'){
+          virgin=cur.coins==0 && cur.gems==0 && cur.xp==0 && cur.wins==0 && cur.games==0
+            && (!Array.isArray(cur.activity)||cur.activity.length===0);
+        }
+      }catch(se){ virgin=localStorage.getItem(CHAMP_KEY)==null; }
+      if(virgin){
         var seed={displayName:'Guest',coins:12480,gems:320,level:12,xp:680,wins:0,games:0,activity:[]};
         localStorage.setItem(CHAMP_KEY, JSON.stringify(seed));
         localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(seed));
