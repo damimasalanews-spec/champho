@@ -2,6 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <!-- White-screen guard, part 1: record the first script-load/JS error BEFORE
+         anything else runs. The paint guard at the end of the body reads this list
+         when it has to fall back, so a device-specific crash is diagnosable
+         from what the page paints instead of a blank white screen. -->
+    <script id="cwEarlyErr">
+    (function(){
+      try{
+        window.__cwErrors=[];
+        window.addEventListener('error',function(e){
+          var t=e&&e.target;
+          if(t&&(t.tagName==='SCRIPT'||t.tagName==='LINK'||t.tagName==='IMG')){
+            try{ if(e.preventDefault) e.preventDefault(); }catch(pe){}
+            window.__cwErrors.push('load '+(t.src||t.href||t.tagName));
+            return;
+          }
+          window.__cwErrors.push('js '+(e&&e.message||'error at '+(e&&e.filename||'?')+':'+(e&&e.lineno||'?')));
+        },true);
+        window.addEventListener('unhandledrejection',function(e){
+          var r=e&&e.reason; window.__cwErrors.push('rej '+String((r&&r.message)||r||'')); 
+        });
+      }catch(e){}
+    })();
+    </script>
     <!-- Installable app + offline: see manifest.json, sw.js and game/pwa.js.
          The manifest and the service worker are what make this a real app on a phone
          (home-screen icon, standalone window, landscape lock) and what keeps it
@@ -2420,6 +2443,55 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 .rpass-tier{grid-template-columns:44px 1.2fr 1.2fr 74px 86px}
 @media(max-width:640px){.rpass-tier{grid-template-columns:34px 1fr 1fr 60px 66px;padding:8px 7px}}
 </style>
+    <!-- White-screen guard, part 2: every screen starts hidden and only the boot
+         code adds a body-* class. If that code ever dies on a particular device
+         (worker fallback, extension, an error in one of the scripts above), the
+         visitor sees pure white - the hall of nothing. This watcher runs after
+         boot has had plenty of chances and, if no screen is visible, forces the
+         login screen to paint and surfaces the recorded boot error on the page
+         itself, so a broken guest is one refresh away from a diagnosable screen
+         instead of an unexplainable one. -->
+    <script id="cwPaintGuardV1">
+    (function(){
+      'use strict';
+      function screenClssOk(){
+        return /(?:^|\s)(auth-open|app-open|profile-open|game-open)(?:\s|$)/.test(document.body.className);
+      }
+      function screenPainted(){
+        var s=document.querySelectorAll('.screen');
+        for(var i=0;i<s.length;i++){ if(!s[i].classList.contains('hidden')) return true; }
+        return false;
+      }
+      function paintAuth(){
+        try{
+          var s=document.querySelectorAll('.screen');
+          for(var i=0;i<s.length;i++){ if(s[i].id!=='auth') s[i].classList.add('hidden'); }
+          var a=document.getElementById('auth'); if(a) a.classList.remove('hidden');
+          document.body.classList.remove('app-open','profile-open','game-open');
+          document.body.classList.add('auth-open');
+          var errs=(window.__cwErrors&&window.__cwErrors.length)?window.__cwErrors.slice(0,3).join(' | '):'';
+          var r=document.createElement('div'); r.id='cwPaintGuardReport';
+          r.style.cssText='position:fixed;left:10px;right:10px;bottom:10px;z-index:2147483000;font:12px/1.5 monospace;'
+            +'background:rgba(10,12,20,.94);color:#ffd27a;border:1px solid rgba(255,210,122,.6);'
+            +'border-radius:10px;padding:9px 12px;max-height:42%;overflow:auto;word-break:break-word';
+          r.textContent=errs
+            ?('Champ Word saw a boot problem and recovered to this screen. Detail: '+errs)
+            :('Champ Word took too long to open a screen and recovered here. Try again; if it repeats, nothing was lost - this is the login screen.');
+          document.body.appendChild(r);
+        }catch(e){}
+      }
+      function check(){
+        if(!screenClssOk()||!screenPainted()) paintAuth();
+      }
+      /* after load, then progressively later - the gzip home bundle decodes on
+         slow phones for a while, so 1.5s really is the earliest sane check */
+      window.addEventListener('load',function(){ setTimeout(check,1200); });
+      setTimeout(check,1500);
+      setTimeout(check,3500);
+      setTimeout(check,8000);
+      window.__cwPaintCheck=check;
+    })();
+    </script>
     <script src="cw2-home.js?v=4" defer></script>
     <script src="game/pwa.js" defer></script>
 </body></html>
