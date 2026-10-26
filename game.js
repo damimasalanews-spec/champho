@@ -16,10 +16,7 @@
     var name=document.getElementById('homeName'); if(name) name.textContent='Guest';
     var q=document.getElementById('homeQuickPlay'); if(q) q.focus();
   }
-  /* the Royal Pass strip paints its wallet on window 'message' and on boot only;
-     entering as guest can land after that boot paint, so nudge one repaint in. */
   window.enterGuestFallback=enterGuestFallback;
-  try{ window.dispatchEvent(new Event('message')); }catch(e){}
 
   function openQuick(){
     var m=document.getElementById('homeQuickModal');
@@ -29,8 +26,9 @@
     var m=document.getElementById('homeQuickModal');
     if(m){m.classList.add('hidden');m.setAttribute('aria-hidden','true');}
   }
-  document.addEventListener('DOMContentLoaded',function(){      var g=document.getElementById('guestBtn');
-      if(g) g.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(typeof window.enterGuest==='function') window.enterGuest(); else enterGuestFallback();setTimeout(function(){try{window.dispatchEvent(new Event('message'))}catch(err){}},250);},true);
+  document.addEventListener('DOMContentLoaded',function(){
+    var g=document.getElementById('guestBtn');
+    if(g) g.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(typeof window.enterGuest==='function') window.enterGuest(); else enterGuestFallback();},true);
 
     document.addEventListener('click',function(e){
       var id=e.target && e.target.id;
