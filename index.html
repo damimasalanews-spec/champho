@@ -2422,4 +2422,77 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 </style>
     <script src="cw2-home.js?v=4" defer></script>
     <script src="game/pwa.js" defer></script>
+<style id="mobile-landscape-view">
+/* ============================================================
+   MOBILE FIX v2 — "always rotate to landscape view" (user decision).
+   The "Rotate to Landscape" gate is removed entirely. On a viewport
+   that measures portrait (phone held upright), the whole app is
+   turned 90° so it always shows the native landscape layout filling
+   the screen; holding the phone sideways drops the rotation and uses
+   that same landscape layout natively. Nothing portrait-specific.
+
+   Three mechanics make this work:
+   1. body becomes a landscape-sized box (100vh × 100vw on a portrait
+      viewport) rotated 90° — so the app's layout box IS landscape.
+   2. A transformed ancestor is the containing block for position:fixed
+      children, so every fixed/inset:0 screen keeps filling the app box.
+   3. Viewport-orientation media queries still evaluate against the
+      real portrait viewport, so every rule that hides screens because
+      of "portrait" is explicitly undone inside the portrait block.
+   ============================================================ */
+#orientationGate{display:none!important}
+
+/* The coded lobby is the real home UI: the inherited .final-screen
+   class made an old rule hide every new lobby child
+   (visibility:hidden; pointer-events:none) and show only unsized
+   artwork hotspots. Re-show the lobby and let its buttons receive
+   taps; the aurora is decoration and must not intercept taps. */
+#finalDashboard.final-screen .uno-home>*:not(.v37-master-art):not(.v37-hotspots){visibility:visible!important}
+#finalDashboard.final-screen .uno-home .cw2-shell{pointer-events:auto!important}
+#finalDashboard.final-screen .uno-home .cw2-rail{pointer-events:auto!important}
+#finalDashboard.final-screen .uno-home .cw2-aurora{pointer-events:none!important}
+#finalDashboard .v37-hotspots{display:none!important}
+
+@media (orientation:portrait){
+  html{background:#050d24;overflow:hidden!important}
+  /* rotate: body box = landscape on a portrait screen (dvh tracks the
+     real visual viewport when toolbar space changes; vh is fallback).
+     min-width/height:0 is required — other sheets set body min-height
+     to 100vh/100dvh, and min-height beats height when larger. */
+  body{position:fixed!important;top:0!important;left:0!important;margin:0!important;
+       width:100vh;height:100vw;
+       width:100dvh;height:100dvw;
+       min-width:0!important;min-height:0!important;
+       transform-origin:top left!important;
+       transform:rotate(90deg) translateY(-100%)!important;
+       overflow:hidden!important}
+  /* viewport-relative sizes inside a rotated app must follow the app box */
+  #app{width:100%!important;height:100%!important;min-width:0!important;min-height:0!important}
+  /* undo the portrait-orientation hides from the shipped sheets — but
+     conditionally on the app's own open state, so screens that are
+     genuinely closed (.hidden / overlay without .open) stay closed */
+  #finalDashboard:not(.hidden){display:block!important;width:100%!important;height:100%!important;min-height:0!important}
+  .final-screen:not(.hidden){display:block!important;width:100%!important;height:100%!important;min-height:0!important}
+  #champGameProOverlay.open{display:block!important;width:100%!important;height:100%!important;min-height:0!important}
+
+  /* fit the welcome card into its landscape app box: 94vw in the shipped
+     rule is the portrait viewport (the wrong axis here), so the shell
+     spans the long axis and its grid gets fr shares instead of an
+     auto column that can collapse the form to zero */
+  .auth-shell{min-height:0!important;height:100%!important;width:100%!important;max-width:980px!important;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)!important}
+  .auth-brand{padding:18px 22px!important}
+  .auth-brand h1{font-size:2.2rem!important;margin:6px 0 10px!important}
+  .auth-brand p{font-size:10px!important;max-width:300px!important}
+  .auth-brand>small{font-size:9px!important;margin-top:12px!important}
+  .auth-preview{margin:10px 0!important;gap:8px!important}
+  .preview-card{width:40px;height:56px;font-size:8px}
+  .auth-form{padding:14px 20px!important}
+  .auth-form h2{font-size:1.2rem!important;margin-bottom:4px!important}
+  .auth-sub{margin-bottom:10px!important;font-size:10px}
+  .auth-form input{padding:7px 10px!important;margin:3px 0!important;font-size:12px}
+  .auth-actions{gap:8px!important}
+  .auth-actions button,.guest-btn{padding:9px 10px!important;font-size:12px}
+  .auth-form #authMessage{min-height:18px!important;margin-top:4px!important;font-size:10px}
+}
+</style>
 </body></html>
