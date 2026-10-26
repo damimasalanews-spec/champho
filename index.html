@@ -68,6 +68,27 @@
 body.game-open{background:#0d3807!important}
 </style>
 
+<style id="orientation-gate-relief">
+/* Mouse/keyboard devices are never gated: an orientation media query says nothing
+   about whether the player CAN rotate, and desktop windows frequently measure
+   portrait. Gating those froze the login page under an untappable overlay. */
+@media (orientation:portrait) and (hover:hover) and (pointer:fine){
+  #orientationGate{display:none!important}
+  /* and the portrait media rules also hide the dashboard - without this a fine
+     pointer portrait window gets through login into a blank app again. */
+  body.app-open #finalDashboard{display:block!important}
+}
+/* Any device (touch included) can permanently escape the gate via Continue. */
+body[data-gate-off] #orientationGate{display:none!important}
+/* A portrait screen that escaped the gate must still be able to show the app,
+   rather than hitting the same wall from the inside at the next screen. */
+@media (orientation:portrait){
+  body[data-gate-off] #finalDashboard{display:block!important}
+  body[data-gate-off] #orientationGate{display:none!important}
+}
+#gateContinue{margin-top:18px;border:0;background:#ffbd19;color:#4a2400;font-weight:900;font-size:15px;padding:13px 24px;border-radius:14px;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+#gateContinue:active{transform:translateY(1px)}
+</style>
 <style id="global-landscape-classic-guard">
 /* Keep the entire game landscape-only, including the full-screen Classic overlay. */
 @media (max-width:900px) and (orientation:portrait){
@@ -1714,7 +1735,33 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   <div class="champ-game-pro-bar"><button id="champGameBack" type="button">‹ HOME</button><span>CHAMP WORD • CLASSIC</span></div>
   <iframe id="champGameProFrame" title="CHAMP WORD Classic game" allow="autoplay" referrerpolicy="no-referrer"></iframe>
 </div>
-<div id="orientationGate" aria-hidden="true"><div class="orientation-card"><div class="rotate-icon">↻</div><h2>Rotate to Landscape</h2><p>Champ Word is designed for landscape play on phones.</p><small>Turn your phone sideways to continue.</small></div></div>
+<div id="orientationGate" aria-hidden="true"><div class="orientation-card"><div class="rotate-icon">↻</div><h2>Rotate to Landscape</h2><p>Champ Word is designed for landscape play on phones.</p><small>Turn your phone sideways to continue.</small><button id="gateContinue" class="gate-continue" type="button">Continue on this screen →</button></div></div>
+<script>
+(function(){
+  /* The portrait gate used to trap devices it has no business gating: a desktop
+     with a window taller than wide, a tablet that ignores rotation, or a phone
+     with rotation locked all saw "Rotate to Landscape" with nothing tappable
+     behind OR inside it - exactly "I can't click the buttons". Two reliefs:
+     mouse/keyboard devices skip the gate entirely, and anyone gated on a screen
+     that physically cannot rotate gets a permanent Continue button. */
+  try{ if(localStorage.getItem('champwordGateOff')==='1') document.body.setAttribute('data-gate-off','1'); }catch(e){}
+  /* Decisive JS check rather than yet another media rule: the home bundle injects
+     its own #orientationGate{display:flex!important} style later in the cascade,
+     which ties and beats any same-specificity override by order. But a rule scoped
+     by body[data-gate-off] has strictly higher specificity, so it wins regardless
+     of when or where the bundle's CSS was injected. */
+  try{ if(matchMedia('(hover:hover) and (pointer:fine)').matches && !document.body.hasAttribute('data-gate-off')) document.body.setAttribute('data-gate-off','1'); }catch(e){}
+  document.addEventListener('click',function(e){
+    var t=e.target; if(t&&t.closest&&t.closest('#gateContinue')){
+      e.preventDefault(); e.stopPropagation();
+      try{ localStorage.setItem('champwordGateOff','1'); }catch(err){}
+      document.body.setAttribute('data-gate-off','1');
+      var a=document.getElementById('auth'); if(a) a.classList.remove('hidden');
+      document.body.classList.add('auth-open');
+    }
+  },true);
+})();
+</script>
 <footer>Champ Word · Play · Connect · Customize · Compete</footer>
 </div>
 <script>
@@ -2471,12 +2518,14 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
           document.body.classList.add('auth-open');
           var errs=(window.__cwErrors&&window.__cwErrors.length)?window.__cwErrors.slice(0,3).join(' | '):'';
           var r=document.createElement('div'); r.id='cwPaintGuardReport';
-          r.style.cssText='position:fixed;left:10px;right:10px;bottom:10px;z-index:2147483000;font:12px/1.5 monospace;'
+          r.style.cssText='position:fixed;left:10px;right:10px;bottom:10px;z-index:2147483000;pointer-events:none;font:12px/1.5 monospace;'
             +'background:rgba(10,12,20,.94);color:#ffd27a;border:1px solid rgba(255,210,122,.6);'
             +'border-radius:10px;padding:9px 12px;max-height:42%;overflow:auto;word-break:break-word';
           r.textContent=errs
             ?('Champ Word saw a boot problem and recovered to this screen. Detail: '+errs)
             :('Champ Word took too long to open a screen and recovered here. Try again; if it repeats, nothing was lost - this is the login screen.');
+          /* click-through: a diagnostic banner must never swallow the taps of the
+             screen it rescued - that was a whole new way to block the login. */
           document.body.appendChild(r);
         }catch(e){}
       }
