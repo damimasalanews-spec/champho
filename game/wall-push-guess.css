@@ -1,0 +1,494 @@
+﻿/* ===========================================================================
+   WALL PUSH â€” THE STANDOFF
+   ---------------------------------------------------------------------------
+   One screen for both halves of the post-match. The arena (fighters, slab,
+   push-power meters, name plates) is the duel module's; the deck below it is
+   this module's. They share a single 1600x900 stage so the picture of the wall
+   moving and the guessing that moves it are never in two different places.
+
+   Everything here is scoped to #wpOverlay, so no rule can reach classic mode or
+   the card table, and none of it applies while the reel is playing instead.
+   =========================================================================== */
+
+/* Arena chrome in standoff mode -------------------------------------------------
+   The name plates sat under the fighters and said the same thing as the chips
+   above them, in the strip the deck now needs. Standing them down frees
+   everything from the floor line (624) down, so the deck grows from 182 to 226
+   and the picture with it. */
+#wpOverlay.standoff .wp-plate { display: none }
+/* The two rails already carried the avatars' names, but they sat a clear band
+   below the headline. Level with it, the three read as one header: each side's
+   name and bar either side of the matchup they belong to.
+
+   92px is not a guess: measured against the banner, the headline block opens on
+   its small "GUESS THE CLIPART" kicker at y=98 and the rails opened at y=110.
+   Matching the tops puts the rails' name row on the kicker's line and drops the
+   bars into the title's band, so the strip reads level left to right. */
+#wpOverlay.standoff .wp-meter { top: 92px }
+#wpOverlay.standoff .wp-meter .mt {
+  font-size: 15px; letter-spacing: 1.2px; margin-bottom: 7px;
+}
+/* The coin card is a receipt, not a headline. "HOLDS THE WALL" and "FINALIST 2
+   TAKES IT" both announced a result the payout beat has already shown, so the
+   line is dropped and the card opens on the figures. */
+#wpOverlay.standoff #wpVerdict { display: none }
+#wpOverlay.standoff .wp-rank.name {
+  padding: 8px 20px; font-size: 16px; font-weight: 1000;
+  letter-spacing: .6px; text-transform: none;
+}
+/* the banner is an intro flash that fades itself out; here it is the headline
+   that names the pair, so it stays put for the whole duel */
+#wpOverlay.standoff .wp-banner { top: 92px }
+#wpOverlay.standoff .wp-banner .bk { font-size: 11px; letter-spacing: 5px }
+#wpOverlay.standoff .wp-banner .bt {
+  font-size: 36px; font-style: normal; letter-spacing: .4px; text-shadow: 0 5px 0 #000000a6;
+}
+#wpOverlay.standoff .wp-banner.on {
+  animation: none; opacity: 1; transform: translateX(-50%) scale(1);
+}
+
+/* ------------------------------------------------------------- the payout
+   The badge takes over the middle of the arena the way a match-3 payout does:
+   the tier escalates with the amount, the ribbon carries the counting number,
+   and each side shows its own + or -. */
+#wpOverlay .wp-meter { transition: opacity .3s ease }
+#wpOverlay.awarding .wp-banner { opacity: 0 }
+#wpOverlay.awarding .wp-meter { opacity: .22 }
+
+#wpOverlay .wp-award {
+  position: absolute; inset: 0; z-index: 44; cursor: pointer;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 168px;
+}
+.wp-award .wa-card { text-align: center; animation: waIn .42s cubic-bezier(.2, 1.3, .3, 1) both }
+@keyframes waIn { from { transform: translateY(20px) scale(.8); opacity: 0 } to { transform: none; opacity: 1 } }
+
+.wp-award .wa-tier {
+  font-size: 40px; font-weight: 1000; font-style: italic; line-height: 1;
+  letter-spacing: 2px; color: #ffe9a8;
+  text-shadow: 0 3px 0 #c07f18, 0 6px 0 #8a5410, 0 12px 22px #000000c4;
+}
+.wp-award .wa-tier.big { font-size: 52px }
+.wp-award .wa-tier.super {
+  font-size: 56px; color: #eaf5ff;
+  text-shadow: 0 3px 0 #3d7cc0, 0 6px 0 #234f80, 0 0 26px #7cc0ff, 0 12px 24px #000000c4;
+}
+.wp-award .wa-tier.none { font-size: 30px; color: #cfe0d6; text-shadow: 0 3px 0 #0000008a }
+.wp-award .wa-tier.pop { animation: waPop .34s ease both }
+@keyframes waPop { 0% { transform: scale(1) } 45% { transform: scale(1.18) } 100% { transform: scale(1) } }
+
+.wp-award .wa-ribbon {
+  position: relative; display: inline-block; margin-top: 9px;
+  padding: 6px 46px; border-radius: 10px;
+  background: linear-gradient(180deg, #59aef0, #2b6cb4);
+  box-shadow: 0 6px 0 #1b4778, inset 0 2px #ffffff70, 0 14px 26px #000000a0;
+}
+/* the ribbon's forked tails */
+.wp-award .wa-ribbon::before,
+.wp-award .wa-ribbon::after {
+  content: ""; position: absolute; top: 9px; width: 28px; height: 32px;
+  background: linear-gradient(180deg, #3f8ed2, #245b96);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 36% 50%);
+}
+.wp-award .wa-ribbon::before { left: -21px }
+.wp-award .wa-ribbon::after { right: -21px; transform: scaleX(-1) }
+.wp-award .wa-num {
+  font-size: 36px; font-weight: 1000; font-style: italic; color: #fff;
+  text-shadow: 0 2px 0 #1b4778; font-variant-numeric: tabular-nums;
+}
+
+.wp-award .wa-row {
+  margin-top: 13px; display: flex; align-items: center; justify-content: center; gap: 16px;
+  font-size: 18px; font-weight: 900;
+}
+.wp-award .wa-delta {
+  display: flex; align-items: center; gap: 8px; padding: 7px 16px;
+  border-radius: 999px; background: #02160ec9; border: 1px solid #ffffff2e;
+}
+.wp-award .wa-delta b { font-size: 24px; font-variant-numeric: tabular-nums }
+.wp-award .wa-delta.plus { color: #d8ffe9; border-color: #20d98a8a }
+.wp-award .wa-delta.plus b { color: #4dff9e; text-shadow: 0 2px 0 #0d5c30 }
+.wp-award .wa-delta.minus { color: #ffe3e6; border-color: #ff4d628a }
+.wp-award .wa-delta.minus b { color: #ff7c8c; text-shadow: 0 2px 0 #7a1622 }
+/* on its own the mint label washed out against the felt; it needs its own plate */
+.wp-award .wa-tag {
+  font-size: 12px; letter-spacing: 2px; color: #d9fff0;
+  padding: 6px 14px; border-radius: 999px;
+  background: #02160ed9; border: 1px solid #ffffff26;
+  text-shadow: 0 2px 4px #000000a6;
+}
+
+.wp-award .wa-skip {
+  position: absolute; right: 44px; bottom: 242px;
+  font-size: 11px; letter-spacing: 1px; color: #cfe0d699;
+}
+
+#wpOverlay .wp-deck {
+  position: absolute; left: 54px; right: 54px; top: 660px; height: 226px;
+  display: flex; align-items: stretch; gap: 18px; padding: 12px;
+  border-radius: 20px; z-index: 46;
+  background: linear-gradient(180deg, rgba(16, 24, 38, .94), rgba(8, 12, 20, .97));
+  border: 1px solid #ffffff2e;
+  box-shadow: 0 18px 44px #000000a8, inset 0 1px #ffffff1f;
+  opacity: 0; transform: translateY(12px);
+  transition: opacity .3s ease, transform .3s ease;
+}
+#wpOverlay.standoff.on .wp-deck { opacity: 1; transform: none }
+
+/* the coin card is the end of a pair: the deck dims behind it rather than
+   fighting it for the same 180px */
+#wpOverlay.standoff .wp-ledger.on ~ .wp-deck { opacity: .08; pointer-events: none }
+
+/* --------------------------------------------------- green notification tabs
+   Every correct answer pops a green GOT IT! tab over the answerer's side of
+   the deck; the tab that wins the round (or the game) says what was won. */
+#wpOverlay .wd-tab {
+  position: absolute; z-index: 5; padding: 7px 16px 8px; border-radius: 12px;
+  background: linear-gradient(180deg, #2fe08d, #149a5a);
+  border: 1px solid #9df5c9; color: #062b18;
+  font-size: 15px; font-weight: 1000; font-style: italic; letter-spacing: 1px;
+  box-shadow: 0 8px 22px #000000a6, inset 0 1px 0 #d9ffe9;
+  opacity: 0; pointer-events: none; white-space: nowrap;
+  transform: translateY(10px) scale(.85);
+}
+#wpOverlay .wd-tab.show { animation: wdTab .42s cubic-bezier(.2, 1.3, .3, 1) forwards }
+@keyframes wdTab { to { opacity: 1; transform: translateY(0) scale(1) } }
+#wpOverlay .wd-tab.l { left: 224px; top: -14px; transform-origin: left bottom }
+#wpOverlay .wd-tab.r { right: 224px; top: -14px; transform-origin: right bottom }
+
+/* -------------------------------------- countdown urgency on the whole deck
+   The last five seconds of a picture are a different animal from the first
+   twenty-five: the deck pulses red and the clock's scale lifts, so the panic
+   is on the furniture, not just the little number. */
+.wp-deck.urgent { animation: wdUrgent .9s ease-in-out infinite }
+@keyframes wdUrgent {
+  0%, 100% { border-color: #ffffff2e; box-shadow: 0 18px 44px #000000a8, inset 0 1px #ffffff1f }
+  50% { border-color: #ff4d62b3; box-shadow: 0 18px 44px #000000a8, 0 0 26px #ff4d624d, inset 0 1px #ff8a9533 }
+}
+.wp-deck.urgent .wd-clock-top b { color: #ff4d62; animation: wdBeat .5s infinite }
+.wp-deck.urgent .wd-bar i { background: linear-gradient(90deg, #ff8a95, #ff4d62) !important }
+
+/* ------------------------------------------------------------------ picture */
+.wp-deck .wd-art {
+  position: relative; flex: 0 0 auto; width: 200px; height: 200px;
+  border-radius: 18px; overflow: hidden; z-index: 1;
+  background: radial-gradient(circle at 50% 40%, #16496f, #071a2c 72%);
+  border: 1px solid #ffffff24;
+}
+.wp-deck .wd-art img {
+  position: absolute; inset: 8px; width: calc(100% - 16px); height: calc(100% - 16px);
+  object-fit: contain; filter: drop-shadow(0 8px 14px #000000a0);
+}
+.wp-deck .wd-art img.pop { animation: wdPop .44s cubic-bezier(.2, .9, .25, 1) both }
+.wp-deck .wd-art img.solved { animation: wdSolved .5s ease both }
+/* the golden picture: a real prize with a glow you can see across the room */
+.wp-deck .wd-art img.golden { animation: wdGolden 1.6s ease-in-out infinite }
+@keyframes wdGolden {
+  0%, 100% { filter: drop-shadow(0 8px 14px #000000a0) drop-shadow(0 0 6px #ffd24a00) }
+  50% { filter: drop-shadow(0 8px 14px #000000a0) drop-shadow(0 0 22px #ffd24acc) }
+}
+.wp-deck .wd-art::after {
+  /* the chip that names the prize while the picture is golden */
+  content: "POWER UP!"; position: absolute; right: 10px; top: 10px; z-index: 2;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 9px; font-weight: 1000; letter-spacing: 1.2px;
+  color: #25170a; background: linear-gradient(180deg, #ffe08a, #f5b53c);
+  box-shadow: 0 3px 8px #000000a6; opacity: 0; transition: opacity .3s ease;
+}
+.wp-deck .wd-art.golden-art::after { opacity: 1 }
+.wp-deck .wd-blanks.golden .wd-blank { border-color: #ffd66b; background: #0c3a29 }
+.wp-deck .wd-side.shielded { border-color: #7cc0ff; background: #072a40aa; animation: wdShield .5s ease 3 }
+@keyframes wdShield { 50% { box-shadow: 0 0 18px #7cc0ffaa } }
+@keyframes wdPop { from { opacity: 0; transform: scale(.8) } to { opacity: 1; transform: scale(1) } }
+@keyframes wdSolved { 0%, 100% { transform: scale(1) } 45% { transform: scale(1.08) } }
+.wp-deck .wd-chip {
+  position: absolute; left: 10px; top: 10px; z-index: 2; padding: 4px 11px;
+  border-radius: 999px; font-size: 10px; font-weight: 900; letter-spacing: 1.1px;
+  background: #040f0bd9; border: 1px solid #ffffff2e; color: #ffd66b;
+}
+
+/* ------------------------------------------------------------ word + feed */
+.wp-deck .wd-mid {
+  flex: 1 1 auto; min-width: 0;
+  display: flex; flex-direction: column; gap: 7px; justify-content: center;
+}
+.wp-deck .wd-head { display: flex; align-items: center; gap: 10px }
+.wp-deck .wd-title {
+  flex: 1 1 auto; text-align: center; font-size: 10px;
+  letter-spacing: 2px; color: #9fe8c6; white-space: nowrap;
+}
+/* the rivalry line sits under the title inside the header's middle column */
+.wp-deck .wd-midhead {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  flex: 1 1 auto; min-width: 0;
+}
+.wp-deck .wd-rivalry {
+  font-size: 8px; letter-spacing: 1.4px; color: #cfe0d6;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+}
+/* the title chip a player's wins have earned */
+.wp-deck .wd-tchip {
+  font-size: 8px; font-weight: 1000; letter-spacing: 1px; color: #ffd66b;
+  padding: 2px 7px; border-radius: 999px; background: #3a2a05; border: 1px solid #ffd66b59;
+  white-space: nowrap;
+}
+.wp-deck .wd-side {
+  display: flex; align-items: center; gap: 8px; padding: 5px 11px;
+  border-radius: 999px; font-size: 13px; font-weight: 800; white-space: nowrap;
+  background: #04241a99; border: 1px solid #ffffff24;
+}
+.wp-deck .wd-side b { max-width: 156px; overflow: hidden; text-overflow: ellipsis }
+.wp-deck .wd-side.win { border-color: #20d98a; background: #07402baa }
+.wp-deck .wd-coins {
+  font-style: normal; font-size: 12px; font-weight: 900;
+  color: #ffd66b; font-variant-numeric: tabular-nums;
+}
+.wp-deck .wd-side .wd-pips { display: flex; gap: 4px }
+.wp-deck .wd-side .wd-pips i {
+  width: 15px; height: 7px; border-radius: 99px;
+  background: #0b3a29; border: 1px solid #ffffff24;
+}
+.wp-deck .wd-side .wd-pips i.on { background: #ffd66b; border-color: #ffe9a8 }
+
+/* the answer, as letter boxes. The seven hidden words used to be listed in the
+   rails as "N LETTERS / HIDDEN WORD"; the contest asks the same question in the
+   same place, just with the shape of the answer spelled out. */
+.wp-deck .wd-blanks { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center }
+.wp-deck .wd-blank {
+  width: 34px; height: 46px; border-radius: 10px;
+  display: grid; place-items: center;
+  font-size: 21px; font-weight: 1000; color: #eafff5;
+  background: #062a1e; border: 1px solid #ffffff26;
+}
+.wp-deck .wd-blank.on {
+  color: #ffd66b; border-color: #ffd66b; background: #0c3a29;
+  animation: wdLetter .34s cubic-bezier(.2, .9, .25, 1) both;
+}
+@keyframes wdLetter { from { transform: translateY(5px) scale(.78); opacity: .2 } to { transform: none; opacity: 1 } }
+
+.wp-deck .wd-feed {
+  display: flex; gap: 16px; justify-content: center;
+  font-size: 9px; color: #9fe8c6; min-height: 12px; white-space: nowrap;
+}
+.wp-deck .wd-feed span.ok { color: #20d98a; font-weight: 900 }
+.wp-deck .wd-feed span.no { color: #ff8a95 }
+
+/* -------------------------------------------------------- clock and answer */
+.wp-deck .wd-right {
+  flex: 0 0 452px; display: flex; flex-direction: column;
+  gap: 8px; justify-content: center;
+}
+.wp-deck .wd-clock { display: flex; flex-direction: column; gap: 4px }
+.wp-deck .wd-clock-top {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 9px; letter-spacing: 1.1px; color: #9fe8c6;
+}
+.wp-deck .wd-clock-top b { font-size: 22px; line-height: 1; font-weight: 1000; color: #ffd66b }
+.wp-deck .wd-clock.low .wd-clock-top b { color: #ff4d62; animation: wdBeat .7s infinite }
+@keyframes wdBeat { 50% { opacity: .3 } }
+.wp-deck .wd-rounds { margin-left: auto; display: flex; gap: 4px }
+.wp-deck .wd-rounds i {
+  width: 15px; height: 5px; border-radius: 99px;
+  background: #0b3a29; border: 1px solid #ffffff24;
+}
+.wp-deck .wd-rounds i.on { background: #ffd66b; border-color: #ffe9a8 }
+.wp-deck .wd-bar {
+  height: 8px; border-radius: 99px; overflow: hidden;
+  background: #03211a; border: 1px solid #ffffff24;
+}
+.wp-deck .wd-bar i {
+  display: block; height: 100%; width: 100%; transform-origin: left;
+  background: linear-gradient(90deg, #20d98a, #ffd66b);
+}
+.wp-deck .wd-clock.low .wd-bar i { background: linear-gradient(90deg, #ffd66b, #ff4d62) }
+
+.wp-deck .wd-form { display: flex; gap: 8px; align-items: center }
+.wp-deck .wd-form input {
+  flex: 1 1 auto; min-width: 0; height: 46px; padding: 0 14px;
+  border-radius: 12px; outline: none; font-family: inherit;
+  background: #04180f; border: 1px solid #ffffff2e;
+  color: #eafff5; font-size: 16px; font-weight: 700;
+}
+.wp-deck .wd-form input:focus { border-color: #ffd66b }
+.wp-deck .wd-form input::placeholder { color: #7fb79c; font-weight: 600 }
+.wp-deck .wd-form select {
+  height: 46px; padding: 0 10px; border-radius: 12px; font-family: inherit;
+  background: #04241a; border: 1px solid #ffffff2e;
+  color: #eafff5; font-size: 12px; font-weight: 800;
+}
+.wp-deck .wd-form button {
+  height: 46px; padding: 0 22px; border: 0; border-radius: 12px; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 1000; letter-spacing: 1px;
+  background: linear-gradient(180deg, #ffe08a, #f5b53c); color: #25170a;
+}
+.wp-deck .wd-form button:active { transform: translateY(1px) }
+.wp-deck .wd-msg { font-size: 11px; min-height: 14px; text-align: center; color: #9fe8c6 }
+.wp-deck .wd-msg.good { color: #20d98a }
+.wp-deck .wd-msg.bad { color: #ff8a95 }
+
+/* a wrong answer is still an event, and the message line is the last thing
+   anyone reads - so the deck itself says so */
+.wp-deck.shake { animation: wdShake .4s ease }
+@keyframes wdShake {
+  0%, 100% { transform: none }
+  20% { transform: translateX(-8px) }
+  45% { transform: translateX(6px) }
+  70% { transform: translateX(-3px) }
+}
+
+/* ============================================================== the finale
+   The receipt for the whole post-match: the payout video's badge and coin
+   spray, but it carries all four players and the avatar each of them played. */
+#wpFinal {
+  position: fixed; inset: 0; z-index: 9200; overflow: hidden;
+  display: grid; place-items: center; cursor: pointer;
+  background: radial-gradient(circle at 50% 38%, #0b3a2acc, #03100add 72%);
+  opacity: 0; transition: opacity .3s ease;
+}
+#wpFinal.on { opacity: 1 }
+
+#wpFinal .wf-card {
+  position: relative; z-index: 2; text-align: center; padding: 34px 52px 24px;
+  width: min(860px, 92vw); border-radius: 30px; font-family: inherit;
+  background: linear-gradient(180deg, rgba(6, 32, 24, .95), rgba(3, 16, 11, .97));
+  border: 1px solid #ffffff2e;
+  box-shadow: 0 30px 70px #000000b0, inset 0 1px #ffffff1f;
+  animation: wfIn .5s cubic-bezier(.2, 1.25, .3, 1) both;
+}
+@keyframes wfIn { from { transform: translateY(26px) scale(.86); opacity: 0 } to { transform: none; opacity: 1 } }
+
+#wpFinal .wf-kicker { font-size: 14px; letter-spacing: 7px; color: #9fe8c6 }
+#wpFinal .wf-tier {
+  margin-top: 6px; font-size: 66px; font-weight: 1000; font-style: italic;
+  line-height: 1; letter-spacing: 2px; color: #ffe9a8;
+  text-shadow: 0 4px 0 #c07f18, 0 8px 0 #8a5410, 0 16px 28px #000000c4;
+}
+#wpFinal .wf-tier.big { font-size: 76px }
+#wpFinal .wf-tier.super {
+  font-size: 82px; color: #eaf5ff;
+  text-shadow: 0 4px 0 #3d7cc0, 0 8px 0 #234f80, 0 0 34px #7cc0ff, 0 16px 30px #000000c4;
+}
+#wpFinal .wf-tier.pop { animation: wfPop .4s ease both }
+@keyframes wfPop { 0% { transform: scale(1) } 45% { transform: scale(1.16) } 100% { transform: scale(1) } }
+
+#wpFinal .wf-ribbon {
+  position: relative; display: inline-flex; align-items: baseline; gap: 10px;
+  margin-top: 14px; padding: 9px 64px; border-radius: 14px;
+  background: linear-gradient(180deg, #59aef0, #2b6cb4);
+  box-shadow: 0 7px 0 #1b4778, inset 0 2px #ffffff70, 0 14px 26px #000000a0;
+}
+#wpFinal .wf-ribbon::before,
+#wpFinal .wf-ribbon::after {
+  content: ""; position: absolute; top: 11px; width: 30px; height: 34px;
+  background: linear-gradient(180deg, #3f8ed2, #245b96);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 36% 50%);
+}
+#wpFinal .wf-ribbon::before { left: -22px }
+#wpFinal .wf-ribbon::after { right: -22px; transform: scaleX(-1) }
+#wpFinal .wf-num {
+  font-size: 52px; font-weight: 1000; font-style: italic; color: #fff;
+  text-shadow: 0 2px 0 #1b4778; font-variant-numeric: tabular-nums;
+}
+#wpFinal .wf-ribbon small { font-size: 12px; letter-spacing: 2px; color: #dcefff }
+
+#wpFinal .wf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px }
+#wpFinal .wf-p {
+  display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+  border-radius: 16px; text-align: left;
+  background: #02160ec9; border: 1px solid #ffffff24;
+}
+#wpFinal .wf-p.won { border-color: #20d98a99; background: #063721d9; box-shadow: 0 0 22px #20d98a2e }
+#wpFinal .wf-p img {
+  flex: 0 0 auto; width: 78px; height: 78px; border-radius: 50%;
+  object-fit: cover; border: 2px solid #ffd66b8a;
+}
+#wpFinal .wf-p.won img { border-color: #20d98a }
+#wpFinal .wf-p-body { display: flex; flex-direction: column; gap: 1px; min-width: 0 }
+#wpFinal .wf-p-body b { font-size: 21px; font-weight: 900 }
+#wpFinal .wf-delta { font-size: 32px; font-weight: 1000; line-height: 1.05; font-variant-numeric: tabular-nums }
+#wpFinal .wf-delta.plus { color: #4dff9e; text-shadow: 0 2px 0 #0d5c30 }
+#wpFinal .wf-delta.minus { color: #ff7c8c; text-shadow: 0 2px 0 #7a1622 }
+#wpFinal .wf-flow { font-size: 14px; color: #cfe0d6; font-variant-numeric: tabular-nums }
+#wpFinal .wf-role { font-size: 10px; letter-spacing: 2.4px; color: #9fe8c6 }
+#wpFinal .wf-p.won .wf-role { color: #4dff9e }
+#wpFinal .wf-foot { margin-top: 20px; font-size: 13px; letter-spacing: 2px; color: #cfe0d699; animation: wfBlink 1.6s infinite }
+@keyframes wfBlink { 50% { opacity: .35 } }
+
+/* --------------------------------------------------------- champion moment
+   The final's winner is a crowned card: spotlight behind it, gold border,
+   the medal on their line. The whole grid dims so the champion reads first. */
+#wpFinal .wf-grid.champ-in { position: relative; z-index: 1 }
+#wpFinal .wf-grid.champ-in .wf-p { opacity: .38; transition: opacity .5s ease }
+#wpFinal .wf-grid.champ-in .wf-p.champ { opacity: 1 }
+#wpFinal .wf-p.champ {
+  position: relative; border-color: #ffd66b; background: linear-gradient(180deg, #1d3a17f2, #0b2410fa);
+  box-shadow: 0 0 26px #ffd24a3d, inset 0 0 18px #ffd24a14;
+}
+#wpFinal .wf-p.champ::after {
+  content: "CHAMPION"; position: absolute; right: 14px; top: -11px;
+  padding: 4px 14px; border-radius: 999px;
+  font-size: 10px; font-weight: 1000; letter-spacing: 2.6px; font-style: italic;
+  color: #25170a; background: linear-gradient(180deg, #ffe08a, #f5b53c);
+  box-shadow: 0 4px 12px #000000a6, inset 0 1px 0 #fff6cc;
+}
+#wpFinal .wf-p.champ .wf-role { color: #ffd66b }
+#wpFinal .wf-p.champ .wf-flames { color: #ffb84d; font-size: 12px; margin-left: 6px; letter-spacing: 0 }
+#wpFinal .wf-p.champ { animation: wfChampIn .6s cubic-bezier(.2, 1.2, .3, 1) both }
+@keyframes wfChampIn { from { transform: translateY(10px) scale(.97); opacity: 0 } to { transform: none; opacity: 1 } }
+#wpFinal .wf-spotlight {
+  /* z 0 with the grid lifted to 1: the glow paints over the card background
+     but under the player rows, all in the card's own stacking context */
+  position: absolute; z-index: 0; pointer-events: none;
+  width: 560px; height: 560px; left: 50%; top: 50%; transform: translate(-50%, -46%);
+  background: radial-gradient(circle, #ffd24a2b 0%, #ffd24a12 34%, transparent 66%);
+  animation: wfSpot 1.2s ease-out both;
+}
+@keyframes wfSpot { from { opacity: 0; transform: translate(-50%, -40%) scale(.6) } to { opacity: 1; transform: translate(-50%, -46%) scale(1) } }
+
+/* replay flames next to a receipt line that ended the match on a streak */
+#wpFinal .wf-flames { font-size: 12px; margin-left: 6px }
+/* the ladder line: total wins and the title they have earned */
+#wpFinal .wf-h2h { display: block; font-size: 10px; letter-spacing: 1.6px; color: #ffd66b; opacity: .85 }
+
+#wpFinal .wf-spray { position: absolute; inset: 0; z-index: 1; pointer-events: none }
+#wpFinal .wf-spray i {
+  position: absolute; width: 26px; height: 26px; border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle at 34% 30%, #fff6c4, #ffd24a 45%, #c8891a 100%);
+  box-shadow: 0 0 12px #ffd24a80, inset 0 -2px 3px #8a5a00a0;
+  animation-name: wfCoin; animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(.25, .6, .3, 1);
+}
+@keyframes wfCoin {
+  0% { opacity: 0; transform: translate(0, 0) scale(calc(var(--s, 1) * .6)) }
+  12% { opacity: 1 }
+  80% { opacity: 1 }
+  100% { opacity: 0; transform: translate(var(--dx, 0px), var(--dy, 200px)) scale(var(--s, 1)) }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #wpOverlay .wp-deck,
+  .wp-deck.shake,
+  .wp-deck.urgent .wd-clock-top b,
+  .wp-deck .wd-art img,
+  .wp-deck .wd-art img.golden,
+  .wp-deck .wd-blank.on,
+  .wp-deck .wd-clock.low .wd-clock-top b,
+  .wp-award .wa-card,
+  .wp-award .wa-tier.pop,
+  #wpFinal .wf-card,
+  #wpFinal .wf-tier.pop,
+  #wpFinal .wf-p.champ,
+  #wpFinal .wf-spotlight,
+  #wpFinal .wf-foot { animation: none; transition: none }
+  #wpFinal .wf-grid.champ-in .wf-p { opacity: 1 }
+  #wpFinal .wf-spotlight { opacity: 1 }
+  #wpFinal .wf-spray { display: none }
+}
+
+/* ===========================================================================
+   THE CONTEST WITHOUT THE WALL
+   The arena is gone: the deck centres on the stage, the banner names the
+   duel, and the taunts and hype calls fly above the deck. */
+#wpOverlay.wg-quiz .wp-deck { top: 337px }
+#wpOverlay.wg-quiz .wp-taunt { top: 24% }
+#wpOverlay.wg-quiz .wp-hype { top: 15% }

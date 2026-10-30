@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v13';
+const VERSION = 'v44';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -62,10 +62,20 @@ const SHELL_ASSETS = [
   '/assets/fonts/nunito-var.woff2',
   '/game/sound.js',
   '/game/pwa.js',
+  // the post-match wall push on the Go Wild table. The duel skips itself
+  // rather than show an armless fallback, so these must be offline-ready.
+  '/game/wall-push.js',
+  '/game/wall-push.css',
   // the post-match wall push: module and stylesheet. The duel skips itself
   // rather than show an armless fallback, so these must be offline-ready.
   '/game/wall-push.js',
   '/game/wall-push.css',
+  // the clipart guessing contest that decides the post-match duel
+  '/game/wall-push-guess.js',
+  '/game/wall-push-guess.css',
+  // the recorded sound cues the grid and the arena both play
+  '/game/audio-cues.js',
+
   '/assets/island-table-bg.webp',
   '/assets/icons/icon-192.png',
   '/assets/icons/icon-512.png',
@@ -82,11 +92,13 @@ const ART_GLOBS = [
   '/assets/frames/',
   '/assets/effects/',
   '/assets/titles/',
+  '/assets/clipart/',
+  '/assets/audio/',
   '/classic-bg/'
 ];
 
 const CODE_EXTENSIONS = ['.css', '.js', '.mjs', '.json', '.webmanifest'];
-const ART_EXTENSIONS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.mp4', '.webm'];
+const ART_EXTENSIONS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.mp4', '.webm', '.mp3'];
 
 /**
  * Network-first with a deadline, so a dead network fails fast to the cache.
@@ -172,7 +184,7 @@ self.addEventListener('activate', (event) => {
    added without being added here it still works online, it just is not warmed for
    offline until it is fetched once. */
 const ART_INDEX = [
-  "/assets/avatars/alien.webp", "/assets/avatars/pumpkin-boy.webp", "/assets/avatars/pumpkin-girl.webp", "/assets/avatars/genie.webp",
+  "/assets/avatars/alien.webp", "/assets/avatars/genie.webp",
   "/assets/avatars/ghost.webp", "/assets/avatars/knight.webp", "/assets/avatars/ninja.webp",
   "/assets/avatars/pirate.webp", "/assets/avatars/robot.webp", "/assets/avatars/scholar.webp",
   "/assets/avatars/vampire.webp", "/assets/avatars/wizard.webp", "/assets/avatars/yeti.webp",
@@ -182,6 +194,27 @@ const ART_INDEX = [
   // the wall-push effects and the bodies the post-match duel animates
   "/assets/effects/wallpush-boy.webp", "/assets/effects/wallpush-girl.webp",
   "/assets/wallpush/boy-body.png", "/assets/wallpush/girl-body.png",
+  // the ninja film beats: shove / defense / kick / fall (left-shot, right seat mirrors)
+  "/assets/wallpush/ninja-idle.mp4", "/assets/wallpush/ninja-shove.mp4", "/assets/wallpush/ninja-defense.mp4",
+  "/assets/wallpush/ninja-kick.mp4", "/assets/wallpush/ninja-fall.mp4", "/assets/wallpush/ninja-win.mp4",
+  // the emoji set: keyed loops and their recorded laughs
+  "/game/emoji/haha-2s.webm", "/game/emoji/haha-sound.mp3",
+  "/game/emoji/ahha-2s.webm", "/game/emoji/ahha-sound.mp3",
+  // the 3D clipart the guessing contest draws - one file per word in
+  // game/wall-push-guess.js POOL
+  "/assets/clipart/apple.webp", "/assets/clipart/boat.webp", "/assets/clipart/bus.webp",
+  "/assets/clipart/butterfly.webp", "/assets/clipart/cake.webp", "/assets/clipart/cat.webp",
+  "/assets/clipart/crown.webp", "/assets/clipart/cup.webp", "/assets/clipart/diamond.webp",
+  "/assets/clipart/egg.webp", "/assets/clipart/fish.webp", "/assets/clipart/giraffe.webp",
+  "/assets/clipart/house.webp", "/assets/clipart/key.webp", "/assets/clipart/moon.webp",
+  "/assets/clipart/piano.webp", "/assets/clipart/pineapple.webp", "/assets/clipart/ring.webp",
+  "/assets/clipart/star.webp", "/assets/clipart/sun.webp",
+  // the recorded cues: the word thrown, the coins paid out and the reaction to
+  // them, the push and the brake, the fall, and the closing pop-up
+  "/assets/audio/wordsthrow1.mp3", "/assets/audio/bounce.mp3",
+  "/assets/audio/coins.mp3", "/assets/audio/yeah.mp3", "/assets/audio/music.mp3",
+  "/assets/audio/super-win.mp3", "/assets/audio/kick.mp3", "/assets/audio/fall.mp3",
+  "/assets/audio/push.mp3", "/assets/audio/brake.mp3",
   "/assets/frames/cosmos.webp", "/assets/frames/cosmos_hole.webp", "/assets/frames/crystal.webp",
   "/assets/frames/crystal_hole.webp", "/assets/frames/emerald.webp", "/assets/frames/emerald_hole.webp",
   "/assets/frames/pearl.webp", "/assets/frames/pearl_hole.webp", "/assets/frames/prism.webp",
