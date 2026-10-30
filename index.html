@@ -1907,17 +1907,20 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     });
   }
   wire('#homeQuickPlay,#hqStart,[data-home-hit="classic"]','game/');
-  // GO WILD opens wild.html: the arcade table, green felt in place of the photographic
-  // scene — the game as it was built. Both entry points, the mode card and the artwork
-  // hotspot, follow this same line.
+  // GO WILD opens go-wild-2v2-finished.html: the word-grid 2v2 game (7x6 letter grid,
+  // 30 words a round, four seats in two teams). Both entry points, the mode card and the
+  // artwork hotspot, follow this same line.
   //
-  // This was briefly wired to wild-play.html, on the reasoning that wild.html runs on its
-  // own mock engine and has no socket, so it cannot deal with other players. That
-  // reasoning was wrong to act on: it swapped the game for the older photographic table,
-  // and a page that cannot matchmake is a smaller problem than the wrong game. If the
-  // arcade table should join real matches, the fix is to wire the engine INTO wild.html,
-  // not to send GO WILD somewhere else.
-  wire('#homeRoom,[data-home-hit="wild"]','wild.html');
+  // The history of this one line matters, because it has been wrong twice. It first
+  // pointed at wild-play.html (the older photographic table), was moved back to
+  // wild.html (the arcade card table), and both of those are card games - while the
+  // build the player is actually shown as "the new game", and the one deployed on
+  // Render from branch fresh/go-wild-2v2-finished, is this word grid. main only ever
+  // had a truncated copy of that page's script, so even linking it here would have
+  // thrown a SyntaxError and dealt nothing; the game files were copied over from that
+  // branch in the same change. wild.html is left in the repo, reachable, and simply not
+  // what this hotspot opens any more.
+  wire('#homeRoom,[data-home-hit="wild"]','go-wild-2v2-finished.html');
 })();
 </script>
 <style id="auth-tab-feedback-v1">

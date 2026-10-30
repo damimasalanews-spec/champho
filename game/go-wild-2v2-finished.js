@@ -1,41 +1,1191 @@
-(()=>{'use strict';
-const C=['red','yellow','green','blue'],ORDER=['champ','poker','kalkal','jess'],TEAM={champ:'A',poker:'A',kalkal:'B',jess:'B'},NAME={champ:'Champ',poker:'Poker',kalkal:'Kalkal',jess:'Jess'};
-let s=null,aiTimer=null,clock=null,busy=false,sound=true,scores={A:0,B:0},roundToken=0;
-const $=id=>document.getElementById(id),uid=()=>Math.random().toString(36).slice(2)+Date.now();
-const shuffle=a=>{for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
-function deck(){let d=[];C.forEach(color=>{d.push({id:uid(),color,type:'number',value:'0'});for(let n=1;n<10;n++)for(let k=0;k<2;k++)d.push({id:uid(),color,type:'number',value:String(n)});for(let k=0;k<2;k++)['skip','reverse','draw2'].forEach(type=>d.push({id:uid(),color,type,value:type==='draw2'?'+2':type==='skip'?'SKIP':'↻'}))});for(let k=0;k<4;k++){d.push({id:uid(),color:'wild',type:'wild',value:'W'});d.push({id:uid(),color:'wild',type:'wild4',value:'+4'})}return shuffle(d)}
-function idx(pid){return ORDER.indexOf(pid)}function current(){return ORDER[s.current]}function next(pid,steps=1){let i=idx(pid);for(let n=0;n<steps;n++)i=(i+s.dir+4)%4;return ORDER[i]}
-function face(c){let e=document.createElement('div');e.className='gwx-card';e.dataset.id=c.id;e.dataset.color=c.color;e.dataset.type=c.type;e.innerHTML=window.ChampCards?.cardFaceHtml?window.ChampCards.cardFaceHtml(c):'<div class="gwx-card-face"><b>'+c.value+'</b></div>';return e}
-function host(pid){return pid==='champ'?$('hand-local'):pid==='poker'?$('hand-top'):null}
-function renderHidden(pid){let seat=document.querySelector('.gwx-seat[data-player="'+pid+'"]');if(!seat)return;let count=pid==='kalkal'?$('count-left'):$('count-right');count.textContent=s.players[pid].length;let card=seat.querySelector('.gwx-player-card');let fan=seat.querySelector('.gwx-opponent-hand');if(!fan){fan=document.createElement('div');fan.className='gwx-opponent-hand';card.appendChild(fan)}fan.innerHTML='';s.players[pid].forEach((c,i)=>{let e=document.createElement('div');e.className='opponent-back';e.style.setProperty('--i',i);e.style.setProperty('--n',s.players[pid].length);fan.appendChild(e)})}
-function render(pid){if(pid==='champ'){let h=$('hand-local');h.innerHTML='';s.players.champ.forEach((c,i)=>{let w=document.createElement('div');w.className='gwx-hand-card '+(playable(c)?'playable':'illegal');w.dataset.id=c.id;w.style.setProperty('--rot',((i-(s.players.champ.length-1)/2)*4.2)+'deg');w.appendChild(face(c));w.onclick=()=>playLocal(c.id);h.appendChild(w)})}else if(pid==='poker'){let h=$('hand-top');h.innerHTML='';s.players.poker.forEach((c,i)=>{let e=document.createElement('div');e.className='mini mini-back';e.setAttribute('aria-hidden','true');e.style.transform='rotate('+((i-(s.players.poker.length-1)/2)*3)+'deg)';h.appendChild(e)})}else renderHidden(pid)}
-function renderDiscard(){let d=$('discard');d.innerHTML='';d.appendChild(face(s.discard.at(-1)));let col=s.color;$('colorLabel').innerHTML='<i style="background:var(--'+col+')"></i> '+col.toUpperCase();$('stackBadge').textContent=s.pending?'+4 STACK ×'+(s.pending/4):'';$('stackBadge').classList.toggle('show',!!s.pending);$('drawBadge').textContent=s.deck.length}
-function renderTurn(){let p=current();$('turnLabel').textContent=p==='champ'?'YOUR TURN':p==='poker'?'PARTNER TURN':NAME[p].toUpperCase()+' TURN';$('message').textContent=s.pending?(p==='champ'?'DRAW '+s.pending+' OR STACK +4':'Waiting for '+NAME[p]+' to respond…'):p==='champ'?'Match color, number or action':NAME[p]+' is choosing a card…';document.querySelectorAll('.gwx-seat').forEach(x=>x.classList.toggle('active',x.dataset.player===p))}
-function render(){ORDER.forEach(render);renderDiscard();renderTurn();$('roundLabel').textContent=String(s.round).padStart(2,'0');$('teamScoreA').textContent=scores.A;$('teamScoreB').textContent=scores.B;if(s.pending){let canStack=s.players.champ.some(x=>x.type==='wild4');$('draw4Text').textContent='+'+s.pending+' is stacked. Stack another +4, challenge the last play, or take the full penalty.';$('acceptBtn').textContent='DRAW '+s.pending;$('stackBtn').textContent='STACK +4';$('stackBtn').disabled=!canStack;$('stackBtn').title=canStack?'Add another +4 to the stack':'You do not have a Wild +4 to stack'}else{$('draw4Text').textContent='Choose how to respond.';$('acceptBtn').textContent='DRAW 4';$('stackBtn').textContent='STACK +4';$('stackBtn').disabled=false;$('stackBtn').title=''}}
-function playable(c){if(s.pending)return c.type==='wild4';let t=s.discard.at(-1);return c.color==='wild'||c.color===s.color||c.value===t.value||c.type===t.type}
-function ensure(){if(s.deck.length)return;let top=s.discard.pop();s.deck=shuffle(s.discard.splice(0));s.discard=[top]}
-function draw(pid,n){let got=[];for(let i=0;i<n;i++){ensure();if(!s.deck.length)break;let c=s.deck.pop();s.players[pid].push(c);got.push(c)}render(pid);return got}
-function impact(){let fx=$('fx');for(let i=0;i<14;i++){let q=document.createElement('i');q.className='spark';q.style.left='50%';q.style.top='50%';let a=i*Math.PI*2/14,d=50+Math.random()*65;q.style.setProperty('--dx',Math.cos(a)*d+'px');q.style.setProperty('--dy',Math.sin(a)*d+'px');fx.appendChild(q);setTimeout(()=>q.remove(),600)}$('table').animate([{filter:'brightness(1.35)'},{filter:'brightness(1)'}],320)}
-function fly(pid,c,done,srcRect){let src=host(pid)?.querySelector('[data-id="'+c.id+'"]');let a=srcRect||src?.getBoundingClientRect(),b=$('discard').getBoundingClientRect();if(!a||!b){done();return}let f=face(c);f.className='fly';document.body.appendChild(f);f.style.left=a.left+'px';f.style.top=a.top+'px';let x0=a.left,y0=a.top,x1=b.left,y1=b.top,cx=(x0+x1)/2,cy=Math.min(y0,y1)-100,t0=performance.now(),dur=500;function step(now){let t=Math.min(1,(now-t0)/dur),u=1-t;let x=u*u*x0+2*u*t*cx+t*t*x1,y=u*u*y0+2*u*t*cy+t*t*y1;f.style.transform='translate('+((x-x0))+'px,'+((y-y0))+'px) rotate('+(-10+28*t)+'deg) scale('+(1+.18*Math.sin(t*Math.PI))+')';if(t<1)requestAnimationFrame(step);else{f.remove();impact();done()}}requestAnimationFrame(step)}
-function commit(pid,c,chosen){
-let token=roundToken;let p=s.players[pid],i=p.findIndex(x=>x.id===c.id);if(i<0)return;let srcEl=host(pid)?.querySelector('[data-id="'+c.id+'"]');let srcRect=srcEl?.getBoundingClientRect()||document.querySelector('.gwx-seat[data-player="'+pid+'"] .gwx-player-card')?.getBoundingClientRect()||$('drawPile').getBoundingClientRect();let prior=s.color;if(c.type==='wild4'){s.lastDraw4Legal=!p.some(x=>x.color===prior&&x.type!=='wild4');s.pending=(s.pending||0)+4;s.pendingBy=pid;s.pendingColor=prior}p.splice(i,1);s.discard.push(c);s.color=c.color==='wild'?(chosen||C[Math.floor(Math.random()*4)]):c.color;render(pid);renderDiscard();if(!p.length){win(TEAM[pid],NAME[pid]+' went out');return}if(p.length===1&&pid==='champ'){$('message').textContent='UNO! One card left!';$('unoBtn').animate([{transform:'scale(1)'},{transform:'scale(1.12)'},{transform:'scale(1)'}],420)}busy=true;fly(pid,c,()=>{if(token!==roundToken)return;busy=false;resolve(pid,c)},srcRect)}
-function resolve(pid,c){if(c.type==='wild4'){advance();return}let steps=c.type==='skip'?2:1;if(c.type==='reverse')s.dir*=-1;if(c.type==='draw2'){let t=next(pid);draw(t,2);steps=2}advance(steps)}
-function advance(steps=1){s.current=idx(next(current(),steps));renderTurn();if(current()==='champ'&&s.pending)setTimeout(()=>{render();$('draw4Modal').classList.add('open')},160);else if(current()!=='champ')scheduleAI()}
-function playLocal(id){if(busy||s.phase!=='playing'||current()!=='champ')return;let c=s.players.champ.find(x=>x.id===id);if(!c||!playable(c))return;if(c.type==='wild'||c.type==='wild4'){$('colorModal').dataset.id=id;$('colorModal').classList.add('open');return}commit('champ',c)}
-function aiChoose(pid){let h=s.players[pid].filter(playable);if(!h.length)return null;let score=c=>({wild4:10,draw2:9,skip:8,reverse:7,wild:6}[c.type]||1);return h.sort((a,b)=>score(b)-score(a))[0]}
-function scheduleAI(){clearTimeout(aiTimer);aiTimer=setTimeout(aiTurn,700+Math.random()*700)}
-function aiTurn(){let pid=current();if(s.phase!=='playing'||pid==='champ')return;if(s.pending){let c=s.players[pid].find(x=>x.type==='wild4');if(c){commit(pid,c,C[Math.floor(Math.random()*4)]);return}let penalty=s.pending;draw(pid,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent=NAME[pid]+' drew '+penalty+' cards and was skipped.';setTimeout(advance,500);return}let c=aiChoose(pid);if(!c){let g=draw(pid,1);c=g[0]&&playable(g[0])?g[0]:null}if(!c){setTimeout(advance,450);return}if(c.type==='wild4'||c.type==='wild'){let counts=C.map(col=>[col,s.players[pid].filter(x=>x.color===col).length]).sort((a,b)=>b[1]-a[1]);commit(pid,c,counts[0]?.[0]||C[0])}else commit(pid,c)}
-function resolve4(action){if(!s.pending)return;let challenger=current(),offender=s.pendingBy;if(action==='challenge'){let guilty=s.lastDraw4Legal===false;if(guilty){let penalty=s.pending;draw(offender,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent=NAME[offender]+' was challenged — +'+penalty+' returned to '+NAME[offender]+'. Your turn continues.';if(current()!=='champ')scheduleAI()}else{let penalty=s.pending+2;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='Challenge failed. You drew '+penalty+' cards and lost your turn.';advance()}}else if(action==='stack'){let c=s.players.champ.find(x=>x.type==='wild4');if(c){$('draw4Modal').classList.remove('open');commit('champ',c,C[Math.floor(Math.random()*4)]);return}}else{let penalty=s.pending;draw(challenger,penalty);s.pending=0;s.pendingBy=null;render();$('message').textContent='You drew '+penalty+' cards. Your turn is skipped.';advance()}}
-function win(team,reason){if(!s||s.phase==='ended')return;s.phase='ended';clearTimeout(aiTimer);clearInterval(clock);busy=false;scores[team]=(scores[team]||0)+1;s.scores=scores;$('teamScoreA').textContent=scores.A;$('teamScoreB').textContent=scores.B;$('winTitle').textContent=team==='A'?'TEAM A WINS':'TEAM B WINS';$('winText').textContent=reason+' · '+(team==='A'?'Team A':'Team B')+' score '+scores[team];$('winModal').classList.add('open')}
-function dealIntro(){const table=$('table'),pile=$('drawPile');if(!table||!pile)return;table.classList.add('dealing');const from=pile.getBoundingClientRect();const seats={poker:document.querySelector('.gwx-seat.top'),kalkal:document.querySelector('.gwx-seat.left'),jess:document.querySelector('.gwx-seat.right'),champ:document.querySelector('.gwx-seat.bottom')};ORDER.forEach((pid,pi)=>{for(let i=0;i<7;i++){setTimeout(()=>{const to=seats[pid]?.querySelector('.gwx-avatar')?.getBoundingClientRect()||from;const f=document.createElement('div');f.className='gwx-deal-flyer';f.style.left=from.left+'px';f.style.top=from.top+'px';f.style.width=Math.min(54,from.width*.42)+'px';f.style.height=Math.min(78,from.height*.42)+'px';document.body.appendChild(f);const dx=to.left+to.width/2-from.left-from.width*.21,dy=to.top+to.height/2-from.top-from.height*.21;f.animate([{transform:'translate(0,0) rotate(-8deg) scale(.8)',opacity:0},{transform:'translate('+dx*.55+'px,'+(dy*.55-70)+'px) rotate(8deg) scale(1)',opacity:1,offset:.55},{transform:'translate('+dx+'px,'+dy+'px) rotate(18deg) scale(.72)',opacity:0}],{duration:560,easing:'cubic-bezier(.2,.8,.2,1)'}).finished.then(()=>f.remove()).catch(()=>f.remove())},pi*210+i*105)})});setTimeout(()=>table.classList.remove('dealing'),2350)}
-function reset(){roundToken++;clearTimeout(aiTimer);clearInterval(clock);busy=false;$('colorModal').classList.remove('open');$('draw4Modal').classList.remove('open');$('winModal').classList.remove('open');let d=deck(),players={};ORDER.forEach(p=>players[p]=[]);for(let i=0;i<7;i++)ORDER.forEach(p=>players[p].push(d.pop()));let top=d.pop();while(top.color==='wild'||top.type!=='number'){d.unshift(top);shuffle(d);top=d.pop()}s={deck:d,discard:[top],players,current:0,dir:1,color:top.color,pending:0,pendingBy:null,lastDraw4Legal:null,phase:'playing',round:s?.round?s.round+1:1,scores,seconds:150};render();$('timer').textContent='02:30';clock=setInterval(()=>{if(s.phase==='playing'){s.seconds--;let m=Math.max(0,Math.floor(s.seconds/60)),sec=Math.max(0,s.seconds%60);$('timer').textContent=String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');if(s.seconds<=0)win('B','Time expired')}},1000);if(current()!=='champ')scheduleAI()}
-$('drawBtn').onclick=()=>{if(current()!=='champ'||busy)return;if(s.pending){$('draw4Modal').classList.add('open');return}let g=draw('champ',1);if(!g[0]||!playable(g[0]))setTimeout(advance,450)};
-$('drawPile').onclick=()=>$('drawBtn').click();
-$('unoBtn').onclick=()=>{$('message').textContent='UNO called!';$('unoBtn').animate([{transform:'scale(1)'},{transform:'scale(1.1)'},{transform:'scale(1)'}],350)};
-$('chatBtn').onclick=()=>$('chatPanel').classList.toggle('open');$('chatPanel').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('message').textContent=b.dataset.msg;$('chatPanel').classList.remove('open')});
-$('soundBtn').onclick=()=>{sound=!sound;$('app').classList.toggle('muted',!sound)};
-$('restartBtn').onclick=reset;$('nextBtn').onclick=()=>{$('winModal').classList.remove('open');reset()};
-document.querySelectorAll('#colorModal [data-color]').forEach(b=>b.onclick=()=>{let id=$('colorModal').dataset.id,c=s.players.champ.find(x=>x.id===id);if(c){$('colorModal').classList.remove('open');commit('champ',c,b.dataset.color)}});
-$('challengeBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('challenge')};$('stackBtn').onclick=()=>resolve4('stack');$('acceptBtn').onclick=()=>{$('draw4Modal').classList.remove('open');resolve4('accept')};
-window.__goWild2v2Finished={state:()=>s,reset,play:id=>playLocal(id)};reset();dealIntro();
+import { WORD_BANK } from './english-word-bank.js?v=turns-1';
+import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?v=thirty-1';
+
+(() => {
+  'use strict';
+  const PLAYERS = [
+    { id: 'champ', name: 'Champ', color: '#50e8ef' },
+    { id: 'poker', name: 'Poker', color: '#54a8ff' },
+    { id: 'kalkal', name: 'Kalkal', color: '#bd78ff' },
+    { id: 'jess', name: 'Jess', color: '#ff9b59' }
+  ];
+  const BOT_IDS = ['poker', 'kalkal', 'jess'];
+
+  const $ = id => document.getElementById(id);
+  const gridEl = $('letterGrid');
+  const tiles = [];
+  let round = null;
+  let resultReveal = 0;   /* pending reveal of the round-end modal */
+  let path = [];
+  /* ---- the round ----------------------------------------------------------
+     Thirty words, five boards of six on the same 7x6 grid the game always
+     had. Every word is laid into its board letter by letter, so tracing or
+     typing always spells exactly what is hidden, and a word can only score
+     once in the whole round — no double answers. Four of the thirty are
+     CHAMP words (the longest word on the first four boards): whoever finds
+     one is crowned with a coin shield for their next TWO turns, so no later
+     scorer can take from their purse while it stands, and finds stack. The
+     player holding the most coins always answers first, then the turn
+     travels the seat cycle — champ, jess, kalkal, poker, back to champ. The
+     grid pays the first correct answer; from then on every correct answer
+     takes its coins out of the previous scorer's purse. The round's final
+     word can only be won by touching the letters — drag it, don't type it.
+     The leaderboard prints when all 30 words are found; top coins win. */
+  const BOARDS = 5;             /* five boards of six hidden words = 30 */
+  const CHAMP_WORDS = 4;        /* four champ words hidden in the round */
+  const CHAMP_SHIELD_TURNS = 2; /* each champ find shields the finder's coins */
+  /* six lengths per board that sum to exactly 42 — the 7x6 cell count — so
+     every letter on a board belongs to one of its words, the way the original
+     seven-word deal tiled it */
+  const BOARD_LENGTHS = [[4, 6, 7, 8, 8, 9], [4, 5, 7, 8, 9, 9], [5, 6, 7, 7, 8, 9], [3, 6, 7, 8, 9, 9], [4, 5, 7, 8, 9, 9]];
+  const TURN_MS = 15000;
+  /* the seats round the table in play order: champ bottom-left, jess
+     bottom-right, kalkal top-right, poker top-left. The player holding the
+     most coins always opens the round, then the turn keeps travelling this
+     cycle — from each seat to the next one round the table. */
+  const SEAT_CYCLE = ['champ', 'jess', 'kalkal', 'poker'];
+  let TURN_ORDER = SEAT_CYCLE.slice();
+  const BOT_SKILL = 0.85;
+  let turnState = null;   /* { index, endsAt, tick, botTimer } */
+  let passStreak = 0;
+  let turnMs = TURN_MS;   /* the dev hook can speed the clock up */
+  /* between a correct answer and the coins landing on the scorer's avatar the
+     table is "settling": the clock is parked, nobody's 15 seconds are running */
+  let settling = false;
+  let handoverTimer = 0;
+  let lastScorer = null;
+  /* the coin shield: finding a champ word shields that player's purse for
+     their next two turns — no later scorer can take from it while it stands.
+     Finds stack, and the turn the word was found on never counts against it. */
+  let shieldTurns = {};
+  let shieldFresh = new Set();
+
+
+  function buildGrid() {
+    gridEl.replaceChildren();
+    tiles.length = 0;
+    gridEl.style.setProperty('--gwx-cols', String(round.layout.cols));
+    gridEl.style.setProperty('--gwx-rows', String(round.layout.rows));
+    gridEl.setAttribute('aria-label', `${round.layout.cols} by ${round.layout.rows} letter grid`);
+    const colorLabel = $('colorLabel');
+    if (colorLabel) colorLabel.innerHTML = '<i></i> ' + round.layout.cols + '×' + round.layout.rows + ' LETTER GRID';
+    round.layout.grid.forEach((letter, index) => {
+      const tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'letter-tile';
+      tile.setAttribute('role', 'gridcell');
+      tile.textContent = letter.toUpperCase();
+      tile.setAttribute('aria-label', `Letter ${letter.toUpperCase()}, row ${Math.floor(index / round.layout.cols) + 1}, column ${index % round.layout.cols + 1}`);
+      tile.style.animationDelay = `${(index % round.layout.cols) * 12 + Math.floor(index / round.layout.cols) * 8}ms`;
+      tile.dataset.index = String(index);
+      tile.addEventListener('click', () => selectCell(index));
+      gridEl.appendChild(tile);
+      tiles.push(tile);
+    });
+  }
+
+  function renderSlots() {
+    const host = $('wordSlots');
+    /* the hidden-words rail is retired from the table; the level rail still paints */
+    if (!host) { paintLevelRail(); return; }
+    const targets = round.layout.words.slice().sort((a, b) => a.word.length - b.word.length);
+    paintLevelRail();
+    targets.forEach(target => {
+      const slot = document.createElement('div');
+      const solved = round.found.has(target.word);
+      slot.className = 'word-slot' + (solved ? ' done' : '');
+      const length = document.createElement('b');
+      length.textContent = solved ? target.word.toUpperCase() : `${target.word.length} LETTERS`;
+      const label = document.createElement('small');
+      label.textContent = solved ? 'FOUND' : 'HIDDEN WORD';
+      slot.append(length, label);
+      host.appendChild(slot);
+    });
+  }
+
+  /* Every seat opens the round with coins already on the board, so the
+     leaderboard always has something to rank. */
+  const START_COINS = 500;
+
+  function renderScores() {
+    for (const player of PLAYERS) {
+      const score = round.scores[player.id];
+      $(`coins-${player.id}`).textContent = String(score.coins);
+      $(`words-${player.id}`).textContent = `${score.words} ${score.words === 1 ? 'word' : 'words'}`;
+    }
+    const totalCoins = $('totalCoins');
+    if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
+  }
+
+  function renderPath() {
+    tiles.forEach((tile, index) => {
+      tile.classList.toggle('selected', path.includes(index));
+      tile.classList.toggle('found', round.foundPaths.some(foundPath => foundPath.includes(index)));
+    });
+    const value = path.map(index => round.layout.grid[index]).join('').toUpperCase();
+    if (path.length) $('guessInput').value = value.toLowerCase();
+  }
+
+  function isNeighbor(a, b) {
+    const cols = round.layout.cols;
+    const rowA = Math.floor(a / cols), colA = a % cols;
+    const rowB = Math.floor(b / cols), colB = b % cols;
+    return Math.max(Math.abs(rowA - rowB), Math.abs(colA - colB)) === 1;
+  }
+
+  function selectCell(index) {
+    if (!round || round.ended) return;
+    const current = path.indexOf(index);
+    if (current >= 0) path = path.slice(0, current);
+    else if (!path.length || isNeighbor(path[path.length - 1], index)) path.push(index);
+    else path = [index];
+    $('guessMessage').textContent = path.length ? 'Keep tracing, then press GUESS.' : 'Any player can guess, in any order.';
+    $('guessMessage').classList.remove('good', 'bad');
+    renderPath();
+  }
+
+  function flashMessage(text, kind = '') {
+    const message = $('guessMessage');
+    message.textContent = text;
+    message.classList.toggle('good', kind === 'good');
+    message.classList.toggle('bad', kind === 'bad');
+    $('roundMessage').textContent = text;
+  }
+
+  function animateCoins(playerId, coins, word, cells) {
+    const panel = document.querySelector(`.gwx-seat[data-player="${playerId}"]`);
+    if (panel) {
+      /* The class has to be released again afterwards. Leaving it on meant the
+         score pop could only ever play once per seat in a whole session. */
+      panel.classList.remove('just-scored');
+      requestAnimationFrame(() => panel.classList.add('just-scored'));
+      window.clearTimeout(panel._justScoredTimer);
+      panel._justScoredTimer = window.setTimeout(() => panel.classList.remove('just-scored'), 800);
+    }
+    const floater = document.createElement('div');
+    floater.className = 'coin-floater';
+    floater.textContent = `+${coins} ✦`;
+    panel?.appendChild(floater);
+    window.setTimeout(() => floater.remove(), 1250);
+    $('roundMessage').textContent = `${PLAYERS.find(item => item.id === playerId).name} found ${word.toUpperCase()} · +${coins} coins!`;
+    /* presentation only: the word is thrown into the grid, dances, becomes coins,
+       and those coins arc to whoever scored. Falls back to the plain shower. */
+    if (window.__champCoins?.celebrate) return window.__champCoins.celebrate(playerId, word, cells, coins);
+    window.__champCoins?.play(playerId, coins);
+    return 0;
+  }
+
+  function submitGuess(value, playerId, fromDrag = false) {
+    if (!round || round.ended || !turnState || settling) return false;
+    if (TURN_ORDER[turnState.index] !== playerId) return false;   /* strict seat turns */
+    /* only the round's thirty hidden words score — no dictionary doubles —
+       and a word can score once in the whole round, never twice */
+    if (!fromDrag && round.words30.length - round.foundAll.size === 1) {
+      flashMessage('The last word can only be won by touching the letters — drag it!', 'bad');
+      return false;
+    }
+    const result = scoreWord(round.words30, value, round.foundAll, playerId, null);
+    if (!result) {
+      const normalized = normalizeGuess(value);
+      const known = round.words30.some(item => item.word === normalized);
+      flashMessage(!normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the 30 hidden words. Trace the letters.', 'bad');
+      return false;
+    }
+    round.foundAll.add(result.word);
+    if (result.champ) {
+      /* a champ word crowns the finder: two turns of coin protection, and
+         finds stack — the shield badge shows the turns remaining */
+      shieldTurns[playerId] = (shieldTurns[playerId] || 0) + CHAMP_SHIELD_TURNS;
+      shieldFresh.add(playerId);
+      shieldBadge(playerId);
+      cardFloater(playerId, 'champ');
+      chatSay(nameOf(playerId), 'found the CHAMP word ' + result.word.toUpperCase() + '! Coins shielded for 2 turns!');
+    }
+    if (result.hidden) round.found.add(result.word);
+    round.foundPaths.push(result.path);
+    /* the coin chain: the FIRST correct answer of the round is paid by the
+       grid itself; every later correct answer is paid out of the previous
+       scorer's purse — take what they hold, the grid adds nothing. A player
+       wearing the coin shield (they found a champ word) can't be robbed:
+       the grid pays instead. */
+    const fromId = (lastScorer && (shieldTurns[lastScorer] || 0) > 0) ? null : lastScorer;
+    const credited = fromId ? Math.min(result.coins, round.scores[fromId].coins) : result.coins;
+    if (fromId) round.scores[fromId].coins -= credited;
+    round.scores[playerId].coins += credited;
+    round.scores[playerId].words++;
+    lastScorer = playerId;
+    path = [];
+    $('guessInput').value = '';
+    $('guessMessage').classList.remove('bad');
+    $('guessMessage').classList.add('good');
+    $('guessMessage').textContent = fromId
+      ? `${result.word.toUpperCase()} found! +${credited} coins taken from ${PLAYERS.find(item => item.id === fromId).name}${credited < result.coins ? ' — their purse ran dry' : ''}.`
+      : `${result.word.toUpperCase()} found! +${credited} coins from the grid to ${PLAYERS.find(item => item.id === playerId).name}.`;
+    renderSlots();
+    renderScores();
+    renderPath();
+    /* the celebration shows what actually changed hands; the donor wears the bill */
+    if (fromId && credited > 0) {
+      const donorPanel = document.querySelector(`.gwx-seat[data-player="${fromId}"]`);
+      if (donorPanel) {
+        const bill = document.createElement('div');
+        bill.className = 'coin-floater donor';
+        bill.textContent = `-${credited} ✦`;
+        donorPanel.appendChild(bill);
+        window.setTimeout(() => bill.remove(), 1250);
+      }
+    }
+    const revealAfter = animateCoins(playerId, credited, result.word, result.path);
+    if (round.foundAll.size >= round.words30.length) { finishRound('complete', revealAfter); return true; }
+    /* the scorer's moment: park the clock while the word dances into coins
+       and they fly onto this avatar. When the coins land, the next player
+       gets their own exact 15 seconds - not a millisecond of it spent during
+       the celebration. */
+    settling = true;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const activeSeat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (activeSeat) {
+      activeSeat.style.setProperty('--turn-pct', '1');
+      /* the turn is decided: the ring retires and the coin arc has the stage */
+      seatRings().forEach(ring => ring.remove());
+    }
+    handoverTimer = window.setTimeout(() => {
+      settling = false;
+      /* the next board comes up only after the celebration has landed, so the
+         found word always plays out over the grid it was found on */
+      if (round.found.size === round.layout.words.length) {
+        round.level++;
+        dealLevel();
+        $('roundMessage').textContent = 'BOARD ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found.';
+      }
+      if (round && !round.ended) passTurn(true);
+    }, Math.max(400, revealAfter || 0));
+    return true;
+  }
+
+  /* clean handover once the coins have landed: the old turn's timers die here,
+     and startTurn() reads the clock fresh for the next seat */
+  function passTurn(found) {
+    if (!turnState || !round || round.ended) return;
+    settling = false;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); }
+    seatRings().forEach(ring => ring.remove());
+    passStreak = 0;
+    advanceTurnIndex();
+    startTurn();
+  }
+
+  /* the turn handoff: the seat cycle always travels forward, and the coin
+     shield of the finishing player burns one turn off its count — the turn
+     the champ word was found on never counts against it. */
+  function advanceTurnIndex() {
+    const outgoing = TURN_ORDER[turnState.index];
+    if (shieldFresh.has(outgoing)) shieldFresh.delete(outgoing);
+    else if ((shieldTurns[outgoing] || 0) > 0) {
+      shieldTurns[outgoing]--;
+      shieldBadge(outgoing);
+    }
+    turnState.index = (turnState.index + 1) % TURN_ORDER.length;
+  }
+
+  function finishRound(reason, wait = 0) {
+    if (!round || round.ended) return;
+    round.ended = true;
+    stopTurns();
+    /* no teams: the player holding the most coins wins outright */
+    const ranking = PLAYERS.slice().sort((a, b) =>
+      round.scores[b.id].coins - round.scores[a.id].coins || round.scores[b.id].words - round.scores[a.id].words
+    );
+    const topScore = round.scores[ranking[0].id].coins;
+    const tied = ranking.filter(player => round.scores[player.id].coins === topScore);
+    $('resultTitle').textContent = tied.length > 1 ? 'IT’S A TIE' : ranking[0].name.toUpperCase() + ' WINS';
+    $('resultText').textContent = `${ranking[0].name} ${topScore.toLocaleString('en-US')} coins · ${ranking[1].name} ${round.scores[ranking[1].id].coins.toLocaleString('en-US')} · ${ranking[2].name} ${round.scores[ranking[2].id].coins.toLocaleString('en-US')} · ${ranking[3].name} ${round.scores[ranking[3].id].coins.toLocaleString('en-US')}. ${reason === 'complete' ? 'All 30 words found!' : reason === 'passed' ? 'Called at board ' + round.level + '.' : `${round.foundAll.size} of 30 words found.`}`;
+    /* The round normally ends on the word that was just found, so its celebration
+       is still on screen. Hold the modal - and the cascade - back until that
+       celebration has landed its coins, or the player never sees the word that
+       won them the round: it plays behind the blur. A clock expiry has no
+       celebration, so wait is 0 and the modal opens at once. */
+    /* the round ends straight into the leaderboard: the four players ranked by
+       the coins they finished the round with, words as the tiebreak */
+    const renderResultBoard = () => {
+      const host = $('resultBoard');
+      if (!host) return;
+      const ranking = PLAYERS.slice().sort((a, b) =>
+        round.scores[b.id].coins - round.scores[a.id].coins || round.scores[b.id].words - round.scores[a.id].words
+      );
+      host.replaceChildren();
+      ranking.forEach((player, index) => {
+        const row = document.createElement('li');
+        row.className = 'gwx-leader-row' + (index === 0 && round.scores[player.id].coins > 0 ? ' leading' : '');
+        const rank = document.createElement('span');
+        rank.className = 'gwx-leader-rank';
+        rank.textContent = String(index + 1).padStart(2, '0');
+        const identity = document.createElement('span');
+        identity.className = 'gwx-leader-identity';
+        const name = document.createElement('strong');
+        name.textContent = player.name;
+        const role = document.createElement('small');
+        role.textContent = index === 0 ? 'WINNER' : 'RIVAL';
+        identity.append(name, role);
+        const coins = document.createElement('b');
+        coins.className = 'gwx-leader-coins';
+        coins.textContent = String(round.scores[player.id].coins);
+        row.append(rank, identity, coins);
+        host.appendChild(row);
+      });
+    };
+    const showResult = () => {
+      resultReveal = 0;
+      if (!round) return;
+      renderResultBoard();
+      $('resultModal').classList.add('open');
+      $('resultModal').setAttribute('aria-hidden', 'false');
+      /* presentation only: the round-win cascade, once per round, obeying the mute toggle */
+      window.__champCoins?.winStinger?.();
+    };
+
+    /* No post-match section any more: the wall-push duel and the clipart
+       contest are gone from the game entirely. When the round ends the
+       leaderboard modal opens — the `wait` that held it back past the word
+       celebration still applies. */
+    resultReveal = wait > 0 ? window.setTimeout(showResult, wait) : 0;
+    if (wait <= 0) showResult();
+  }
+
+  /* ---- the turn engine ------------------------------------------------------
+     One active seat at a time. The avatar wears a glowing countdown ring and the
+     seat card lights up, so everybody can see whose 15 seconds are running. */
+  function activeSeatEl(id) {
+    return document.querySelector(`.gwx-seat[data-player="${id}"]`);
+  }
+
+  function stopTurns() {
+    if (!turnState) return;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); }
+    seatRings().forEach(ring => ring.remove());
+    turnState = null;
+    $('guessInput').disabled = true;
+    const submit = document.querySelector('#guessForm button');
+    if (submit) submit.disabled = true;
+  }
+
+  function seatRings() {
+    return document.querySelectorAll('.gwx-avatar .turn-ring');
+  }
+
+  function startTurn() {
+    if (!round || round.ended) return;
+    const id = TURN_ORDER[turnState.index];
+    /* a fresh turn starts with a clean slate: any half-traced word belonged
+       to the previous turn, and keeping it made the first tile click toggle
+       the stale selection OFF instead of starting the new word */
+    path = [];
+    $('guessInput').value = '';
+    renderPath();
+    const seat = activeSeatEl(id);
+    if (seat) {
+      seat.classList.add('active');
+      const avatar = seat.querySelector('.gwx-avatar');
+      if (avatar && !avatar.querySelector('.turn-ring')) {
+        const ring = document.createElement('i');
+        ring.className = 'turn-ring';
+        /* four red arrows chase each other around the portrait in 3D */
+        for (let i = 0; i < 4; i++) {
+          const arrow = document.createElement('b');
+          arrow.style.setProperty('--a', (i * 90) + 'deg');
+          ring.appendChild(arrow);
+        }
+        avatar.appendChild(ring);
+      }
+      /* the orbit is the clock: exactly one lap per turn, restarted at 0 so the
+         arrows always finish the circuit as the 15 seconds run out */
+      const ringEl = seat.querySelector('.turn-ring');
+      if (ringEl) {
+        ringEl.style.animation = 'none';
+        void ringEl.offsetWidth;
+        ringEl.style.animation = '';
+        ringEl.style.setProperty('--orbit-ms', String(turnMs));
+      }
+    }
+    renderTurnArrows();
+    turnState.endsAt = performance.now() + turnMs;
+    turnState.tick = window.setInterval(tickTurn, 100);
+    const player = PLAYERS.find(item => item.id === id);
+    const human = id === 'champ';
+    $('turnLabel').textContent = human ? 'YOUR TURN — FIND A WORD' : player.name.toUpperCase() + "'S TURN";
+    /* the round's final word can only be won by dragging it, so the text box
+       closes and the letters do the talking */
+    const lastWord = round.words30.length - round.foundAll.size === 1;
+    $('guessInput').disabled = !human || lastWord;
+    const submit = document.querySelector('#guessForm button');
+    if (submit) submit.disabled = !human;
+    $('guessInput').placeholder = human ? (lastWord ? 'Drag the final word!' : 'Type your word') : 'Waiting for ' + player.name + '…';
+    if (human) {
+      $('guessMessage').textContent = 'Tap neighboring letters or type a word — 15 seconds.';
+      $('guessInput').focus({ preventScroll: true });
+    } else {
+      $('guessMessage').textContent = player.name + ' is thinking…';
+      if (Math.random() < BOT_SKILL && round.words30.length - round.foundAll.size > 1) {
+        const hidden = round.layout.words.filter(item => !round.foundAll.has(item.word));
+        const word = hidden.length ? hidden[Math.floor(Math.random() * hidden.length)].word : null;
+        if (word) {
+          turnState.botTimer = window.setTimeout(() => {
+            if (round && !round.ended && turnState && TURN_ORDER[turnState.index] === id) submitGuess(word, id);
+          }, turnMs * (0.15 + Math.random() * 0.5));
+        }
+      }
+    }
+    tickTurn();
+  }
+
+  function tickTurn() {
+    if (!turnState || settling) return;
+    const left = Math.max(0, turnState.endsAt - performance.now());
+    updateTimer(left);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) seat.style.setProperty('--turn-pct', String(left / turnMs));
+    if (!round || round.ended) return;
+    if (left <= 0) endTurn(false);
+  }
+
+  function endTurn(found) {
+    if (!turnState || !round || round.ended) return;
+    window.clearInterval(turnState.tick);
+    window.clearTimeout(turnState.botTimer);
+    const seat = activeSeatEl(TURN_ORDER[turnState.index]);
+    if (seat) { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); }
+    seatRings().forEach(ring => ring.remove());
+    passStreak = found ? 0 : passStreak + 1;
+    /* while the round's final word pends, the table can't walk away from it:
+       the last word is only ever finished by touching the letters */
+    if (passStreak >= TURN_ORDER.length && round.words30.length - round.foundAll.size > 1) {
+      /* a full cycle with no find moves the game on: deal the next level, or
+         close the match when the last board is on the table */
+      if (round.level >= BOARDS) { stopTurns(); finishRound('passed'); return; }
+      round.level++;
+      dealLevel();
+      passStreak = 0;
+    }
+    advanceTurnIndex();
+    startTurn();
+  }
+
+  function updateTimer(msLeft) {
+    const total = Math.max(0, Math.ceil(msLeft / 1000));
+    $('timer').textContent = '0:' + String(total).padStart(2, '0');
+  }
+
+  /* ---- action words: skip & reverse ----------------------------------------
+     Eight cards — four SKIP, four REVERSE — are shuffled and dealt two to each
+     player at the round's start. A SKIP burns the next player's turn (the turn
+     jumps two seats); a REVERSE flips the direction of travel, and the table
+     keeps running that way until another REVERSE is played. You can only play
+     yours during your own turn. */
+  /* the coin-shield badge: pinned above a protected seat's portrait with the
+     turns of coin protection left; removed when the count runs out */
+  function shieldBadge(playerId) {
+    const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
+    if (!seat) return;
+    let badge = seat.querySelector('.gw-shield');
+    const turns = shieldTurns[playerId] || 0;
+    if (turns <= 0) { if (badge) badge.remove(); return; }
+    if (!badge) {
+      badge = document.createElement('i');
+      badge.className = 'gw-shield';
+      seat.appendChild(badge);
+    }
+    badge.textContent = 'SHIELD \u00D7' + turns;
+  }
+
+  /* the word slam: a stamped CHAMP WORD! pops over the avatar of whoever
+     scored it — the message line is hidden in this skin */
+  function cardFloater(playerId, kind) {
+    const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
+    if (!seat) return;
+    const slam = document.createElement('b');
+    slam.className = 'card-floater ' + kind;
+    slam.textContent = kind === 'champ' ? 'CHAMP WORD!' : kind.toUpperCase() + '!';
+    seat.appendChild(slam);
+    window.setTimeout(() => slam.remove(), 1550);
+  }
+
+  /* four bold 3D orange arrows, one aimed at each seat; the next player's
+     arrow ignites and marches toward them, so everybody can read where the
+     turn is going — even after a skip or a reverse. The arrows live on a
+     fixed overlay anchored to the shell's viewport box, pixel-tracked and
+     re-measured on every resize, because the shell's clip-path trims
+     anything appended inside it and its edge shape is reshaped per media. */
+  function renderTurnArrows() {
+    let holder = document.querySelector('.gw-arrows');
+    if (!holder) {
+      holder = document.createElement('div');
+      holder.className = 'gw-arrows';
+      SEAT_CYCLE.forEach(id => {
+        const a = document.createElement('i');
+        a.className = 'gw-arrow';
+        a.dataset.player = id;
+        const b = document.createElement('span');
+        a.appendChild(b);
+        holder.appendChild(a);
+        /* the three-piece arrow anchors on resize so it keeps pointing at
+           the moving board */
+        window.addEventListener('resize', () => positionTurnArrow(a));
+      });
+      document.body.appendChild(holder);
+    }
+    SEAT_CYCLE.forEach(id => positionTurnArrow(holder.querySelector(`.gw-arrow[data-player="${id}"]`)));
+    const nextId = turnState ? TURN_ORDER[turnState.index] : null;
+    holder.querySelectorAll('.gw-arrow').forEach(a => a.classList.toggle('aim', a.dataset.player === nextId));
+  }
+  function positionTurnArrow(arrow) {
+    if (!arrow) return;
+    const shell = document.querySelector('.gwx-letter-grid-shell');
+    if (!shell) return;
+    const box = shell.getBoundingClientRect();
+    const id = arrow.dataset.player;
+    /* each beacon blasts out from its measured seat bearing: the seats sit
+       on a wide diamond (champ lower-left across from jess lower-right,
+       poker upper-left across from kalkal upper-right per the live table)
+       with a different edge margin per side */
+    const bearing = {
+      champ: { fx: 'left', edge: -30 },
+      jess: { fx: 'right', edge: -30 },
+      kalkal: { fx: 'right', edge: -34 },
+      poker: { fx: 'left', edge: -34 }
+    }[id];
+    const rise = { champ: 26, jess: 26, kalkal: -30, poker: -30 }[id];
+    arrow.style.left = bearing.fx === 'left'
+      ? Math.round(box.left + bearing.edge) + 'px'
+      : Math.round(box.right - bearing.edge - arrow.offsetWidth) + 'px';
+    arrow.style.top = rise > 0
+      ? Math.round(box.bottom - rise - arrow.offsetHeight) + 'px'
+      : Math.round(box.top - rise) + 'px';
+  }
+
+  /* the sample avatar frames and filters from the account dashboard: every bot
+     rolls a fresh frame + filter combo at the start of each round */
+  const FX_FRAMES = ['fx-frame-cyber', 'fx-frame-sheriff', 'fx-frame-neon', 'fx-frame-vine'];
+  const FX_FILTERS = ['fx-filter-warm', 'fx-filter-cool', 'fx-filter-mono', 'fx-filter-pop'];
+  function applyBotFx() {
+    for (const id of BOT_IDS) {
+      const avatar = document.querySelector(`.gwx-seat[data-player="${id}"] .gwx-avatar`);
+      if (!avatar) continue;
+      avatar.classList.remove(...FX_FRAMES, ...FX_FILTERS);
+      avatar.classList.add(FX_FRAMES[Math.floor(Math.random() * FX_FRAMES.length)]);
+      avatar.classList.add(FX_FILTERS[Math.floor(Math.random() * FX_FILTERS.length)]);
+    }
+  }
+
+  /* ---------------------------------------------------------------- gifting ---
+     The social system is the classic mode's own: tap a rival's avatar to open
+     the gift tray (six classic gifts at this table's prices), tap your own
+     avatar or a seat's emote button for the emoji + rabbit-emote board. Gifts
+     fly a real arc, shake the receiver, spark, bubble, get thanked in chat,
+     and rivals often lob one straight back. */
+  const GIFTS = [
+    { id: 'cupcake', art: '\uD83E\uDD67', name: 'Cupcake',    cost: 100 },
+    { id: 'egg',     art: '\uD83E\uDD5A', name: 'Golden egg', cost: 100, gold: true },
+    { id: 'tomato',  art: '\uD83C\uDF45', name: 'Tomato',     cost: 200 },
+    { id: 'rose',    art: '\uD83C\uDF39', name: 'Rose',       cost: 300 },
+    { id: 'bear',    art: '\uD83E\uDDF8', name: 'Teddy bear', cost: 400 },
+    { id: 'cake',    art: '\uD83C\uDF70', name: 'Cake slice', cost: 800 }
+  ];
+  const THANK_LINES = ['thanks!', 'haha!', 'right back at you!'];
+  let giftTimer = 0, ambienceTimer = 0;
+
+  /* ---- the emoji set: uploaded clips, greenscreens keyed out --------------
+     Each emoji is a looping alpha webm cut to exactly 2s from the uploaded
+     greenscreen mp4, with its own recorded laugh (uploaded m4a, silence
+     trimmed) registered in audio-cues. Every emoji surface on the table shows
+     these two, in this order. The stage stays on screen for exactly the sound
+     length: the clip plays at natural laugh speed so the full animation lands
+     when the laugh ends. */
+  const EMOJIS = [
+    { name: 'Haha', src: './game/emoji/haha-2s.webm', cue: 'haha', LOOP_MS: 2000, SOUND_MS: 770 },
+    { name: 'Ahha', src: './game/emoji/ahha-2s.webm', cue: 'ahha', LOOP_MS: 2000, SOUND_MS: 1680 }
+  ];
+
+  function playVideoEmoji(seat, emoji) {
+    if (!seat || !emoji) return;
+    document.querySelectorAll('.vid-emoji-stage').forEach(el => el.remove());
+    const stage = document.createElement('div');
+    stage.className = 'vid-emoji-stage';
+    /* hang the chat bubble on the avatar itself so the gap to the profile is exact */
+    const avatar = seat.querySelector('.gwx-avatar');
+    (avatar || seat).appendChild(stage);
+    /* an aliased holder paints the chat bubble: tinted card, dashed rim, tail */
+    const holder = document.createElement('div');
+    holder.className = 'vid-emoji-holder';
+    stage.appendChild(holder);
+    const video = document.createElement('video');
+    video.className = 'vid-emoji-video';
+    video.src = emoji.src;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('aria-hidden', 'true');
+    holder.appendChild(video);
+    /* the 2s asset is the laugh slowed down; at this rate the full laugh lands
+       exactly when the recorded sound ends, so both stop together */
+    video.playbackRate = +(2 / (emoji.SOUND_MS / 1000)).toFixed(3);
+    const play = video.play();
+    if (play && play.catch) play.catch(() => {});
+    /* backstop at a loop boundary so cancelled timers can never strand the stage */
+    window.setTimeout(() => stage.remove(), emoji.LOOP_MS + 220);
+    return stage;
+  }
+
+  /* one emoji performance: the laugh starts with the clip, the bubble pops at
+     the sound's end so animation and sound always stop together. */
+  function showBubble(id, emojiIndex) {
+    const seat = document.querySelector(`.gwx-seat[data-player="${id}"]`);
+    if (!seat) return;
+    const emoji = EMOJIS[Math.max(0, Math.min(EMOJIS.length - 1, emojiIndex || 0))];
+    playVideoEmoji(seat, emoji);
+    try { window.ChampCues && window.ChampCues.play(emoji.cue); } catch (e) {}
+    /* the show lasts exactly the laugh: sound and animation end together */
+    window.clearTimeout(seat._vidEmojiTimer);
+    seat._vidEmojiTimer = window.setTimeout(() => {
+      const stage = seat.querySelector('.vid-emoji-stage');
+      if (stage) stage.remove();
+    }, emoji.SOUND_MS);
+  }
+
+  function nameOf(id) { return (PLAYERS.find(p => p.id === id) || { name: id }).name; }
+
+  function seatPoint(id) {
+    const avatar = document.querySelector(`.gwx-seat[data-player="${id}"] .gwx-avatar`);
+    if (!avatar) return null;
+    const r = avatar.getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: avatar };
+  }
+
+  function socialToast(msg, ms = 1900) {
+    document.querySelectorAll('.gift-toast').forEach(t => t.remove());
+    const toast = document.createElement('div');
+    toast.className = 'gift-toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    window.setTimeout(() => toast.remove(), ms + 120);
+  }
+
+  function chatSay(who, text) {
+    try { appendChatMessage(who + ' ' + text, who === nameOf('champ') ? 'champ' : 'bot'); } catch (e) {}
+  }
+
+
+
+
+  /* ---------------- pickers: classic gift tray + emoji/rabbit board ------- */
+  function closePickers() {
+    document.querySelectorAll('.gw-picker').forEach(p => p.remove());
+  }
+
+  function openPicker(playerId, anchorEl, mode) {
+    closePickers();
+    const pk = document.createElement('div');
+    pk.className = 'gw-picker';
+    if (mode === 'gift') {
+      const purse = round ? round.scores.champ.coins : 0;
+      const head = document.createElement('div');
+      head.className = 'gp-head';
+      head.innerHTML = '<span class="gp-who">Gift <b>' + nameOf(playerId).split('.')[0] + '</b></span>' +
+        '<span class="gp-purse">\uD83E\uDE99 ' + purse + '</span>';
+      pk.appendChild(head);
+      const grid = document.createElement('div');
+      grid.className = 'gp-grid';
+      GIFTS.forEach(g => {
+        const b = document.createElement('button');
+        b.className = 'gift-tile' + (g.cost > purse ? ' poor' : '');
+        b.innerHTML = '<span class="gt-art' + (g.gold ? ' gt-gold' : '') + '">' + g.art + '</span>' +
+          '<span class="gt-cost">\uD83E\uDE99 ' + g.cost + '</span>';
+        b.title = g.name + ' \u2014 ' + g.cost + ' coins';
+        b.addEventListener('click', ev => { ev.stopPropagation(); const ok = sendGift('champ', playerId, g); if (ok) closePickers(); });
+        grid.appendChild(b);
+      });
+      pk.appendChild(grid);
+    } else {
+      /* the emoji board: one small looping tile per emoji, in order */
+      const grid = document.createElement('div');
+      grid.className = 'emo-grid';
+      EMOJIS.forEach((emoji, index) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'emo-tile vid-tile';
+        b.title = emoji.name + ' emoji';
+        b.setAttribute('aria-label', 'Send the ' + emoji.name.toLowerCase() + ' emoji');
+        const vid = document.createElement('video');
+        vid.className = 'vid-poster';
+        vid.src = emoji.src;
+        vid.loop = true;
+        vid.muted = true;
+        vid.autoplay = true;
+        vid.playsInline = true;
+        const attempt = vid.play();
+        if (attempt && attempt.catch) attempt.catch(() => {});
+        b.appendChild(vid);
+        b.addEventListener('click', ev => {
+          ev.stopPropagation();
+          closePickers();
+          showBubble(playerId, index);
+          if (playerId !== 'champ') chatSay(nameOf('champ'), 'sent the ' + emoji.name + ' emoji at ' + nameOf(playerId));
+        });
+        grid.appendChild(b);
+      });
+      pk.appendChild(grid);
+    }
+    document.body.appendChild(pk);
+    const r = anchorEl.getBoundingClientRect();
+    const w = pk.offsetWidth, h = pk.offsetHeight;
+    pk.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, r.left + r.width / 2 - w / 2)) + 'px';
+    let top = r.bottom + 10;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 10);
+    pk.style.top = top + 'px';
+  }
+
+  /* ---------------- one gift, one arc -------------------------------------- */
+  function sendGift(fromId, toId, g) {
+    if (!round || round.ended || !g || fromId === toId) return false;
+    const from = round.scores[fromId], to = round.scores[toId];
+    if (!from || !to) return false;
+    if (from.coins < g.cost) {
+      if (fromId === 'champ') socialToast('Not enough coins \u2014 find words to earn more \uD83E\uDE99');
+      return false;
+    }
+    from.coins -= g.cost;
+    to.coins += g.cost;
+    renderScores();
+    throwGift(fromId, toId, g);
+    if (fromId === 'champ') {
+      chatSay(nameOf('champ'), 'sent a ' + g.name.toLowerCase() + ' to ' + nameOf(toId) + ' ' + g.art);
+      socialToast(g.art + ' ' + g.name + ' \u2192 ' + nameOf(toId) + '   \u2212' + g.cost + ' \uD83E\uDE99');
+    }
+    return true;
+  }
+
+  function throwGift(fromId, toId, g) {
+    const a = seatPoint(fromId), b = seatPoint(toId);
+    if (!a || !b) return;
+    const el = document.createElement('span');
+    el.className = 'gift-fly';
+    el.textContent = g.art;
+    if (g.gold) el.classList.add('gt-gold');
+    el.style.left = a.x + 'px';
+    el.style.top = a.y + 'px';
+    document.body.appendChild(el);
+    const dur = 620, t0 = performance.now();
+    const lift = Math.min(200, Math.max(70, Math.abs(b.y - a.y) * 0.4 + 90));
+    const cx = (a.x + b.x) / 2, cy = Math.min(a.y, b.y) - lift;
+    const step = now => {
+      const t = Math.min(1, (now - t0) / dur), u = 1 - t;
+      const x = u * u * a.x + 2 * u * t * cx + t * t * b.x;
+      const y = u * u * a.y + 2 * u * t * cy + t * t * b.y;
+      const sc = 1 + Math.sin(Math.PI * t) * 0.6;
+      el.style.transform = 'translate(' + (x - a.x).toFixed(1) + 'px,' + (y - a.y).toFixed(1) + 'px)' +
+        ' rotate(' + Math.round(t * 400) + 'deg) scale(' + sc.toFixed(3) + ')';
+      if (t < 1) requestAnimationFrame(step);
+      else { el.remove(); giftImpact(fromId, toId, g); }
+    };
+    requestAnimationFrame(step);
+  }
+
+  function sparks(pt) {
+    for (let i = 0; i < 7; i++) {
+      const s = document.createElement('span');
+      s.className = 'gift-spark';
+      s.style.left = pt.x + 'px';
+      s.style.top = pt.y + 'px';
+      document.body.appendChild(s);
+      const ang = (i / 7) * Math.PI * 2, d = 44 + Math.random() * 32;
+      requestAnimationFrame(() => {
+        s.style.transform = 'translate(' + (Math.cos(ang) * d).toFixed(1) + 'px,' + (Math.sin(ang) * d).toFixed(1) + 'px) scale(.3)';
+        s.style.opacity = '0';
+      });
+      window.setTimeout(() => s.remove(), 700);
+    }
+  }
+
+  function giftImpact(fromId, toId, g) {
+    const pt = seatPoint(toId);
+    if (pt) {
+      pt.el.classList.remove('gift-hit');
+      void pt.el.offsetWidth;
+      pt.el.classList.add('gift-hit');
+      window.setTimeout(() => pt.el.classList.remove('gift-hit'), 640);
+      sparks(pt);
+    }
+    /* the gift lands as sparks on the avatar — no emoji reaction on top */
+    if (toId === 'champ') socialToast('\uD83C\uDF81 ' + nameOf(fromId) + ' threw a ' + g.name.toLowerCase() + ' at you!');
+    else if (Math.random() < 0.8) {
+      window.setTimeout(() => chatSay(nameOf(toId), THANK_LINES[Math.floor(Math.random() * THANK_LINES.length)]), 800 + Math.random() * 900);
+    }
+    /* a rival often lobs something straight back, so the arc is seen both ways */
+    if (fromId === 'champ' && Math.random() < 0.42) {
+      const back = GIFTS[Math.floor(Math.random() * 4)];
+      window.setTimeout(() => { if (round && !round.ended) throwGift(toId, 'champ', back); }, 1500 + Math.random() * 900);
+    }
+  }
+
+  /* ------------- wiring: tap avatars like the classic table --------------- */
+  function wireSeatSocial() {
+    document.querySelectorAll('.gwx-seat').forEach(seat => {
+      const id = seat.dataset.player;
+      if (!id || seat.dataset.socialWired) return;
+      seat.dataset.socialWired = '1';
+      const avatar = seat.querySelector('.gwx-avatar');
+      /* own profile: nothing pops from the avatar — the emoji icon is the way in.
+         Rivals keep the gift tray on their avatar. */
+      if (avatar && id !== 'champ') {
+        avatar.style.cursor = 'pointer';
+        avatar.addEventListener('click', ev => {
+          ev.stopPropagation();
+          openPicker(id, avatar, 'gift');
+        });
+      }
+      /* tapping the avatar opens that seat's board — no per-seat emote button */
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.gw-picker') && !event.target.closest('.gwx-avatar')) closePickers();
+    });
+  }
+
+  /* bots gift the player now and then, and emote among themselves */
+  function scheduleBotGift() {
+    window.clearTimeout(giftTimer);
+    giftTimer = window.setTimeout(() => {
+      if (round && !round.ended && turnState && turnState.tick) {
+        const from = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
+        sendGift(from, 'champ', GIFTS[Math.floor(Math.random() * 4)]);
+      }
+      scheduleBotGift();
+    }, 35000 + Math.random() * 40000);
+  }
+
+  function scheduleBotAmbience() {
+    window.clearTimeout(ambienceTimer);
+    ambienceTimer = window.setTimeout(() => {
+      if (round && !round.ended) {
+        const who = BOT_IDS[Math.floor(Math.random() * BOT_IDS.length)];
+        showBubble(who, Math.floor(Math.random() * EMOJIS.length));
+      }
+      scheduleBotAmbience();
+    }, 14000 + Math.random() * 6000);
+  }
+
+  function buildLevelRail() {
+    const track = document.querySelector('.gwx-level-track');
+    if (!track) return;
+    track.setAttribute('aria-valuemax', String(BOARDS));
+    track.querySelectorAll('i').forEach(pip => pip.remove());
+    for (let i = 0; i < BOARDS; i++) {
+      const pip = document.createElement('i');
+      pip.style.left = ((i + 1) / (BOARDS + 1) * 100).toFixed(2) + '%';
+      track.appendChild(pip);
+    }
+  }
+
+  /* the rail reads LEVEL n/30: filled pips are cleared levels, the bar covers
+     the whole hunt, and hidden-word progress sits in the label */
+  function paintLevelRail() {
+    const track = document.querySelector('.gwx-level-track');
+    const bar = $('wordProgress');
+    const overall = round.words30.length ? round.foundAll.size / round.words30.length : 0;
+    if (bar) bar.style.width = (Math.max(0, Math.min(1, overall)) * 100).toFixed(2) + '%';
+    if (track) {
+      track.setAttribute('aria-valuenow', String(round.level));
+      track.querySelectorAll('i').forEach((pip, index) => pip.classList.toggle('on', index < round.level - 1));
+    }
+    const label = $('wordProgressLabel');
+    if (label) label.textContent = round.foundAll.size + ' / ' + round.words30.length + ' WORDS';
+  }
+
+  /* the whole round's thirty words are dealt up front: five boards of six,
+     every word laid letter by letter into its own 7x6 board, all thirty
+     unique. The longest word on each of the first four boards is that
+     board's CHAMP word. */
+  function buildBoards() {
+    const used = new Set();
+    round.boards = [];
+    for (let board = 0; board < BOARDS; board++) {
+      const lengths = BOARD_LENGTHS[board % BOARD_LENGTHS.length];
+      let layout;
+      try {
+        layout = createWordGrid(WORD_BANK, Math.random, { lengths, exclude: used });
+      } catch {
+        layout = createWordGrid(WORD_BANK, Math.random, { lengths });
+      }
+      layout.words.forEach(item => used.add(item.word));
+      /* safety net: any cell the deal left empty (a length set that came up
+         short) gets a filler letter so the board never renders a hole */
+      const ALPHA = 'eeeaaaiioonnrtssttllccuuddppmm';
+      layout.grid.forEach((letter, cell) => { if (!letter) layout.grid[cell] = ALPHA[Math.floor(Math.random() * ALPHA.length)]; });
+      round.boards.push(layout);
+    }
+    round.boards.slice(0, CHAMP_WORDS).forEach(layout => {
+      const top = Math.max(...layout.words.map(item => item.word.length));
+      const king = layout.words.find(item => item.word.length === top);
+      if (king) king.champ = true;
+    });
+    round.words30 = [];
+    round.boards.forEach((layout, index) => {
+      layout.words.forEach(item => round.words30.push({ word: item.word, path: item.path, champ: !!item.champ, board: index + 1 }));
+    });
+  }
+
+  /* bring the next board up: its words were already laid at reset, so this
+     just seats the board and repaints the rails */
+  function dealLevel() {
+    round.layout = round.boards[round.level - 1];
+    round.found = new Set();
+    round.foundPaths = [];
+    buildLevelRail();
+    buildGrid();
+    renderSlots();
+    renderPath();
+    $('roundLabel').textContent = String(round.level).padStart(2, '0');
+    $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. Four CHAMP words shield coins for 2 turns.';
+  }
+
+  function resetRound() {
+    /* presentation only: a celebration still in flight belongs to the board being
+       replaced. Without this its letters keep floating over the new grid at the
+       old coordinates until their own timers expire. */
+    window.__champCoins?.cancel?.();
+    window.clearTimeout(resultReveal);
+    resultReveal = 0;
+    window.clearTimeout(handoverTimer);
+    settling = false;
+    stopTurns();
+    document.querySelectorAll('.gwx-seat').forEach(seat => { seat.classList.remove('active'); seat.style.removeProperty('--turn-pct'); });
+    $('resultModal').classList.remove('open');
+    $('resultModal').setAttribute('aria-hidden', 'true');
+    $('guessInput').value = '';
+    $('guessMessage').classList.remove('good', 'bad');
+    $('guessMessage').textContent = '30 levels, 15 seconds a turn. Hidden words pay 100 coins a letter.';
+    $('roundMessage').textContent = 'Everyone starts on ' + START_COINS.toLocaleString('en-US') + ' coins. The top purse opens; the grid pays the first find, then every find is paid by the scorer before you.';
+    path = [];
+    round = {
+      level: 1,
+      layout: null,
+      found: new Set(),
+      foundPaths: [],
+      foundAll: new Set(),
+      words30: [],
+      boards: [],
+      scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: START_COINS, words: 0 }])),
+      ended: false
+    };
+    buildBoards();
+    dealLevel();
+    renderScores();
+    applyBotFx();
+    passStreak = 0;
+    /* the richest purse always opens the round; the turn then travels the
+       seat cycle from there — champ, jess, kalkal, poker, back to champ. */
+    const maxCoins = Math.max(...PLAYERS.map(player => round.scores[player.id].coins));
+    const opener = SEAT_CYCLE.find(id => round.scores[id].coins === maxCoins);
+    const at = SEAT_CYCLE.indexOf(opener);
+    TURN_ORDER = SEAT_CYCLE.map((_, i) => SEAT_CYCLE[(at + i) % SEAT_CYCLE.length]);
+    lastScorer = null;
+    shieldTurns = {};
+    shieldFresh = new Set();
+    document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
+    turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };
+    renderTurnArrows();
+    startTurn();
+  }
+
+  $('guessForm').addEventListener('submit', event => {
+    event.preventDefault();
+    /* No cue here: a word that lands is thrown into the grid by the
+       celebration itself, which owns that beat and would otherwise double this
+       one up. A word that misses never reaches the grid, so it is silent. */
+    submitGuess($('guessInput').value, turnState ? TURN_ORDER[turnState.index] : 'champ', path.length > 0);
+  });
+  $('guessInput').addEventListener('input', () => {
+    path = [];
+    renderPath();
+  });
+  $('restartBtn').addEventListener('click', resetRound);
+  $('playAgainBtn').addEventListener('click', resetRound);
+  const emojiToggle = $('emojiToggle');
+  const chatToggle = $('chatToggle');
+  const emojiMenu = $('emojiMenu');
+  const chatPanel = $('tableChatPanel');
+  const reaction = $('champReaction');
+  const chatMessages = $('chatMessages');
+  const chatConnection = $('chatConnection');
+  let reactionTimer = null;
+  let chatSocket = null;
+  let chatReconnectTimer = null;
+  let chatRequest = 0;
+  let chatRoomId = new URLSearchParams(location.search).get('room');
+  const chatPlayerKey = 'champword.playerId';
+  let chatPlayerId = localStorage.getItem(chatPlayerKey);
+  if (!chatPlayerId) {
+    chatPlayerId = globalThis.crypto?.randomUUID?.() || `player-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    localStorage.setItem(chatPlayerKey, chatPlayerId);
+  }
+  function closeSocialMenus() {
+    emojiMenu.hidden = true;
+    emojiToggle.setAttribute('aria-expanded', 'false');
+  }
+  function toggleSocialMenu(menu, button) {
+    const opening = menu.hidden;
+    closeSocialMenus();
+    menu.hidden = !opening;
+    button.setAttribute('aria-expanded', String(opening));
+  }
+
+  function appendChatMessage(text, playerId, at = new Date().toISOString()) {
+    const bubble = document.createElement('div');
+    bubble.className = `table-chat-bubble${playerId === chatPlayerId ? ' mine' : ''}`;
+    const body = document.createElement('span');
+    body.textContent = text;
+    const time = document.createElement('small');
+    time.textContent = new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    bubble.append(body, time);
+    chatMessages.appendChild(bubble);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+  function setChatStatus(text, connected = false) {
+    chatConnection.textContent = text;
+    chatConnection.classList.toggle('connected', connected);
+  }
+  function connectTableChat() {
+    if (chatSocket && (chatSocket.readyState === WebSocket.OPEN || chatSocket.readyState === WebSocket.CONNECTING)) return;
+    const host = location.hostname;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socketUrl = host === 'champword-backend.onrender.com' || host === 'localhost' || host === '127.0.0.1'
+      ? `${protocol}//${location.host}`
+      : 'wss://champword-backend.onrender.com';
+    setChatStatus('Connecting…');
+    try {
+      chatSocket = new WebSocket(socketUrl);
+    } catch {
+      setChatStatus('Chat unavailable');
+      return;
+    }
+    chatSocket.addEventListener('open', () => {
+      const requestId = `grid-chat-${Date.now()}-${++chatRequest}`;
+      if (chatRoomId) chatSocket.send(JSON.stringify({ type: 'join_room', requestId, roomId: chatRoomId, playerId: chatPlayerId }));
+      else chatSocket.send(JSON.stringify({ type: 'create_room', requestId, playerId: chatPlayerId }));
+    });
+    chatSocket.addEventListener('message', event => {
+      let message;
+      try { message = JSON.parse(event.data); } catch { return; }
+      if (message.type === 'room_snapshot' && message.roomId) {
+        chatRoomId = message.roomId;
+        const nextUrl = new URL(location.href);
+        nextUrl.searchParams.set('room', chatRoomId);
+        history.replaceState(null, '', nextUrl);
+        setChatStatus('Connected · share the invite link', true);
+      } else if (message.type === 'chat_message') {
+        appendChatMessage(message.text, message.playerId, message.at);
+      } else if (message.type === 'error') {
+        setChatStatus('Reconnect to chat');
+      }
+    });
+    chatSocket.addEventListener('close', () => {
+      setChatStatus('Reconnecting…');
+      clearTimeout(chatReconnectTimer);
+      chatReconnectTimer = window.setTimeout(connectTableChat, 2400);
+    });
+    chatSocket.addEventListener('error', () => setChatStatus('Connecting…'));
+  }
+  emojiToggle.addEventListener('click', () => toggleSocialMenu(emojiMenu, emojiToggle));
+  chatToggle.addEventListener('click', () => {
+    closeSocialMenus();
+    chatPanel.hidden = !chatPanel.hidden;
+    chatToggle.setAttribute('aria-expanded', String(!chatPanel.hidden));
+    if (!chatPanel.hidden) $('tableChatInput').focus();
+  });
+  $('closeChat').addEventListener('click', () => {
+    chatPanel.hidden = true;
+    chatToggle.setAttribute('aria-expanded', 'false');
+  });
+  $('tableChatForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const input = $('tableChatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    if (!chatSocket || chatSocket.readyState !== WebSocket.OPEN || !chatRoomId) {
+      setChatStatus('Reconnecting…');
+      connectTableChat();
+      return;
+    }
+    chatSocket.send(JSON.stringify({ type: 'chat_send', requestId: `grid-chat-${Date.now()}-${++chatRequest}`, text }));
+    input.value = '';
+    input.focus();
+  });
+  $('copyRoomLink').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      setChatStatus('Invite link copied', true);
+    } catch {
+      setChatStatus('Copy the page link to invite players');
+    }
+  });
+  /* the dashboard's emoji tray: the same small tiles, in order, over Champ */
+  EMOJIS.forEach((emoji, index) => {
+    const dashTile = document.createElement('button');
+    dashTile.type = 'button';
+    dashTile.className = 'vid-tile dash';
+    dashTile.title = emoji.name + ' emoji';
+    dashTile.setAttribute('aria-label', 'Send the ' + emoji.name.toLowerCase() + ' emoji');
+    const vid = document.createElement('video');
+    vid.className = 'vid-poster';
+    vid.src = emoji.src;
+    vid.loop = true;
+    vid.muted = true;
+    vid.autoplay = true;
+    vid.playsInline = true;
+    const attempt = vid.play();
+    if (attempt && attempt.catch) attempt.catch(() => {});
+    dashTile.appendChild(vid);
+    dashTile.addEventListener('click', ev => {
+      ev.stopPropagation();
+      closeSocialMenus();
+      showBubble('champ', index);
+    });
+    emojiMenu.appendChild(dashTile);
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.champ-social-controls')) closeSocialMenus();
+  });
+  connectTableChat();
+  resetRound();
+  wireSeatSocial();
+  scheduleBotGift();
+  scheduleBotAmbience();
+
+  window.__champWordGrid = {
+    state: () => ({
+      grid: [...round.layout.grid], cols: round.layout.cols, rows: round.layout.rows,
+      words: round.words30.map(item => item.word),
+      champWords: round.words30.filter(item => item.champ).map(item => item.word),
+      found: [...round.foundAll],
+      board: round.level, level: round.level, levels: BOARDS, boards: BOARDS,
+      scores: structuredClone(round.scores),
+      active: turnState ? TURN_ORDER[turnState.index] : null,
+      secondsLeft: turnState ? Math.max(0, Math.round((turnState.endsAt - performance.now()) / 1000)) : 0,
+      order: TURN_ORDER.slice(), lastScorer,
+      shieldTurns: { ...shieldTurns },
+      ended: round.ended
+    }),
+    guess: (word, player = 'champ', fromDrag = false) => submitGuess(word, player, fromDrag),
+    gift: (toId, id) => sendGift('champ', toId, GIFTS.find(g => g.id === id || g.art === id || g.name.toUpperCase() === String(id || '').toUpperCase())),
+    setTurnSpeed: ms => { turnMs = Math.max(400, Math.min(TURN_MS, Number(ms) || TURN_MS)); },
+    skipToBoard: n => { if (round && !round.ended) { round.level = Math.max(1, Math.min(BOARDS, Number(n) || 1)); dealLevel(); } },
+    skipToLevel: n => { if (round && !round.ended) { round.level = Math.max(1, Math.min(BOARDS, Number(n) || 1)); dealLevel(); } },
+    reset: resetRound
+  };
 })();
+

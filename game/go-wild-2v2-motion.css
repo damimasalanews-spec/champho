@@ -1,0 +1,349 @@
+/* ==========================================================================
+   Go Wild 2v2 — motion layer (word grid)
+   Presentation only. Complements the existing sheet; it changes no rule,
+   no timing and no game state. Loaded after go-wild-2v2-finished.css so it
+   can layer on top without touching the original file.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. TRACING A WORD — the core interaction
+   The traced tiles only changed colour before, which read as static while
+   swiping a path. The ring is a pseudo-element so the tile's own
+   transform-based lift (translateY/translateZ) is never overwritten.
+   -------------------------------------------------------------------------- */
+.letter-tile.selected:not(.found) {
+  animation: gwTraceGlow 1.05s ease-in-out infinite alternate;
+}
+
+.letter-tile.selected::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 13px;
+  border: 2px solid rgba(255, 255, 178, .9);
+  box-shadow: 0 0 16px rgba(178, 255, 96, .7), inset 0 0 12px rgba(206, 255, 150, .3);
+  pointer-events: none;
+  z-index: 3;
+  animation: gwTraceRing 0.9s ease-out infinite;
+}
+
+@keyframes gwTraceGlow {
+  from { filter: brightness(1.02) saturate(1.04); }
+  to   { filter: brightness(1.18) saturate(1.2); }
+}
+
+@keyframes gwTraceRing {
+  0%   { opacity: .95; transform: scale(.9); }
+  70%  { opacity: .32; transform: scale(1.06); }
+  100% { opacity: 0;   transform: scale(1.12); }
+}
+
+/* --------------------------------------------------------------------------
+   2. A WORD FOUND — the tile flash is already there; this adds the sweep of
+   light that makes the find feel like it landed rather than blinked.
+   -------------------------------------------------------------------------- */
+.letter-tile.found::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, .8) 50%, transparent 68%);
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  animation: gwSweep 0.85s ease-out 0.08s both;
+}
+
+/* The sweep slides the background rather than transforming the pseudo-element.
+   A transform would carry the pseudo outside its own box and spill light over
+   neighbouring tiles; background painting is always clipped to the box, so the
+   shine stays inside the tile (and inside the word slot) on its own. */
+@keyframes gwSweep {
+  0%   { opacity: 0; background-position: 85% 0; }
+  22%  { opacity: 1; }
+  100% { opacity: 0; background-position: 15% 0; }
+}
+
+/* --------------------------------------------------------------------------
+   3. WORD SLOTS — deal in, then shine when solved.
+   -------------------------------------------------------------------------- */
+/* Deliberately no `overflow:hidden` here. The base layout makes the slot label
+   wider than the slot, so clipping the slot would cut the "N LETTERS /
+   HIDDEN WORD" text off at the panel edge. The sweep below clips itself. */
+.word-slot {
+  position: relative;
+  animation: gwSlotIn 0.4s cubic-bezier(.2, .9, .25, 1) backwards;
+}
+
+.word-slot:nth-child(1) { animation-delay: 0ms; }
+.word-slot:nth-child(2) { animation-delay: 45ms; }
+.word-slot:nth-child(3) { animation-delay: 90ms; }
+.word-slot:nth-child(4) { animation-delay: 135ms; }
+.word-slot:nth-child(5) { animation-delay: 180ms; }
+.word-slot:nth-child(6) { animation-delay: 225ms; }
+.word-slot:nth-child(7) { animation-delay: 270ms; }
+
+.word-slot.done::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, .85) 50%, transparent 66%);
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  animation: gwSweep 0.95s ease-out 0.05s both;
+}
+
+@keyframes gwSlotIn {
+  from { opacity: 0; transform: translateX(-9px) scale(.94); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   4. WORD HUNT RAIL — a sheen travelling the filled part of the bar, so
+   progress reads as movement instead of a width jump.
+   -------------------------------------------------------------------------- */
+.gwx-level-track > span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .85) 50%, transparent 70%);
+  animation: gwRailSheen 2.2s ease-in-out infinite;
+}
+
+@keyframes gwRailSheen {
+  0%   { opacity: 0; transform: translateX(-110%); }
+  35%  { opacity: .9; }
+  70%  { opacity: 0; transform: translateX(110%); }
+  100% { opacity: 0; transform: translateX(110%); }
+}
+
+/* --------------------------------------------------------------------------
+   5. LEADERBOARD — rows settle in on each re-rank; the leader keeps a soft
+   gold pulse so first place is readable at a glance.
+   -------------------------------------------------------------------------- */
+.gwx-leader-row {
+  animation: gwRowIn 0.42s cubic-bezier(.2, .9, .25, 1) backwards;
+}
+
+.gwx-leader-row:nth-child(2) { animation-delay: 60ms; }
+.gwx-leader-row:nth-child(3) { animation-delay: 120ms; }
+.gwx-leader-row:nth-child(4) { animation-delay: 180ms; }
+
+.gwx-leader-row.leading {
+  animation: gwRowIn 0.42s cubic-bezier(.2, .9, .25, 1) backwards,
+             gwLeadGlow 2.6s ease-in-out infinite 0.5s;
+}
+
+@keyframes gwRowIn {
+  from { opacity: 0; transform: translateY(8px) scale(.97); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes gwLeadGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 226, 140, 0); }
+  50%      { box-shadow: 0 0 16px rgba(255, 226, 140, .45); }
+}
+
+/* --------------------------------------------------------------------------
+   6. FEEDBACK MESSAGES — correct vs wrong now move differently.
+   -------------------------------------------------------------------------- */
+#guessMessage.good {
+  color: #8bffd0;
+  animation: gwMsgGood 0.5s cubic-bezier(.2, 1.4, .3, 1) both;
+}
+
+#guessMessage.bad {
+  color: #ffb3b3;
+  animation: gwMsgBad 0.46s ease both;
+}
+
+@keyframes gwMsgGood {
+  0%   { opacity: .4; transform: translateY(6px) scale(.94); }
+  55%  { opacity: 1; transform: translateY(-2px) scale(1.05); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes gwMsgBad {
+  0%, 100% { transform: translateX(0); }
+  18%      { transform: translateX(-6px); }
+  36%      { transform: translateX(6px); }
+  54%      { transform: translateX(-4px); }
+  72%      { transform: translateX(4px); }
+}
+
+#roundMessage.gw-flash {
+  animation: gwRoundFlash 1.05s ease both;
+}
+
+@keyframes gwRoundFlash {
+  0%   { opacity: .35; transform: translateY(4px); text-shadow: 0 0 0 rgba(255, 229, 152, 0); }
+  30%  { opacity: 1; transform: none; text-shadow: 0 0 14px rgba(255, 229, 152, .85); }
+  100% { opacity: 1; text-shadow: 0 1px 5px #001a0e; }
+}
+
+/* --------------------------------------------------------------------------
+   7. RESULT MODAL — backdrop fade plus a card that settles.
+   -------------------------------------------------------------------------- */
+.gwx-modal.open {
+  animation: gwBackdropIn 0.32s ease both;
+}
+
+.gwx-modal.open .gwx-modal-card {
+  animation: gwModalIn 0.58s cubic-bezier(.16, 1.1, .3, 1) both;
+}
+
+@keyframes gwBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes gwModalIn {
+  0%   { opacity: 0; transform: translateY(28px) scale(.9); }
+  62%  { opacity: 1; transform: translateY(-4px) scale(1.02); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   8. EMOTE / REACTION — items cascade, the reaction pops.
+   -------------------------------------------------------------------------- */
+.champ-dropdown > button {
+  animation: gwDropItem 0.3s cubic-bezier(.2, 1.3, .35, 1) backwards;
+}
+
+.champ-dropdown > button:nth-child(2) { animation-delay: 30ms; }
+.champ-dropdown > button:nth-child(3) { animation-delay: 60ms; }
+.champ-dropdown > button:nth-child(4) { animation-delay: 90ms; }
+.champ-dropdown > button:nth-child(5) { animation-delay: 120ms; }
+.champ-dropdown > button:nth-child(6) { animation-delay: 150ms; }
+
+@keyframes gwDropItem {
+  from { opacity: 0; transform: translateY(7px) scale(.85); }
+  to   { opacity: 1; transform: none; }
+}
+
+.champ-reaction.visible {
+  animation: gwReactionPop 0.46s cubic-bezier(.2, 1.5, .35, 1) both;
+}
+
+@keyframes gwReactionPop {
+  0%   { opacity: 0; transform: translateY(10px) scale(.7); }
+  60%  { opacity: 1; transform: translateY(-2px) scale(1.06); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* --------------------------------------------------------------------------
+   9. SCORE POPS — a short bump whenever a coin value actually changes.
+   Applied by the motion script; harmless if it never runs.
+   -------------------------------------------------------------------------- */
+#totalCoins.gw-bump,
+#teamCoinsA.gw-bump,
+#teamCoinsB.gw-bump,
+#coins-champ.gw-bump,
+#coins-poker.gw-bump,
+#coins-kalkal.gw-bump,
+#coins-jess.gw-bump {
+  animation: gwCoinBump 0.5s cubic-bezier(.2, 1.5, .35, 1);
+}
+
+@keyframes gwCoinBump {
+  0%   { transform: scale(1); }
+  38%  { transform: scale(1.22); filter: brightness(1.5); }
+  100% { transform: scale(1); filter: none; }
+}
+
+/* --------------------------------------------------------------------------
+   10. TIMER — turns urgent in the last stretch.
+   -------------------------------------------------------------------------- */
+#timer.gw-low {
+  color: #ff9b9b;
+  animation: gwLowTime 1s ease-in-out infinite;
+}
+
+@keyframes gwLowTime {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.09); }
+}
+
+/* --------------------------------------------------------------------------
+   11. RESTART — a spin on the button itself when a round is reset.
+   -------------------------------------------------------------------------- */
+#restartBtn.gw-spin {
+  animation: gwSpin 0.62s cubic-bezier(.3, .9, .3, 1);
+}
+
+@keyframes gwSpin {
+  from { transform: rotate(0); }
+  to   { transform: rotate(360deg); }
+}
+
+/* --------------------------------------------------------------------------
+   12. BOARD FEEDBACK — correct vs wrong, on the grid itself.
+
+   The base sheet hides the two text lines that carry a guess result
+   (`#guessMessage`, `#roundMessage` are `display:none!important` inside
+   `.gwx-center`), so a text-only result is never seen. The grid is the one
+   element that is always on screen, so the outcome is played there instead.
+   The motion script drives these two classes from the message element's own
+   class, which the game still toggles even while the text is hidden.
+   -------------------------------------------------------------------------- */
+.gwx-letter-grid.gw-correct {
+  animation: gwGridCorrect 0.8s cubic-bezier(.2, 1.2, .3, 1);
+}
+
+.gwx-letter-grid.gw-wrong {
+  animation: gwGridWrong 0.46s ease;
+}
+
+@keyframes gwGridCorrect {
+  0%   { transform: none; filter: brightness(1); }
+  34%  { transform: translateY(-3px) scale(1.015); filter: brightness(1.24) saturate(1.16); }
+  100% { transform: none; filter: none; }
+}
+
+@keyframes gwGridWrong {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-5px); }
+  40%      { transform: translateX(5px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
+}
+
+/* --------------------------------------------------------------------------
+   Accessibility: the original sheet opts out of motion; this layer must too.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .letter-tile.selected,
+  .letter-tile.selected::after,
+  .letter-tile.found::after,
+  .word-slot,
+  .word-slot.done::after,
+  .gwx-level-track > span::after,
+  .gwx-leader-row,
+  .gwx-leader-row.leading,
+  #guessMessage.good,
+  #guessMessage.bad,
+  #roundMessage.gw-flash,
+  .gwx-modal.open,
+  .gwx-modal.open .gwx-modal-card,
+  .champ-dropdown > button,
+  .champ-reaction.visible,
+  #totalCoins.gw-bump,
+  #teamCoinsA.gw-bump,
+  #teamCoinsB.gw-bump,
+  #coins-champ.gw-bump,
+  #coins-poker.gw-bump,
+  #coins-kalkal.gw-bump,
+  #coins-jess.gw-bump,
+  #timer.gw-low,
+  #restartBtn.gw-spin,
+  .gwx-letter-grid.gw-correct,
+  .gwx-letter-grid.gw-wrong {
+    animation: none !important;
+  }
+}
