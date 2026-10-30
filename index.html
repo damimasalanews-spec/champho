@@ -223,7 +223,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   <input id="emailInput" type="email" autocomplete="email" placeholder="Email">
   <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password (6+ characters)">
   <input id="nameInput" maxlength="18" autocomplete="nickname" placeholder="Player name (for sign up)">
-  <div class="auth-actions"><button id="loginBtn">Log in</button><button id="signupBtn">Create account</button></div>
+  <div class="auth-actions"><button id="loginBtn" type="button">Log in</button><button id="signupBtn" type="button">Create account</button></div>
   <button id="guestBtn" class="guest-btn" type="button">▶ Continue as Guest</button>
   <small id="authMessage">Guest mode works immediately on this device. Account mode is saved locally when Firebase is not configured.</small>
   </div>
@@ -1742,7 +1742,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   function champSave(){
     try{
       localStorage.setItem(CHAMP_KEY, JSON.stringify(champState));
-      localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(champState));
+      // The guest mirror only ever mirrors the guest. Writing it for a signed-in
+      // account copied that account's coins into the guest slot on every save.
+      if(CHAMP_KEY==='champwordLocalProfile_guest_local')
+        localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(champState));
     }catch(e){}
   }
   function champRender(){
@@ -1821,6 +1824,35 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   window.champGetState=function(){ return champState; };
   window.champSetState=function(s){ champState=s; champSave(); champRender(); };
 
+  /* Point the live save at one account. Guests keep the original guest key, and a
+     signed-in account gets `wordunoLocalProfile_<uid>` - the same key the game
+     engine reads - so two players on one device never share coins or progress. */
+  window.champUseProfile=function(uid,displayName){
+    var id=uid||'guest_local';
+    CHAMP_KEY=(id==='guest_local')?'champwordLocalProfile_guest_local':('wordunoLocalProfile_'+id);
+    var virgin=true;
+    try{
+      var cur=JSON.parse(localStorage.getItem(CHAMP_KEY)||'null');
+      if(cur && typeof cur==='object'){
+        virgin=(cur.coins==0 && cur.gems==0 && cur.xp==0 && cur.wins==0 && cur.games==0
+          && (!Array.isArray(cur.activity)||cur.activity.length===0));
+      }
+    }catch(se){ virgin=localStorage.getItem(CHAMP_KEY)==null; }
+    if(virgin){
+      try{
+        localStorage.setItem(CHAMP_KEY, JSON.stringify({
+          displayName:displayName||'Guest',coins:12480,gems:320,level:12,xp:680,
+          wins:0,games:0,activity:[]
+        }));
+      }catch(e){}
+    }
+    champState=champLoad();
+    if(displayName) champState.displayName=displayName;
+    window.champState=champState;
+    champSave(); champRender();
+    return champState;
+  };
+
   // push the new totals back into the running game, if it is open
   function champSend(){ try{ if(typeof sendProfile==='function') sendProfile(); }catch(e){} }
 
@@ -1839,9 +1871,15 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   window.champAward=champAward; window.champTotals=champTotals;
   window.champSaveNow=champSave; window.champState=champState;
 
-  function enterGuestFallback(){
+  /* One way into the app, whatever identity was used. Guest entry and account
+     login used to be separate copies of this, and the account path did not exist
+     here at all - Log in / Create account had no handler on this page and did
+     nothing when tapped. */
+  function enterApp(user){
+    var u=user||{uid:'guest_local',email:'guest@champword.local',displayName:'Guest'};
+    var display=u.displayName||'Guest';
     try{
-      var guest={uid:'guest_local',email:'guest@champword.local',displayName:'Guest'};
+      var guest={uid:u.uid,email:u.email,displayName:display};
       localStorage.setItem('wordunoLocalUser', JSON.stringify(guest));
       localStorage.setItem('champwordLocalUser', JSON.stringify(guest));
       // seed the starting balance only on the very first run. Re-seeding on every
@@ -1852,21 +1890,10 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
       // alone would keep such a visitor locked at 0 coins forever. A profile
       // with any xp, wins, games or activity is real; only a fully untouched
       // one gets the starter balance.
-      var virgin=true;
-      try{
-        var cur=JSON.parse(localStorage.getItem(CHAMP_KEY)||'null');
-        if(cur && typeof cur==='object'){
-          virgin=cur.coins==0 && cur.gems==0 && cur.xp==0 && cur.wins==0 && cur.games==0
-            && (!Array.isArray(cur.activity)||cur.activity.length===0);
-        }
-      }catch(se){ virgin=localStorage.getItem(CHAMP_KEY)==null; }
-      if(virgin){
-        var seed={displayName:'Guest',coins:12480,gems:320,level:12,xp:680,wins:0,games:0,activity:[]};
-        localStorage.setItem(CHAMP_KEY, JSON.stringify(seed));
-        localStorage.setItem('wordunoLocalProfile_guest_local', JSON.stringify(seed));
-      }
-      champState=champLoad();
-      window.champState=champState;      // keep the live handle pointing at the new object
+      // Seeding the starter balance and switching the live save key both live in
+      // champUseProfile, so an account and the guest on one device never share coins.
+      if(typeof window.champUseProfile==='function') window.champUseProfile(u.uid, display);
+      else { champState=champLoad(); window.champState=champState; }
     }catch(e){}
     champRender();
     document.body.classList.remove('auth-open');
@@ -1874,8 +1901,14 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     document.querySelectorAll('.screen').forEach(function(x){x.classList.add('hidden')});
     var dash=document.getElementById('finalDashboard');
     if(dash) dash.classList.remove('hidden');
-    var name=document.getElementById('homeName'); if(name) name.textContent='Guest';
+    var n1=document.getElementById('homeName'); if(n1) n1.textContent=display;
+    var n2=document.getElementById('fdName');   if(n2) n2.textContent=display;
+    var n3=document.getElementById('topName');  if(n3) n3.textContent=display;
     var q=document.getElementById('homeQuickPlay'); if(q) q.focus();
+  }
+  window.enterApp=enterApp;
+  function enterGuestFallback(){
+    enterApp({uid:'guest_local',email:'guest@champword.local',displayName:'Guest'});
   }
   window.enterGuestFallback=enterGuestFallback;
 
@@ -2495,4 +2528,112 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
   .auth-form #authMessage{min-height:18px!important;margin-top:4px!important;font-size:10px}
 }
 </style>
+<style id="auth-tab-feedback-v1">
+/* The two auth buttons double as the Log in / Create account tabs, so the one the
+   player last aimed at keeps a visible pressed state instead of both looking idle. */
+.auth-actions button{transition:filter .12s ease,box-shadow .12s ease}
+.auth-actions button:hover{filter:brightness(1.08)}
+.auth-actions button:active{transform:translateY(1px)}
+.auth-actions button.active{box-shadow:0 0 0 2px #fff inset,0 8px 18px #0006}
+.auth-actions button:focus-visible{outline:2px solid #7cf2a5;outline-offset:2px}
+</style>
+<script id="champ-auth-local-v1">
+/* Login / Create account on the home screen.
+   Both buttons shipped as markup with no handler anywhere on this page, so tapping
+   either one did nothing at all - only Continue as Guest was wired. Account mode is
+   stored on this device, which is what the note under the buttons already says. */
+(function(){
+  var ACCOUNTS='champwordAccounts';
+
+  function msgEl(){ return document.getElementById('authMessage'); }
+  function say(text,kind){
+    var el=msgEl(); if(!el) return;
+    el.textContent=text;
+    el.style.color=(kind==='error')?'#ff8fa3':(kind==='ok'?'#7cf2a5':'');
+  }
+  function readAccounts(){
+    try{ var a=JSON.parse(localStorage.getItem(ACCOUNTS)||'{}'); return (a&&typeof a==='object')?a:{}; }
+    catch(e){ return {}; }
+  }
+  function writeAccounts(a){ try{ localStorage.setItem(ACCOUNTS, JSON.stringify(a)); }catch(e){} }
+
+  /* Not a security boundary - everything here is on this device, so this only ever
+     catches a typo, never an attacker. */
+  function hash(s){
+    var h=5381;
+    for(var i=0;i<s.length;i++){ h=((h*33)^s.charCodeAt(i))|0; }
+    return 'v1_'+Math.abs(h).toString(36);
+  }
+  function uidFor(email){ return 'acct_'+hash(email).slice(3); }
+
+  function submit(mode){
+    var emailEl=document.getElementById('emailInput');
+    var passEl=document.getElementById('passwordInput');
+    var nameEl=document.getElementById('nameInput');
+    var email=((emailEl&&emailEl.value)||'').trim().toLowerCase();
+    var pass=(passEl&&passEl.value)||'';
+    var name=((nameEl&&nameEl.value)||'').trim();
+
+    if(!email){ say('Enter your email address.','error'); if(emailEl) emailEl.focus(); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ say('That does not look like a valid email address.','error'); if(emailEl) emailEl.focus(); return; }
+    if(pass.length<6){ say('Password needs at least 6 characters.','error'); if(passEl) passEl.focus(); return; }
+
+    var accounts=readAccounts(), rec=accounts[email];
+
+    if(mode==='signup'){
+      if(rec){ say('An account already exists for this email - use Log in.','error'); return; }
+      if(!name) name=email.split('@')[0];
+      rec={uid:uidFor(email),email:email,displayName:name,pass:hash(pass),created:Date.now()};
+      accounts[email]=rec; writeAccounts(accounts);
+      say('Account created. Taking you in...','ok');
+      enterAs(rec);
+      return;
+    }
+
+    if(!rec){ say('No account found for this email - tap Create account first.','error'); return; }
+    if(rec.pass!==hash(pass)){ say('Wrong password for this email.','error'); if(passEl) passEl.select(); return; }
+    say('Logging in...','ok');
+    enterAs(rec);
+  }
+
+  function enterAs(rec){
+    var user={uid:rec.uid,email:rec.email,displayName:rec.displayName||'Guest'};
+    if(typeof window.enterApp==='function'){ window.enterApp(user); return; }
+    if(typeof window.enterGuestFallback==='function') window.enterGuestFallback();
+  }
+
+  function markActive(id){
+    ['loginBtn','signupBtn'].forEach(function(b){
+      var el=document.getElementById(b);
+      if(el) el.classList.toggle('active',b===id);
+    });
+  }
+
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    var b=(t&&t.closest)?t.closest('#loginBtn,#signupBtn'):null;
+    if(!b) return;
+    e.preventDefault(); e.stopPropagation();
+    markActive(b.id);
+    submit(b.id==='signupBtn'?'signup':'login');
+  },true);
+
+  document.addEventListener('pointerdown',function(e){
+    var t=e.target;
+    var b=(t&&t.closest)?t.closest('#loginBtn,#signupBtn'):null;
+    if(b) markActive(b.id);
+  },true);
+
+  // Enter in any of the three fields submits as "log in" - the common case.
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter') return;
+    var t=e.target;
+    if(!t||!t.id) return;
+    if(t.id!=='emailInput'&&t.id!=='passwordInput'&&t.id!=='nameInput') return;
+    e.preventDefault();
+    markActive('loginBtn');
+    submit('login');
+  },true);
+})();
+</script>
 </body></html>
