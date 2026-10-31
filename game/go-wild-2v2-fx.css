@@ -1,0 +1,12 @@
+/* GO WILD 2v2 PREMIUM FEEDBACK LAYER */
+.gwx-burst-particle{position:absolute;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 18px #fff;pointer-events:none;animation:gwxBurst .72s cubic-bezier(.16,.82,.24,1) var(--delay) forwards}
+@keyframes gwxBurst{0%{transform:translate(-50%,-50%) scale(1.2);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.08);opacity:0}}
+.gwx-impact{animation:gwxImpact .34s ease-out}
+@keyframes gwxImpact{0%{filter:brightness(1)}22%{filter:brightness(1.45) saturate(1.25)}100%{filter:brightness(1)}}
+.gwx-seat.turn-arrive .gwx-player-card{animation:gwxSeatArrive .55s cubic-bezier(.2,.9,.2,1)}
+.gwx-seat.turn-arrive .status-dot{box-shadow:0 0 0 5px #fff1,0 0 22px #73dfff}
+@keyframes gwxSeatArrive{0%{transform:scale(.97);filter:brightness(1)}45%{transform:scale(1.035);filter:brightness(1.2)}100%{transform:scale(1);filter:brightness(1)}}
+.gwx-hand-card.playable{animation:gwxPlayable .9s ease-in-out infinite alternate}
+@keyframes gwxPlayable{from{filter:drop-shadow(0 0 4px #fff2)}to{filter:drop-shadow(0 0 14px #fff6)}}
+.gwx-action:disabled{opacity:.38;cursor:not-allowed;filter:saturate(.5)}
+@media(prefers-reduced-motion:reduce){.gwx-burst-particle,.gwx-impact,.gwx-seat.turn-arrive .gwx-player-card,.gwx-hand-card.playable{animation:none}}

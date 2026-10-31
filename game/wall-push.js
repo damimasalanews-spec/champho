@@ -34,7 +34,7 @@
   if (window.ChampWallPush) return;
 
   /* ---------------------------------------------------------------- geometry */
-  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 65, RANGE: 100, FULL: 190, KNOCK: 60, DRAIN: 50 };
+  var S = { FLOOR: 624, CENTER: 800, WALL_HW: 42, RANGE: 100, FULL: 190, KNOCK: 60 };
 
   /* the two values chosen on the review build's calibration sliders */
   var CONTACT = -14;     // sprite front edge vs the slab's face, in stage px
@@ -99,21 +99,14 @@
      wins; if the lower-ranked seat wins it doubles, funded from the higher. Both
      branches move the SAME amount — the underdog's balance — so the stake is just
      "what the underdog holds". The cap is reported, never hidden. */
-  function settle(fav, dog, dogWins, mult, kicker) {
+  function settle(fav, dog, dogWins) {
     var stake = dog.coins;
     var paid = dogWins ? Math.min(stake, fav.coins) : stake;
-    /* `paid` stays what the LOSER hands over - the stake rule is untouched.
-       `mult` is the winner's streak ladder (1, 1.5, 2): the winner RECEIVES
-       paid x mult, and the difference beyond the stake is house-funded, so no
-       balance can ever be driven below zero by a bonus. */
-    mult = mult || 1;
-    var bonus = Math.round(paid * mult) + (kicker || 0);   /* speed-bonus kicker rides with the streak bonus */
     return {
       stake: stake, paid: paid,
-      bonus: bonus,               /* what the winner actually receives */
       favBefore: fav.coins, dogBefore: dog.coins,
-      favAfter: dogWins ? fav.coins - paid : fav.coins + bonus,
-      dogAfter: dogWins ? dog.coins + bonus : dog.coins - paid,
+      favAfter: dogWins ? fav.coins - paid : fav.coins + paid,
+      dogAfter: dogWins ? dog.coins + paid : dog.coins - paid,
       capped: dogWins && paid < stake
     };
   }
@@ -171,18 +164,7 @@
   var MARKUP = ''
     + '<div id="wpStage">'
     + '  <div class="wp-felt"><div class="wp-felt-glow"></div></div>'
-    + '  <div class="wp-words" aria-hidden="true"><b>WALL</b><b>PUSH</b><b>CHAMP</b><b>WORD</b><b>POWER</b><b>CLASH</b><b>WIN</b><b>GO!</b></div>'
     + '  <div class="wp-floor"></div>'
-    + '  <div class="wp-crowd" aria-hidden="true">'
-    + '    <i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i><i>🧍</i>'
-    + '    <span class="wp-chant" id="wpChant"></span>'
-    + '  </div>'
-    /* the avatars now ship as pre-rendered film, ONE HALF PER SEAT: the left
-       video carries seat a and the right video carries seat b (mirrored), so
-       the same ninja footage plays on both sides of the screen and the drawn
-       wall stays the real, sliding wall in the middle. */
-    + '  <video class="wp-film" id="wpFilmL" muted playsinline preload="auto"></video>'
-    + '  <video class="wp-film" id="wpFilmR" muted playsinline preload="auto"></video>'
     + '  <div id="wpShake">'
     + '    <img class="wp-fighter" id="wpFA" alt="">'
     + '    <img class="wp-fighter" id="wpFB" alt="">'
@@ -190,8 +172,6 @@
     + '      <i class="wp-seam l"></i><i class="wp-seam r"></i></div></div>'
     + '    <div class="wp-rank r1" id="wpRankA"></div>'
     + '    <div class="wp-rank r2" id="wpRankB"></div>'
-    + '    <div class="wp-pips a" id="wpPipsA"><i></i><i></i><i></i></div>'
-    + '    <div class="wp-pips b" id="wpPipsB"><i></i><i></i><i></i></div>'
     + '    <div class="wp-plate" id="wpPlateA"><span class="pn" id="wpNameA"></span>'
     + '      <span class="pc"><span>🪙</span><b id="wpCoinsA">0</b><small id="wpTeamA"></small></span></div>'
     + '    <div class="wp-plate" id="wpPlateB"><span class="pn" id="wpNameB"></span>'
@@ -200,9 +180,9 @@
     + '  <div id="wpFx"></div>'
     + '  <div class="wp-banner" id="wpBanner"><span class="bk">POST MATCH</span><span class="bt">WALL PUSH</span></div>'
     + '  <div class="wp-next" id="wpNext"><b></b><span></span></div>'
-    + '  <div class="wp-meter a" id="wpMeterA"><div class="mt"><span id="wpSideA">PUSH POWER</span><span id="wpPctA">100%</span></div>'
+    + '  <div class="wp-meter a" id="wpMeterA"><div class="mt"><span>PUSH POWER</span><span id="wpPctA">100%</span></div>'
     + '    <div class="mtrack"><div class="mfill" id="wpFillA"></div></div></div>'
-    + '  <div class="wp-meter b" id="wpMeterB"><div class="mt"><span id="wpSideB">PUSH POWER</span><span id="wpPctB">100%</span></div>'
+    + '  <div class="wp-meter b" id="wpMeterB"><div class="mt"><span>PUSH POWER</span><span id="wpPctB">100%</span></div>'
     + '    <div class="mtrack"><div class="mfill" id="wpFillB"></div></div></div>'
     + '  <div class="wp-ledger" id="wpLedger">'
     + '    <h3>COIN SETTLEMENT</h3><p class="vd" id="wpVerdict">—</p>'
@@ -214,8 +194,6 @@
     + '      <div class="lcell" style="text-align:right"><small id="wpLblR">BEFORE</small><b id="wpR">—</b></div></div>'
     + '    <p class="wp-note" id="wpNote"></p></div>'
     + '</div>'
-    + '<div class="wp-rotate" id="wpRotate"><div><b>ROTATE YOUR PHONE</b>'
-    + '<span>\uD83D\uDCF1</span><small>The wall push plays in landscape \u2014 tap to try anyway.</small></div></div>'
     + '<button id="wpSkip" type="button">SKIP ▶</button>';
 
   function build() {
@@ -227,36 +205,12 @@
     stage = root.querySelector("#wpStage");
     fxLayer = root.querySelector("#wpFx");
     shakeEl = root.querySelector("#wpShake");
-    ["FA","FB","Wall","RankA","RankB","PipsA","PipsB","PlateA","PlateB","NameA","NameB","CoinsA","CoinsB",
-     "TeamA","TeamB","Banner","Next","MeterA","MeterB","SideA","SideB","PctA","PctB","FillA","FillB",
-     "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip","FilmL","FilmR","Rotate"].forEach(function (k) {
+    ["FA","FB","Wall","RankA","RankB","PlateA","PlateB","NameA","NameB","CoinsA","CoinsB",
+     "TeamA","TeamB","Banner","Next","MeterA","MeterB","PctA","PctB","FillA","FillB",
+     "Ledger","Verdict","Stake","Win","LblL","LblR","L","R","Note","Skip"].forEach(function (k) {
       E[k] = root.querySelector("#wp" + k);
     });
-
-     /* A key with no element behind it used to throw the moment anything
-        touched it, which took the whole post-match down before it could even
-        report ready. Anything unresolved now gets a stub that swallows reads
-        and writes, and says so, so a neglected id degrades instead of killing
-        the run. */
-     Object.keys(E).forEach(function (k) {
-       if (E[k]) return;
-       console.warn("wall-push: markup has no #wp" + k + " - using a stub");
-       var noop = function () {};
-       E[k] = {
-         textContent: "", className: "", innerHTML: "", value: "",
-         style: { setProperty: noop, removeProperty: noop },
-         classList: { add: noop, remove: noop, toggle: noop, contains: function () { return false; } },
-         addEventListener: noop, removeEventListener: noop, appendChild: noop,
-         insertAdjacentHTML: noop, remove: noop, setAttribute: noop, focus: noop,
-         querySelector: function () { return null; },
-         querySelectorAll: function () { return []; },
-         getBoundingClientRect: function () { return { left: 0, top: 0, width: 0, height: 0, bottom: 0, right: 0 }; },
-         parentNode: { classList: { add: noop, remove: noop, toggle: noop } }
-       };
-     });
     E.Skip.addEventListener("click", function () { if (abort) abort(); });
-    /* the portrait hint blocks the view until tapped - it is a hint, not a lock */
-    E.Rotate.addEventListener("click", function () { E.Rotate.classList.add("off"); });
     window.addEventListener("resize", fit, { passive: true });
     if (window.visualViewport) window.visualViewport.addEventListener("resize", fit, { passive: true });
     fit();
@@ -375,8 +329,7 @@
           var ms = (620 + Math.random() * 260) / RATE;
           d.style.animation = "wpCoin " + ms + "ms cubic-bezier(.25,.6,.35,1) forwards";
           spawn(d, ms);
-          /* no blip per coin: the supplied coin cue carries the payout, and a
-             synthesised chime on every other coin was talking over it */
+          if (i % 2 === 0) SFX.coin(i);
         }, (i * 62) / RATE);
       })(i);
     }
@@ -405,48 +358,6 @@
   }
   function stopShake() { shake.mag = 0; shake.end = 0; if (shakeEl) shakeEl.style.transform = ""; }
 
-  /* HIT-STOP: the beat-em-up freeze on the frame a blow lands. The whole arena
-     is held by dropping RATE - the same clock every phase timer reads - and by
-     pausing the film cards, so nothing keeps moving through the freeze. */
-  function hitstop(ms) {
-    var hold = ms || 240;
-    [E.FilmL, E.FilmR].forEach(function (el) {
-      if (!el || el.tagName !== "VIDEO") return;
-      try { el.pause(); } catch (err) {}
-    });
-    RATE = 0.06;
-    window.setTimeout(function () {
-      RATE = 1;
-      [E.FilmL, E.FilmR].forEach(function (el) {
-        if (!el || el.tagName !== "VIDEO") return;
-        try { var p = el.play(); if (p && p.catch) p.catch(function () {}); } catch (err) {}
-      });
-    }, hold);
-  }
-  /* the white blink over the arena at the moment of impact */
-  function flash(ms) {
-    if (!fxLayer) return;
-    var d = document.createElement("div");
-    d.className = "wp-hitflash";
-    fxLayer.appendChild(d);
-    window.setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, (ms || 240) + 60);
-  }
-  /* a short stage zoom-in on the money shot, easing back out on its own */
-  function zoomStage(mag, ms) {
-    if (!stage) return;
-    stage.style.setProperty("--wp-zoom", (mag || 1.06).toFixed(3));
-    if (stage._zoomT) window.clearTimeout(stage._zoomT);
-    stage._zoomT = window.setTimeout(function () {
-      stage._zoomT = null;
-      if (stage) stage.style.setProperty("--wp-zoom", "1");
-    }, ms || 900);
-  }
-  function stopZoom() {
-    if (!stage) return;
-    if (stage._zoomT) { window.clearTimeout(stage._zoomT); stage._zoomT = null; }
-    stage.style.setProperty("--wp-zoom", "1");
-  }
-
   /* ------------------------------------------------------------------- state */
   var RATE = 1, FX = { shake: true, debris: true, dust: true, spark: true, coins: true, sound: true };
   var run = null, abort = null, sprites = {}, aspect = [1, 1];
@@ -460,14 +371,6 @@
   };
 
   /* ------------------------------------------------------------------- render */
-  /* The recorded cues live in game/audio-cues.js, which also owns mute and
-     volume, so this just defers to it rather than keeping a second opinion
-     about how loud anything should be. */
-  function cue(name) {
-    if (!SOUND) return;
-    try { window.ChampCues?.playAny?.(name); } catch (e) { /* audio unavailable */ }
-  }
-
   function paramsFor(k, t, isLoser) {
     var e = easeOut(t), io = easeInOut(t);
     switch (k) {
@@ -487,15 +390,6 @@
           gap: -hv.recoil * amp
         };
       }
-      /* STANDOFF: both fighters lean on the slab for as long as the guessing
-         lasts, so this pose has no timeline at all. The side that is winning the
-         contest drives harder and the other is pressed back onto its heels -
-         which is the whole visual feedback loop for a correct answer. */
-      case "live":
-        return isLoser
-          ? { lean: -1.8, squash: .06, advance: -4, entry: 0, gap: 0 }
-          : { lean: 3.4, squash: -.01, advance: 4, entry: 0, gap: 0 };
-
       case "break":
         return isLoser ? { lean: -2.2, squash: .09, advance: -6, entry: 0 }
                        : { lean: 5.5, squash: -.03, advance: 9, entry: 0 };
@@ -512,14 +406,7 @@
     var wall = E.Wall;
     var wallX = S.CENTER, wallRot = 0, wallY = 0;
 
-    if (prog.k === "live") {
-      /* STANDOFF. The slab sits wherever the answers have shoved it - `lead` is
-         that distance in px, `jolt` the momentary kick that lands with a correct
-         answer. The idle tremble stays, because it is the thing that says the two
-         of them are still leaning on the slab rather than posing next to it. */
-      wallX = S.CENTER + (prog.lead || 0) + Math.sin(ms / 38) * 1.5 + (prog.jolt || 0);
-      wallRot = -(wallX - S.CENTER) * .030;
-    } else if (prog.k === "setup") {
+    if (prog.k === "setup") {
       var drop = Math.min(1, prog.t / .86);
       wallY = -150 * (1 - drop * drop);
     } else if (prog.k === "ready") {
@@ -543,12 +430,8 @@
     }
 
     wall.style.setProperty("--wx", wallX.toFixed(2) + "px");
-    /* the wall never bends: dead straight, it only slides as it is pushed */
-    wall.style.setProperty("--wrot", "0deg");
+    wall.style.setProperty("--wrot", wallRot.toFixed(3) + "deg");
     wall.style.setProperty("--wy", wallY.toFixed(2) + "px");
-    /* the film cards ride with the slab: the fighters stay glued to the wall
-       wherever it is pushed, instead of standing still while it slides away */
-    if (stage) stage.style.setProperty("--fx", (wallX - S.CENTER).toFixed(2) + "px");
 
     var faceL = wallX - S.WALL_HW, faceR = wallX + S.WALL_HW;
     var H = SIZE, geo = [];
@@ -624,11 +507,6 @@
       plate.style.left = (base + W / 2 - 160) + "px";
       rank.style.left = (base + W / 2) + "px";
       rank.style.top = (S.FLOOR - H - 34) + "px";
-      /* the score pips sit just above the name chip and ride with the fighter,
-         so the tally is always over the head of whoever earned it */
-      var pipsEl = i === 0 ? E.PipsA : E.PipsB;
-      pipsEl.style.left = (base + W / 2) + "px";
-      pipsEl.style.top = (S.FLOOR - H - 76) + "px";
     }
 
     if (shake.mag > 0) {
@@ -665,7 +543,6 @@
       dust(S.CENTER, S.FLOOR - 6, 1, 5);
       kick(11, 260);
       SFX.drop();
-      cue("crack");
     }
     if (ms >= AT.ready && !e.f_ready) {
       e.f_ready = 1;
@@ -682,7 +559,6 @@
       e.f_impact = 1;
       E.Wall.classList.add("shattered");
       var face = S.CENTER + adv * S.FULL - adv * S.WALL_HW;
-      hitstop(240); flash(240); zoomStage(1.06, 900);
       kick(26, 460);
       ring(face, 560, "#ffffff");
       ring(face, 560, adv < 0 ? "#39a1ff" : "#ff4d62");
@@ -731,14 +607,14 @@
   function ledger(e) {
     var st = e.st, dogWins = e.dogWins;
     E.Verdict.textContent = dogWins
-      ? (st.capped ? e.dogLabel + " TAKES IT — PAYOUT CAPPED"
-                   : e.dogLabel + " TAKES IT — THE UNDERDOG DOUBLES")
-      : e.favLabel + " HOLDS THE WALL";
+      ? (st.capped ? "TOP " + e.dogRank + " TAKES IT — PAYOUT CAPPED"
+                   : "TOP " + e.dogRank + " TAKES IT — THE UNDERDOG DOUBLES")
+      : "TOP " + e.favRank + " HOLDS THE WALL";
     E.Verdict.className = "vd " + (dogWins ? "lose" : "win");
     E.Stake.textContent = fmt(st.stake);
     E.Win.textContent = fmt(st.paid);
-    E.LblL.textContent = e.favLabel + " · BEFORE";
-    E.LblR.textContent = e.dogLabel + " · BEFORE";
+    E.LblL.textContent = "TOP " + e.favRank + " · BEFORE";
+    E.LblR.textContent = "TOP " + e.dogRank + " · BEFORE";
     E.L.textContent = fmt(st.favBefore) + "  ➜  " + fmt(st.favAfter);
     E.R.textContent = fmt(st.dogBefore) + "  ➜  " + fmt(st.dogAfter);
     E.Note.innerHTML = st.capped
@@ -753,12 +629,10 @@
   function runDuel(duel, onFinished) {
     var tok = {};
     var fav = { coins: duel.a.coins, key: duel.a.key }, dog = { coins: duel.b.coins, key: duel.b.key };
-    var dogWins = duel.winner === "a" ? false : duel.winner === "b" ? true : (Math.random() < 0.5); /* the clipart contest hands the verdict in as duel.winner; only a duel that arrives unjudged still flips a coin */
+    var dogWins = Math.random() < 0.5;
     var e = {
       tok: tok, fav: fav, dog: dog, dogWins: dogWins,
       favRank: duel.rankA, dogRank: duel.rankB,
-      favLabel: duel.labelA || ("TOP " + duel.rankA),
-      dogLabel: duel.labelB || ("TOP " + duel.rankB),
       st: settle(fav, dog, dogWins)
     };
 
@@ -830,58 +704,6 @@
     boy:  "assets/wallpush/boy-body.png",
     girl: "assets/wallpush/girl-body.png"
   };
-
-  /* The film beats live out here, not inside the renderer, because the standoff
-     gate below needs them too. They used to be local to liveMount(), which meant
-     the gate only ever knew about the two body sprites: a duel between two newer
-     avatars found no sprites to load and silently skipped the whole wall push.
-     A seat is drawable if it has a sprite OR a clip. */
-  var FILM = {
-    "ninja": {
-      idle:    "assets/wallpush/ninja-idle.mp4",
-      shove:   "assets/wallpush/ninja-shove.mp4",
-      defense: "assets/wallpush/ninja-defense.mp4",
-      kick:    "assets/wallpush/ninja-kick.mp4",
-      fall:    "assets/wallpush/ninja-fall.mp4",
-      win:     "assets/wallpush/ninja-win.mp4"
-    },
-    "pumpkin-boy":  { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
-    "boy":          { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
-    "pumpkin-girl": { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" },
-    "girl":         { shove: "assets/wallpush/pumpkin-boy-push.mp4", kick: "assets/wallpush/pumpkin-boy-break.mp4" }
-  };
-  var FILM_FALLBACK = "pumpkin-boy";
-
-  function canDraw(key) {
-    return !!(BODIES[key] || FILM[key] || FILM[FILM_FALLBACK]);
-  }
-
-  /* every clip the duel can play, for the offline warm-up list */
-  function allFilmSrcs() {
-    var out = [];
-    Object.keys(FILM).forEach(function (k) {
-      Object.keys(FILM[k]).forEach(function (b) {
-        if (out.indexOf(FILM[k][b]) < 0) out.push(FILM[k][b]);
-      });
-    });
-    return out;
-  }
-
-  /* start loading a seat's clips without playing them, so the first beat is
-     already decoded when the guess lands. Fire and forget. */
-  function warmFilm(keys) {
-    (keys || []).forEach(function (k) {
-      var c = FILM[k] || FILM[FILM_FALLBACK];
-      if (!c) return;
-      Object.keys(c).forEach(function (b) {
-        var v = document.createElement("video");
-        v.muted = true; v.preload = "auto";
-        v.src = c[b];
-        v.load();
-      });
-    });
-  }
-
   var loaded = {};                                  // key -> true once decoded
 
   function preloadBodies(keys, done) {
@@ -902,554 +724,6 @@
     });
   }
   var aspectByKey = {};
-
-  /* ---------------------------------------------------------------- standoff
-     The combined screen. Where the reel above plays a fixed timeline, the
-     standoff is driven entirely from outside: the clipart contest calls `steps`
-     on every correct answer, `knock` once somebody has two, and `teardown` when
-     the pair is done. It reuses the same rig, the same floor compensation and the
-     same FX as the reel, so the two cannot drift apart in look. */
-  function liveMount(duel, hooks) {
-    var tok = {};
-    var fav = { coins: duel.a.coins, key: duel.a.key };
-    var dog = { coins: duel.b.coins, key: duel.b.key };
-    var e = { tok: tok, fav: fav, dog: dog, dogWins: false,
-              favRank: duel.rankA, dogRank: duel.rankB,
-              /* what the verdict and the coin card call each side - a final
-                 between two pair-winners has no TOP 1 to be one of */
-              favLabel: duel.labelA || ("TOP " + duel.rankA),
-              dogLabel: duel.labelB || ("TOP " + duel.rankB),
-              st: null };
-
-    E.NameA.textContent = duel.a.name; E.NameB.textContent = duel.b.name;
-    /* the two push-power rails carry the avatars' names, so the band across
-       the top reads as the matchup rather than saying PUSH POWER twice */
-    E.SideA.textContent = duel.a.name;
-    E.SideB.textContent = duel.b.name;
-    E.TeamA.textContent = duel.a.team || ""; E.TeamB.textContent = duel.b.team || "";
-    E.CoinsA.textContent = fmt(fav.coins); E.CoinsB.textContent = fmt(dog.coins);
-    ["CoinsA", "CoinsB"].forEach(function (k) { E[k].parentNode.classList.remove("drain", "gain"); });
-    E.Ledger.classList.remove("on");
-    E.Verdict.textContent = "—";
-    /* The chips over the fighters and the headline both name the avatars, not
-       their seeds. A seed is data about which play-off this is, and it already
-       says so in the verdict and the coin card; pinned above a fighter it just
-       read as a label attached to nobody in particular. */
-    E.RankA.textContent = duel.a.name;
-    E.RankB.textContent = duel.b.name;
-    E.RankA.className = "wp-rank name r1";
-    E.RankB.className = "wp-rank name r2";
-    E.Banner.querySelector(".bk").textContent = duel.title || "GUESS THE CLIPART";
-    E.Banner.querySelector(".bt").textContent = duel.a.name + " vs " + duel.b.name;
-    E.Banner.classList.add("on");
-    /* the final is a title fight: the arena dresses for it in gold */
-    root.classList.remove("final");
-    stage.classList.remove("final");
-    if (duel.isFinal) { root.classList.add("final"); stage.classList.add("final"); }
-    E.MeterA.classList.remove("dying"); E.MeterB.classList.remove("dying");
-    E.FillA.style.width = "100%"; E.FillB.style.width = "100%";
-    E.PctA.textContent = "100%"; E.PctB.textContent = "100%";
-    E.Wall.classList.remove("cracked", "shattered", "straining", "wp-quake", "hurt1", "hurt2");
-    fxLayer.innerHTML = "";
-    stopShake();
-    curKey = [null, null];
-    /* The stage element OUTLIVES the run (build() mounts it once), so the last
-       duel's frozen knockout frames and its film classes would otherwise greet
-       the next duel's first clipart - which read as "kicking and falling while
-       the first drawing was still up". Every duel starts from a clean stage. */
-    stage.classList.remove("film", "film-fall-a", "film-fall-b");
-    [E.FilmL, E.FilmR].forEach(function (el) {
-      if (!el || !el.tagName || el.tagName !== "VIDEO") return;
-      el.onended = null;
-      try { el.playbackRate = 1; } catch (err) {}
-      try { el.pause(); } catch (err) {}
-      el.removeAttribute("src");
-      el.removeAttribute("data-src");
-      try { el.load(); } catch (err) {}
-    });
-    stage.style.setProperty("--fx", "0px");
-    stopZoom();
-
-    run = { tok: tok, a: duel.a, b: duel.b, done: false, adv: 1 };
-    var st = { lead: 0, target: 0, joltDir: 1, joltUntil: 0, raf: 0, geo: null, paused: false, dead: false };
-
-    function frame() {
-      if (st.dead) return;
-      if (!run || run.tok !== tok) return;
-      var now = performance.now();
-      st.lead += (st.target - st.lead) * .2;
-      if (Math.abs(st.target - st.lead) < .4) st.lead = st.target;
-      st.raf = requestAnimationFrame(frame);
-      if (st.paused) return;                  // the knockout owns the screen now
-      var jolt = 0;
-      if (now < st.joltUntil) {
-        var u = 1 - (st.joltUntil - now) / 280;
-        jolt = Math.sin(u * Math.PI) * .9 * st.joltDir;
-      }
-      /* adv follows the slab, so the side being driven back is the one who
-         reads as losing ground - the same field the reel derives from the verdict */
-      run.adv = st.target < 0 ? -1 : 1;
-      st.geo = render(now, run.adv, { k: "live", t: 0, lead: st.lead, jolt: jolt });
-    }
-
-    /* one step per correct answer, and the corner sits at two, so both a 2-0 and
-       a 2-1 finish end with the slab fully driven into the loser's side */
-    function steps(n) {
-      if (st.dead) return;
-      var want = clamp(n, -2, 2) * (S.FULL / 2);
-      /* Which cue plays follows the slab's TRAVEL, not the answerer: every
-         correct answer is a push for whoever made it, so keying off the
-         answerer alone would leave the brake sound unused. Driving the slab
-         further from the centre is a push; bringing it back toward the side it
-         came from is a brake. */
-      var shoving = Math.abs(want) > Math.abs(st.target) + 1;
-      st.joltDir = n < 0 ? -1 : 1;
-      st.target = want;
-      st.joltUntil = performance.now() + 280;
-      if (st.geo) {
-        st.geo.forEach(function (g) {
-          if (g.pushDir === st.joltDir) { ring(g.handX, g.handY, "#ffffff"); spark(g.handX, g.handY, 3); }
-        });
-      }
-      kick(7, 200);
-      cue(shoving ? "push" : "brake");
-    }
-
-    /* the meters read 'how much of the wall you still hold': every answer the
-       other side lands costs you half of it */
-    function charge(a, b, drain) {
-      if (st.dead) return;
-      var cut = drain || S.DRAIN;
-      var pa = clamp(100 - Math.max(0, b - a) * cut, 0, 100);
-      var pb = clamp(100 - Math.max(0, a - b) * cut, 0, 100);
-      E.FillA.style.width = pa + "%"; E.PctA.textContent = pa + "%";
-      E.FillB.style.width = pb + "%"; E.PctB.textContent = pb + "%";
-      E.MeterA.classList.toggle("dying", pa <= 50);
-      E.MeterB.classList.toggle("dying", pb <= 50);
-    }
-
-    /* how battered the slab looks: one correct answer is a hairline, two is
-       deep cracking, and the knockout shatters it - the tally as damage */
-    function damage(n) {
-      if (st.dead) return;
-      E.Wall.classList.remove("hurt1", "hurt2");
-      if (n >= 1) E.Wall.classList.add("hurt1");
-      if (n >= 2) E.Wall.classList.add("hurt2");
-    }
-
-    function knock(side, done, opts) {
-      if (st.dead) return;
-      opts = opts || {};
-      var adv = side === "a" ? 1 : -1;
-      e.dogWins = adv < 0;
-      /* the winner's streak ladder multiplies what they receive; the bonus is
-         house-funded, so the loser's stake rule reads exactly as before */
-      var winMult = 1;
-      try {
-        var winnerId = (side === "a" ? duel.a : duel.b).id;
-        if (window.ChampWallGuess && window.ChampWallGuess.streak) winMult = window.ChampWallGuess.streak(winnerId) || 1;
-      } catch (err) { winMult = 1; }
-      e.st = settle(fav, dog, e.dogWins, winMult, opts.kicker);
-      run.adv = adv;
-      st.paused = true;                    // the live loop yields to this
-      st.lead = st.target = adv * S.FULL;
-      st.joltUntil = 0;
-      render(performance.now(), adv, { k: "live", t: 0, lead: st.lead, jolt: 0 });
-      E.Wall.classList.add("shattered");
-      E.FillA.style.width = (adv > 0 ? 100 : 0) + "%"; E.PctA.textContent = (adv > 0 ? 100 : 0) + "%";
-      E.FillB.style.width = (adv < 0 ? 100 : 0) + "%"; E.PctB.textContent = (adv < 0 ? 100 : 0) + "%";
-      (adv > 0 ? E.MeterB : E.MeterA).classList.add("dying");
-      kick(26, 460);
-      cue("cheer");                       /* the crowd erupts on the knockout */
-      /* no expanding rings over the aftermath: the knockout already played on
-         the film, and a second circle show over the fallen loser read as noise */
-      var face = S.CENTER + adv * S.FULL - adv * S.WALL_HW;
-      if (!opts.quiet) {                   /* a power-up settling itself skips the impact FX */
-        debris(face, 560, adv, 18);
-      }
-      var loser = st.geo ? st.geo[adv < 0 ? 0 : 1] : null;
-      if (loser) { dust(loser.cx, S.FLOOR - 4, adv, 12); skid(loser.cx, S.FLOOR + 2, adv); }
-      /* the fall's own cue fires where the fall starts, in the runner below */
-
-      /* tightened again: the film carries the whole knockout now, so these
-         phases only settle the HUD - a fast beat, then the next round. */
-      var seq = [["break", 120], ["impact", 180], ["result", 220], ["settle", 120]], i = 0;
-      (function step() {
-        if (st.dead || !run || run.tok !== tok) return;
-        if (i >= seq.length) {
-          /* No settlement box at all: the green round tab and the deck already
-             tell the story. A short breath - the slow-motion kick and fall have
-             been playing since the breaker - the winner returns to its victory
-             flex at normal speed, and only then is the payout card handed the
-             screen. */
-          window.setTimeout(function () {
-            if (st.dead || !run || run.tok !== tok) return;
-            var wKey = (adv > 0 ? duel.a : duel.b).key;
-            var wEl = adv > 0 ? E.FilmL : E.FilmR;
-            if (wEl && wEl.tagName === "VIDEO") {
-              try { wEl.playbackRate = 1; } catch (err) {}
-              wEl.onended = null;
-              /* the winner goes back to flexing under the payout card */
-              showFilm(wKey, "win", adv > 0 ? "a" : "b");
-            }
-            if (done) done();
-          }, opts.holdMs || 250);
-          return;
-        }
-        var ph = seq[i++], t0 = performance.now();
-        /* the loser is driven back and begins to topple during impact, which is
-           the moment being scored - not the shatter that precedes it */
-        /* the fall sound fired with the film fall in breaker(); no repeat here */
-        (function sub() {
-          if (st.dead || !run || run.tok !== tok) return;
-          var t = clamp((performance.now() - t0) / (ph[1] / RATE), 0, 1);
-          st.geo = render(performance.now(), adv, { k: ph[0], t: t });
-          if (t < 1) requestAnimationFrame(sub); else step();
-        })();
-      })();
-    }
-
-    /* ------------------------------------------------------------ the payout
-       The winner's gain is performed, not printed. Coins leave the loser and
-       land on the winner, both sides show their own + or -, and a badge over
-       the arena counts the stake up and escalates as it grows - WIN, then BIG
-       WIN, then SUPER WIN. Every number here comes from settle(), so the
-       animation cannot show a payout that the coin card disagrees with. */
-    function award(side, done) {
-      var st2 = e.st || settle(fav, dog, side === "b");
-      var paid = st2.paid;
-      var winner = side === "a" ? duel.a : duel.b;
-      var loser = side === "a" ? duel.b : duel.a;
-      var ge = st.geo || [];
-      var wG = ge[side === "a" ? 0 : 1] || { cx: side === "a" ? 520 : 1080, H: 380 };
-      var lG = ge[side === "a" ? 1 : 0] || { cx: side === "a" ? 1080 : 520, H: 380 };
-
-      var el = document.createElement("div");
-      el.className = "wp-award";
-      el.innerHTML =
-        /* no WIN / BIG WIN / SUPER WIN here: that ladder is for the one pop-up
-           that closes the whole post-match, not for each round's payout */
-        '<div class="wa-card">' +
-          '<div class="wa-ribbon"><span class="wa-num" data-x="num">0</span></div>' +
-          '<div class="wa-row">' +
-            '<span class="wa-delta plus">' + winner.name + '<b data-x="wa">+0</b></span>' +
-            '<span class="wa-tag" data-x="tag">takes the wall</span>' +
-            '<span class="wa-delta minus"><b data-x="lo">-0</b>' + loser.name + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="wa-skip">Tap to skip</div>';
-
-      root.classList.add("awarding");
-      stage.appendChild(el);
-
-      var ref = {};
-      el.querySelectorAll("[data-x]").forEach(function (n) { ref[n.dataset.x] = n; });
-
-      var COUNT_MS = 1000, HOLD_MS = 300, BURST_MS = 260;
-      var live = { dead: false, skip: false, raf: 0 };
-      var t0 = performance.now();
-
-      function paint(v) {
-        ref.num.textContent = fmt(Math.round(v));
-      }
-      paint(0);
-      ref.wa.textContent = "+" + fmt(st2.paid);
-      ref.lo.textContent = "-" + fmt(st2.paid);
-
-      if (paid <= 0) {
-        /* nothing to perform: the loser finished on zero, and flying coins in
-           from nowhere would be lying about the payout */
-        ref.tag.textContent = loser.name + " finished on 0 coins";
-      } else {
-        /* the grid throwing the coins back at the player who won them */
-        cue("coins");
-        /* three waves, loser to winner, so the transfer reads as a transfer */
-        [[120, 5], [430, 6], [760, 5]].forEach(function (w) {
-          window.setTimeout(function () {
-            if (live.dead || st.dead) return;
-            coins(lG.cx, S.FLOOR - lG.H * .62, wG.cx, S.FLOOR - wG.H * .62, w[1]);
-          }, w[0]);
-        });
-        /* and the room showers the winner from both edges, the way a payout
-           does in a match-3 */
-        [[300, 40, 6], [300, 1560, 6], [920, 120, 8], [920, 1480, 8]].forEach(function (w) {
-          window.setTimeout(function () {
-            if (live.dead || st.dead) return;
-            coins(w[1], 210, 800, 430, w[2]);
-          }, w[0]);
-        });
-        /* no floating + and - over the fighters: the badge below already
-           names both sides with their own figure, and a third copy floated
-           up straight through the headline */
-      }
-
-      function frame() {
-        if (live.dead) return;
-        if (!live.skip) paint(paid * easeOut(clamp((performance.now() - t0) / COUNT_MS, 0, 1)));
-        live.raf = requestAnimationFrame(frame);
-      }
-      live.raf = requestAnimationFrame(frame);
-
-      function close() {
-        if (st.dead) return;
-        root.classList.remove("awarding");
-        el.remove();
-        if (done) done();
-      }
-      function finish() {
-        if (live.dead) return;
-        live.dead = true;
-        cancelAnimationFrame(live.raf);
-        window.clearTimeout(live.timer);
-        paint(paid);
-        glow(800, 330, 320, "rgba(255,207,37,.42)", 900);
-        if (paid > 0) { kick(9, 260); ring(800, 330, "#ffe9a8"); }
-        window.setTimeout(close, BURST_MS);
-      }
-      live.timer = window.setTimeout(finish, COUNT_MS + HOLD_MS);
-      el.addEventListener("click", function () { live.skip = true; finish(); });
-    }
-    function teardown() {
-      st.dead = true;
-      if (st.raf) cancelAnimationFrame(st.raf);
-      run = null;
-      abort = null;
-      root.classList.remove("on");
-      root.classList.remove("standoff");
-      root.classList.remove("final");
-      stage.classList.remove("final");
-      fxLayer.innerHTML = "";
-      stopShake();
-      stopZoom();
-      /* drop the film the same way liveMount found the stage, so nothing frozen
-         survives this pair into the next one */
-      stage.classList.remove("film", "film-fall-a", "film-fall-b");
-      [E.FilmL, E.FilmR].forEach(function (el) {
-        if (!el || !el.tagName || el.tagName !== "VIDEO") return;
-        el.onended = null;
-        try { el.pause(); } catch (err) {}
-        el.removeAttribute("src");
-        el.removeAttribute("data-src");
-        try { el.load(); } catch (err) {}
-      });
-      stage.style.setProperty("--fx", "0px");
-    }
-
-    abort = function () { if (hooks.onSkip) hooks.onSkip(); };
-    root.classList.add("standoff");
-    root.classList.add("on");
-    fit();
-    st.raf = requestAnimationFrame(frame);
-
-    /* what settle() worked out, for a caller that has to move real balances */
-    function result() {
-      if (!e.st) return null;
-      return { paid: e.st.paid, capped: e.st.capped, bonus: e.st.bonus || 0,
-               a: { before: e.st.favBefore, after: e.st.favAfter },
-               b: { before: e.st.dogBefore, after: e.st.dogAfter } };
-    }
-
-    /* ------------------------------------------------------------- the film --
-       The avatars ship as pre-rendered clips, so the arena picture is film now
-       rather than two puppeted <img> sprites. The clipart contest drives it: a
-       correct answer calls steps() and film(), and the answer that reaches NEED
-       calls breaker(), which plays the wall giving way and drops the loser's
-       seat. Everything here degrades to the old DOM duel if a clip is missing. */
-    /* Battles are cut out of one clip per fighter, as three beats:
-         shove -> any correct answer
-         kick  -> the answer that takes the wall
-         fall  -> the loser going down
-       Both seats share the same fighter: seat b is the MIRROR of seat a, so a
-       right-hand player shoves leftwards and gets knocked to the right using the
-       very same footage. Nothing is drawn twice.
-       shove and kick fall back to the canonical clip so every avatar animates
-       something while the rest of the set is still being generated. `fall`
-       deliberately does NOT fall back — see breaker(). */
-    /* Two half-screen video layers, one per seat. Every clip is shot from the
-       left seat's point of view (ninja on the LEFT, pushing RIGHT), so:
-         - seat a (left)  plays its clip as-is on the LEFT half
-         - seat b (right) plays the SAME footage mirrored on the RIGHT half
-       The baked-in wall of each clip lands near its half's inner edge, so the two
-       baked walls meet where the real drawn slab stands — the slab stays visible
-       between the halves and slides with steps(), exactly as before. */
-    var filmL = E.FilmL, filmR = E.FilmR;
-
-    function seatFilmEl(side) { return side === "b" ? filmR : filmL; }
-
-    function showFilm(key, which, side, onDone) {
-      var el = seatFilmEl(side);
-      if (!el) return false;
-      var c = FILM[key];
-      if ((!c || !c[which]) && which !== "fall") c = FILM[FILM_FALLBACK];
-      if (!c || !c[which]) return false;
-      var src = c[which];
-      var loop = which === "idle" || which === "win";   /* the idle stance and the victory flex breathe until the next beat */
-      /* seat b is always the mirrored half — it plays the same left-shot footage
-         flipped, so both sides of the screen show the same character */
-      if (side === "b") el.classList.add("mirror");
-      else el.classList.remove("mirror");
-      /* always reassign, never leave a stale handler from the previous clip */
-      el.onended = onDone || null;
-      el.loop = loop;
-      if (el.getAttribute("data-src") !== src) {
-        el.setAttribute("data-src", src);
-        el.src = src;
-        el.load();
-      }
-      if (stage) stage.classList.add("film");
-      /* never poke currentTime before metadata exists: that stranded the element
-         in NETWORK_LOADING at readyState 0 and the arena rendered black */
-      var go = function () {
-        try { el.currentTime = 0; } catch (err) {}
-        var p = el.play();
-        if (p && p.catch) p.catch(function () { /* autoplay blocked; still shows */ });
-      };
-      /* a clip that never decodes must not hold the stage hostage: if it is not
-         playable within 2.5s, drop the film card and let the drawn arena carry
-         the beat instead of freezing on a black or stale frame */
-      var bail = window.setTimeout(function () {
-        if (el.readyState >= 2) return;
-        stage.classList.remove("film");
-      }, 2500);
-      el.addEventListener("playing", function () { window.clearTimeout(bail); }, { once: true });
-      if (el.readyState >= 2) go();
-      else el.addEventListener("loadeddata", go, { once: true });
-      return true;
-    }
-
-    /* The side that is NOT performing this beat plays its defense clip: the
-       opponent braced against the wall slides back a little as it is shoved.
-       Mirrored to that seat like everything else. Returns false when no
-       defense clip exists, so callers can carry on regardless. */
-    function defenseFilm(side) {
-      var seat = (side === "b" ? duel.b : duel.a) || {};
-      return showFilm(seat.key, "defense", side, function () {
-        showFilm(seat.key, "idle", side);
-      });
-    }
-
-    /* one correct answer: that seat shoves the wall one step while the OTHER
-       seat's defense clip plays — both sides of the screen animate at once.
-       The shove fires on the answer (no waiting for the stance loop to end)
-       and each seat settles back into its idle push stance afterwards. */
-    function film(side) {
-      var seat = (side === "b" ? duel.b : duel.a) || {};
-      var oppSide = side === "b" ? "a" : "b";
-      var pushed = showFilm(seat.key, "shove", side, function () {
-        showFilm(seat.key, "idle", side);
-      });
-      if (pushed) defenseFilm(oppSide);
-      return pushed;
-    }
-
-    /* the winning answer: the winner's final blow on their half, the LOSER's
-       fall on the other half — both halves at once, no pause between them.
-       The fall belongs to the losing seat and is mirrored to it, so the body
-       is thrown AWAY from the wall rather than into it. The real slab gives
-       way in sync: cracks spread, then it shatters toward the loser's side
-       and drops out of the frame. */
-    function breaker(side) {
-      var winner = (side === "b" ? duel.b : duel.a) || {};
-      var loser = (side === "b" ? duel.a : duel.b) || {};
-      var loserSide = side === "b" ? "a" : "b";
-      /* the wall is knocked but it does NOT go down: it cracks, quakes hard for
-         about a second, and holds its ground cracked. The loser is what falls. */
-      if (E.Wall && E.Wall.classList) {
-        E.Wall.classList.add("cracked");
-        cue("crack");
-        /* the kick lands 620ms into the beat: hold the whole stage on the frame
-           just before impact - freeze and zoom - flash ON the frozen frame, then
-           let the quake and the fall go */
-        window.setTimeout(function () {
-          if (st.dead || !run || run.tok !== tok) return;
-          hitstop(300); zoomStage(1.07, 1100);
-        }, 560);
-        window.setTimeout(function () {
-          if (st.dead || !run || run.tok !== tok) return;
-          flash(240);
-        }, 620);
-        setTimeout(function () {
-          if (!E.Wall || !E.Wall.classList) return;
-          E.Wall.classList.remove("cracked", "straining", "wp-quake");
-          void E.Wall.offsetWidth;               /* restart the quake from rest */
-          E.Wall.classList.add("shattered", "wp-quake");
-          setTimeout(function () {
-            if (E.Wall && E.Wall.classList) E.Wall.classList.remove("wp-quake");
-          }, 1200);
-        }, 860);
-      }
-      if (!showFilm(winner.key, "kick", side, function () {
-        /* when the kick's own motion runs out, the winner keeps its
-           follow-through on screen: the recut ping-pong flex, looped until the
-           payout card takes the stage */
-        if (st.dead || !run || run.tok !== tok) return;
-        showFilm(winner.key, "win", side);
-      })) return false;
-      /* the kick runs at FULL SPEED so the blow lands on the answer (620ms in,
-         straight through the hit-stop) - the winner must not look late. Only
-         the blow itself and the fall go slow: as the frozen frame releases,
-         the film drops to 0.45x - bullet time exactly on the hit. Rates return
-         to 1x in knock's tail and on every fresh duel mount. */
-      window.setTimeout(function () {
-        if (st.dead || !run || run.tok !== tok) return;
-        cue("kick");                          /* the deciding blow lands */
-        [E.FilmL, E.FilmR].forEach(function (el) {
-          if (!el || el.tagName !== "VIDEO") return;
-          try { el.playbackRate = 0.45; } catch (err) {}
-        });
-      }, 880);
-      /* the fall fires only AFTER the kick has landed - 120ms into the bullet
-         time - so the loser is thrown by the blow instead of falling beside
-         it. The fall's own sound rides the film. */
-      window.setTimeout(function () {
-        if (st.dead || !run || run.tok !== tok) return;
-        showFilm(loser.key, "fall", loserSide);
-        var fallEl = side === "b" ? E.FilmL : E.FilmR;
-        try { if (fallEl && fallEl.tagName === "VIDEO") fallEl.playbackRate = 0.45; } catch (err) {}
-        if (stage) stage.classList.add(side === "b" ? "film-fall-a" : "film-fall-b");
-      }, 980);
-      return true;
-    }
-
-    /* both fighters take their push stance the moment the round mounts, so the
-       arena never shows an empty half while the first clipart is still up */
-    showFilm((duel.a || {}).key, "idle", "a");
-    showFilm((duel.b || {}).key, "idle", "b");
-
-    return { root: root, stage: stage, duel: duel, steps: steps, charge: charge,
-             knock: knock, award: award, result: result, teardown: teardown,
-             film: film, breaker: breaker, damage: damage, KICKER_MS: 1200 };
-  }
-
-  /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...]
-     opts:  { onReady(handle|null), onSkip, sound }
-     Hands back a handle only when the sprites decoded - an armless silhouette
-     cannot read as a push, so the caller is told to fall back instead. */
-  function standoff(duel, opts) {
-    opts = opts || {};
-    SOUND = opts.sound !== false;
-    RATE = 1;
-    FX.shake = opts.shake !== false;  FX.debris = opts.debris !== false;
-    FX.dust = opts.dust !== false;    FX.spark = opts.spark !== false;
-    FX.coins = opts.coins !== false;
-    build();
-    var ready = opts.onReady || function () {};
-    preloadBodies([duel.a.key, duel.b.key], function (ok) {
-      /* Only refuse when NEITHER seat can be drawn. A film-enabled avatar ships
-         no body sprite, so bailing on !ok alone skipped the entire standoff for
-         every avatar outside the original boy/girl pair. */
-      if (!ok && !canDraw(duel.a.key) && !canDraw(duel.b.key)) {
-        console.warn("wall-push: nothing to draw for " + duel.a.key + "/" + duel.b.key);
-        ready(null);
-        return;
-      }
-      aspect = [aspectByKey[duel.a.key] || 1, aspectByKey[duel.b.key] || 1];
-      /* warm the clips for these two seats while the standoff plays: the first
-         shove must not stall on a cold video decode */
-      warmFilm([duel.a.key, duel.b.key]);
-      ready(liveMount(duel, opts));
-    });
-  }
 
   window.ChampWallPush = {
     /* duels: [{ rankA, rankB, a:{name,coins,team,key}, b:{...} }, ...] */
@@ -1473,10 +747,7 @@
          to an armless silhouette, which cannot read as a push at all, so refuse to
          present that — just hand back to the game. */
       preloadBodies([duels[0].a.key, duels[0].b.key], function (ok) {
-        /* same rule as the standoff: the film can carry a seat with no sprite */
-        if (!ok && !canDraw(duels[0].a.key) && !canDraw(duels[0].b.key)) {
-          console.warn("wall-push: nothing to draw, skipping the duel"); done([]); return;
-        }
+        if (!ok) { console.warn("wall-push: sprites failed to load, skipping the duel"); done([]); return; }
         aspect = [aspectByKey[duels[0].a.key] || 1, aspectByKey[duels[0].b.key] || 1];
 
         var idx = 0, results = [], closed = false;
@@ -1513,7 +784,6 @@
         next();
       });
     },
-    standoff: standoff,
     spriteFor: function (key) { return BODIES[key]; }
   };
 })();
