@@ -64,6 +64,24 @@
                 // that fixes a caching bug stays pinned behind the bug it fixes.
                 updateViaCache: 'none'
             }).then(function (registration) {
+                // A worker that finishes installing while an older one still controls this
+                // tab sits in "waiting", and a waiting worker never activates on its own —
+                // so its activate handler never runs, which is where the stale caches are
+                // deleted. That is how a phone went on drawing a replaced home page for
+                // days with the fix already deployed. Ask the newcomer to take over; the
+                // controllerchange handler above reloads once so the new build is painted.
+                var promote = function (worker) {
+                    try { worker.postMessage({ type: 'SKIP_WAITING' }); } catch (error) { /* too old to listen */ }
+                };
+                if (registration.waiting) promote(registration.waiting);
+                registration.addEventListener('updatefound', function () {
+                    var incoming = registration.installing;
+                    if (!incoming) return;
+                    incoming.addEventListener('statechange', function () {
+                        if (incoming.state === 'installed' && navigator.serviceWorker.controller) promote(incoming);
+                    });
+                });
+
                 // Ask for an update check on every load. The browser does this on its own
                 // schedule, and "its own schedule" left a test device running the previous
                 // worker for three visits after a deploy — serving a stale copy of a
