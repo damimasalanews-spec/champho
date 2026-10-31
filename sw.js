@@ -1,9 +1,9 @@
-/* ==========================================================================
-   Champ Word — service worker
+﻿/* ==========================================================================
+   Champ Word â€” service worker
 
    What this is for: making the site installable and keeping it playable when the
    network is gone. It is NOT a build cache and not a way to make the site load
-   faster at the cost of being stale — every rule below is chosen so that a deploy
+   faster at the cost of being stale â€” every rule below is chosen so that a deploy
    still lands.
 
    The one decision that matters most: CODE IS NETWORK-FIRST, ART IS CACHE-FIRST.
@@ -16,7 +16,7 @@
 
    The deadline is 6s. It was 3.5s, which is fine on a desktop and not on a phone:
    the fetch expired first, the cache won, and a deploy could not reach the device
-   at all. A worker is judged by whether a fix arrives, not by its first paint. Images — avatars, title plates, table art — never change once
+   at all. A worker is judged by whether a fix arrives, not by its first paint. Images â€” avatars, title plates, table art â€” never change once
    named, so they are served from cache immediately and refreshed in the
    background.
 
@@ -30,25 +30,27 @@
 /* Bump this whenever a fix has to reach devices that already have the worker. Activate
    deletes every cache whose name is not in CACHES, so a bump is what evicts the old
    stylesheet from a phone that is otherwise perfectly happy serving it. v2 exists
-   because v1 kept a board fix off a device — see the fetch notes below. v3 because v2
+   because v1 kept a board fix off a device â€” see the fetch notes below. v3 because v2
    did the same: a device reported the pre-fix board after the fix had shipped, so the
    plate's zoom (game/scene-fill.js) is being delivered under a fresh cache, and
-   game/pwa.js now reloads the page once when an updated worker takes over — otherwise a
+   game/pwa.js now reloads the page once when an updated worker takes over â€” otherwise a
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v44';
+const VERSION = 'v45';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
 const CACHES = [SHELL_CACHE, CODE_CACHE, ART_CACHE];
 
-/* The app shell. Every path here is checked in and served from the repo root, so
+/* index.html is deliberately NOT in this list: pre-caching the homepage pinned it to a
+   device the moment the worker installed - the origin served the new build, the phone
+   kept drawing the old one, because VERSION never moved to evict it.
+
+   The app shell. Every path here is checked in and served from the repo root, so
    the install step can rely on all of them: cache.addAll() rejects the whole batch
    if any single URL 404s, and a rejected install means no service worker at all. */
 const SHELL_ASSETS = [
-  '/',
-  '/index.html',
   '/classic.html',
   '/wild.html',
   '/wild-play.html',
@@ -107,7 +109,7 @@ const ART_EXTENSIONS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg', '.ico'
  * phone and not:
  *
  * 1. `cache: 'reload'` on the fetch. Without it the request is answered by the HTTP
- *    cache — and Android's WebView in particular is happy to return a stale 200 with no
+ *    cache â€” and Android's WebView in particular is happy to return a stale 200 with no
  *    way to tell it from a fresh one. That stale response was then stored by the line
  *    below as the current copy, so the worker went on serving a superseded stylesheet
  *    indefinitely. A board fix shipped, deployed, verified at the origin, and never
@@ -163,7 +165,7 @@ self.addEventListener('install', (event) => {
         const response = await fetch(url, { cache: 'reload' });
         if (response.ok) await cache.put(url, response);
       } catch {
-        /* offline during install — the runtime rules will fill this in */
+        /* offline during install â€” the runtime rules will fill this in */
       }
     }));
     await self.skipWaiting();
@@ -259,7 +261,7 @@ async function warmArt() {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
-  // GET only. Everything else — including the socket handshake, which is an upgrade —
+  // GET only. Everything else â€” including the socket handshake, which is an upgrade â€”
   // goes straight to the network untouched.
   if (request.method !== 'GET') return;
 
@@ -280,7 +282,7 @@ self.addEventListener('fetch', (event) => {
   // cached copy is the safety net, and offline.html the last resort.
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
-      const fresh = await networkFirst(request, SHELL_CACHE, 6000);
+      const fresh = await networkFirst(request, SHELL_CACHE, 12000);
       if (fresh) return fresh;
       const cache = await caches.open(SHELL_CACHE);
       const shell = await cache.match(request);
