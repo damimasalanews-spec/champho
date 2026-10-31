@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v14';
+const VERSION = 'v15';
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;
@@ -149,6 +149,13 @@ async function staleWhileRevalidate(request, cacheName) {
 }
 
 self.addEventListener('install', (event) => {
+  // Asked for first, deliberately. Activation is what runs the cache purge in the
+  // activate handler, so it must not be gated behind the pre-cache below: a slow or
+  // half-failed install leaves the new worker parked in "waiting", the old caches
+  // survive, and a device keeps serving the build the deploy replaced. Pre-caching
+  // still completes in its own time; anything it misses is filled by the runtime
+  // rules on first request anyway.
+  self.skipWaiting();
   event.waitUntil((async () => {
     const cache = await caches.open(SHELL_CACHE);
     // Individually, not addAll: one missing file must not cost us the whole worker.
