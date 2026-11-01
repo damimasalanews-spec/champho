@@ -801,44 +801,50 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   let lastFound = -1;
   let lastMoveAt = 0;
   let lastProgressAt = 0;
-  const STALL_LIMIT_MS = 25000;   /* no word found for this long: close it */
+  const stallStats = { fires: 0, lastGap: 0, lastOwed: 0 };
+  /* How long a table may go without a find before the round is closed. This has
+     to be measured in laps, not seconds: a turn is fifteen seconds and a bot may
+     well pass on it, so a fixed 25 seconds ended rounds at word twenty with the
+     board half full. Two full laps of nobody finding anything is a stall; one
+     slow turn is not. */
+  const stallLimitMs = () => Math.max(60000, turnMs * TURN_ORDER.length * 2);
 
   function stallWatchdog() {
-    if (!round || round.ended || !turnState) {
-      lastSeat = activeSeatId;
-      lastFound = round ? round.foundAll.size : -1;
-      lastMoveAt = performance.now();
+    if (!round || round.ended) {
+      lastFound = -1;
+      lastProgressAt = 0;
       return;
     }
     const now = performance.now();
 
-    /* Bookkeeping first, and neither branch may return early: an early return
-       here is how the safety net below became unreachable the first time. */
+    /* Progress first, before anything can return: the round's own counter is
+       the only signal that matters, and turnState being null is itself a
+       symptom of the stalls this is meant to catch. */
     if (round.foundAll.size !== lastFound) {
       lastFound = round.foundAll.size;
       lastProgressAt = now;
     }
-    if (activeSeatId !== lastSeat) {
-      lastSeat = activeSeatId;
-      lastMoveAt = now;
-    }
+    if (!lastProgressAt) lastProgressAt = now;
 
     const wordsOwed = round.words30.length - round.foundAll.size;
 
-    /* Absolute net. Whatever the cause - a word stranded on a board already
-       dealt past, a seat that cannot act, a clock that stopped - a round with
-       words left and no find for twenty-five seconds is over. A game that
-       cannot end is worse than one that ends early. */
-    if (wordsOwed > 0 && lastProgressAt && now - lastProgressAt > STALL_LIMIT_MS) {
-      stopTurns();
+    /* Absolute net: two full laps with no word found and the round is over,
+       whatever the reason. A game that cannot end is worse than one that ends
+       early - but it must not fire on a merely slow turn. */
+    if (wordsOwed > 0 && now - lastProgressAt > stallLimitMs()) {
+      stallStats.fires += 1;
+      stallStats.lastGap = Math.round(now - lastProgressAt);
+      stallStats.lastOwed = wordsOwed;
       finishRound('complete', 400);
       lastProgressAt = now;
       return;
     }
-    if (wordsOwed <= 0) return;
+    if (wordsOwed <= 0 || !turnState) return;
 
-    /* Otherwise only step in when the clock itself is overdue: a live fifteen
-       second turn must never be interrupted. */
+    if (activeSeatId !== lastSeat) {
+      lastSeat = activeSeatId;
+      lastMoveAt = now;
+    }
     const overdueCelebration = settling && now - (turnState.endsAt || now) > 2500;
     const overdueTurn = !settling && turnState.endsAt && now - turnState.endsAt > 2000;
     if (!overdueCelebration && !overdueTurn) return;
@@ -847,9 +853,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     seatRings().forEach(ring => ring.remove());
     const hidden = round.layout.words.filter(item => !round.foundAll.has(item.word));
 
-    if (wordsOwed > 0 && hidden.length === 0 && round.level < BOARDS) {
-      /* the board on the table is finished but the round is not: deal the next
-         one, because a board only advances on a find */
+    if (hidden.length === 0 && round.level < BOARDS) {
       round.level += 1;
       dealLevel();
       if (!round.ended) startTurn();
@@ -865,6 +869,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (!round.ended) { advanceTurnIndex(); startTurn(); }
     lastMoveAt = now;
   }
+
 
 
 
@@ -1748,6 +1753,17 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }),
     guess: (word, player = 'champ', fromDrag = false) => submitGuess(word, player, fromDrag),
     gift: (toId, id) => sendGift('champ', toId, GIFTS.find(g => g.id === id || g.art === id || g.name.toUpperCase() === String(id || '').toUpperCase())),
+    stall: () => ({
+      progressAgo: Math.round(performance.now() - lastProgressAt),
+      limit: stallLimitMs(),
+      owed: round ? round.words30.length - round.foundAll.size : -1,
+      level: round ? round.level : -1,
+      lastFound: lastFound,
+      size: round ? round.foundAll.size : -1,
+      fires: stallStats.fires,
+      lastGap: stallStats.lastGap,
+      lastOwed: stallStats.lastOwed
+    }),
     setTurnSpeed: ms => { turnMs = Math.max(400, Math.min(TURN_MS, Number(ms) || TURN_MS)); },
     skipToBoard: n => { if (round && !round.ended) { round.level = Math.max(1, Math.min(BOARDS, Number(n) || 1)); dealLevel(); } },
     skipToLevel: n => { if (round && !round.ended) { round.level = Math.max(1, Math.min(BOARDS, Number(n) || 1)); dealLevel(); } },
