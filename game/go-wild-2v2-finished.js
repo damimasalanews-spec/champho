@@ -59,6 +59,13 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      Finds stack, and the turn the word was found on never counts against it. */
   let shieldTurns = {};
   let shieldFresh = new Set();
+  /* consecutive finds per seat, this round: the run bonus. A miss clears only
+     the seat that missed, so a rival's dry turn cannot reset your streak. */
+  let comboStreak = {};
+  /* who holds the turn. renderScores() re-marks the seats after every find and
+     has no seat to hand, so the mark function reads this instead - without it
+     the scorer was painted as the seat about to pay for its own word. */
+  let activeSeatId = null;
 
 
   function buildGrid() {
@@ -115,6 +122,58 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }
     const totalCoins = $('totalCoins');
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
+    renderSeatMarks();
+  }
+
+  /* ---------------- competition layer -------------------------------------
+     Three things sit on top of the coin chain, and all three are read from
+     state the round already keeps: who scored last, what each purse holds, and
+     how many words in a row a seat has found. */
+
+  const COMBO_CAP = 3;   /* a run tops out at x3, or one lucky seat runs away */
+
+  function comboMultiplier(streak) {
+    if (streak < 2) return 1;
+    return Math.min(COMBO_CAP, 1 + (streak - 1) * 0.5);   /* 1.5, 2, 2.5, 3 */
+  }
+
+  /* A bounty only exists when somebody is actually ahead - a 1-coin lead is not
+     a bounty, it is noise. 200 coins is two words. */
+  const BOUNTY_LEAD = 200;
+
+  function coinLeaderId() {
+    if (!round) return null;
+    const purses = PLAYERS.map(player => ({ id: player.id, coins: round.scores[player.id].coins }));
+    purses.sort((a, b) => b.coins - a.coins);
+    const [first, second] = purses;
+    if (!first || first.coins <= 0) return null;
+    if (!second || first.coins - second.coins < BOUNTY_LEAD) return null;
+    return first.id;
+  }
+
+  /* Both marks are about the next word, not the last one: the seat that will
+     pay for the next find (unless shielded), and the seat carrying the bounty. */
+  function renderSeatMarks(activeId) {
+    if (!round) return;
+    if (activeId === undefined) activeId = activeSeatId;
+    const leader = coinLeaderId();
+    const payer = (lastScorer && lastScorer !== activeId && !((shieldTurns[lastScorer] || 0) > 0))
+      ? lastScorer
+      : null;
+    document.querySelectorAll('.gwx-seat').forEach(seat => {
+      const id = seat.dataset.player;
+      seat.classList.toggle('is-bounty', id === leader);
+      seat.classList.toggle('steal-target', id === payer);
+      const existing = seat.querySelector('.gwx-bounty-chip');
+      if (id === leader && !existing) {
+        const tag = document.createElement('i');
+        tag.className = 'gwx-bounty-chip';
+        tag.textContent = 'BOUNTY';
+        (seat.querySelector('.gwx-seat-coins') || seat.querySelector('.gwx-card-count') || seat).appendChild(tag);
+      } else if (id !== leader && existing) {
+        existing.remove();
+      }
+    });
   }
 
   function renderPath() {
@@ -189,6 +248,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const normalized = normalizeGuess(value);
       const known = round.words30.some(item => item.word === normalized);
       flashMessage(!normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the 30 hidden words. Trace the letters.', 'bad');
+      comboStreak[playerId] = 0;   /* a dry turn breaks your run, nobody else's */
       return false;
     }
     round.foundAll.add(result.word);
@@ -208,8 +268,17 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        scorer's purse — take what they hold, the grid adds nothing. A player
        wearing the coin shield (they found a champ word) can't be robbed:
        the grid pays instead. */
-    const fromId = (lastScorer && (shieldTurns[lastScorer] || 0) > 0) ? null : lastScorer;
-    const credited = fromId ? Math.min(result.coins, round.scores[fromId].coins) : result.coins;
+    const leaderBefore = coinLeaderId();
+    const streak = (comboStreak[playerId] || 0) + 1;
+    comboStreak[playerId] = streak;
+    const multiplier = comboMultiplier(streak);
+    const shielded = lastScorer && (shieldTurns[lastScorer] || 0) > 0;
+    /* never from yourself: a seat that finds again after a rival misses used to
+       pay its own purse and net zero, silently cancelling the find */
+    const fromId = (lastScorer && lastScorer !== playerId && !shielded) ? lastScorer : null;
+    const bounty = Boolean(fromId && fromId === leaderBefore);
+    const purse = Math.round(result.coins * multiplier * (bounty ? 1.5 : 1));
+    const credited = fromId ? Math.min(purse, round.scores[fromId].coins) : purse;
     if (fromId) round.scores[fromId].coins -= credited;
     round.scores[playerId].coins += credited;
     round.scores[playerId].words++;
@@ -218,9 +287,13 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     $('guessInput').value = '';
     $('guessMessage').classList.remove('bad');
     $('guessMessage').classList.add('good');
+    const marks = [];
+    if (multiplier > 1) marks.push('\u00d7' + (Number.isInteger(multiplier) ? multiplier : multiplier.toFixed(1)) + ' COMBO');
+    if (bounty) marks.push('BOUNTY +50%');
+    const tagSuffix = marks.length ? ' \u00b7 ' + marks.join(' \u00b7 ') : '';
     $('guessMessage').textContent = fromId
-      ? `${result.word.toUpperCase()} found! +${credited} coins taken from ${PLAYERS.find(item => item.id === fromId).name}${credited < result.coins ? ' — their purse ran dry' : ''}.`
-      : `${result.word.toUpperCase()} found! +${credited} coins from the grid to ${PLAYERS.find(item => item.id === playerId).name}.`;
+      ? `${result.word.toUpperCase()} found! +${credited} coins taken from ${PLAYERS.find(item => item.id === fromId).name}${credited < purse ? ' \u2014 their purse ran dry' : ''}${tagSuffix}.`
+      : `${result.word.toUpperCase()} found! +${credited} coins from the grid to ${PLAYERS.find(item => item.id === playerId).name}${tagSuffix}.`;
     renderSlots();
     renderScores();
     renderPath();
@@ -426,6 +499,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
         ? (human ? 'YOUR TURN' : 'TAKING TURN')
         : 'READY TO HUNT';
     });
+    activeSeatId = id;
+    renderSeatMarks(id);
     $('turnLabel').textContent = human ? 'YOUR TURN — FIND A WORD' : player.name.toUpperCase() + "'S TURN";
     /* the round's final word can only be won by dragging it, so the text box
        closes and the letters do the talking */
@@ -1093,6 +1168,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     TURN_ORDER = SEAT_CYCLE.map((_, i) => SEAT_CYCLE[(at + i) % SEAT_CYCLE.length]);
     lastScorer = null;
     shieldTurns = {};
+    comboStreak = {};
+    activeSeatId = null;
     shieldFresh = new Set();
     document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
     turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };
