@@ -55,8 +55,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      typing always spells exactly what is hidden, and a word can only score
      once in the whole round — no double answers. Four of the thirty are
      CHAMP words (the longest word on the first four boards): whoever finds
-     one is crowned with a coin shield for their next TWO turns, so no later
-     scorer can take from their purse while it stands, and finds stack. The
+     one banks a fifth of their loose coins into a VAULT, which no thief can
+     reach, up to half the purse. A CHAMP word is therefore either a wall
+     (bank it) or a crowbar (SNIPE: a 7+ letter word reaches into a vault). The
      player holding the most coins always answers first, then the turn
      travels the seat cycle — champ, jess, kalkal, poker, back to champ. The
      grid pays the first correct answer; from then on every correct answer
@@ -65,7 +66,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      The leaderboard prints when all 30 words are found; top coins win. */
   const BOARDS = 5;             /* five boards of six hidden words = 30 */
   const CHAMP_WORDS = 4;        /* four champ words hidden in the round */
-  const CHAMP_SHIELD_TURNS = 2; /* each champ find shields the finder's coins */
+  const VAULT_SHARE = 0.20;     /* of loose coins, banked per CHAMP word */
+  const VAULT_CAP = 0.50;       /* never more than half the purse is vaulted */
+  const SNIPE_LENGTH = 7;       /* letters: a snipe reaches into the vault */
   /* six lengths per board that sum to exactly 42 — the 7x6 cell count — so
      every letter on a board belongs to one of its words, the way the original
      seven-word deal tiled it */
@@ -86,11 +89,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   let settling = false;
   let handoverTimer = 0;
   let lastScorer = null;
-  /* the coin shield: finding a champ word shields that player's purse for
-     their next two turns — no later scorer can take from it while it stands.
-     Finds stack, and the turn the word was found on never counts against it. */
-  let shieldTurns = {};
-  let shieldFresh = new Set();
+  /* The vault: coins moved out of reach. It replaces the old two-turn shield,
+     which was an all-or-nothing timer — either your whole purse was immune or
+     none of it was, so a champ word was worth the same on 200 coins as on
+     2000. A vault is a share that stays safe, so protecting a big purse is
+     worth the detour and a thief can still take what is loose. */
+  let vault = {};
   /* consecutive finds per seat, this round: the run bonus. A miss clears only
      the seat that missed, so a rival's dry turn cannot reset your streak. */
   let comboStreak = {};
@@ -169,19 +173,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     return Math.min(COMBO_CAP, 1 + (streak - 1) * 0.5);   /* 1.5, 2, 2.5, 3 */
   }
 
-  /* A bounty only exists when somebody is actually ahead - a 1-coin lead is not
-     a bounty, it is noise. 200 coins is two words. */
-  const BOUNTY_LEAD = 200;
 
-  function coinLeaderId() {
-    if (!round) return null;
-    const purses = PLAYERS.map(player => ({ id: player.id, coins: round.scores[player.id].coins }));
-    purses.sort((a, b) => b.coins - a.coins);
-    const [first, second] = purses;
-    if (!first || first.coins <= 0) return null;
-    if (!second || first.coins - second.coins < BOUNTY_LEAD) return null;
-    return first.id;
-  }
 
   /* Both marks are about the next word, not the last one: the seat that will
      pay for the next find (unless shielded), and the seat carrying the bounty. */
@@ -304,13 +296,24 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   let jackpotArmed = false;
 
   const purseOf = id => (round && round.scores[id] ? round.scores[id].coins : 0);
-  const isLockedDown = id => (shieldTurns[id] || 0) > 0;
+  const vaultOf = id => vault[id] || 0;
+  const looseOf = id => Math.max(0, purseOf(id) - vaultOf(id));
+  const hasLoose = id => looseOf(id) > 0;
+
+  function bankVault(playerId) {
+    const purse = purseOf(playerId);
+    const already = vaultOf(playerId);
+    const room = Math.max(0, purse * VAULT_CAP - already);
+    const add = Math.max(0, Math.min(Math.round(looseOf(playerId) * VAULT_SHARE), Math.round(room)));
+    if (add > 0) vault[playerId] = already + add;
+    return add;
+  }
 
   function richestSeat(excludeId) {
     let best = null;
     let bestCoins = 0;
     for (const player of PLAYERS) {
-      if (player.id === excludeId || isLockedDown(player.id)) continue;
+      if (player.id === excludeId || !hasLoose(player.id)) continue;
       const coins = purseOf(player.id);
       if (coins > bestCoins) { bestCoins = coins; best = player.id; }
     }
@@ -322,14 +325,14 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   function markOf(playerId) {
     const wanted = PLAYERS
       .map(player => player.id)
-      .filter(id => id !== playerId && !isLockedDown(id) && (heat[id] || 0) >= HEAT_MAX)
+      .filter(id => id !== playerId && hasLoose(id) && (heat[id] || 0) >= HEAT_MAX)
       .sort((a, b) => purseOf(b) - purseOf(a));
     if (wanted.length) return { id: wanted[0], reason: 'wanted' };
     if (jackpotArmed) {
       const rich = richestSeat(playerId);
       if (rich) return { id: rich, reason: 'jackpot' };
     }
-    if (lastScorer && lastScorer !== playerId && !isLockedDown(lastScorer)) {
+    if (lastScorer && lastScorer !== playerId && hasLoose(lastScorer)) {
       return { id: lastScorer, reason: 'chain' };
     }
     return null;
@@ -350,9 +353,14 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 
     if (mark) {
       const purse = purseOf(mark.id);
-      const raw = Math.round(base * 0.5 * multiplier * (jackpot ? 3 : 1) * (revenge ? 1.5 : 1)
-        + purse * STEAL_RATE * (jackpot ? 1 : 1));
-      taken = Math.max(0, Math.min(raw, Math.round(purse * STEAL_CAP), purse));
+      /* a SNIPE is a long word, and a long word reaches past the wall: it takes
+         from the vault too and hits harder. That is the counter to a big vault,
+         and it is why the long words are worth hunting rather than typing. */
+      const snipe = base >= SNIPE_LENGTH * 100;
+      const reachable = snipe ? purse : looseOf(mark.id);
+      const raw = Math.round(base * 0.5 * multiplier * (snipe ? 1.25 : 1) * (jackpot ? 3 : 1) * (revenge ? 1.5 : 1)
+        + purse * STEAL_RATE);
+      taken = Math.max(0, Math.min(raw, Math.round(purse * STEAL_CAP), reachable));
       if (taken > 0) {
         fromId = mark.id;
         round.scores[fromId].coins -= taken;
@@ -369,16 +377,83 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       round.scores[playerId].coins += taken;
     }
 
+    const contractReward = evaluateContract(playerId, base, fromId);
+
     return {
       taken,
       fromId,
       multiplier,
       revenge,
       jackpot,
+      contractReward,
+      snipe: Boolean(fromId && base >= SNIPE_LENGTH * 100),
       heat: heat[playerId] || 0,
       markReason: mark ? mark.reason : null,
       wipedOut: Boolean(fromId && purseOf(fromId) === 0)
     };
+  }
+
+  /* ---- CONTRACTS -----------------------------------------------------------
+     The old bounty was a passive marker: be rich, get robbed harder. It gave
+     the table nothing to do, and it punished the player who was already
+     winning. A contract inverts that - a public objective, the same for every
+     seat on the board, that pays from the grid rather than out of a victim. */
+  const CONTRACTS = [
+    { id: 'leader', text: 'Rob the seat with the most coins', reward: 400 },
+    { id: 'long', text: 'Find a word of 7+ letters', reward: 300 },
+    { id: 'two', text: 'Rob two different seats', reward: 500 }
+  ];
+
+  let contract = null;
+  let contractRobbed = new Set();
+  let contractDone = false;
+  let contractChip = null;
+
+  function setContract(level) {
+    contract = CONTRACTS[(level - 1) % CONTRACTS.length];
+    contractRobbed = new Set();
+    contractDone = false;
+    renderContract();
+  }
+
+  function renderContract() {
+    if (!contract) {
+      if (contractChip) { contractChip.remove(); contractChip = null; }
+      return;
+    }
+    if (!contractChip) {
+      contractChip = document.createElement('div');
+      contractChip.className = 'contract-chip';
+      document.body.appendChild(contractChip);
+    }
+    contractChip.classList.toggle('is-done', contractDone);
+    contractChip.innerHTML = '<b>CONTRACT</b><span>' + contract.text + '</span><em>+' + contract.reward + '</em>';
+  }
+
+  function rewardContract(playerId) {
+    if (!contract || contractDone) return null;
+    contractDone = true;
+    round.scores[playerId].coins += contract.reward;
+    renderContract();
+    notify('CONTRACT COMPLETE \u00b7 ' + contract.text + ' \u00b7 +' + contract.reward, 'bounty', 3200);
+    seatEvent(playerId, 'bounty', '+' + contract.reward);
+    return contract.reward;
+  }
+
+  function evaluateContract(playerId, base, fromId) {
+    if (!contract || contractDone) return null;
+    if (contract.id === 'long') {
+      return base >= SNIPE_LENGTH * 100 ? rewardContract(playerId) : null;
+    }
+    if (!fromId) return null;
+    if (contract.id === 'leader') {
+      return fromId === richestSeat(playerId) ? rewardContract(playerId) : null;
+    }
+    if (contract.id === 'two') {
+      contractRobbed.add(fromId);
+      return contractRobbed.size >= 2 ? rewardContract(playerId) : null;
+    }
+    return null;
   }
 
   /* Coins travel. A number above a card says a robbery happened; a stream of
@@ -468,13 +543,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }
     round.foundAll.add(result.word);
     if (result.champ) {
-      /* a champ word crowns the finder: two turns of coin protection, and
-         finds stack — the shield badge shows the turns remaining */
-      shieldTurns[playerId] = (shieldTurns[playerId] || 0) + CHAMP_SHIELD_TURNS;
-      shieldFresh.add(playerId);
+      const banked = bankVault(playerId);
       shieldBadge(playerId);
       cardFloater(playerId, 'champ');
-      chatSay(nameOf(playerId), 'found the CHAMP word ' + result.word.toUpperCase() + '! Coins shielded for 2 turns!');
+      notify('VAULT \u00b7 ' + nameOf(playerId) + ' locks away ' + banked + ' \u2014 ' + vaultOf(playerId) + ' now safe',
+        'shield', 2600);
+      chatSay(nameOf(playerId), 'found the CHAMP word ' + result.word.toUpperCase() + '! ' + banked + ' coins into the vault.');
     }
     if (result.hidden) round.found.add(result.word);
     round.foundPaths.push(result.path);
@@ -505,6 +579,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (heist.jackpot) marks.push('JACKPOT \u00d73');
     if (heist.revenge) marks.push('REVENGE +50%');
     if (heist.markReason === 'wanted') marks.push('WANTED');
+    if (heist.snipe) marks.push('SNIPE');
     const tagSuffix = marks.length ? ' \u00b7 ' + marks.join(' \u00b7 ') : '';
     $('guessMessage').textContent = fromId
       ? `HEIST! ${result.word.toUpperCase()} \u2192 +${credited} taken from ${nameOf(fromId)}${heist.wipedOut ? ' \u2014 purse emptied' : ''}${tagSuffix}. Heat ${heist.heat}/${HEAT_MAX}.`
@@ -580,16 +655,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     startTurn();
   }
 
-  /* the turn handoff: the seat cycle always travels forward, and the coin
-     shield of the finishing player burns one turn off its count — the turn
-     the champ word was found on never counts against it. */
+  /* the turn handoff: the seat cycle always travels forward. A vault does not
+     decay, so there is nothing to tick down here any more. */
   function advanceTurnIndex() {
-    const outgoing = TURN_ORDER[turnState.index];
-    if (shieldFresh.has(outgoing)) shieldFresh.delete(outgoing);
-    else if ((shieldTurns[outgoing] || 0) > 0) {
-      shieldTurns[outgoing]--;
-      shieldBadge(outgoing);
-    }
     turnState.index = (turnState.index + 1) % TURN_ORDER.length;
   }
 
@@ -831,14 +899,14 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
     if (!seat) return;
     let badge = seat.querySelector('.gw-shield');
-    const turns = shieldTurns[playerId] || 0;
-    if (turns <= 0) { if (badge) badge.remove(); return; }
+    const safe = vaultOf(playerId);
+    if (safe <= 0) { if (badge) badge.remove(); return; }
     if (!badge) {
       badge = document.createElement('i');
       badge.className = 'gw-shield';
       seat.appendChild(badge);
     }
-    badge.textContent = 'SHIELD \u00D7' + turns;
+    badge.textContent = 'VAULT \u25C8 ' + safe;
   }
 
   /* the word slam: a stamped CHAMP WORD! pops over the avatar of whoever
@@ -1446,7 +1514,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     renderSlots();
     renderPath();
     $('roundLabel').textContent = String(round.level).padStart(2, '0');
-    $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. Four CHAMP words shield coins for 2 turns.';
+    $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. Four CHAMP words bank coins in the vault.';
+    setContract(round.level);
   }
 
   function resetRound() {
@@ -1490,7 +1559,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const at = SEAT_CYCLE.indexOf(opener);
     TURN_ORDER = SEAT_CYCLE.map((_, i) => SEAT_CYCLE[(at + i) % SEAT_CYCLE.length]);
     lastScorer = null;
-    shieldTurns = {};
+    vault = {};
+    contract = null;
+    contractDone = false;
+    renderContract();
     comboStreak = {};
     activeSeatId = null;
     heat = {};
@@ -1498,7 +1570,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     lastRobbery = null;
     jackpotArmed = false;
     disarmJackpot();
-    shieldFresh = new Set();
     document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
     turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };
     renderTurnArrows();
@@ -1706,7 +1777,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       active: turnState ? TURN_ORDER[turnState.index] : null,
       secondsLeft: turnState ? Math.max(0, Math.round((turnState.endsAt - performance.now()) / 1000)) : 0,
       order: TURN_ORDER.slice(), lastScorer,
-      shieldTurns: { ...shieldTurns },
+      vault: { ...vault },
       ended: round.ended
     }),
     guess: (word, player = 'champ', fromDrag = false) => submitGuess(word, player, fromDrag),
