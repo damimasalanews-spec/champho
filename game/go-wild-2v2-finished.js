@@ -98,6 +98,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      has no seat to hand, so the mark function reads this instead - without it
      the scorer was painted as the seat about to pay for its own word. */
   let activeSeatId = null;
+  let lastBountyLeader = null;
 
 
   function buildGrid() {
@@ -189,6 +190,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (!round) return;
     if (activeId === undefined) activeId = activeSeatId;
     const leader = coinLeaderId();
+    if (leader !== lastBountyLeader) {
+      if (leader) notify('BOUNTY \u00b7 ' + nameOf(leader) + ' pays +50% when robbed', 'bounty');
+      lastBountyLeader = leader;
+    }
     const payer = (lastScorer && lastScorer !== activeId && !((shieldTurns[lastScorer] || 0) > 0))
       ? lastScorer
       : null;
@@ -304,7 +309,14 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const streak = (comboStreak[playerId] || 0) + 1;
     comboStreak[playerId] = streak;
     const multiplier = comboMultiplier(streak);
+    if (multiplier > 1) {
+      notify('COMBO \u00d7' + (Number.isInteger(multiplier) ? multiplier : multiplier.toFixed(1)) +
+        ' \u00b7 ' + streak + ' words in a row', 'combo');
+    }
     const shielded = lastScorer && (shieldTurns[lastScorer] || 0) > 0;
+    if (shielded && lastScorer) {
+      notify('SHIELD \u00b7 ' + nameOf(lastScorer) + ' keeps their coins', 'shield');
+    }
     /* never from yourself: a seat that finds again after a rival misses used to
        pay its own purse and net zero, silently cancelling the find */
     const fromId = (lastScorer && lastScorer !== playerId && !shielded) ? lastScorer : null;
@@ -840,13 +852,34 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, el: avatar };
   }
 
-  function socialToast(msg, ms = 1900) {
-    document.querySelectorAll('.gift-toast').forEach(t => t.remove());
+  /* Everything the table does that a player cannot see for themselves lands
+     here: a gift, a combo run, a new bounty, a shield eating a steal. The old
+     version kept one slot and deleted it before showing the next, so a combo
+     landing on the same frame as a gift silently lost one of them. */
+  const NOTICE_MAX = 3;
+
+  function notify(msg, kind = 'info', ms = 2800) {
+    let stack = document.querySelector('.gift-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'gift-toast-stack';
+      stack.setAttribute('role', 'status');
+      stack.setAttribute('aria-live', 'polite');
+      document.body.appendChild(stack);
+    }
     const toast = document.createElement('div');
-    toast.className = 'gift-toast';
+    toast.className = 'gift-toast is-' + kind;
     toast.textContent = msg;
-    document.body.appendChild(toast);
-    window.setTimeout(() => toast.remove(), ms + 120);
+    stack.prepend(toast);
+    while (stack.children.length > NOTICE_MAX) stack.lastElementChild.remove();
+    window.setTimeout(() => {
+      toast.classList.add('is-out');
+      window.setTimeout(() => toast.remove(), 240);
+    }, ms);
+  }
+
+  function socialToast(msg, ms = 1900) {
+    notify(msg, 'info', ms);
   }
 
   function chatSay(who, text) {
@@ -940,7 +973,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     throwGift(fromId, toId, g);
     if (fromId === 'champ') {
       chatSay(nameOf('champ'), 'sent a ' + g.name.toLowerCase() + ' to ' + nameOf(toId));
-      socialToast(g.name + ' \u2192 ' + nameOf(toId) + '   \u2212' + g.cost + ' ¢');
+      notify(g.name + ' \u2192 ' + nameOf(toId) + '  \u00b7  \u2212' + g.cost + ' \u00a2', 'gift');
     }
     return true;
   }
@@ -1222,6 +1255,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     shieldTurns = {};
     comboStreak = {};
     activeSeatId = null;
+    lastBountyLeader = null;
     shieldFresh = new Set();
     document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
     turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };

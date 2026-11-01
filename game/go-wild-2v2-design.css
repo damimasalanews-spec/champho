@@ -2190,29 +2190,71 @@ input {
   70% { transform: rotate(-4deg) scale(1.01); }
 }
 
-.gift-toast {
+/* The event feed: one line per thing the table just did, newest at the top.
+   A single slot replaced its own message, so a combo landing on the same frame
+   as a gift silently lost one of them - and a player had no way to see what the
+   table was doing unless they already knew where to look. */
+.gift-toast-stack {
   position: fixed;
   z-index: 9700;
-  top: 20%;
+  top: 17%;
   left: 50%;
-  max-width: calc(100vw - 24px);
-  padding: 10px 16px;
+  display: flex;
+  width: min(440px, calc(100vw - 24px));
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   transform: translateX(-50%);
-  border: 1px solid #ffacb5;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #ff586c, #b82039);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 1000;
-  text-align: center;
-  box-shadow: 0 14px 34px #0009;
-  animation: gift-toast 2s ease forwards;
+  pointer-events: none;
 }
 
-@keyframes gift-toast {
-  0%, 12% { opacity: 0; transform: translate(-50%, -14px) scale(.8); }
-  20%, 80% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -12px) scale(.94); }
+.gift-toast {
+  --dot: #ffd85b;
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 11px;
+  border: 1px solid #ffffff26;
+  border-left: 4px solid var(--dot);
+  border-radius: 11px;
+  background: linear-gradient(135deg, #13263df2, #081422f7);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  text-align: left;
+  box-shadow: 0 10px 26px #000000a6;
+  animation: gift-toast-in .26s cubic-bezier(.2, .9, .3, 1.1) both;
+}
+
+.gift-toast::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--dot);
+  box-shadow: 0 0 9px var(--dot);
+}
+
+.gift-toast.is-gift   { --dot: #ffd85b; }
+.gift-toast.is-combo  { --dot: #ff8a3d; }
+.gift-toast.is-bounty { --dot: #f5b700; }
+.gift-toast.is-shield { --dot: #4fd1ff; }
+.gift-toast.is-out    { animation: gift-toast-out .22s ease forwards; }
+
+@keyframes gift-toast-in {
+  from { opacity: 0; transform: translateY(-7px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes gift-toast-out {
+  to { opacity: 0; transform: translateY(-5px) scale(.98); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-toast, .gift-toast.is-out { animation: none; }
 }
 
 .table-chat-panel {
