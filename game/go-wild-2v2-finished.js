@@ -579,6 +579,72 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     { id: 'bear',    art: '\uD83E\uDDF8', name: 'Teddy bear', cost: 400 },
     { id: 'cake',    art: '\uD83C\uDF70', name: 'Cake slice', cost: 800 }
   ];
+
+  /* ---- gift art -----------------------------------------------------------
+     Drawn, not typed. An emoji is rendered by whatever font the device happens
+     to have, so the same gift arrived as a different picture on every phone and
+     could not be lit or shadowed as a single object. Each mark below is drawn
+     in a 48x48 box: one silhouette, one highlight, one shadow edge, in the
+     colours the tray uses. Gradient ids are per-gift so a tray of six and a
+     gift in flight cannot collide. */
+  const GIFT_ART = {
+    cupcake:
+      '<defs><linearGradient id="cwGcFrost" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4f8"/><stop offset="1" stop-color="#ff9dc0"/></linearGradient>' +
+      '<linearGradient id="cwGcCup" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4db4f0"/><stop offset="1" stop-color="#1f6fb8"/></linearGradient></defs>' +
+      '<path d="M13.5 25h21l-3.2 15.2A3 3 0 0 1 28.3 43h-8.6a3 3 0 0 1-3-2.8z" fill="url(#cwGcCup)"/>' +
+      '<path d="M16 29.5h16M15 34h18M16.5 38.5h15" stroke="#0d4d84" stroke-opacity=".45" stroke-width="1.6" stroke-linecap="round"/>' +
+      '<path d="M11.5 25.5c0-6.8 5.6-11.8 12.5-11.8s12.5 5 12.5 11.8c0 1.6-1.2 2.5-2.9 2.5H14.4c-1.7 0-2.9-.9-2.9-2.5z" fill="url(#cwGcFrost)"/>' +
+      '<ellipse cx="24" cy="14.8" rx="6.2" ry="4" fill="#fff8fb"/>' +
+      '<circle cx="24" cy="7.8" r="3.2" fill="#e8443a"/><circle cx="22.9" cy="6.8" r="1" fill="#ff9d94"/>',
+    egg:
+      '<defs><radialGradient id="cwGcEgg" cx="34%" cy="26%" r="78%"><stop offset="0" stop-color="#fffbe0"/><stop offset=".5" stop-color="#f8cf4a"/><stop offset="1" stop-color="#a9741a"/></radialGradient></defs>' +
+      '<ellipse cx="24" cy="26" rx="13.6" ry="17.6" fill="url(#cwGcEgg)"/>' +
+      '<path d="M24 8.6c7.3 0 13.2 7.4 13.4 17" stroke="#fff" stroke-opacity=".38" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+      '<ellipse cx="18.4" cy="17.8" rx="3.3" ry="5.1" fill="#fff" opacity=".62" transform="rotate(-18 18.4 17.8)"/>',
+    tomato:
+      '<defs><radialGradient id="cwGcTom" cx="32%" cy="26%" r="80%"><stop offset="0" stop-color="#ff8d7f"/><stop offset=".55" stop-color="#e2402f"/><stop offset="1" stop-color="#9c1f16"/></radialGradient></defs>' +
+      '<circle cx="24" cy="27.5" r="15" fill="url(#cwGcTom)"/>' +
+      '<ellipse cx="18" cy="21" rx="3.9" ry="2.9" fill="#fff" opacity=".48" transform="rotate(-26 18 21)"/>' +
+      '<path d="M24 10.6l2.2 4.6 5-1.6-2.6 4.4 4.4 2.8-5 .8.6 5-3.4-3.7-3.4 3.7.6-5-5-.8 4.4-2.8-2.6-4.4 5 1.6z" fill="#38b552"/>' +
+      '<circle cx="24" cy="16.2" r="1.6" fill="#1f7a33"/>',
+    rose:
+      '<path d="M24 33.4V43" stroke="#2b8c3d" stroke-width="3.4" stroke-linecap="round"/>' +
+      '<ellipse cx="31.4" cy="39.4" rx="6.2" ry="3.3" fill="#38b552" transform="rotate(-22 31.4 39.4)"/>' +
+      '<ellipse cx="16.6" cy="41.4" rx="5.2" ry="2.9" fill="#2b8c3d" transform="rotate(18 16.6 41.4)"/>' +
+      '<circle cx="24" cy="21" r="12.6" fill="#b8282a"/>' +
+      '<circle cx="24" cy="21" r="9.6" fill="#e2402f"/>' +
+      '<path d="M24 12.4c4.8 0 8.6 3.8 8.6 8.6s-3.8 8.6-8.6 8.6" fill="none" stroke="#8e1c1e" stroke-width="2.2" stroke-linecap="round"/>' +
+      '<path d="M24 16.6c2.5 0 4.4 2 4.4 4.4s-2 4.4-4.4 4.4-4.4-2-4.4-4.4 2-4.4 4.4-4.4z" fill="#c72f2c"/>' +
+      '<ellipse cx="19.4" cy="15.4" rx="2.5" ry="1.7" fill="#ff9d94" opacity=".72" transform="rotate(-28 19.4 15.4)"/>',
+    bear:
+      '<circle cx="12.6" cy="14" r="6.4" fill="#9c6b42"/><circle cx="35.4" cy="14" r="6.4" fill="#9c6b42"/>' +
+      '<circle cx="12.6" cy="14" r="3.1" fill="#d5a878"/><circle cx="35.4" cy="14" r="3.1" fill="#d5a878"/>' +
+      '<circle cx="24" cy="27" r="14.6" fill="#b07c4c"/>' +
+      '<ellipse cx="24" cy="32.6" rx="8.4" ry="6.6" fill="#e7c49b"/>' +
+      '<circle cx="18.5" cy="23.4" r="2.2" fill="#3a2418"/><circle cx="29.5" cy="23.4" r="2.2" fill="#3a2418"/>' +
+      '<circle cx="19.2" cy="22.7" r=".8" fill="#fff" opacity=".85"/><circle cx="30.2" cy="22.7" r=".8" fill="#fff" opacity=".85"/>' +
+      '<ellipse cx="24" cy="30.4" rx="2.9" ry="2.2" fill="#3a2418"/>' +
+      '<path d="M24 32.8v2.3M24 35.1c-.9 1.2-2.2 1.6-3.4 1.2M24 35.1c.9 1.2 2.2 1.6 3.4 1.2" stroke="#3a2418" stroke-width="1.4" stroke-linecap="round" fill="none"/>',
+    cake:
+      /* a triangle reads as a tent at 40px however it is shaded, so this is the
+         side of a slice instead: frosting, sponge, cream, sponge, in bands. The
+         bands are what name it; the cherry only confirms it. */
+      '<rect x="7" y="14.5" width="34" height="7.5" rx="3.6" fill="#ffc4d6"/>' +
+      '<rect x="7" y="20" width="34" height="9.5" fill="#fbe0b4"/>' +
+      '<rect x="7" y="29" width="34" height="4.8" fill="#ffffff"/>' +
+      '<rect x="7" y="33.2" width="34" height="7.6" rx="3.6" fill="#c98b4b"/>' +
+      '<path d="M7 24.6h34M7 31.4h34" stroke="#00000014" stroke-width="1"/>' +
+      '<path d="M36.5 22.5v6.2M36.5 34.2v4.6" stroke="#ffffff5c" stroke-width="2.4" stroke-linecap="round"/>' +
+      '<circle cx="24" cy="10.4" r="4" fill="#e8443a"/><circle cx="22.9" cy="9.9" r="1.1" fill="#ff9d94"/>' +
+      '<path d="M24 7.4c1.7 0 2.9 1.2 2.9 2.7" stroke="#2b8c3d" stroke-width="1.7" fill="none" stroke-linecap="round"/>' +
+      '<path d="M4.5 42h39" stroke="#dccbaa" stroke-width="2.2" stroke-linecap="round"/>'
+  };
+
+  const giftArt = g =>
+    '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">' +
+    (GIFT_ART[g.id] || GIFT_ART.cupcake) +
+    '</svg>';
+
   const THANK_LINES = ['thanks!', 'haha!', 'right back at you!'];
   let giftTimer = 0, ambienceTimer = 0;
 
@@ -685,7 +751,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
         const b = document.createElement('button');
         b.className = 'gift-tile' + (g.cost > purse ? ' poor' : '');
         b.setAttribute('aria-label', g.name + ' gift, ' + g.cost + ' coins');
-        b.innerHTML = '<span class="gift-mark' + (g.gold ? ' gt-gold' : '') + '" aria-hidden="true"></span>' +
+        b.innerHTML = '<span class="gift-art">' + giftArt(g) + '</span>' +
           '<span class="gt-name">' + g.name + '</span>' +
           '<span class="gt-cost">¢ ' + g.cost + '</span>';
         b.title = g.name + ' \u2014 ' + g.cost + ' coins';
@@ -752,30 +818,70 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     return true;
   }
 
+  /* A throw is a projectile, so it is animated as one: the horizontal component
+     is constant, the vertical is a parabola under gravity, and a third axis
+     brings the item toward the camera at the top of the arc. The previous
+     version eased both ends of a Bézier and scaled on a sine, which is why it
+     read as a bubble drifting across the table instead of something thrown.
+     The tumble unwinds over the last third so the gift arrives face-on. */
   function throwGift(fromId, toId, g) {
     const a = seatPoint(fromId), b = seatPoint(toId);
     if (!a || !b) return;
+
     const el = document.createElement('span');
     el.className = 'gift-fly';
     el.setAttribute('aria-label', g.name);
-    const mark = document.createElement('span');
-    mark.className = 'gift-mark' + (g.gold ? ' gt-gold' : '');
-    el.appendChild(mark);
+    el.innerHTML = '<span class="gift-art">' + giftArt(g) + '</span>';
     el.style.left = a.x + 'px';
     el.style.top = a.y + 'px';
-    document.body.appendChild(el);
-    const dur = 620, t0 = performance.now();
-    const lift = Math.min(200, Math.max(70, Math.abs(b.y - a.y) * 0.4 + 90));
-    const cx = (a.x + b.x) / 2, cy = Math.min(a.y, b.y) - lift;
+
+    /* the ground shadow is anchored at the receiver's feet and only slides in
+       x, so it cannot fly with the gift - that is what marks the height */
+    const shadow = document.createElement('span');
+    shadow.className = 'gift-shadow';
+    shadow.style.left = b.x + 'px';
+    shadow.style.top = (b.y + 26) + 'px';
+
+    document.body.append(el, shadow);
+
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const dist = Math.hypot(dx, dy);
+    const dur = Math.min(900, Math.max(520, dist * 1.55));
+    const peak = Math.min(230, Math.max(90, dist * 0.42));   /* rise above the chord */
+    const depth = Math.min(150, dist * 0.28);                /* travel toward the camera */
+    /* These marks are flat, so a full flip on X or Y turns them edge-on and the
+       gift all but disappears for half the flight. The tumble therefore happens
+       in the screen plane (Z, which keeps the silhouette), while X and Y only
+       lean - enough to catch the light and read as solid, never enough to
+       vanish. */
+    const leanX = 14 + Math.random() * 8;
+    const leanY = 20 + Math.random() * 12;
+    const spinZ = (Math.random() < 0.5 ? -1 : 1) * (300 + Math.random() * 140);
+    const t0 = performance.now();
+
     const step = now => {
-      const t = Math.min(1, (now - t0) / dur), u = 1 - t;
-      const x = u * u * a.x + 2 * u * t * cx + t * t * b.x;
-      const y = u * u * a.y + 2 * u * t * cy + t * t * b.y;
-      const sc = 1 + Math.sin(Math.PI * t) * 0.6;
-      el.style.transform = 'translate(' + (x - a.x).toFixed(1) + 'px,' + (y - a.y).toFixed(1) + 'px)' +
-        ' rotate(' + Math.round(t * 400) + 'deg) scale(' + sc.toFixed(3) + ')';
+      const t = Math.min(1, (now - t0) / dur);
+      const x = a.x + dx * t;
+      const y = a.y + dy * t - peak * 4 * t * (1 - t);
+      const z = depth * Math.sin(Math.PI * t);
+      const settle = 1 - t * t * t;
+      const arc = Math.sin(Math.PI * t);
+
+      el.style.transform =
+        'perspective(760px)' +
+        ' translate3d(' + (x - a.x).toFixed(1) + 'px,' + (y - a.y).toFixed(1) + 'px,' + z.toFixed(1) + 'px)' +
+        ' rotateX(' + (leanX * arc).toFixed(1) + 'deg)' +
+        ' rotateY(' + (leanY * Math.sin(2 * Math.PI * t) * (1 - t * 0.5)).toFixed(1) + 'deg)' +
+        ' rotateZ(' + (spinZ * t * settle).toFixed(1) + 'deg)' +
+        ' scale(' + (1 + z / 420).toFixed(3) + ')';
+
+      const lift = depth > 0 ? z / depth : 0;
+      shadow.style.transform =
+        'translate3d(' + (x - b.x).toFixed(1) + 'px,0,0) scale(' + (1 - lift * 0.5).toFixed(3) + ')';
+      shadow.style.opacity = (0.55 - lift * 0.42).toFixed(3);
+
       if (t < 1) requestAnimationFrame(step);
-      else { el.remove(); giftImpact(fromId, toId, g); }
+      else { el.remove(); shadow.remove(); giftImpact(fromId, toId, g); }
     };
     requestAnimationFrame(step);
   }
@@ -803,6 +909,14 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       void pt.el.offsetWidth;
       pt.el.classList.add('gift-hit');
       window.setTimeout(() => pt.el.classList.remove('gift-hit'), 640);
+      /* a shockwave at the point of contact: the spark burst alone reads as
+         confetti, the expanding ring reads as an impact */
+      const ring = document.createElement('span');
+      ring.className = 'gift-ring';
+      ring.style.left = pt.x + 'px';
+      ring.style.top = pt.y + 'px';
+      document.body.appendChild(ring);
+      window.setTimeout(() => ring.remove(), 480);
       sparks(pt);
     }
     /* the gift lands as sparks on the avatar — no emoji reaction on top */

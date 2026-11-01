@@ -1989,135 +1989,181 @@ input {
   gap: 8px;
 }
 
+/* A gift tile is a physical chip, not a rectangle: a saturated block with a
+   white rim, a glossy top third, and a solid darker edge standing under it.
+   The edge is the whole depth cue - drop alone reads as a flat card, which is
+   what these were before. Colours run the UNO wheel so six tiles are six
+   different objects at a glance. */
 .gift-tile {
+  --tile: #e8443a;
+  --tile-edge: #9e2822;
+  position: relative;
   display: flex;
   min-width: 0;
-  min-height: 76px;
+  min-height: 88px;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 4px;
-  border: 1px solid #bfe3ff;
-  border-radius: 11px;
-  background: linear-gradient(160deg, #439dd2, #216bad);
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 7px 4px 8px;
+  overflow: hidden;
+  border: 2px solid #ffffffe8;
+  border-radius: 15px;
+  background:
+    radial-gradient(120% 72% at 50% -12%, #ffffff7d, #ffffff00 64%),
+    linear-gradient(168deg, var(--tile), var(--tile-edge));
   color: #fff;
-  box-shadow: 0 3px 0 #174e82, inset 0 1px 0 #ffffff70;
+  box-shadow:
+    0 5px 0 var(--tile-edge),
+    0 9px 16px #00000066,
+    inset 0 2px 0 #ffffff8c;
   cursor: pointer;
-  transition: transform .12s ease, filter .12s ease;
+  transition: transform .14s cubic-bezier(.34, 1.56, .64, 1), box-shadow .14s ease;
 }
 
+.gift-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 44%;
+  background: linear-gradient(180deg, #ffffff5c, #ffffff00);
+  pointer-events: none;
+}
+
+.gift-tile:nth-child(1) { --tile: #e8443a; --tile-edge: #9e2822; }
+.gift-tile:nth-child(2) { --tile: #f0b81b; --tile-edge: #ab7d08; }
+.gift-tile:nth-child(3) { --tile: #35b04a; --tile-edge: #1f7a33; }
+.gift-tile:nth-child(4) { --tile: #2b7fd4; --tile-edge: #1a5591; }
+.gift-tile:nth-child(5) { --tile: #8f4fd8; --tile-edge: #5f2f9a; }
+.gift-tile:nth-child(6) { --tile: #e8532f; --tile-edge: #a2331a; }
+
 .gift-tile:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.08);
+  transform: translateY(-3px) scale(1.03);
+  box-shadow:
+    0 8px 0 var(--tile-edge),
+    0 14px 22px #00000073,
+    inset 0 2px 0 #ffffff9c;
 }
 
 .gift-tile:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 0 #174e82;
+  transform: translateY(4px) scale(.98);
+  box-shadow:
+    0 1px 0 var(--tile-edge),
+    0 3px 8px #0007,
+    inset 0 2px 0 #ffffff70;
 }
 
-.gift-tile .gt-art {
-  font-size: 25px;
-  line-height: 1;
-  filter: drop-shadow(0 2px 2px #0007);
-}
-
-.gift-mark {
+/* The art sits above the gloss so the highlight does not wash it out. */
+.gift-art {
   position: relative;
+  z-index: 1;
   display: block;
-  width: 23px;
-  height: 18px;
-  margin-top: 5px;
-  border: 2px solid #fff0bd;
-  border-radius: 3px;
-  background: linear-gradient(145deg, #ffdb77, #d98b2f);
-  box-shadow: inset 0 1px 0 #ffffff9c, 0 2px 4px #071a2a66;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 1px;
+  filter: drop-shadow(0 2px 2px #00000073) drop-shadow(0 1px 0 #ffffff40);
 }
 
-.gift-mark::before {
-  content: "";
-  position: absolute;
-  top: -3px;
-  left: 8px;
-  width: 3px;
-  height: calc(100% + 4px);
-  background: #fff3c4;
+.gift-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.gift-mark::after {
-  content: "";
-  position: absolute;
-  top: -6px;
-  left: -3px;
-  width: calc(100% + 6px);
-  height: 4px;
-  border: 1px solid #fff0bd;
-  border-radius: 2px;
-  background: #f5bb50;
-}
-
-.gift-mark.gt-gold {
-  background: linear-gradient(145deg, #fff4b1, #eab93e);
-}
+/* The six hand-drawn marks that used to live here are gone: every tile drew
+   the same ribboned box, so the tray showed one gift six times. Each item now
+   carries its own artwork (GIFT_ART in go-wild-2v2-finished.js). */
 
 .gt-name {
+  position: relative;
+  z-index: 1;
   max-width: 100%;
   overflow: hidden;
-  color: #f7fbff;
-  font-size: 9px;
-  font-weight: 800;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 900;
   line-height: 1.1;
   text-align: center;
+  text-shadow: 0 1px 2px #000000a6;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .gt-cost {
-  padding: 2px 7px;
+  position: relative;
+  z-index: 1;
+  padding: 2px 8px;
   border-radius: 999px;
-  background: #08223acc;
-  color: #fff;
+  background: #0a1a2dcc;
+  color: #ffd85b;
   font-size: 10px;
   font-weight: 900;
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 #ffffff2e;
 }
 
 .gift-tile.poor {
-  filter: grayscale(.75) brightness(.65);
+  filter: grayscale(.62) brightness(.55);
+  cursor: not-allowed;
 }
 
 .gift-tile.poor .gt-cost {
-  background: #781414cc;
+  background: #781414e0;
+  color: #ffd9d9;
 }
 
+/* ---- the throw -----------------------------------------------------------
+   The flight is written per frame as translate3d + rotate3d, so the element
+   needs its own 3D context: preserve-3d here, perspective supplied inline by
+   the frame loop. The ground shadow is a separate element moved from the same
+   frame data - height without a shrinking shadow underneath reads as a flat
+   sticker sliding across the table, which is what it was. */
 .gift-fly {
   position: fixed;
   z-index: 9600;
-  margin: -24px 0 0 -24px;
+  width: 58px;
+  height: 58px;
+  margin: -29px 0 0 -29px;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
   pointer-events: none;
   will-change: transform;
-  filter: drop-shadow(0 7px 12px #0009);
 }
 
-.gift-fly .gift-mark {
-  width: 36px;
-  height: 29px;
+.gift-fly .gift-art {
+  width: 100%;
+  height: 100%;
   margin: 0;
-  border-width: 3px;
-  border-radius: 5px;
+  filter: drop-shadow(0 10px 10px #0000008c);
 }
 
-.gift-fly .gift-mark::before {
-  left: 13px;
-  width: 4px;
+.gift-shadow {
+  position: fixed;
+  z-index: 9598;
+  width: 48px;
+  height: 16px;
+  margin: -8px 0 0 -24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0000008c, #00000000 72%);
+  pointer-events: none;
+  will-change: transform, opacity;
 }
 
-.gift-fly .gift-mark::after {
-  top: -8px;
-  left: -4px;
-  height: 6px;
-  border-width: 2px;
+.gift-ring {
+  position: fixed;
+  z-index: 9599;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 3px solid #ffe9a3;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: gift-ring .44s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+
+@keyframes gift-ring {
+  0% { transform: scale(.35); opacity: .95; }
+  100% { transform: scale(3.6); opacity: 0; }
 }
 
 .gift-spark {
