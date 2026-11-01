@@ -167,9 +167,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   function renderSeatMarks(activeId) {
     if (!round) return;
     if (activeId === undefined) activeId = activeSeatId;
-    /* in the robbery half the target is always the richest seat left, so the
-       reticle answers "who am I about to hit" without a rule to remember */
-    const target = activeId && inRobbery() ? richestSeat(activeId) : null;
+    /* the reticle answers "who am I about to hit": the seat that played before
+       you, which is the seat rotation robs */
+    const target = activeId && inRobbery() ? seatBefore(activeId) : null;
 
     document.querySelectorAll('.gwx-seat').forEach(seat => {
       const id = seat.dataset.player;
@@ -231,8 +231,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     panel?.appendChild(floater);
     window.setTimeout(() => floater.remove(), 1250);
     $('roundMessage').textContent = `${PLAYERS.find(item => item.id === playerId).name} found ${word.toUpperCase()} · +${coins} coins!`;
-    /* presentation only: the word is thrown into the grid, dances, becomes coins,
-       and those coins arc to whoever scored. Falls back to the plain shower. */
+    /* Presentation only: the word is thrown into the grid, dances, becomes coins
+       and those coins arc to the scorer. That is right while the grid is paying.
+       In the robbery half the grid pays nothing - the coins come out of another
+       player's purse - so the grid shower is skipped and the stream between the
+       two cards is the only thing that moves. */
+    if (inRobbery()) return 0;
     if (window.__champCoins?.celebrate) return window.__champCoins.celebrate(playerId, word, cells, coins);
     window.__champCoins?.play(playerId, coins);
     return 0;
@@ -265,15 +269,19 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   const isOut = id => eliminated.has(id);
   const purseOf = id => (round && round.scores[id] ? round.scores[id].coins : 0);
 
-  function richestSeat(excludeId) {
-    let best = null;
-    let bestCoins = -1;
-    for (const player of PLAYERS) {
-      if (player.id === excludeId || isOut(player.id)) continue;
-      const coins = purseOf(player.id);
-      if (coins > bestCoins) { bestCoins = coins; best = player.id; }
+  /* Robbery runs turn by turn: you rob the seat that played before you. Every
+     seat therefore robs exactly one neighbour and is robbed by the other one, so
+     a cycle of four turns takes once from everybody. Selecting "the richest"
+     instead meant one player could rob all round and never be hit. */
+  function seatBefore(playerId) {
+    const order = TURN_ORDER;
+    const index = order.indexOf(playerId);
+    if (index < 0) return null;
+    for (let step = 1; step < order.length; step += 1) {
+      const candidate = order[(index - step + order.length) % order.length];
+      if (candidate !== playerId && !isOut(candidate)) return candidate;
     }
-    return best;
+    return null;
   }
 
   function standUp(playerId) {
@@ -303,8 +311,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       return out;
     }
 
-    const target = richestSeat(playerId);
-    if (!target) {                     /* the table is empty: pay half */
+    const target = seatBefore(playerId);
+    if (!target) {                     /* nobody left to rob: pay half */
       out.gained = Math.round(length * COIN_PER_LETTER * 0.5);
       round.scores[playerId].coins += out.gained;
       return out;
@@ -363,19 +371,24 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const distance = Math.hypot(dx, dy);
     const duration = Math.min(700, Math.max(420, distance * 1.1));
     const lift = Math.min(160, Math.max(60, distance * 0.32));
-    const spin = 240 + Math.random() * 200;
+    /* A coin spun on Y turns edge-on and reads as a stretched blob, which is
+       what these were. The spin stays in the screen plane, where a disc still
+       looks like a disc, and the only tilt is a slight lean at the top of the
+       arc. */
+    const spin = 160 + Math.random() * 140;
     const started = performance.now();
 
     const step = now => {
       const t = Math.min(1, (now - started) / duration);
       const x = from.x + dx * t;
       const y = from.y + dy * t - lift * 4 * t * (1 - t);
-      const z = Math.sin(Math.PI * t) * 90;
+      const z = Math.sin(Math.PI * t) * 60;
       coin.style.transform =
         'perspective(600px) translate3d(' + (x - from.x).toFixed(1) + 'px,' +
         (y - from.y).toFixed(1) + 'px,' + z.toFixed(1) + 'px)' +
-        ' rotateY(' + (spin * t).toFixed(0) + 'deg) rotateX(' + (spin * 0.6 * t).toFixed(0) + 'deg)' +
-        ' scale(' + (1 + z / 500).toFixed(2) + ')';
+        ' rotateZ(' + (spin * t).toFixed(0) + 'deg)' +
+        ' rotateX(' + (18 * Math.sin(Math.PI * t)).toFixed(0) + 'deg)' +
+        ' scale(' + (1 + z / 900).toFixed(2) + ')';
       if (t < 1) requestAnimationFrame(step);
       else coin.remove();
     };
@@ -423,7 +436,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        the grid pays instead. */
     comboStreak[playerId] = (comboStreak[playerId] || 0) + 1;
     const outcome = resolveWord(playerId, result.word);
-    const credited = outcome.taken;
+    /* taken in the robbery half, gained in the build half: the display reads the
+       amount that actually moved, or a fallback payout shows as "+0 coins" */
+    const credited = outcome.taken || outcome.gained;
     const fromId = outcome.fromId;
     round.scores[playerId].words++;
     lastScorer = playerId;
