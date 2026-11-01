@@ -23,9 +23,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      typing always spells exactly what is hidden, and a word can only score
      once in the whole round — no double answers. Four of the thirty are
      CHAMP words (the longest word on the first four boards): whoever finds
-     one banks a fifth of their loose coins into a VAULT, which no thief can
-     reach, up to half the purse. A CHAMP word is therefore either a wall
-     (bank it) or a crowbar (SNIPE: a 7+ letter word reaches into a vault). The
+     one is simply the longest word on its board, and in the robbery half that
+     length is what takes the most coins off the table. The
      player holding the most coins always answers first, then the turn
      travels the seat cycle — champ, jess, kalkal, poker, back to champ. The
      grid pays the first correct answer; from then on every correct answer
@@ -34,9 +33,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      The leaderboard prints when all 30 words are found; top coins win. */
   const BOARDS = 5;             /* five boards of six hidden words = 30 */
   const CHAMP_WORDS = 4;        /* four champ words hidden in the round */
-  const VAULT_SHARE = 0.20;     /* of loose coins, banked per CHAMP word */
-  const VAULT_CAP = 0.50;       /* never more than half the purse is vaulted */
-  const SNIPE_LENGTH = 7;       /* letters: a snipe reaches into the vault */
   /* six lengths per board that sum to exactly 42 — the 7x6 cell count — so
      every letter on a board belongs to one of its words, the way the original
      seven-word deal tiled it */
@@ -57,12 +53,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   let settling = false;
   let handoverTimer = 0;
   let lastScorer = null;
-  /* The vault: coins moved out of reach. It replaces the old two-turn shield,
-     which was an all-or-nothing timer — either your whole purse was immune or
-     none of it was, so a champ word was worth the same on 200 coins as on
-     2000. A vault is a share that stays safe, so protecting a big purse is
-     worth the detour and a thief can still take what is loose. */
-  let vault = {};
+
   /* consecutive finds per seat, this round: the run bonus. A miss clears only
      the seat that missed, so a rival's dry turn cannot reset your streak. */
   let comboStreak = {};
@@ -116,7 +107,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 
   /* Every seat opens the round with coins already on the board, so the
      leaderboard always has something to rank. */
-  const START_COINS = 500;
+  const START_COINS = 2000;   /* above the standing floor, so nobody starts out */
 
   function renderScores() {
     for (const player of PLAYERS) {
@@ -136,10 +127,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 
   const COMBO_CAP = 3;   /* a run tops out at x3, or one lucky seat runs away */
 
-  function comboMultiplier(streak) {
-    if (streak < 2) return 1;
-    return Math.min(COMBO_CAP, 1 + (streak - 1) * 0.5);   /* 1.5, 2, 2.5, 3 */
-  }
 
 
 
@@ -148,29 +135,17 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   function renderSeatMarks(activeId) {
     if (!round) return;
     if (activeId === undefined) activeId = activeSeatId;
-    const mark = activeId ? markOf(activeId) : null;
+    /* in the robbery half the target is always the richest seat left, so the
+       reticle answers "who am I about to hit" without a rule to remember */
+    const target = activeId && inRobbery() ? richestSeat(activeId) : null;
 
     document.querySelectorAll('.gwx-seat').forEach(seat => {
       const id = seat.dataset.player;
-      const pips = heat[id] || 0;
-      seat.classList.toggle('is-mark', Boolean(mark && mark.id === id));
-      seat.classList.toggle('is-wanted', pips >= HEAT_MAX);
-      seat.classList.toggle('steal-target', Boolean(mark && mark.id === id));
-
-      let meter = seat.querySelector('.gwx-heat');
-      if (pips <= 0) {
-        if (meter) meter.remove();
-        return;
-      }
-      if (!meter) {
-        meter = document.createElement('span');
-        meter.className = 'gwx-heat';
-        meter.innerHTML = '<i></i><i></i><i></i>';
-        (seat.querySelector('.gwx-card-count') || seat.querySelector('.gwx-seat-coins') || seat).appendChild(meter);
-      }
-      Array.from(meter.children).forEach((pip, index) => pip.classList.toggle('on', index < pips));
+      seat.classList.toggle('is-mark', Boolean(target && target === id));
+      seat.classList.toggle('is-out', isOut(id));
     });
   }
+
 
 
   function renderPath() {
@@ -231,202 +206,111 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     return 0;
   }
 
-  /* ================= THE HEIST ==============================================
-     The old rule was one line: every find after the first is paid by the last
-     scorer. Flat, silent, and it rewarded nothing - the best play was to find
-     any word at all, because every word stole the same way.
+  /* ================= PHASES =================================================
+     The round is two halves, and the table is always told which half it is in.
 
-     Four parts replace it, and each answers a question the player asks:
+       BUILD     words 1-20    every correct word is paid by the grid, by its
+                               length. Nothing can be lost, so the first twenty
+                               words are about banking a purse.
+       ROBBERY   words 21-30   the grid stops paying. A correct word takes
+                               coins from the richest seat instead, and the
+                               amount is that word's length - a four takes
+                               little, an eight takes a lot.
 
-       MARK    - who am I robbing? A red reticle on the seat you would hit.
-       HEAT    - what does robbing cost me? Every steal marks you; at three you
-                 become the target for the whole table.
-       LOCKDOWN- how do I defend? A CHAMP word still buys turns of immunity,
-                 and an immune seat cannot rob either.
-       JACKPOT - why keep playing when I am behind? After 25 of 30 words the
-                 richest seat is the jackpot and steals pay triple, so a losing
-                 table is one word from level.
-
-     Stealing is capped at 60% of a purse, so nobody is wiped out by one word,
-     and heat caps a runaway robber instead of the scoreboard doing it.
+     A seat that falls under the floor STANDS: out of the round, keeping what
+     is left, unable to rob and unable to be robbed. The second half is a fight
+     over seats, not over points.
      ======================================================================== */
-  const HEAT_MAX = 3;
-  const JACKPOT_AT = 25;        /* words found, of thirty */
-  const STEAL_RATE = 0.30;      /* base share of the mark's purse */
-  const STEAL_CAP = 0.60;       /* never more than this share in one hit */
+  const BUILD_WORDS = 20;            /* words found before robbery opens */
+  const COIN_PER_LETTER = 80;        /* build: length x this, from the grid */
+  const STEAL_PER_LETTER = 250;      /* robbery: length x this, out of a purse */
+  const ELIMINATION_FLOOR = 1500;    /* under this a seat stands up */
+  const STEAL_SHARE = 0.7;           /* one word cannot take more than this */
 
-  let heat = {};
-  /* Heat cools only on a turn where you did not rob. Decaying it every turn
-     made HEAT_MAX unreachable - one steal per turn always lost one heat - and a
-     wanted state that can never happen is not a system, it is a decoration. */
-  let robbedThisTurn = false;
-  let lastRobbery = null;       /* { thief, victim } - what REVENGE is measured against */
-  let jackpotArmed = false;
+  let eliminated = new Set();
 
+  const inRobbery = () => Boolean(round && round.foundAll.size >= BUILD_WORDS);
+  const isOut = id => eliminated.has(id);
   const purseOf = id => (round && round.scores[id] ? round.scores[id].coins : 0);
-  const vaultOf = id => vault[id] || 0;
-  const looseOf = id => Math.max(0, purseOf(id) - vaultOf(id));
-  const hasLoose = id => looseOf(id) > 0;
-
-  function bankVault(playerId) {
-    const purse = purseOf(playerId);
-    const already = vaultOf(playerId);
-    const room = Math.max(0, purse * VAULT_CAP - already);
-    const add = Math.max(0, Math.min(Math.round(looseOf(playerId) * VAULT_SHARE), Math.round(room)));
-    if (add > 0) vault[playerId] = already + add;
-    return add;
-  }
 
   function richestSeat(excludeId) {
     let best = null;
-    let bestCoins = 0;
+    let bestCoins = -1;
     for (const player of PLAYERS) {
-      if (player.id === excludeId || !hasLoose(player.id)) continue;
+      if (player.id === excludeId || isOut(player.id)) continue;
       const coins = purseOf(player.id);
       if (coins > bestCoins) { bestCoins = coins; best = player.id; }
     }
     return best;
   }
 
-  /* The wanted seat outranks the purse: rob enough and you are the target no
-     matter how rich anyone else is. */
-  function markOf(playerId) {
-    const wanted = PLAYERS
-      .map(player => player.id)
-      .filter(id => id !== playerId && hasLoose(id) && (heat[id] || 0) >= HEAT_MAX)
-      .sort((a, b) => purseOf(b) - purseOf(a));
-    if (wanted.length) return { id: wanted[0], reason: 'wanted' };
-    if (jackpotArmed) {
-      const rich = richestSeat(playerId);
-      if (rich) return { id: rich, reason: 'jackpot' };
-    }
-    if (lastScorer && lastScorer !== playerId && hasLoose(lastScorer)) {
-      return { id: lastScorer, reason: 'chain' };
-    }
-    return null;
+  function standUp(playerId) {
+    if (eliminated.has(playerId)) return;
+    eliminated.add(playerId);
+    const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
+    if (seat) seat.classList.add('is-out');
+    notify('STANDING \u00b7 ' + nameOf(playerId) + ' is under ' + ELIMINATION_FLOOR.toLocaleString('en-US') + ' and leaves the table', 'steal', 3600);
+    seatEvent(playerId, 'robbed', 'STANDING');
   }
 
-  /**
-   * Apply one find. Returns everything the presentation needs, and mutates the
-   * purses - the single place coins change hands, so the message, the seats and
-   * the celebration can never disagree with the scoreboard.
-   */
-  function resolveHeist(playerId, base, streak) {
-    const multiplier = comboMultiplier(streak);
-    const mark = markOf(playerId);
-    const revenge = Boolean(lastRobbery && lastRobbery.victim === playerId && mark && lastRobbery.thief === mark.id);
-    const jackpot = Boolean(mark && mark.reason === 'jackpot');
-    let taken = 0;
-    let fromId = null;
-
-    if (mark) {
-      const purse = purseOf(mark.id);
-      /* a SNIPE is a long word, and a long word reaches past the wall: it takes
-         from the vault too and hits harder. That is the counter to a big vault,
-         and it is why the long words are worth hunting rather than typing. */
-      const snipe = base >= SNIPE_LENGTH * 100;
-      const reachable = snipe ? purse : looseOf(mark.id);
-      const raw = Math.round(base * 0.5 * multiplier * (snipe ? 1.25 : 1) * (jackpot ? 3 : 1) * (revenge ? 1.5 : 1)
-        + purse * STEAL_RATE);
-      taken = Math.max(0, Math.min(raw, Math.round(purse * STEAL_CAP), reachable));
-      if (taken > 0) {
-        fromId = mark.id;
-        round.scores[fromId].coins -= taken;
-        round.scores[playerId].coins += taken;
-        if (!jackpot) heat[playerId] = Math.min(HEAT_MAX, (heat[playerId] || 0) + 1);
-        robbedThisTurn = true;
-        lastRobbery = { thief: playerId, victim: fromId };
-      }
-    }
-
-    if (!fromId) {
-      /* nothing worth robbing: the grid pays the word itself */
-      taken = Math.round(base * multiplier * (jackpotArmed ? 3 : 1));
-      round.scores[playerId].coins += taken;
-    }
-
-    const contractReward = evaluateContract(playerId, base, fromId);
-
-    return {
-      taken,
-      fromId,
-      multiplier,
-      revenge,
-      jackpot,
-      contractReward,
-      snipe: Boolean(fromId && base >= SNIPE_LENGTH * 100),
-      heat: heat[playerId] || 0,
-      markReason: mark ? mark.reason : null,
-      wipedOut: Boolean(fromId && purseOf(fromId) === 0)
-    };
+  function checkFloor(playerId) {
+    if (!round || isOut(playerId)) return false;
+    if (purseOf(playerId) >= ELIMINATION_FLOOR) return false;
+    standUp(playerId);
+    return true;
   }
 
-  /* ---- CONTRACTS -----------------------------------------------------------
-     The old bounty was a passive marker: be rich, get robbed harder. It gave
-     the table nothing to do, and it punished the player who was already
-     winning. A contract inverts that - a public objective, the same for every
-     seat on the board, that pays from the grid rather than out of a victim. */
-  const CONTRACTS = [
-    { id: 'leader', text: 'Rob the seat with the most coins', reward: 400 },
-    { id: 'long', text: 'Find a word of 7+ letters', reward: 300 },
-    { id: 'two', text: 'Rob two different seats', reward: 500 }
-  ];
+  /** The only place coins move. Returns what the presentation needs. */
+  function resolveWord(playerId, word) {
+    const length = word.length;
+    const out = { length, robbery: inRobbery(), gained: 0, taken: 0, fromId: null, stood: null };
 
-  let contract = null;
-  let contractRobbed = new Set();
-  let contractDone = false;
-  let contractChip = null;
+    if (!out.robbery) {
+      out.gained = length * COIN_PER_LETTER;
+      round.scores[playerId].coins += out.gained;
+      return out;
+    }
 
-  function setContract(level) {
-    contract = CONTRACTS[(level - 1) % CONTRACTS.length];
-    contractRobbed = new Set();
-    contractDone = false;
-    renderContract();
+    const target = richestSeat(playerId);
+    if (!target) {                     /* the table is empty: pay half */
+      out.gained = Math.round(length * COIN_PER_LETTER * 0.5);
+      round.scores[playerId].coins += out.gained;
+      return out;
+    }
+
+    const purse = purseOf(target);
+    const want = Math.round(length * STEAL_PER_LETTER);
+    const take = Math.max(0, Math.min(want, Math.round(purse * STEAL_SHARE), purse));
+    if (take > 0) {
+      round.scores[target].coins -= take;
+      round.scores[playerId].coins += take;
+      out.taken = take;
+      out.fromId = target;
+      if (checkFloor(target)) out.stood = target;
+    }
+    return out;
   }
 
-  function renderContract() {
-    if (!contract) {
-      if (contractChip) { contractChip.remove(); contractChip = null; }
-      return;
-    }
-    if (!contractChip) {
-      contractChip = document.createElement('div');
-      contractChip.className = 'contract-chip';
-      document.body.appendChild(contractChip);
-    }
-    contractChip.classList.toggle('is-done', contractDone);
-    contractChip.innerHTML = '<b>CONTRACT</b><span>' + contract.text + '</span><em>+' + contract.reward + '</em>';
-  }
+  /* ---- the banner: one line that says which half of the round this is ----- */
+  let phaseBanner = null;
 
-  function rewardContract(playerId) {
-    if (!contract || contractDone) return null;
-    contractDone = true;
-    round.scores[playerId].coins += contract.reward;
-    renderContract();
-    notify('CONTRACT COMPLETE \u00b7 ' + contract.text + ' \u00b7 +' + contract.reward, 'bounty', 3200);
-    seatEvent(playerId, 'bounty', '+' + contract.reward);
-    return contract.reward;
-  }
-
-  function evaluateContract(playerId, base, fromId) {
-    if (!contract || contractDone) return null;
-    if (contract.id === 'long') {
-      return base >= SNIPE_LENGTH * 100 ? rewardContract(playerId) : null;
+  function renderPhase() {
+    if (!round) return;
+    if (!phaseBanner) {
+      phaseBanner = document.createElement('div');
+      phaseBanner.className = 'phase-banner';
+      document.body.appendChild(phaseBanner);
     }
-    if (!fromId) return null;
-    if (contract.id === 'leader') {
-      return fromId === richestSeat(playerId) ? rewardContract(playerId) : null;
-    }
-    if (contract.id === 'two') {
-      contractRobbed.add(fromId);
-      return contractRobbed.size >= 2 ? rewardContract(playerId) : null;
-    }
-    return null;
+    const found = round.foundAll.size;
+    const robbery = found >= BUILD_WORDS;
+    phaseBanner.classList.toggle('is-robbery', robbery);
+    phaseBanner.innerHTML = robbery
+      ? '<b>ROBBERY</b><span>word ' + Math.min(30, found + 1) + ' of 30 \u00b7 long words take more</span>'
+      : '<b>BUILD</b><span>word ' + Math.min(BUILD_WORDS, found + 1) + ' of ' + BUILD_WORDS + ' \u00b7 every word pays</span>';
   }
 
   /* Coins travel. A number above a card says a robbery happened; a stream of
-     coins crossing the table says WHO robbed WHOM, which is the part a player
-     needs in order to retaliate. */
+     coins crossing the table says WHO robbed WHOM. */
   function avatarPoint(playerId) {
     const avatar = document.querySelector('.gwx-seat[data-player="' + playerId + '"] .gwx-avatar');
     if (!avatar) return null;
@@ -476,22 +360,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }
   }
 
-  let jackpotBanner = null;
-
-  function armJackpot() {
-    if (jackpotBanner) return;
-    jackpotBanner = document.createElement('div');
-    jackpotBanner.className = 'jackpot-banner';
-    jackpotBanner.innerHTML = '<b>JACKPOT</b><span>richest seat pays triple</span>';
-    document.body.appendChild(jackpotBanner);
-  }
-
-  function disarmJackpot() {
-    if (!jackpotBanner) return;
-    jackpotBanner.remove();
-    jackpotBanner = null;
-  }
-
   function submitGuess(value, playerId, fromDrag = false) {
     if (!round || round.ended || !turnState || settling) return false;
     if (TURN_ORDER[turnState.index] !== playerId) return false;   /* strict seat turns */
@@ -511,12 +379,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }
     round.foundAll.add(result.word);
     if (result.champ) {
-      const banked = bankVault(playerId);
-      shieldBadge(playerId);
       cardFloater(playerId, 'champ');
-      notify('VAULT \u00b7 ' + nameOf(playerId) + ' locks away ' + banked + ' \u2014 ' + vaultOf(playerId) + ' now safe',
-        'shield', 2600);
-      chatSay(nameOf(playerId), 'found the CHAMP word ' + result.word.toUpperCase() + '! ' + banked + ' coins into the vault.');
+      notify('CHAMP WORD \u00b7 ' + result.word.toUpperCase() + ' is the longest on this board', 'combo', 2400);
     }
     if (result.hidden) round.found.add(result.word);
     round.foundPaths.push(result.path);
@@ -525,40 +389,20 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        scorer's purse — take what they hold, the grid adds nothing. A player
        wearing the coin shield (they found a champ word) can't be robbed:
        the grid pays instead. */
-    const streak = (comboStreak[playerId] || 0) + 1;
-    comboStreak[playerId] = streak;
-    const heist = resolveHeist(playerId, result.coins, streak);
-    const credited = heist.taken;
-    const fromId = heist.fromId;
-    const multiplier = heist.multiplier;
-    if (multiplier > 1) {
-      const shown = Number.isInteger(multiplier) ? multiplier : multiplier.toFixed(1);
-      notify('COMBO \u00d7' + shown + ' \u00b7 ' + streak + ' words in a row', 'combo');
-      seatEvent(playerId, 'combo', '\u00d7' + shown + ' COMBO');
-    }
+    comboStreak[playerId] = (comboStreak[playerId] || 0) + 1;
+    const outcome = resolveWord(playerId, result.word);
+    const credited = outcome.taken;
+    const fromId = outcome.fromId;
     round.scores[playerId].words++;
     lastScorer = playerId;
     path = [];
     $('guessInput').value = '';
     $('guessMessage').classList.remove('bad');
     $('guessMessage').classList.add('good');
-    const marks = [];
-    if (multiplier > 1) marks.push('\u00d7' + (Number.isInteger(multiplier) ? multiplier : multiplier.toFixed(1)) + ' COMBO');
-    if (heist.jackpot) marks.push('JACKPOT \u00d73');
-    if (heist.revenge) marks.push('REVENGE +50%');
-    if (heist.markReason === 'wanted') marks.push('WANTED');
-    if (heist.snipe) marks.push('SNIPE');
-    const tagSuffix = marks.length ? ' \u00b7 ' + marks.join(' \u00b7 ') : '';
     $('guessMessage').textContent = fromId
-      ? `HEIST! ${result.word.toUpperCase()} \u2192 +${credited} taken from ${nameOf(fromId)}${heist.wipedOut ? ' \u2014 purse emptied' : ''}${tagSuffix}. Heat ${heist.heat}/${HEAT_MAX}.`
-      : `${result.word.toUpperCase()} found! +${credited} from the grid to ${nameOf(playerId)}${tagSuffix}.`;
-
-    /* the jackpot is armed by the words themselves, not by a timer */
-    if (!jackpotArmed && round.foundAll.size >= JACKPOT_AT) {
-      jackpotArmed = true;
-      notify('JACKPOT ARMED \u00b7 the richest seat now pays triple', 'bounty');
-      armJackpot();
-    }
+      ? `${result.word.toUpperCase()} \u2192 +${credited} taken from ${nameOf(fromId)} \u00b7 ${outcome.length} letters.`
+      : `${result.word.toUpperCase()} found! +${outcome.gained} \u00b7 ${outcome.length} letters${outcome.robbery ? ' \u00b7 nobody left to rob' : ''}.`;
+    renderPhase();
     renderSlots();
     renderScores();
     renderPath();
@@ -575,9 +419,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       }
       heistStream(fromId, playerId, credited);
       seatEvent(fromId, 'robbed', '\u2212' + credited);
-      if (heist.jackpot) notify('JACKPOT \u00b7 ' + nameOf(playerId) + ' takes ' + credited + ' from ' + nameOf(fromId), 'bounty');
-      if (heist.revenge) notify('REVENGE \u00b7 ' + nameOf(playerId) + ' takes it back from ' + nameOf(fromId), 'combo');
-      if (heist.heat >= HEAT_MAX) notify('WANTED \u00b7 ' + nameOf(playerId) + ' is the table\u2019s target', 'steal');
+      seatEvent(playerId, 'combo', '+' + credited);
     }
     const revealAfter = animateCoins(playerId, credited, result.word, result.path);
     if (round.foundAll.size >= round.words30.length) { finishRound('complete', revealAfter); return true; }
@@ -623,8 +465,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     startTurn();
   }
 
-  /* the turn handoff: the seat cycle always travels forward. A vault does not
-     decay, so there is nothing to tick down here any more. */
+  /* the turn handoff: the seat cycle always travels forward; seats that stood
+     up are skipped when their turn comes round. */
   function advanceTurnIndex() {
     turnState.index = (turnState.index + 1) % TURN_ORDER.length;
   }
@@ -719,6 +561,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 
   function startTurn() {
     if (!round || round.ended) return;
+    /* a seat that stood up no longer takes turns */
+    let guard = 0;
+    while (isOut(TURN_ORDER[turnState.index]) && guard < TURN_ORDER.length) {
+      turnState.index = (turnState.index + 1) % TURN_ORDER.length;
+      guard += 1;
+    }
     const id = TURN_ORDER[turnState.index];
     /* a fresh turn starts with a clean slate: any half-traced word belonged
        to the previous turn, and keeping it made the first tile click toggle
@@ -763,13 +611,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
         ? (human ? 'YOUR TURN' : 'TAKING TURN')
         : 'READY TO HUNT';
     });
-    /* a robber who stops robbing cools down; one who keeps going stays wanted */
-    if (activeSeatId && activeSeatId !== id) {
-      if (!robbedThisTurn && (heat[activeSeatId] || 0) > 0) {
-        heat[activeSeatId] = Math.max(0, heat[activeSeatId] - 1);
-      }
-      robbedThisTurn = false;
-    }
     activeSeatId = id;
     renderSeatMarks(id);
     $('turnLabel').textContent = human ? 'YOUR TURN — FIND A WORD' : player.name.toUpperCase() + "'S TURN";
@@ -841,22 +682,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      jumps two seats); a REVERSE flips the direction of travel, and the table
      keeps running that way until another REVERSE is played. You can only play
      yours during your own turn. */
-  /* the coin-shield badge: pinned above a protected seat's portrait with the
-     turns of coin protection left; removed when the count runs out */
-  function shieldBadge(playerId) {
-    const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
-    if (!seat) return;
-    let badge = seat.querySelector('.gw-shield');
-    const safe = vaultOf(playerId);
-    if (safe <= 0) { if (badge) badge.remove(); return; }
-    if (!badge) {
-      badge = document.createElement('i');
-      badge.className = 'gw-shield';
-      seat.appendChild(badge);
-    }
-    badge.textContent = 'VAULT \u25C8 ' + safe;
-  }
-
   /* the word slam: a stamped CHAMP WORD! pops over the avatar of whoever
      scored it — the message line is hidden in this skin */
   function cardFloater(playerId, kind) {
@@ -1462,8 +1287,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     renderSlots();
     renderPath();
     $('roundLabel').textContent = String(round.level).padStart(2, '0');
-    $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. Four CHAMP words bank coins in the vault.';
-    setContract(round.level);
+    $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. First 20 words pay out; after that every word robs the richest seat.';
+    renderPhase();
   }
 
   function resetRound() {
@@ -1507,17 +1332,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const at = SEAT_CYCLE.indexOf(opener);
     TURN_ORDER = SEAT_CYCLE.map((_, i) => SEAT_CYCLE[(at + i) % SEAT_CYCLE.length]);
     lastScorer = null;
-    vault = {};
-    contract = null;
-    contractDone = false;
-    renderContract();
-    comboStreak = {};
+    eliminated = new Set();
+    document.querySelectorAll('.gwx-seat.is-out').forEach(seat => seat.classList.remove('is-out'));
     activeSeatId = null;
-    heat = {};
-    robbedThisTurn = false;
-    lastRobbery = null;
-    jackpotArmed = false;
-    disarmJackpot();
     document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
     turnState = { index: 0, endsAt: 0, tick: 0, botTimer: 0 };
     renderTurnArrows();
@@ -1725,7 +1542,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       active: turnState ? TURN_ORDER[turnState.index] : null,
       secondsLeft: turnState ? Math.max(0, Math.round((turnState.endsAt - performance.now()) / 1000)) : 0,
       order: TURN_ORDER.slice(), lastScorer,
-      vault: { ...vault },
+      phase: inRobbery() ? 'robbery' : 'build', eliminated: [...eliminated],
       ended: round.ended
     }),
     guess: (word, player = 'champ', fromDrag = false) => submitGuess(word, player, fromDrag),
