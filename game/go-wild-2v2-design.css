@@ -2623,3 +2623,43 @@ input {
     font-size: 9px;
   }
 }
+/* ---- competition marks ---------------------------------------------------
+   Both marks point forward, at the next word rather than the last one. The
+   steal mark is a slow pulse on the purse that will pay for the next find; the
+   bounty is a gold rim on the seat that is far enough ahead to be worth taking
+   from, plus a chip that says why. */
+.gwx-seat.steal-target .gwx-seat-coins,
+.gwx-seat.steal-target .gwx-card-count {
+  animation: steal-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes steal-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px #ff5a4a59, 0 0 10px #ff5a4a3d; }
+  50% { box-shadow: 0 0 0 3px #ff5a4ad9, 0 0 18px #ff5a4a8c; }
+}
+
+.gwx-seat.is-bounty .gwx-player-card {
+  box-shadow: 0 0 0 2px #fbbf2480, 0 0 18px #fbbf2440;
+}
+
+.gwx-bounty-chip {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: linear-gradient(160deg, #ffdf7a, #e0a207);
+  color: #3a2500;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .5px;
+  box-shadow: 0 1px 0 #ffffff73 inset;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gwx-seat.steal-target .gwx-seat-coins,
+  .gwx-seat.steal-target .gwx-card-count {
+    animation: none;
+    box-shadow: 0 0 0 2px #ff5a4a99;
+  }
+}
