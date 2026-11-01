@@ -3,47 +3,66 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a2441">
+<link rel="manifest" href="manifest.json">
 <title>Go Wild Word Grid 2v2 — Champ Word</title>
-<link rel="stylesheet" href="game/go-wild-2v2-finished.css?v=thirty-3">
 <link rel="stylesheet" href="game/go-wild-2v2-motion.css?v=motion-1">
 <link rel="stylesheet" href="game/go-wild-2v2-coins.css?v=coins-12">
-<style>/* the seat avatars are CSS-drawn heads and bodies; when a real portrait is present it takes over and they are hidden */.gwx-avatar-art.has-portrait .avatar-head,.gwx-avatar-art.has-portrait .avatar-body{display:none}.gwx-avatar-art img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;position:relative;z-index:1}</style></head>
+<link rel="stylesheet" href="game/go-wild-2v2-design.css?v=13">
+</head>
 <body>
 <div id="app" class="gwx-app">
-  <div class="gwx-ambient gwx-a1"></div><div class="gwx-ambient gwx-a2"></div><div class="gwx-ambient gwx-a3"></div>
   <header class="gwx-topbar">
-    <div class="gwx-logo"><span>CHAMP</span><b>WORD</b><small>GO WILD</small></div>
-    <div class="gwx-matchbar"><strong>4 PLAYERS</strong><em>FREE-FOR-ALL</em></div>
-    <section class="gwx-level-rail" aria-label="Word hunt progress">
-      <strong>WORD HUNT</strong>
-      <div class="gwx-level-track" role="progressbar" aria-label="Words found" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0">
-        <span id="wordProgress"></span>
-      </div>
-      <b id="wordProgressLabel">LV 1/30</b>
-    </section>
-    <div class="gwx-top-coins" aria-label="Combined coins"><span>¢</span><b id="totalCoins">0</b></div>
-    <div class="gwx-tools"><button id="restartBtn" aria-label="Restart round">↻</button></div>
+    <a class="gwx-logo" href="index.html" aria-label="Champ Word home">
+      <span class="gwx-logo-mark" aria-hidden="true">C</span>
+      <span class="gwx-logo-copy"><b>CHAMP WORD</b><small>A LITTLE WORD. A BIG ADVENTURE.</small></span>
+    </a>
+    <div class="gwx-matchbar">Go Wild 2</div>
+    <div class="gwx-top-actions">
+      <div class="gwx-top-coins" aria-label="Combined coins"><span class="gwx-currency-icon" aria-hidden="true">¢</span><b id="totalCoins">0</b><span class="gwx-wallet-plus" aria-hidden="true">+</span></div>
+      <button id="gwx-install-app" class="gwx-install-app" type="button" title="Install game"><span aria-hidden="true">&#8595;</span><b>Install game</b></button>
+      <button id="gwx-profile" class="gwx-profile" type="button" title="Open player profile" aria-label="Open player profile"><img src="assets/avatars/pumpkin-boy.webp" alt=""></button>
+      <p id="gwx-install-hint" class="gwx-install-hint" role="status" hidden>Use your browser menu to install the game.</p>
+    </div>
   </header>
 
   <main class="gwx-table" id="table">
+    <nav class="gwx-game-nav" aria-label="Game navigation">
+      <a class="gwx-leave" href="index.html"><span aria-hidden="true">&#8592;</span> Leave game</a>
+      <details class="gwx-help">
+        <summary><span aria-hidden="true">?</span> How to play</summary>
+        <p>Find a hidden word by tracing neighboring letters or typing your guess. Take turns to find words and collect coins.</p>
+      </details>
+    </nav>
+
+    <section class="gwx-hunt-hud" aria-label="Round status">
+      <div class="gwx-hunt-title"><h1>WORD HUNT</h1><small>Go Wild 2 · Multiplayer</small></div>
+      <div class="gwx-timer"><strong id="timer">0:15</strong><small>TURN TIME</small></div>
+      <div class="gwx-level-rail" aria-label="Word hunt progress">
+        <div class="gwx-progress-copy"><b id="wordProgressLabel">0 / 30 WORDS</b><small>THIS ROUND</small></div>
+        <div class="gwx-level-track" role="progressbar" aria-label="Words found" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><span id="wordProgress"></span></div>
+      </div>
+    </section>
+
     <section class="gwx-seat top" data-player="poker">
       <div class="gwx-player-card">
         <div class="gwx-avatar blue-ring"><div class="gwx-avatar-art avatar-poker has-portrait"><img src="assets/avatars/pumpkin-girl.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
-        <div class="gwx-player-info"><strong>Poker</strong><span>RIVAL</span><div class="gwx-seat-coins"><b><span id="coins-poker">0</span> COINS</b><small id="words-poker">0 WORDS</small></div></div>
+        <div class="gwx-player-info"><strong>Poker</strong><span class="gwx-player-status">READY TO HUNT</span></div>
+        <div class="gwx-seat-coins"><b><span id="coins-poker">0</span> COINS</b><small id="words-poker">0 WORDS</small></div>
       </div>
     </section>
 
     <section class="gwx-seat left" data-player="kalkal">
       <div class="gwx-player-card">
         <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-kalkal has-portrait"><img src="assets/avatars/pumpkin-girl.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
-        <div class="gwx-player-info"><strong>Kalkal</strong><span>RIVAL</span></div>
+        <div class="gwx-player-info"><strong>Kalkal</strong><span class="gwx-player-status">READY TO HUNT</span></div>
       </div>
       <div class="gwx-card-count"><span id="coins-kalkal">0</span><small>COINS</small><em id="words-kalkal">0 WORDS</em></div>
     </section>
 
     <section class="gwx-seat right" data-player="jess">
       <div class="gwx-player-card">
-        <div class="gwx-player-info right-text"><strong>Jess</strong><span>RIVAL</span></div>
+        <div class="gwx-player-info right-text"><strong>Jess</strong><span class="gwx-player-status">READY TO HUNT</span></div>
         <div class="gwx-avatar red-ring"><div class="gwx-avatar-art avatar-jess has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
       </div>
       <div class="gwx-card-count"><span id="coins-jess">0</span><small>COINS</small><em id="words-jess">0 WORDS</em></div>
@@ -56,14 +75,20 @@
       </div>
       <form id="guessForm" class="gwx-guess-form"><input id="guessInput" name="guess" type="text" autocomplete="off" autocapitalize="none" maxlength="10" placeholder="Type your word" aria-label="Word guess"><button type="submit">GUESS</button></form>
       <div id="guessMessage" class="gwx-message" aria-live="polite">Tap neighboring letters or type a word.</div>
-      <div id="roundMessage" class="gwx-round-message" aria-live="polite">Correct word: 100 coins per letter.</div>
     </section>
 
+    <aside class="gwx-hunt-hint"><strong><span aria-hidden="true">i</span> INTO THE WILD</strong><p>Look closely. Your next word is hiding in plain sight.</p></aside>
+    <aside class="gwx-round-words"><strong><span aria-hidden="true">+</span> ROUND WORDS</strong><p id="roundMessage" aria-live="polite">A fresh hunt begins.</p></aside>
+
     <section class="gwx-seat bottom" data-player="champ">
-      <div class="gwx-local-meta"><div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div><div><strong>Champ</strong><span>YOU</span><div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div></div></div>
+      <div class="gwx-local-meta">
+        <div class="gwx-avatar gold-ring"><div class="gwx-avatar-art avatar-champ has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt=""><span class="avatar-head"></span><span class="avatar-body"></span></div><i class="status-dot"></i></div>
+        <div class="gwx-player-info"><strong>Champ</strong><span class="gwx-player-status">YOUR TURN</span></div>
+        <div class="gwx-seat-coins"><b><span id="coins-champ">0</span> COINS</b><small id="words-champ">0 WORDS</small></div>
+      </div>
       <div class="champ-social-controls" aria-label="Quick chat and reactions">
-        <button id="emojiToggle" class="social-toggle vid-toggle" type="button" aria-expanded="false" aria-controls="emojiMenu" title="Send the haha emoji"><video class="vid-toggle-video" src="./game/emoji/haha-2s.webm" autoplay loop muted playsinline"></video></button>
-        <button id="chatToggle" class="social-toggle chat-toggle" type="button" aria-expanded="false" aria-controls="tableChatPanel" title="Open table chat">💬</button>
+        <button id="chatToggle" class="social-toggle chat-toggle" type="button" aria-expanded="false" aria-controls="tableChatPanel" title="Open table chat">Chat</button>
+        <button id="emojiToggle" class="social-toggle vid-toggle" type="button" aria-expanded="false" aria-controls="emojiMenu" title="Open emotes">Emotes</button>
         <div id="emojiMenu" class="champ-dropdown emoji-menu" hidden aria-label="Choose an emoji"></div>
         <div id="tableChatPanel" class="table-chat-panel" role="dialog" aria-label="Table chat" hidden>
           <header class="table-chat-header"><div><strong>TABLE CHAT</strong><small id="chatConnection">Connecting…</small></div><button id="copyRoomLink" type="button" title="Copy invite link">↗</button><button id="closeChat" type="button" aria-label="Close chat">×</button></header>
@@ -74,12 +99,16 @@
       </div>
     </section>
 
+    <div class="gwx-tools">
+      <button id="restartBtn" type="button" title="Game controls" aria-label="Game controls">&#9881;</button>
+      <div id="gwx-controls-menu" class="gwx-controls-menu" hidden><button id="restart-round-btn" type="button">Restart round</button></div>
+    </div>
+
   </main>
 
   <footer class="gwx-footer">
-    <div><small>ROUND</small><strong id="roundLabel">01</strong></div>
-    <div class="gwx-timer"><small>TIME</small><strong id="timer">0:15</strong></div>
-    <div class="gwx-footer-round"><small>PLAYERS</small><strong>4</strong></div>
+    <div class="gwx-connected"><i></i><span>4 players at the table</span></div>
+    <div class="gwx-footer-round" aria-label="Current board"><small>ROUND</small><strong id="roundLabel">01</strong></div>
   </footer>
 
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">CHAMP WINS</h2><p id="resultText"></p><ol id="resultBoard" class="gwx-modal-board" aria-label="Player leaderboard"></ol><button id="playAgainBtn">PLAY AGAIN</button></div></div>
@@ -87,6 +116,7 @@
 <script type="module" src="game/go-wild-2v2-finished.js?v=thirty-3"></script>
 <script src="game/audio-cues.js?v=5"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
 <script src="game/go-wild-2v2-coins.js?v=coins-13" defer></script>
+<script src="game/pwa.js" defer></script>
 </body>
 </html>
 
