@@ -1589,17 +1589,20 @@ input {
   animation: gwx-card-stamp 1.5s cubic-bezier(.2, 1.4, .4, 1) forwards;
 }
 
+/* The vault badge: it used to be a gold SHIELD x2 countdown. Now it names an
+   amount, so it is coloured like a lock rather than like a reward, and it has
+   to read at a glance beside the purse it protects. */
 .gw-shield {
   position: absolute;
   z-index: 80;
   top: -12px;
   left: 50%;
-  padding: 4px 8px;
+  padding: 4px 9px;
   transform: translateX(-50%);
-  border: 1px solid #fff3bd;
+  border: 1px solid #7fd8ff8c;
   border-radius: 99px;
-  background: var(--hunt-gold);
-  color: #49320b;
+  background: linear-gradient(160deg, #12405c, #08202f);
+  color: #cbeaff;
   font-size: 9px;
   font-weight: 1000;
   white-space: nowrap;
@@ -2680,24 +2683,6 @@ input {
   50% { box-shadow: 0 0 0 3px #ff5a4ad9, 0 0 18px #ff5a4a8c; }
 }
 
-.gwx-seat.is-bounty .gwx-player-card {
-  box-shadow: 0 0 0 2px #fbbf2480, 0 0 18px #fbbf2440;
-}
-
-.gwx-bounty-chip {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: linear-gradient(160deg, #ffdf7a, #e0a207);
-  color: #3a2500;
-  font-size: 8px;
-  font-style: normal;
-  font-weight: 900;
-  letter-spacing: .5px;
-  box-shadow: 0 1px 0 #ffffff73 inset;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .gwx-seat.steal-target .gwx-seat-coins,
   .gwx-seat.steal-target .gwx-card-count {
@@ -2909,4 +2894,66 @@ input {
 @media (prefers-reduced-motion: reduce) {
   .gwx-seat.is-mark .gwx-avatar::after { animation: none; }
   .jackpot-banner { animation: none; }
+}
+
+/* ---- the contract --------------------------------------------------------
+   A public objective for the board. It sits still on the left rather than
+   floating, because it is a thing to glance at between words, not an event. */
+.contract-chip {
+  position: fixed;
+  z-index: 9600;
+  top: 118px;
+  left: 24px;
+  display: flex;
+  width: 208px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 1px solid #4fd1ff3d;
+  border-left: 3px solid #4fd1ff;
+  border-radius: 10px;
+  background: linear-gradient(150deg, #0e2236f2, #071523f7);
+  color: #dceaf7;
+  box-shadow: 0 10px 24px #000000a6;
+  pointer-events: none;
+  transition: opacity .25s ease, border-color .25s ease;
+}
+
+.contract-chip b {
+  color: #7fd8ff;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: 1.7px;
+}
+
+.contract-chip span {
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.contract-chip em {
+  align-self: flex-start;
+  margin-top: 3px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #ffd85b;
+  color: #10202f;
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.contract-chip.is-done {
+  border-left-color: #35b04a;
+  opacity: .7;
+}
+
+.contract-chip.is-done em {
+  background: #35b04a;
+  color: #04120a;
+}
+
+.contract-chip.is-done span {
+  text-decoration: line-through;
 }
