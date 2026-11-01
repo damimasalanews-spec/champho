@@ -159,7 +159,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (activeId === undefined) activeId = activeSeatId;
     const leader = coinLeaderId();
     if (leader !== lastBountyLeader) {
-      if (leader) notify('BOUNTY \u00b7 ' + nameOf(leader) + ' pays +50% when robbed', 'bounty');
+      if (leader) {
+        notify('BOUNTY \u00b7 ' + nameOf(leader) + ' pays +50% when robbed', 'bounty');
+        seatEvent(leader, 'bounty', 'BOUNTY +50%');
+      }
       lastBountyLeader = leader;
     }
     const payer = (lastScorer && lastScorer !== activeId && !((shieldTurns[lastScorer] || 0) > 0))
@@ -278,12 +281,14 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     comboStreak[playerId] = streak;
     const multiplier = comboMultiplier(streak);
     if (multiplier > 1) {
-      notify('COMBO \u00d7' + (Number.isInteger(multiplier) ? multiplier : multiplier.toFixed(1)) +
-        ' \u00b7 ' + streak + ' words in a row', 'combo');
+      const shown = Number.isInteger(multiplier) ? multiplier : multiplier.toFixed(1);
+      notify('COMBO \u00d7' + shown + ' \u00b7 ' + streak + ' words in a row', 'combo');
+      seatEvent(playerId, 'combo', '\u00d7' + shown + ' COMBO');
     }
     const shielded = lastScorer && (shieldTurns[lastScorer] || 0) > 0;
     if (shielded && lastScorer) {
       notify('SHIELD \u00b7 ' + nameOf(lastScorer) + ' keeps their coins', 'shield');
+      seatEvent(lastScorer, 'shield', 'SHIELD');
     }
     /* never from yourself: a seat that finds again after a rival misses used to
        pay its own purse and net zero, silently cancelling the find */
@@ -815,12 +820,22 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       stack.setAttribute('aria-live', 'polite');
       document.body.appendChild(stack);
     }
-    const toast = document.createElement('div');
-    toast.className = 'gift-toast is-' + kind;
-    toast.textContent = msg;
-    stack.prepend(toast);
+    /* The same line arriving again - "not enough coins" from three impatient
+       taps - must refresh its own slot. Stacking copies buries everything else
+       and makes the feed unreadable exactly when it is busiest. */
+    const live = Array.from(stack.children).find((child) => child.textContent === msg);
+    const toast = live || document.createElement('div');
+    if (live) {
+      window.clearTimeout(live.noticeTimer);
+      live.classList.remove('is-out');
+      stack.prepend(live);
+    } else {
+      toast.className = 'gift-toast is-' + kind;
+      toast.textContent = msg;
+      stack.prepend(toast);
+    }
     while (stack.children.length > NOTICE_MAX) stack.lastElementChild.remove();
-    window.setTimeout(() => {
+    toast.noticeTimer = window.setTimeout(() => {
       toast.classList.add('is-out');
       window.setTimeout(() => toast.remove(), 240);
     }, ms);
@@ -828,6 +843,42 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 
   function socialToast(msg, ms = 1900) {
     notify(msg, 'info', ms);
+  }
+
+  /* A seat reacts where the eye already is. A line at the top of the screen is
+     still something to go looking for; when the thing happens to a seat, the
+     avatar block and the purse share one 3D pop and a tag names the cause right
+     there. Three seconds, then it settles. */
+  const SEAT_EVENT_MS = 3000;
+  const seatEventTimers = new WeakMap();
+
+  function seatEvent(seatId, kind, label) {
+    const seat = document.querySelector('.gwx-seat[data-player="' + seatId + '"]');
+    if (!seat) return;
+    const card = seat.querySelector('.gwx-player-card') || seat;
+
+    seat.classList.remove('seat-event', 'is-gift', 'is-combo', 'is-bounty', 'is-shield');
+    void seat.offsetWidth;                       /* restart rather than ignore */
+    seat.classList.add('seat-event', 'is-' + kind);
+
+    let tag = card.querySelector('.seat-event-tag');
+    if (!tag) {
+      tag = document.createElement('i');
+      tag.className = 'seat-event-tag';
+      card.appendChild(tag);
+    }
+    tag.textContent = label;
+    tag.style.animation = 'none';
+    void tag.offsetWidth;
+    tag.style.animation = '';
+
+    const previous = seatEventTimers.get(seat);
+    if (previous) window.clearTimeout(previous);
+    seatEventTimers.set(seat, window.setTimeout(() => {
+      seat.classList.remove('seat-event', 'is-gift', 'is-combo', 'is-bounty', 'is-shield');
+      const stale = card.querySelector('.seat-event-tag');
+      if (stale) stale.remove();
+    }, SEAT_EVENT_MS));
   }
 
   function chatSay(who, text) {
@@ -919,6 +970,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     to.coins += g.cost;
     renderScores();
     throwGift(fromId, toId, g);
+    seatEvent(toId, 'gift', g.name);
     if (fromId === 'champ') {
       chatSay(nameOf('champ'), 'sent a ' + g.name.toLowerCase() + ' to ' + nameOf(toId));
       notify(g.name + ' \u2192 ' + nameOf(toId) + '  \u00b7  \u2212' + g.cost + ' \u00a2', 'gift');
