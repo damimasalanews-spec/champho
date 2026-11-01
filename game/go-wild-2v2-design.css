@@ -2795,3 +2795,118 @@ input {
   .gwx-seat.seat-event .gwx-card-count,
   .gwx-seat.seat-event .gwx-seat-coins { filter: drop-shadow(0 0 12px var(--ev)); }
 }
+
+/* ---- THE HEIST -----------------------------------------------------------
+   Three things have to be readable at a glance during a turn: who is exposed,
+   who is dangerous, and who is about to be robbed. The reticle answers the
+   first, the heat meter answers the second, the coin stream answers the third
+   after the fact. */
+.gwx-avatar { position: relative; }
+
+/* The mark is drawn on the card, not on the avatar: the avatar is a clipped
+   circle, so a ring offset outside it was simply cut away and never appeared. */
+.gwx-seat.is-mark .gwx-player-card {
+  outline: 2px dashed #ff5a4a;
+  outline-offset: 4px;
+  border-radius: 12px;
+  animation: mark-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes mark-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 #ff5a4a00, 0 0 10px #ff5a4a3d; }
+  50%      { box-shadow: 0 0 0 3px #ff5a4a2e, 0 0 22px #ff5a4a8c; }
+}
+
+.gwx-seat.is-mark .gwx-avatar {
+  box-shadow: 0 0 0 2px #ff5a4aa6, 0 0 16px #ff5a4a73;
+}
+
+.gwx-heat {
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 3px;
+  margin-left: 6px;
+}
+
+.gwx-heat i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff1f;
+  box-shadow: inset 0 0 0 1px #ffffff1f;
+  transition: background .2s ease, box-shadow .2s ease;
+}
+
+.gwx-heat i.on {
+  background: linear-gradient(180deg, #ffe08a, #f0940c);
+  box-shadow: 0 0 7px #ff8a3db3;
+}
+
+.gwx-seat.is-wanted .gwx-heat i.on {
+  background: linear-gradient(180deg, #ff9f8f, #d32f2f);
+  box-shadow: 0 0 9px #ff3b3bc4;
+}
+
+.gwx-seat.is-wanted .gwx-player-card {
+  border-color: #ff5a4a8c;
+}
+
+.seat-event.is-robbed { --ev: #ff5a4a; }
+
+/* the coins that cross the table when a purse changes hands */
+.heist-coin {
+  position: fixed;
+  z-index: 9600;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #fff6d0, #f5c542 55%, #a97a06);
+  box-shadow: 0 0 10px #ffd85b8c, inset 0 -2px 0 #00000038;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.jackpot-banner {
+  position: fixed;
+  z-index: 9600;
+  top: 98px;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 20px;
+  transform: translateX(-50%);
+  border: 1px solid #f5b700a6;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #3b2a05f5, #120d02fa);
+  box-shadow: 0 0 26px #f5b70059, 0 12px 30px #000000a6;
+  animation: jackpot-in .5s cubic-bezier(.2, .9, .3, 1.2) both;
+  pointer-events: none;
+}
+
+.jackpot-banner b {
+  color: #ffd85b;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 3px;
+}
+
+.jackpot-banner span {
+  color: #ffe9a3c4;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+}
+
+@keyframes jackpot-in {
+  from { opacity: 0; transform: translate(-50%, -12px) scale(.92); }
+  to   { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gwx-seat.is-mark .gwx-avatar::after { animation: none; }
+  .jackpot-banner { animation: none; }
+}
