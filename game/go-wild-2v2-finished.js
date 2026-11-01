@@ -9,7 +9,39 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     { id: 'kalkal', name: 'Kalkal', color: '#bd78ff' },
     { id: 'jess', name: 'Jess', color: '#ff9b59' }
   ];
+  /* The three seats that are not the player. They play themselves from the bot
+     takeover loop further down; this list is the single place that decides it, so
+     turning a bot seat into a real opponent later means removing its id here and
+     letting the server own that seat instead. */
   const BOT_IDS = ['poker', 'kalkal', 'jess'];
+  const HUMAN_ID = 'champ';
+
+  /* ---- the signed-in player ------------------------------------------------
+     The lobby owns the account; the board only needs a name for the bottom seat
+     and a purse to settle against. Both arrive by postMessage, because the game
+     also runs opened on its own (the arcade demo does), where the name baked into
+     the markup is still correct. Nothing here trusts the message for anything but
+     display and bookkeeping - the board has no authority over coins. */
+  function setHumanName(raw) {
+    const name = String(raw == null ? '' : raw).trim().slice(0, 16);
+    if (!name) return;
+    const seat = PLAYERS.find(player => player.id === HUMAN_ID);
+    if (seat) seat.name = name;
+    const label = document.querySelector('.gwx-seat[data-player="' + HUMAN_ID + '"] .gwx-local-meta strong');
+    if (label) label.textContent = name;
+  }
+
+  window.addEventListener('message', event => {
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+    if (typeof data.champName === 'string') setHumanName(data.champName);
+    if (data.champProfile && typeof data.champProfile === 'object') setHumanName(data.champProfile.name);
+  });
+
+  /* Tell the lobby the board is ready for an identity. Ignored when standalone. */
+  try {
+    if (window.parent && window.parent !== window) window.parent.postMessage({ champReady: true }, '*');
+  } catch (error) { /* cross-origin parent: the board runs on its own defaults */ }
 
   const $ = id => document.getElementById(id);
   const gridEl = $('letterGrid');
@@ -303,6 +335,26 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const topScore = round.scores[ranking[0].id].coins;
     const tied = ranking.filter(player => round.scores[player.id].coins === topScore);
     $('resultTitle').textContent = tied.length > 1 ? 'IT’S A TIE' : ranking[0].name.toUpperCase() + ' WINS';
+    /* Hand the round back to the lobby so it can be banked against the account.
+       The board never writes the player's purse itself: it reports what the round
+       produced, and champAward() in the lobby is the only thing that credits it. */
+    try {
+      const mine = round.scores[HUMAN_ID];
+      if (mine && window.parent && window.parent !== window) {
+        window.parent.postMessage({
+          champEarn: {
+            playerId: HUMAN_ID,
+            name: PLAYERS.find(player => player.id === HUMAN_ID).name,
+            coins: mine.coins,
+            xp: Math.round(mine.words) * 10,
+            result: ranking[0].id === HUMAN_ID ? 'win' : 'loss',
+            detail: 'Go Wild · ' + round.foundAll.size + '/30 words'
+              + (ranking[0].id === HUMAN_ID ? ' · won the round' : '')
+          }
+        }, '*');
+      }
+    } catch (error) { /* standalone, or a parent that ignores it */ }
+
     $('resultText').textContent = `${ranking[0].name} ${topScore.toLocaleString('en-US')} coins · ${ranking[1].name} ${round.scores[ranking[1].id].coins.toLocaleString('en-US')} · ${ranking[2].name} ${round.scores[ranking[2].id].coins.toLocaleString('en-US')} · ${ranking[3].name} ${round.scores[ranking[3].id].coins.toLocaleString('en-US')}. ${reason === 'complete' ? 'All 30 words found!' : reason === 'passed' ? 'Called at board ' + round.level + '.' : `${round.foundAll.size} of 30 words found.`}`;
     /* The round normally ends on the word that was just found, so its celebration
        is still on screen. Hold the modal - and the cascade - back until that

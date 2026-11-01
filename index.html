@@ -92,6 +92,7 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     <div class="wallet"><span>🪙</span><b id="topCoins">12,480</b><button type="button" class="wallet-plus">+</button></div>
     <div class="wallet gem"><span>💎</span><b id="topGems">320</b><button type="button" class="wallet-plus">+</button></div>
     <button id="notificationsTopBtn" class="icon-top" type="button" aria-label="Notifications">🔔<i>3</i></button>
+    <button id="logoutBtn" class="logout-mini" type="button" hidden title="Sign out of this device">Sign out</button>
     <button id="profileBtn" class="profile-mini" type="button"><span id="topAvatar" class="top-avatar">🎴</span><span class="top-player"><b id="topName">Guest</b><small>LV <span id="level">1</span></small></span></button>
   </div>
 </header>
@@ -1850,11 +1851,18 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     // what each seat should wear. The game draws the portrait, the frame ring and
     // the title on the board, so the equipped look has to travel with the profile.
     var eq=function(k){ try{ return (typeof window.champGetEquipped==='function'&&window.champGetEquipped(k))||''; }catch(e){ return ''; } };
+    var who=null; try{ who=JSON.parse(localStorage.getItem('wordunoLocalUser')||'null'); }catch(e){ who=null; }
     var prof={name:name, portrait:eq('portraits')||'pumpkin-boy', frame:eq('frames')||'crystal',
+              uid:(who&&who.uid)||'guest_local', email:(who&&who.email)||'',
               coins:(function(){ var n=parseInt(String(cash).replace(/[^0-9]/g,''),10); return isNaN(n)?0:n; })()};
     var t=eq('titles'); if(t) prof.title=t;   // omitted rather than blank, so the game keeps its default
     try{frame.contentWindow.postMessage({champEquippedAvatar:av&&av.src?av.src:'',champName:name,champCoins:cash,champProfile:prof,champSafeArea:safeAreaInsets()},'*')}catch(e){}
   }
+  // the game asks for the profile once it has booted (it posts champReady), and the
+  // timed retries above can all land before its listener exists. Exposing it means
+  // the request is what actually resolves the handshake.
+  window.champSendProfile=sendProfile;
+
   // The overlay hosts more than one game, so it is told which page to show. The
   // frame is only reloaded when the request is for a different game than the one
   // already loaded, so switching modes never restarts what is on screen. Classic
@@ -1940,7 +1948,26 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
    configured, which is exactly what the note under the buttons promises. */
 (function(){
   var ACCOUNTS='champwordAccounts';
+  var SESSION='champwordSession';
   var msg=document.getElementById('authMessage');
+
+  /* A login that only lasts until the next reload is not a login. The session is
+     what makes the account the thing you come back to, instead of a card you fill
+     in on every visit. Signing out is the only thing that clears it. */
+  function readSession(){
+    try{ var s=JSON.parse(localStorage.getItem(SESSION)||'null'); return (s&&s.uid)?s:null; }
+    catch(e){ return null; }
+  }
+  function writeSession(u){
+    try{ localStorage.setItem(SESSION, JSON.stringify({uid:u.uid,email:u.email,displayName:u.displayName,at:Date.now()})); }catch(e){}
+  }
+  function clearSession(){
+    try{
+      localStorage.removeItem(SESSION);
+      localStorage.removeItem('wordunoLocalUser');
+      localStorage.removeItem('champwordLocalUser');
+    }catch(e){}
+  }
 
   function say(text,kind){
     if(!msg) return;
@@ -1993,9 +2020,11 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
 
   function enterAs(rec){
     var user={uid:rec.uid,email:rec.email,displayName:rec.displayName||'Guest'};
-    if(typeof window.enterApp==='function'){ window.enterApp(user); return; }
+    if(user.uid && user.uid!=='guest_local') writeSession(user);
+    if(typeof window.enterApp==='function') window.enterApp(user);
     // only if the game state module failed to initialise
-    if(typeof window.enterGuestFallback==='function') window.enterGuestFallback();
+    else if(typeof window.enterGuestFallback==='function') window.enterGuestFallback();
+    paintSignOut();
   }
 
   function markActive(id){
@@ -2032,6 +2061,43 @@ body.profile-open .profile-screen .profile-hit-layer [data-profile-hit="charisma
     markActive('loginBtn');
     submit('login');
   },true);
+
+  /* ---- signing out ---------------------------------------------------------
+     The only way back to the login card once a session exists. It clears the
+     session and the active user, but never the saves: those live under the
+     account's own key, so logging back in finds the coins where they were. */
+  var outBtn=document.getElementById('logoutBtn');
+  function paintSignOut(){ if(outBtn) outBtn.hidden=!readSession(); }
+
+  if(outBtn) outBtn.addEventListener('click',function(e){
+    e.preventDefault(); e.stopPropagation();
+    clearSession();
+    document.body.classList.remove('app-open','game-open','profile-open');
+    document.querySelectorAll('.screen').forEach(function(x){x.classList.add('hidden')});
+    var auth=document.getElementById('auth'); if(auth) auth.classList.remove('hidden');
+    document.body.classList.add('auth-open');
+    var pass=document.getElementById('passwordInput'); if(pass) pass.value='';
+    var nameEl=document.getElementById('nameInput'); if(nameEl) nameEl.value='';
+    say('Signed out. Log in again to load your save.','ok');
+    paintSignOut();
+  },true);
+
+  /* ---- the board's side of the handshake -----------------------------------
+     The game asks for a profile once it has booted; the lobby answers with the
+     account's name and purse. Finished rounds arrive as champEarn and are banked by
+     the single award handler in the state module - one path, so a round can never
+     be credited twice. */
+  window.addEventListener('message',function(e){
+    var d=e.data; if(!d||typeof d!=='object') return;
+    if(d.champReady && typeof window.champSendProfile==='function') window.champSendProfile();
+  });
+
+  /* A session outlives the tab, so a player who logged in yesterday is not asked
+     to log in again today. First run, or after signing out, falls through to the
+     card as before. */
+  var live=readSession();
+  if(live) enterAs(live);
+  paintSignOut();
 })();
 </script>
     <script src="game/pwa.js" defer></script>
