@@ -2958,3 +2958,30 @@ input {
 .gwx-seat.is-out .gwx-avatar {
   box-shadow: none;
 }
+
+/* A seat that lost the round says so on its own card, and keeps saying it:
+   the point is that a knocked-out player is not left wondering whether the
+   table is still playing for them. */
+.seat-lost {
+  position: absolute;
+  z-index: 7;
+  right: 8px;
+  bottom: -9px;
+  left: 8px;
+  padding: 3px 8px;
+  border: 1px solid #ff5a4a80;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #3a0d0ce8, #1b0505f2);
+  color: #ffb3a8;
+  font-size: 8.5px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+  box-shadow: 0 6px 14px #000000a6;
+}
+
+.gwx-seat.is-out .seat-lost {
+  opacity: 1;
+}
