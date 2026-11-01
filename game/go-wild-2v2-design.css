@@ -2705,3 +2705,93 @@ input {
     box-shadow: 0 0 0 2px #ff5a4a99;
   }
 }
+
+/* ---- seat events: the card itself reacts --------------------------------
+   A line of text at the top of the screen still has to be looked for. When
+   something happens to a seat, that seat moves: the avatar block and the purse
+   share one 3D pop, and a tag names the cause in the same place the eye already
+   is. Three seconds, then it settles - long enough to read twice, short enough
+   not to sit on top of the next event. */
+.gwx-seat.seat-event { z-index: 45; }
+
+.gwx-seat.seat-event.is-gift   { --ev: #ffd85b; }
+.gwx-seat.seat-event.is-combo  { --ev: #ff8a3d; }
+.gwx-seat.seat-event.is-bounty { --ev: #f5b700; }
+.gwx-seat.seat-event.is-shield { --ev: #4fd1ff; }
+
+/* The outline holds for the whole three seconds. A transform alone is read as
+   a wobble at this size; a coloured rim around the card is unmistakable even
+   when the pop has settled. */
+.gwx-seat.seat-event .gwx-player-card {
+  outline: 3px solid var(--ev);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px #ffffff1a, 0 10px 26px #00000073;
+  border-radius: 12px;
+}
+
+.gwx-seat.seat-event .gwx-player-card,
+.gwx-seat.seat-event .gwx-card-count,
+.gwx-seat.seat-event .gwx-seat-coins {
+  transform-origin: center bottom;
+  animation: seat-event-3d 3s cubic-bezier(.2, .8, .25, 1) both;
+}
+
+@keyframes seat-event-3d {
+  /* A single pop settles into stillness after about a second, so most of the
+     three seconds read as nothing happening. The card therefore keeps turning:
+     one hard jolt, then a slow sway that holds the tilt for the full duration
+     and only comes to rest at the very end. */
+  0%   { transform: perspective(760px) rotateX(0) rotateY(0) translateZ(0) scale(1);
+         filter: drop-shadow(0 0 0 #0000); }
+  8%   { transform: perspective(760px) rotateX(-16deg) rotateY(18deg) translateZ(46px) scale(1.14);
+         filter: drop-shadow(0 14px 26px #000000b3) drop-shadow(0 0 22px var(--ev)); }
+  20%  { transform: perspective(760px) rotateX(8deg) rotateY(-19deg) translateZ(30px) scale(1.10);
+         filter: drop-shadow(0 12px 22px #000000a6) drop-shadow(0 0 20px var(--ev)); }
+  34%  { transform: perspective(760px) rotateX(-7deg) rotateY(16deg) translateZ(26px) scale(1.09);
+         filter: drop-shadow(0 10px 20px #000000a6) drop-shadow(0 0 18px var(--ev)); }
+  48%  { transform: perspective(760px) rotateX(6deg) rotateY(-13deg) translateZ(22px) scale(1.07);
+         filter: drop-shadow(0 9px 18px #0000009e) drop-shadow(0 0 17px var(--ev)); }
+  62%  { transform: perspective(760px) rotateX(-5deg) rotateY(11deg) translateZ(18px) scale(1.06);
+         filter: drop-shadow(0 8px 16px #00000099) drop-shadow(0 0 15px var(--ev)); }
+  76%  { transform: perspective(760px) rotateX(4deg) rotateY(-8deg) translateZ(12px) scale(1.045);
+         filter: drop-shadow(0 6px 12px #0000008c) drop-shadow(0 0 12px var(--ev)); }
+  90%  { transform: perspective(760px) rotateX(-1deg) rotateY(2deg) translateZ(4px) scale(1.01);
+         filter: drop-shadow(0 3px 8px #00000080) drop-shadow(0 0 8px var(--ev)); }
+  100% { transform: perspective(760px) rotateX(0) rotateY(0) translateZ(0) scale(1);
+         filter: drop-shadow(0 0 0 #0000); }
+}
+
+.gwx-player-card { position: relative; }
+
+.seat-event-tag {
+  position: absolute;
+  top: -9px;
+  right: 8px;
+  z-index: 6;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--ev, #ffd85b);
+  color: #101d2b;
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .4px;
+  white-space: nowrap;
+  box-shadow: 0 6px 14px #0000008c, inset 0 1px 0 #ffffff8c;
+  animation: seat-tag-pop .34s cubic-bezier(.2, .9, .3, 1.25) both;
+}
+
+@keyframes seat-tag-pop {
+  from { opacity: 0; transform: perspective(300px) translateY(9px) rotateX(-55deg) scale(.85); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gwx-seat.seat-event .gwx-player-card,
+  .gwx-seat.seat-event .gwx-card-count,
+  .gwx-seat.seat-event .gwx-seat-coins,
+  .seat-event-tag { animation: none; }
+  .gwx-seat.seat-event .gwx-player-card,
+  .gwx-seat.seat-event .gwx-card-count,
+  .gwx-seat.seat-event .gwx-seat-coins { filter: drop-shadow(0 0 12px var(--ev)); }
+}
