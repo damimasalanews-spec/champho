@@ -200,11 +200,11 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     window.setTimeout(() => floater.remove(), 1250);
     $('roundMessage').textContent = `${PLAYERS.find(item => item.id === playerId).name} found ${word.toUpperCase()} · +${coins} coins!`;
     /* Presentation only: the word is thrown into the grid, dances, becomes coins
-       and those coins arc to the scorer. That is right while the grid is paying.
-       In the robbery half the grid pays nothing - the coins come out of another
-       player's purse - so the grid shower is skipped and the stream between the
-       two cards is the only thing that moves. */
-    if (inRobbery()) return 0;
+       and those coins arc to the scorer. The robbery half runs the same
+       celebration - the letters thrown into the grid, the clatter, the coins
+       arcing out - because removing it made the second half of the round feel
+       like a different, quieter game. The stream between the two player cards
+       is drawn on top of it, so the theft is still attributable. */
     if (window.__champCoins?.celebrate) return window.__champCoins.celebrate(playerId, word, cells, coins);
     window.__champCoins?.play(playerId, coins);
     return 0;
@@ -659,12 +659,13 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       $('guessInput').focus({ preventScroll: true });
     } else {
       $('guessMessage').textContent = player.name + ' is thinking…';
-      /* the final word is normally the human's to drag, but a seat that stood
-         up cannot drag anything - the table would then wait forever, because
-         endTurn deliberately refuses to move on while one word pends */
-      const humanCanClose = !isOut('champ');
-      const remaining = round.words30.length - round.foundAll.size;
-      if (Math.random() < BOT_SKILL && (remaining > 1 || !humanCanClose)) {
+      /* Bots take any word, including the last one. Holding them off the final
+         word was meant to hand the human the closing moment, but a human who
+         cannot see that word leaves the table with one word and no way to
+         finish: the drag requirement is theirs, the closing is not. The human
+         still gets first refusal - the input stays enabled and it is only the
+         bot's own turn that can take it - but the round can always end. */
+      if (Math.random() < BOT_SKILL) {
         const hidden = round.layout.words.filter(item => !round.foundAll.has(item.word));
         const word = hidden.length ? hidden[Math.floor(Math.random() * hidden.length)].word : null;
         if (word) {
@@ -715,6 +716,16 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       }
     }
     if (passStreak >= TURN_ORDER.length && wordsLeft > 1) {
+      const stillOnBoard = round.layout.words.filter(item => !round.foundAll.has(item.word));
+      if (stillOnBoard.length > 0) {
+        /* Advancing here is what broke the endgame. dealLevel replaces the whole
+           board, so a word still sitting on it disappears from the round for
+           good and the count can never reach thirty. Stay and keep looking. */
+        passStreak = 0;
+        advanceTurnIndex();
+        startTurn();
+        return;
+      }
       /* a full cycle with no find moves the game on: deal the next level, or
          close the match when the last board is on the table */
       if (round.level >= BOARDS) { stopTurns(); finishRound('passed'); return; }
@@ -737,6 +748,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   let lastSeat = null;
   let lastFound = -1;
   let lastMoveAt = 0;
+  let lastProgressAt = 0;
+  const STALL_LIMIT_MS = 25000;   /* no word found for this long: close it */
 
   function stallWatchdog() {
     if (!round || round.ended || !turnState) {
@@ -745,45 +758,62 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       lastMoveAt = performance.now();
       return;
     }
-    if (activeSeatId !== lastSeat || round.foundAll.size !== lastFound) {
-      lastSeat = activeSeatId;
+    const now = performance.now();
+
+    /* Bookkeeping first, and neither branch may return early: an early return
+       here is how the safety net below became unreachable the first time. */
+    if (round.foundAll.size !== lastFound) {
       lastFound = round.foundAll.size;
-      lastMoveAt = performance.now();
+      lastProgressAt = now;
+    }
+    if (activeSeatId !== lastSeat) {
+      lastSeat = activeSeatId;
+      lastMoveAt = now;
+    }
+
+    const wordsOwed = round.words30.length - round.foundAll.size;
+
+    /* Absolute net. Whatever the cause - a word stranded on a board already
+       dealt past, a seat that cannot act, a clock that stopped - a round with
+       words left and no find for twenty-five seconds is over. A game that
+       cannot end is worse than one that ends early. */
+    if (wordsOwed > 0 && lastProgressAt && now - lastProgressAt > STALL_LIMIT_MS) {
+      stopTurns();
+      finishRound('complete', 400);
+      lastProgressAt = now;
       return;
     }
-    const now = performance.now();
-    /* a celebration is short by construction; a normal turn has an end time.
-       Only one of those being overdue counts as a stall - a live 15 second turn
-       must never be interrupted by this. */
+    if (wordsOwed <= 0) return;
+
+    /* Otherwise only step in when the clock itself is overdue: a live fifteen
+       second turn must never be interrupted. */
     const overdueCelebration = settling && now - (turnState.endsAt || now) > 2500;
     const overdueTurn = !settling && turnState.endsAt && now - turnState.endsAt > 2000;
     if (!overdueCelebration && !overdueTurn) return;
 
     settling = false;
     seatRings().forEach(ring => ring.remove());
-    const left = round.words30.length - round.foundAll.size;
     const hidden = round.layout.words.filter(item => !round.foundAll.has(item.word));
 
-    /* The stall that actually happens at word 29: the board on the table is
-       finished, the round is not, and the word still owed lives on the next
-       board - which nothing deals, because a board only advances on a find.
-       Every seat then passes forever with an empty grid. */
-    if (left > 0 && hidden.length === 0 && round.level < BOARDS) {
+    if (wordsOwed > 0 && hidden.length === 0 && round.level < BOARDS) {
+      /* the board on the table is finished but the round is not: deal the next
+         one, because a board only advances on a find */
       round.level += 1;
       dealLevel();
       if (!round.ended) startTurn();
-      lastMoveAt = performance.now();
+      lastMoveAt = now;
       return;
     }
-    if (left === 1 && hidden.length) {
+    if (hidden.length === 1) {
       if (submitGuess(hidden[0].word, TURN_ORDER[turnState.index], true)) {
-        lastMoveAt = performance.now();
+        lastMoveAt = now;
         return;
       }
     }
     if (!round.ended) { advanceTurnIndex(); startTurn(); }
-    lastMoveAt = performance.now();
+    lastMoveAt = now;
   }
+
 
 
   function updateTimer(msLeft) {
@@ -1456,6 +1486,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     startTurn();
     /* one watchdog for the page, not per round: it only ever fires when the
        table has stopped moving, so an idle restart costs nothing */
+    lastProgressAt = performance.now();
     if (!window.__champStallWatch) window.__champStallWatch = window.setInterval(stallWatchdog, 700);
   }
 
