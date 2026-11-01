@@ -38,10 +38,24 @@ export type PlayerCardColumns = {
   seat_number: number | string;
   private_hand: unknown;
   word: unknown;
+  /** a scripted seat holds no rating and is never billed for one */
+  is_bot?: unknown;
 };
 
+/**
+ * The mode a round is rated in. The server deals only the card round today, but
+ * the word game is rated separately when it starts arriving here, and a single
+ * number for both would make each one meaningless.
+ */
+export type GameMode = "classic" | "gowild";
+
 /** A round plus the seat-to-player mapping the rules deliberately do not hold. */
-export type LoadedRound = RoundState & { seats: string[]; };
+export type LoadedRound = RoundState & {
+  seats: string[];
+  /** which seats are scripts rather than people: they are never rated */
+  isBot: boolean[];
+  gameMode: GameMode;
+};
 
 function corrupt(field: string, detail: string): never {
   throw new Error(`corrupt_round_row:${field}:${detail}`);
@@ -134,6 +148,8 @@ export function toLoadedRound(room: RoomCardColumns, players: readonly PlayerCar
 
   return {
     seats,
+    isBot: ordered.map((player) => Boolean(player.is_bot)),
+    gameMode: "classic",
     hands: ordered.map((player) => parseCards(player.private_hand, "private_hand")),
     words: ordered.map((player) => parseWord(player.word, "word")),
     board: parseCards(room.board, "board"),

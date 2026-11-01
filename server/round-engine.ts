@@ -16,6 +16,7 @@ import {
   type RoundResult
 } from "./round.js";
 import { toHandWrites, toLoadedRound, toRoundWrite, type LoadedRound } from "./room-cards.js";
+import { applyRatingChanges } from "./rating.js";
 import { buildRoundView, type RoundView, type SeatMeta } from "./round-view.js";
 import { telemetry } from "./telemetry.js";
 
@@ -367,7 +368,11 @@ export async function startCardRound(roomId: string): Promise<RoundOutcomeForCli
     const dealt = startRound(seats.length, firstSeat);
     const round: LoadedRound = {
       ...dealt,
-      seats: seats.map((seat) => seat.player_id)
+      seats: seats.map((seat) => seat.player_id),
+      /* a fresh deal rates nobody until it is settled, but the flags have to
+         ride with the round or settlement cannot tell a script from a person */
+      isBot: seats.map((seat) => Boolean(seat.is_bot)),
+      gameMode: "classic"
     };
 
     const roundNumber = Number(room.round_number) + 1;
@@ -587,6 +592,7 @@ export async function applyRoundAction(input: RoundActionInput): Promise<RoundOu
 
     if (finished && result) {
       await payStake(client, played, result);
+      await applyRatingChanges(client, input.roomId, played, result);
       await client.query(
         `UPDATE public.game_rooms SET result=$2::jsonb,phase='round_end',updated_at=clock_timestamp() WHERE id=$1`,
         [input.roomId, JSON.stringify(result)]

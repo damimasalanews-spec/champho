@@ -22,7 +22,8 @@ export const migrations: Migration[] = [
   { version: 4, name: "connection_version", filename: "db/004_connection_version.sql" },
   { version: 5, name: "turn_engine", filename: "db/005_turn_engine.sql" },
   { version: 6, name: "submission_id_is_text", filename: "db/006_submission_id_is_text.sql" },
-  { version: 7, name: "board_and_stake", filename: "db/007_board_and_stake.sql" }
+  { version: 7, name: "board_and_stake", filename: "db/007_board_and_stake.sql" },
+  { version: 8, name: "rating", filename: "db/008_rating.sql" }
 ];
 
 /**

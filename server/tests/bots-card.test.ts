@@ -19,6 +19,8 @@ const card = (kind: CardKind, color: CardColor | null, value: string): Card => (
 
 const round = (hand: Card[], board: Card[] = [card("letter", "red", "a")]): LoadedRound => ({
   seats: ["p0", "p1", "p2", "p3"],
+  isBot: [false, false, false, false],
+  gameMode: "classic",
   hands: [hand, [], [], []],
   words: ["lantern", "picture", "balloon", "rainbow"],
   board,

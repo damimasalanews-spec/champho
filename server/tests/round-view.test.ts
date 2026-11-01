@@ -9,7 +9,7 @@ const SEATS = ["p0", "p1", "p2", "p3"];
 
 function loaded(overrides: Partial<RoundState> = {}): LoadedRound {
   const round = startRound(4);
-  return { ...round, ...overrides, seats: SEATS };
+  return { ...round, ...overrides, seats: SEATS, isBot: [false, false, false, false], gameMode: "classic" };
 }
 
 function seatMeta(): SeatMeta[] {
@@ -135,6 +135,8 @@ test("after a draw only the drawn card is offered, and only when it is playable"
   ];
   const base: LoadedRound = {
     seats: SEATS,
+    isBot: [false, false, false, false],
+    gameMode: "classic",
     hands: [hand, [], [], []],
     words: ["lantern", "picture", "balloon", "rainbow"],
     board,
