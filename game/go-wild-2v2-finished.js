@@ -471,6 +471,13 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     turnState.tick = window.setInterval(tickTurn, 100);
     const player = PLAYERS.find(item => item.id === id);
     const human = id === 'champ';
+    document.querySelectorAll('.gwx-seat').forEach(seat => {
+      const status = seat.querySelector('.gwx-player-status');
+      if (!status) return;
+      status.textContent = seat.dataset.player === id
+        ? (human ? 'YOUR TURN' : 'TAKING TURN')
+        : 'READY TO HUNT';
+    });
     $('turnLabel').textContent = human ? 'YOUR TURN — FIND A WORD' : player.name.toUpperCase() + "'S TURN";
     /* the round's final word can only be won by dragging it, so the text box
        closes and the letters do the talking */
@@ -568,33 +575,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     window.setTimeout(() => slam.remove(), 1550);
   }
 
-  /* four bold 3D orange arrows, one aimed at each seat; the next player's
-     arrow ignites and marches toward them, so everybody can read where the
-     turn is going — even after a skip or a reverse. The arrows live on a
-     fixed overlay anchored to the shell's viewport box, pixel-tracked and
-     re-measured on every resize, because the shell's clip-path trims
-     anything appended inside it and its edge shape is reshaped per media. */
   function renderTurnArrows() {
-    let holder = document.querySelector('.gw-arrows');
-    if (!holder) {
-      holder = document.createElement('div');
-      holder.className = 'gw-arrows';
-      SEAT_CYCLE.forEach(id => {
-        const a = document.createElement('i');
-        a.className = 'gw-arrow';
-        a.dataset.player = id;
-        const b = document.createElement('span');
-        a.appendChild(b);
-        holder.appendChild(a);
-        /* the three-piece arrow anchors on resize so it keeps pointing at
-           the moving board */
-        window.addEventListener('resize', () => positionTurnArrow(a));
-      });
-      document.body.appendChild(holder);
-    }
-    SEAT_CYCLE.forEach(id => positionTurnArrow(holder.querySelector(`.gw-arrow[data-player="${id}"]`)));
-    const nextId = turnState ? TURN_ORDER[turnState.index] : null;
-    holder.querySelectorAll('.gw-arrow').forEach(a => a.classList.toggle('aim', a.dataset.player === nextId));
+    document.querySelector('.gw-arrows')?.remove();
   }
   function positionTurnArrow(arrow) {
     if (!arrow) return;
@@ -669,9 +651,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     document.querySelectorAll('.vid-emoji-stage').forEach(el => el.remove());
     const stage = document.createElement('div');
     stage.className = 'vid-emoji-stage';
-    /* hang the chat bubble on the avatar itself so the gap to the profile is exact */
-    const avatar = seat.querySelector('.gwx-avatar');
-    (avatar || seat).appendChild(stage);
+    seat.appendChild(stage);
     /* an aliased holder paints the chat bubble: tinted card, dashed rim, tail */
     const holder = document.createElement('div');
     holder.className = 'vid-emoji-holder';
@@ -749,15 +729,17 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const head = document.createElement('div');
       head.className = 'gp-head';
       head.innerHTML = '<span class="gp-who">Gift <b>' + nameOf(playerId).split('.')[0] + '</b></span>' +
-        '<span class="gp-purse">\uD83E\uDE99 ' + purse + '</span>';
+        '<span class="gp-purse">¢ ' + purse + '</span>';
       pk.appendChild(head);
       const grid = document.createElement('div');
       grid.className = 'gp-grid';
       GIFTS.forEach(g => {
         const b = document.createElement('button');
         b.className = 'gift-tile' + (g.cost > purse ? ' poor' : '');
-        b.innerHTML = '<span class="gt-art' + (g.gold ? ' gt-gold' : '') + '">' + g.art + '</span>' +
-          '<span class="gt-cost">\uD83E\uDE99 ' + g.cost + '</span>';
+        b.setAttribute('aria-label', g.name + ' gift, ' + g.cost + ' coins');
+        b.innerHTML = '<span class="gift-mark' + (g.gold ? ' gt-gold' : '') + '" aria-hidden="true"></span>' +
+          '<span class="gt-name">' + g.name + '</span>' +
+          '<span class="gt-cost">¢ ' + g.cost + '</span>';
         b.title = g.name + ' \u2014 ' + g.cost + ' coins';
         b.addEventListener('click', ev => { ev.stopPropagation(); const ok = sendGift('champ', playerId, g); if (ok) closePickers(); });
         grid.appendChild(b);
@@ -816,8 +798,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     renderScores();
     throwGift(fromId, toId, g);
     if (fromId === 'champ') {
-      chatSay(nameOf('champ'), 'sent a ' + g.name.toLowerCase() + ' to ' + nameOf(toId) + ' ' + g.art);
-      socialToast(g.art + ' ' + g.name + ' \u2192 ' + nameOf(toId) + '   \u2212' + g.cost + ' \uD83E\uDE99');
+      chatSay(nameOf('champ'), 'sent a ' + g.name.toLowerCase() + ' to ' + nameOf(toId));
+      socialToast(g.name + ' \u2192 ' + nameOf(toId) + '   \u2212' + g.cost + ' ¢');
     }
     return true;
   }
@@ -827,8 +809,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (!a || !b) return;
     const el = document.createElement('span');
     el.className = 'gift-fly';
-    el.textContent = g.art;
-    if (g.gold) el.classList.add('gt-gold');
+    el.setAttribute('aria-label', g.name);
+    const mark = document.createElement('span');
+    mark.className = 'gift-mark' + (g.gold ? ' gt-gold' : '');
+    el.appendChild(mark);
     el.style.left = a.x + 'px';
     el.style.top = a.y + 'px';
     document.body.appendChild(el);
@@ -1065,7 +1049,30 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     path = [];
     renderPath();
   });
-  $('restartBtn').addEventListener('click', resetRound);
+  const controlsMenu = $('gwx-controls-menu');
+  $('restartBtn').addEventListener('click', () => { controlsMenu.hidden = !controlsMenu.hidden; });
+  $('restart-round-btn').addEventListener('click', () => { controlsMenu.hidden = true; resetRound(); });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.gwx-tools')) controlsMenu.hidden = true;
+  });
+  $('gwx-profile').addEventListener('click', () => {
+    try {
+      if (window.parent !== window && typeof window.parent.__openChampProfile === 'function') {
+        window.parent.__openChampProfile();
+        return;
+      }
+    } catch (error) { /* the standalone game may be embedded cross-origin */ }
+    window.location.href = 'index.html';
+  });
+  let installHintTimer = 0;
+  $('gwx-install-app').addEventListener('click', async () => {
+    const outcome = await window.champWord?.promptInstall?.();
+    if (outcome === 'accepted') return;
+    $('gwx-install-hint').hidden = false;
+    window.clearTimeout(installHintTimer);
+    installHintTimer = window.setTimeout(() => { $('gwx-install-hint').hidden = true; }, 5000);
+  });
+  window.addEventListener('appinstalled', () => { $('gwx-install-app').hidden = true; });
   $('playAgainBtn').addEventListener('click', resetRound);
   const emojiToggle = $('emojiToggle');
   const chatToggle = $('chatToggle');
@@ -1201,7 +1208,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     vid.playsInline = true;
     const attempt = vid.play();
     if (attempt && attempt.catch) attempt.catch(() => {});
-    dashTile.appendChild(vid);
+    const caption = document.createElement('span');
+    caption.className = 'vid-tile-caption';
+    caption.textContent = emoji.name;
+    dashTile.append(vid, caption);
     dashTile.addEventListener('click', ev => {
       ev.stopPropagation();
       closeSocialMenus();
