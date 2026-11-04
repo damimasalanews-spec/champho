@@ -379,6 +379,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   const STEAL_SHARE = 0.7;           /* one word cannot take more than this */
 
   let eliminated = new Set();
+  /* A Champ Word earns lasting protection for the rest of this round. */
+  let champShielded = new Set();
 
   const inRobbery = () => Boolean(round && round.foundAll.size >= BUILD_WORDS);
   const isOut = id => eliminated.has(id);
@@ -455,6 +457,15 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (!target) {                     /* nobody left to rob: small fallback payout */
       out.gained = Math.round(length * COIN_PER_LETTER * 0.5 * multiplier);
       round.scores[playerId].coins += out.gained;
+      return out;
+    }
+
+    /* A Champ Word shield protects its owner from every later robbery this round.
+       The attacker still earns a normal grid payout, so a shield never creates a dead turn. */
+    if (champShielded.has(target)) {
+      out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
+      round.scores[playerId].coins += out.gained;
+      out.shielded = target;
       return out;
     }
 
@@ -568,8 +579,20 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       return false;
     }
     if (result.champ) {
+      champShielded.add(playerId);
+      const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
+      if (seat) {
+        let shield = seat.querySelector('.gw-shield');
+        if (!shield) {
+          shield = document.createElement('i');
+          shield.className = 'gw-shield';
+          shield.textContent = '🛡';
+          shield.setAttribute('aria-label', 'Champ Word shield: protected from robbery');
+          seat.querySelector('.gw-avatar')?.appendChild(shield);
+        }
+      }
       cardFloater(playerId, 'champ');
-      notify('CHAMP WORD \u00b7 ' + result.word.toUpperCase() + ' is the longest on this board', 'combo', 2400);
+      notify('CHAMP WORD · ' + result.word.toUpperCase() + ' · SHIELD ACTIVE', 'combo', 2600);
     }
     if (result.hidden) round.found.add(result.word);
     round.foundPaths.push(result.path);
@@ -1701,6 +1724,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     TURN_ORDER = SEAT_CYCLE.map((_, i) => SEAT_CYCLE[(at + i) % SEAT_CYCLE.length]);
     lastScorer = null;
     eliminated = new Set();
+    champShielded = new Set();
     document.querySelectorAll('.gwx-seat.is-out').forEach(seat => seat.classList.remove('is-out'));
     activeSeatId = null;
     document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
