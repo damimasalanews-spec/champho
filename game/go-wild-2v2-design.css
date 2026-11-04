@@ -809,7 +809,7 @@ input {
 
 .gwx-center {
   position: absolute;
-  top: 51%;
+  top: 57%;
   left: 50%;
   width: min(600px, 41.4vw);
   margin: 0;
@@ -1363,7 +1363,7 @@ input {
   }
 
   .gwx-center {
-    top: 56%;
+    top: 62%;
     width: min(88vw, 470px);
   }
 
