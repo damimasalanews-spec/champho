@@ -483,7 +483,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const target = seatBefore(playerId);
       if (target) round.revengeTargets[playerId] = target;
     }
-    showMysteryChestCelebration(playerId, reward);\n    notify('MYSTERY CHEST · ' + nameOf(playerId) + ' found ' + reward.icon + ' ' + reward.name, 'bounty', 4200);
+    showMysteryChestCelebration(playerId, reward);
+    notify('MYSTERY CHEST · ' + nameOf(playerId) + ' found ' + reward.icon + ' ' + reward.name, 'bounty', 4200);
     seatEvent(playerId, 'combo', 'CHEST');
     renderMysteryChest();
   }
