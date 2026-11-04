@@ -144,8 +144,26 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   function renderScores() {
     for (const player of PLAYERS) {
       const score = round.scores[player.id];
-      $(`coins-${player.id}`).textContent = String(score.coins);
-      $(`words-${player.id}`).textContent = String(score.words);
+      const coinNode = $(`coins-${player.id}`);
+      const wordNode = $(`words-${player.id}`);
+      const nextCoins = String(score.coins);
+      const nextWords = String(score.words);
+      if (coinNode && coinNode.textContent !== nextCoins) {
+        coinNode.textContent = nextCoins;
+        coinNode.classList.remove('gwx-score-pop');
+        void coinNode.offsetWidth;
+        coinNode.classList.add('gwx-score-pop');
+        window.clearTimeout(coinNode._scorePopTimer);
+        coinNode._scorePopTimer = window.setTimeout(() => coinNode.classList.remove('gwx-score-pop'), 620);
+      }
+      if (wordNode && wordNode.textContent !== nextWords) {
+        wordNode.textContent = nextWords;
+        wordNode.classList.remove('gwx-score-pop');
+        void wordNode.offsetWidth;
+        wordNode.classList.add('gwx-score-pop');
+        window.clearTimeout(wordNode._scorePopTimer);
+        wordNode._scorePopTimer = window.setTimeout(() => wordNode.classList.remove('gwx-score-pop'), 620);
+      }
       const wordUnit = document.querySelector(`.gwx-seat[data-player="${player.id}"] .gwx-seat-coins i`);
       if (wordUnit) wordUnit.textContent = score.words === 1 ? "WORD" : "WORDS";
     }
@@ -210,7 +228,16 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     put('leader-coins', leader ? purseOf(leader.id).toLocaleString('en-US') + ' coins' : '');
     put('rival', rival ? rival.name : 'No rival');
     put('rival-coins', rival ? Math.abs(purseOf(rival.id) - purseOf(HUMAN_ID)).toLocaleString('en-US') + ' coins away' : '');
-    put('streak', streak + ' in a row · x' + comboMultiplier(HUMAN_ID).toFixed(2));
+    const streakNode = panel.querySelector('[data-comp="streak"]');
+    const streakText = streak + ' in a row · x' + comboMultiplier(HUMAN_ID).toFixed(2);
+    if (streakNode && streakNode.textContent !== streakText) {
+      streakNode.textContent = streakText;
+      streakNode.classList.remove('gwx-streak-pop');
+      void streakNode.offsetWidth;
+      streakNode.classList.add('gwx-streak-pop');
+      window.clearTimeout(streakNode._streakPopTimer);
+      streakNode._streakPopTimer = window.setTimeout(() => streakNode.classList.remove('gwx-streak-pop'), 720);
+    }
     put('revenge', revengeId ? 'REVENGE READY vs ' + nameOf(revengeId) : 'No revenge');
 
     document.querySelectorAll('.gwx-seat').forEach(seat => {
