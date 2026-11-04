@@ -587,13 +587,15 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       champShielded.add(playerId);
       const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
       if (seat) {
+        seat.classList.add('has-champ-shield');
         let shield = seat.querySelector('.gw-shield');
         if (!shield) {
-          shield = document.createElement('i');
+          shield = document.createElement('span');
           shield.className = 'gw-shield';
-          shield.textContent = '🛡';
-          shield.setAttribute('aria-label', 'Champ Word shield: protected from robbery');
-          seat.querySelector('.gw-avatar')?.appendChild(shield);
+          shield.textContent = '🛡 SHIELD ACTIVE';
+          shield.setAttribute('role', 'status');
+          shield.setAttribute('aria-label', 'Shield active: protected from coin robbery for the rest of this round');
+          (seat.querySelector('.gwx-player-card') || seat).appendChild(shield);
         }
       }
       cardFloater(playerId, 'champ');
