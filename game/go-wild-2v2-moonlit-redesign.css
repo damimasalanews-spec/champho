@@ -145,3 +145,67 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
  .gwx-tools{position:absolute;right:14px;bottom:14px}
  .gwx-tools>button{width:34px;height:34px}
 }
+
+
+/* Reference composition pass: four player cards flank the central board. */
+@media (min-width: 761px) {
+  .gwx-topbar {
+    position:relative; z-index:12; height:clamp(104px,13vh,132px);
+    grid-template-columns:minmax(250px,1fr) auto minmax(220px,1fr);
+    padding:0 clamp(24px,4vw,68px);
+  }
+  .gwx-logo-copy b { font-size:clamp(30px,3.4vw,48px); }
+  .gwx-logo-copy small { font-size:clamp(13px,1.35vw,18px); }
+  .gwx-matchbar { justify-self:center; margin:0; min-width:210px; text-align:center; }
+  .gwx-top-actions { position:static; justify-self:end; }
+  .gwx-table { inset:clamp(104px,13vh,132px) 0 0; }
+  .gwx-game-nav { top:12px; right:18px; }
+  .gwx-hunt-hud {
+    top:12px; left:50%; transform:translateX(-50%);
+    width:min(620px,43vw); min-height:76px;
+    grid-template-columns:minmax(0,1fr) auto; gap:10px 16px;
+    padding:9px 16px;
+  }
+  .gwx-hunt-title { grid-column:1; grid-row:1; padding-left:0; }
+  .gwx-hunt-hud::before { display:none; }
+  .gwx-timer { grid-column:2; grid-row:1; }
+  .gwx-level-rail { grid-column:1/-1; grid-row:2; }
+  .gwx-seat { width:min(340px,23vw); }
+  .gwx-seat.top { top:23%; left:2.5%; right:auto; bottom:auto; }
+  .gwx-seat.bottom { top:auto; bottom:24%; left:2.5%; right:auto; width:min(340px,23vw); transform:none!important; }
+  .gwx-seat.left { top:23%; right:2.5%; left:auto; bottom:auto; }
+  .gwx-seat.right { top:auto; bottom:24%; right:2.5%; left:auto; }
+  .gwx-seat.top .gwx-player-card,
+  .gwx-seat.bottom .gwx-local-meta {
+    border-color:#39bfff; background:linear-gradient(145deg,rgba(5,35,93,.97),rgba(3,15,53,.97));
+    box-shadow:0 0 0 2px #138dff55,0 0 24px #169dff99,0 12px 28px #02091eaa;
+  }
+  .gwx-seat.left .gwx-player-card,
+  .gwx-seat.right .gwx-player-card {
+    border-color:#ff557c; background:linear-gradient(145deg,rgba(92,10,35,.97),rgba(38,7,27,.97));
+    box-shadow:0 0 0 2px #ff315b55,0 0 24px #ff285e99,0 12px 28px #02091eaa;
+  }
+  .gwx-seat.top .gwx-avatar,.gwx-seat.bottom .gwx-avatar { border-color:#59caff; }
+  .gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar { border-color:#ff718e; }
+  .gwx-center {
+    top:53%; left:50%; width:min(560px,39vw);
+    transform:translate(-50%,-42%); gap:10px;
+  }
+  .gwx-letter-grid-shell { aspect-ratio:1/1; padding:10px; }
+  .gwx-letter-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); }
+  .gwx-letter-grid .letter-tile,
+  .gwx-letter-grid button { min-width:0; aspect-ratio:1/1; font-size:clamp(18px,2vw,31px); }
+  .gwx-hunt-hint { left:2.5%; bottom:3%; top:auto; width:min(250px,18vw); }
+  .gwx-round-words { right:2.5%; bottom:3%; top:auto; width:min(250px,18vw); }
+  .gwx-seat.bottom .champ-social-controls { right:8px; }
+}
+@media (max-width:760px) {
+  .gwx-seat.top .gwx-player-card,
+  .gwx-seat.bottom .gwx-local-meta {
+    border-color:#39bfff; background:linear-gradient(145deg,rgba(5,35,93,.97),rgba(3,15,53,.97));
+  }
+  .gwx-seat.left .gwx-player-card,
+  .gwx-seat.right .gwx-player-card {
+    border-color:#ff557c; background:linear-gradient(145deg,rgba(92,10,35,.97),rgba(38,7,27,.97));
+  }
+}
