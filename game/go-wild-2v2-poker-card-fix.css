@@ -55,3 +55,29 @@
   margin:0!important;text-align:left!important;
  }
 }
+
+
+/* v2: hard reset the top Poker content alignment. */
+@media (min-width:761px){
+ main.gwx-table > section.gwx-seat.top[data-player="poker"] > .gwx-player-card{
+  position:relative!important;
+ }
+ main.gwx-table > section.gwx-seat.top[data-player="poker"] > .gwx-player-card > .gwx-player-info{
+  position:absolute!important;
+  inset:0 12px 38px 91px!important;
+  width:auto!important;height:auto!important;
+  margin:0!important;padding:0!important;
+  display:flex!important;flex-direction:column!important;
+  justify-content:center!important;align-items:flex-start!important;
+  text-align:left!important;
+  transform:none!important;translate:none!important;
+  justify-self:auto!important;align-self:auto!important;
+ }
+ main.gwx-table > section.gwx-seat.top[data-player="poker"] > .gwx-player-card > .gwx-player-info > strong,
+ main.gwx-table > section.gwx-seat.top[data-player="poker"] > .gwx-player-card > .gwx-player-info > .gwx-player-status{
+  position:static!important;inset:auto!important;
+  width:auto!important;max-width:100%!important;
+  margin:0!important;padding:0!important;
+  text-align:left!important;align-self:flex-start!important;
+ }
+}
