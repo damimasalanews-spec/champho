@@ -582,11 +582,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       window.clearTimeout(foundShell._wordFoundTimer);
       foundShell._wordFoundTimer = window.setTimeout(() => foundShell.classList.remove('gwx-word-found'), 760);
     }
-    /* the coin chain: the FIRST correct answer of the round is paid by the
-       grid itself; every later correct answer is paid out of the previous
-       scorer's purse — take what they hold, the grid adds nothing. A player
-       wearing the coin shield (they found a champ word) can't be robbed:
-       the grid pays instead. */
+    /* The first 20 correct answers are paid by the grid. From word 21
+       onward, a correct answer takes coins from the previous active seat.
+       A player wearing the coin shield (they found a champ word) can't be
+       robbed: the grid pays instead. */
     comboStreak[playerId] = (comboStreak[playerId] || 0) + 1;
     /* Resolve the payout against the number of words found BEFORE this one.
        This keeps words 1–20 in BUILD; word 21 is the first robbery. */
