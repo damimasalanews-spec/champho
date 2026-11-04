@@ -124,3 +124,31 @@
 
 .gwx-chest-inventory{position:absolute;left:8px;right:8px;bottom:-8px;z-index:4;text-align:center;font-size:8px;line-height:1.3;letter-spacing:.04em;color:#f3d28b;background:rgba(22,24,43,.94);border:1px solid rgba(218,176,92,.42);border-radius:8px;padding:3px 5px;pointer-events:none}
 .gwx-chest-inventory[hidden]{display:none}
+
+
+/* Full-table Mystery Chest reveal: every player sees the winner and the power. */
+.gwx-chest-celebration{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:22px;opacity:0;visibility:hidden;pointer-events:none}
+.gwx-chest-celebration.is-showing{opacity:1;visibility:visible;pointer-events:auto}
+.gwx-chest-celebration-backdrop{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(37,26,65,.84),rgba(2,8,24,.94) 72%);backdrop-filter:blur(8px);opacity:0}
+.gwx-chest-celebration.is-showing .gwx-chest-celebration-backdrop{animation:gwxChestBackdrop .35s ease-out forwards}
+.gwx-chest-celebration-card{position:relative;isolation:isolate;width:min(520px,94vw);padding:30px 28px 24px;text-align:center;border:1px solid rgba(255,214,119,.8);border-radius:26px;background:linear-gradient(155deg,#152d50 0%,#241b42 56%,#101b35 100%);box-shadow:0 0 0 1px #fff2a522,0 24px 90px #000b,0 0 65px #f5bd4b35;color:#fff4d3;transform:translateY(35px) scale(.82);opacity:0;overflow:hidden}
+.gwx-chest-celebration-card:before{content:"";position:absolute;inset:8px;border:1px solid #f4d18b38;border-radius:19px;pointer-events:none}
+.gwx-chest-celebration.is-showing .gwx-chest-celebration-card{animation:gwxChestCardIn .65s cubic-bezier(.16,1.25,.35,1) .12s forwards}
+.gwx-chest-eyebrow{position:relative;color:#ffd779;font-size:10px;font-weight:1000;letter-spacing:.24em}
+.gwx-chest-big-icon{position:relative;margin:8px auto 4px;width:104px;height:104px;display:grid;place-items:center;border-radius:30px;font-size:66px;color:#fff0b2;background:radial-gradient(circle,#e7b94f55,#9c672b22 68%,transparent 70%);filter:drop-shadow(0 0 22px #ffc95c99);transform:scale(.45) rotate(-12deg)}
+.gwx-chest-celebration.is-showing .gwx-chest-big-icon{animation:gwxChestBurst .8s cubic-bezier(.2,1.5,.4,1) .55s forwards}
+.gwx-chest-opening{color:#ffe5a2;font-size:clamp(15px,3vw,21px);font-weight:1000;letter-spacing:.1em;text-shadow:0 2px 16px #ffc65a55}
+.gwx-chest-winner{margin:12px 0 7px;color:#c8eaff;font-size:clamp(13px,2.5vw,17px);font-weight:900;letter-spacing:.04em}
+.gwx-chest-reward-icon{font-size:38px;line-height:1.2;filter:drop-shadow(0 0 12px #ffd16a99)}
+.gwx-chest-reward-name{margin-top:5px;color:#ffdc83;font-size:clamp(19px,4vw,27px);font-weight:1000;letter-spacing:.08em}
+.gwx-chest-reward-detail{max-width:370px;margin:8px auto 0;color:#e2d9ee;font-size:13px;line-height:1.5}
+.gwx-chest-everyone{margin:18px auto 0;color:#a9c7e4;font-size:11px;letter-spacing:.035em}
+.gwx-chest-dismiss{position:relative;margin-top:18px;padding:11px 22px;border:1px solid #ffe19a;border-radius:999px;background:linear-gradient(100deg,#b77a2d,#e9c36b);color:#24172b;font-size:10px;font-weight:1000;letter-spacing:.12em;cursor:pointer;box-shadow:0 5px 20px #0005}
+.gwx-chest-confetti{position:absolute;top:17px;left:0;right:0;color:#ffd46e;font-size:20px;letter-spacing:10px;opacity:0}
+.gwx-chest-celebration.is-showing .gwx-chest-confetti{animation:gwxChestSparkle 1.8s ease-out .4s both}
+@keyframes gwxChestBackdrop{to{opacity:1}}
+@keyframes gwxChestCardIn{to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes gwxChestBurst{0%{transform:scale(.45) rotate(-12deg)}65%{transform:scale(1.18) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes gwxChestSparkle{0%{opacity:0;transform:translateY(12px) scale(.7)}30%{opacity:1}100%{opacity:.45;transform:translateY(-12px) scale(1.1)}}
+@media(prefers-reduced-motion:reduce){.gwx-chest-celebration.is-showing .gwx-chest-celebration-card,.gwx-chest-celebration.is-showing .gwx-chest-big-icon,.gwx-chest-celebration.is-showing .gwx-chest-confetti,.gwx-chest-celebration.is-showing .gwx-chest-celebration-backdrop{animation:none;opacity:1;transform:none}}
+@media(max-width:520px){.gwx-chest-celebration-card{padding:25px 18px 20px}.gwx-chest-big-icon{width:82px;height:82px;font-size:54px}}
