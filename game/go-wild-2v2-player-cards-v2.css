@@ -1,0 +1,90 @@
+/* New unified player-card system: same structure, dimensions and hierarchy for all four seats. */
+:root{--gwx-profile-width:clamp(250px,19vw,304px);--gwx-profile-height:138px}
+.gwx-seat{
+  position:absolute!important;width:var(--gwx-profile-width)!important;height:var(--gwx-profile-height)!important;
+  min-height:var(--gwx-profile-height)!important;max-height:var(--gwx-profile-height)!important;
+  box-sizing:border-box!important;padding:0!important;margin:0!important;overflow:visible!important;
+  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+}
+.gwx-seat.top{top:22%!important;left:2.5%!important;right:auto!important;bottom:auto!important}
+.gwx-seat.left{top:22%!important;right:2.5%!important;left:auto!important;bottom:auto!important}
+.gwx-seat.right{top:auto!important;right:2.5%!important;left:auto!important;bottom:15%!important}
+.gwx-seat.bottom{top:auto!important;left:2.5%!important;right:auto!important;bottom:15%!important}
+.gwx-seat .gwx-player-card{
+  width:100%!important;height:100%!important;min-height:0!important;max-height:none!important;
+  box-sizing:border-box!important;position:relative!important;display:grid!important;
+  grid-template-columns:66px minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr) 38px!important;
+  align-items:center!important;gap:8px 13px!important;padding:15px 16px 12px!important;
+  border:1.5px solid var(--profile-accent)!important;border-radius:19px!important;
+  background:linear-gradient(145deg,var(--profile-bg-a),var(--profile-bg-b))!important;
+  box-shadow:inset 0 1px 0 #ffffff20,0 9px 25px #02091e99,0 0 19px color-mix(in srgb,var(--profile-accent) 26%,transparent)!important;
+  overflow:hidden!important;
+}
+.gwx-seat .gwx-player-card:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:var(--profile-accent);box-shadow:0 0 14px var(--profile-accent);
+}
+.gwx-seat .gwx-avatar{
+  grid-column:1!important;grid-row:1!important;justify-self:center!important;
+  width:62px!important;height:62px!important;min-width:62px!important;
+  border:2px solid var(--profile-accent)!important;border-radius:50%!important;
+  box-sizing:border-box!important;overflow:hidden!important;background:#07152a!important;
+  box-shadow:0 0 0 3px #07152a,0 0 16px color-mix(in srgb,var(--profile-accent) 48%,transparent)!important;
+}
+.gwx-seat .gwx-avatar-art,.gwx-seat .gwx-avatar-art img{display:block!important;width:100%!important;height:100%!important}
+.gwx-seat .gwx-avatar-art img{object-fit:cover!important}
+.gwx-seat .gwx-player-info{
+  grid-column:2!important;grid-row:1!important;min-width:0!important;
+  display:flex!important;flex-direction:column!important;align-items:flex-start!important;
+  justify-content:center!important;gap:7px!important;text-align:left!important;
+}
+.gwx-seat .gwx-player-info strong{
+  display:block!important;color:#fff!important;font-size:18px!important;font-weight:850!important;
+  line-height:1.1!important;letter-spacing:.1px!important;text-shadow:0 2px 8px #0009!important;
+}
+.gwx-seat .gwx-player-status{
+  display:inline-flex!important;align-items:center!important;gap:6px!important;
+  color:#d6e8f8!important;font-size:9px!important;font-weight:800!important;
+  letter-spacing:.8px!important;line-height:1.2!important;white-space:nowrap!important;
+}
+.gwx-seat .gwx-player-status:before{
+  content:"";display:block;width:7px;height:7px;flex:0 0 7px;border-radius:50%;
+  background:#63e7a5;box-shadow:0 0 9px #63e7a5;
+}
+.gwx-seat .gwx-seat-coins{
+  grid-column:1/-1!important;grid-row:2!important;width:100%!important;height:38px!important;
+  min-height:38px!important;box-sizing:border-box!important;margin:0!important;padding:7px 2px 0!important;
+  display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;
+  border:0!important;border-top:1px solid color-mix(in srgb,var(--profile-accent) 38%,#ffffff18)!important;
+  border-radius:0!important;background:transparent!important;
+}
+.gwx-seat .gwx-seat-coins b{
+  display:inline-flex!important;align-items:baseline!important;gap:4px!important;
+  color:var(--profile-accent)!important;font-size:12px!important;font-weight:900!important;letter-spacing:.35px!important;
+}
+.gwx-seat .gwx-seat-coins b small,.gwx-seat .gwx-seat-coins>small{
+  color:#d5e3f4!important;font-size:9px!important;font-weight:750!important;letter-spacing:.65px!important;
+}
+.gwx-seat .gwx-seat-coins>small{white-space:nowrap!important}
+.gwx-seat[data-player="poker"]{--profile-accent:#42d9e8;--profile-bg-a:#10475a;--profile-bg-b:#071d36}
+.gwx-seat[data-player="kalkal"]{--profile-accent:#bd91ff;--profile-bg-a:#49316d;--profile-bg-b:#21173d}
+.gwx-seat[data-player="jess"]{--profile-accent:#ffad65;--profile-bg-a:#67401f;--profile-bg-b:#2d1b19}
+.gwx-seat[data-player="champ"]{--profile-accent:#a8e879;--profile-bg-a:#3b5a2e;--profile-bg-b:#172c20}
+.gwx-seat .status-dot{border-color:#07152a!important}
+/* Chat/reactions remain outside the player panel and do not change card dimensions. */
+.gwx-seat.bottom .champ-social-controls{
+  position:absolute!important;right:10px!important;bottom:-34px!important;top:auto!important;
+  display:flex!important;gap:7px!important;transform:none!important;margin:0!important;z-index:20!important;
+}
+.gwx-seat.bottom .social-toggle{
+  min-width:62px!important;height:25px!important;padding:0 11px!important;
+  border:1px solid #a8e879!important;border-radius:99px!important;
+  background:#071c2eeF!important;color:#efffe7!important;font-size:10px!important;
+}
+/* Compact responsive stack; same component design for every player. */
+@media(max-width:760px){
+  .gwx-seat{position:relative!important;inset:auto!important;width:100%!important;height:124px!important;
+    min-height:124px!important;max-height:124px!important;margin:7px 0!important}
+  .gwx-seat .gwx-player-card{height:124px!important;min-height:124px!important}
+  .gwx-seat.bottom .champ-social-controls{position:relative!important;right:auto!important;bottom:auto!important;margin:7px 0 0 auto!important;justify-content:flex-end!important}
+}

@@ -27,7 +27,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (!name) return;
     const seat = PLAYERS.find(player => player.id === HUMAN_ID);
     if (seat) seat.name = name;
-    const label = document.querySelector('.gwx-seat[data-player="' + HUMAN_ID + '"] .gwx-local-meta strong');
+    const label = document.querySelector('.gwx-seat[data-player="' + HUMAN_ID + '"] .gwx-player-card strong');
     if (label) label.textContent = name;
   }
 
@@ -144,8 +144,28 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   function renderScores() {
     for (const player of PLAYERS) {
       const score = round.scores[player.id];
-      $(`coins-${player.id}`).textContent = String(score.coins);
-      $(`words-${player.id}`).textContent = `${score.words} ${score.words === 1 ? 'word' : 'words'}`;
+      const coinNode = $(`coins-${player.id}`);
+      const wordNode = $(`words-${player.id}`);
+      const nextCoins = String(score.coins);
+      const nextWords = String(score.words);
+      if (coinNode && coinNode.textContent !== nextCoins) {
+        coinNode.textContent = nextCoins;
+        coinNode.classList.remove('gwx-score-pop');
+        void coinNode.offsetWidth;
+        coinNode.classList.add('gwx-score-pop');
+        window.clearTimeout(coinNode._scorePopTimer);
+        coinNode._scorePopTimer = window.setTimeout(() => coinNode.classList.remove('gwx-score-pop'), 620);
+      }
+      if (wordNode && wordNode.textContent !== nextWords) {
+        wordNode.textContent = nextWords;
+        wordNode.classList.remove('gwx-score-pop');
+        void wordNode.offsetWidth;
+        wordNode.classList.add('gwx-score-pop');
+        window.clearTimeout(wordNode._scorePopTimer);
+        wordNode._scorePopTimer = window.setTimeout(() => wordNode.classList.remove('gwx-score-pop'), 620);
+      }
+      const wordUnit = document.querySelector(`.gwx-seat[data-player="${player.id}"] .gwx-seat-coins i`);
+      if (wordUnit) wordUnit.textContent = score.words === 1 ? "WORD" : "WORDS";
     }
     const totalCoins = $('totalCoins');
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
@@ -186,9 +206,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       panel.id = 'competitionHud';
       panel.className = 'gwx-competition-hud';
       panel.setAttribute('aria-label', 'Live competition standings');
-      panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY LEADER</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
-        '<div class="gwx-comp-stat"><small>⚔️ YOUR RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
-        '<div class="gwx-comp-stat"><small>🔥 YOUR STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
+      panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>⚔️ RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>🔥 STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
       const table = $('table');
       if (table) table.appendChild(panel);
     }
@@ -208,8 +228,17 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     put('leader-coins', leader ? purseOf(leader.id).toLocaleString('en-US') + ' coins' : '');
     put('rival', rival ? rival.name : 'No rival');
     put('rival-coins', rival ? Math.abs(purseOf(rival.id) - purseOf(HUMAN_ID)).toLocaleString('en-US') + ' coins away' : '');
-    put('streak', streak + ' in a row · x' + comboMultiplier(HUMAN_ID).toFixed(2));
-    put('revenge', revengeId ? 'REVENGE READY vs ' + nameOf(revengeId) : 'No revenge queued');
+    const streakNode = panel.querySelector('[data-comp="streak"]');
+    const streakText = streak + ' in a row · x' + comboMultiplier(HUMAN_ID).toFixed(2);
+    if (streakNode && streakNode.textContent !== streakText) {
+      streakNode.textContent = streakText;
+      streakNode.classList.remove('gwx-streak-pop');
+      void streakNode.offsetWidth;
+      streakNode.classList.add('gwx-streak-pop');
+      window.clearTimeout(streakNode._streakPopTimer);
+      streakNode._streakPopTimer = window.setTimeout(() => streakNode.classList.remove('gwx-streak-pop'), 720);
+    }
+    put('revenge', revengeId ? 'REVENGE READY vs ' + nameOf(revengeId) : 'No revenge');
 
     document.querySelectorAll('.gwx-seat').forEach(seat => {
       seat.classList.toggle('is-bounty', Boolean(inRobbery() && leaderId && seat.dataset.player === leaderId));
