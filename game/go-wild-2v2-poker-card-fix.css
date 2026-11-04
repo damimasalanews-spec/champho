@@ -1,0 +1,38 @@
+/* Poker/top seat parity patch: neutralize legacy top-seat alignment overrides. */
+@media(min-width:761px){
+ .gwx-table .gwx-seat.top .gwx-player-card,
+ .gwx-table .gwx-seat.left .gwx-player-card,
+ .gwx-table .gwx-seat.right .gwx-player-card,
+ .gwx-table .gwx-seat.bottom .gwx-player-card{
+  display:grid!important;
+  grid-template-columns:66px minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr) 34px!important;
+  align-items:center!important;
+  gap:7px 12px!important;
+  padding:14px 15px 10px!important;
+  text-align:left!important;
+ }
+ .gwx-table .gwx-seat.top .gwx-avatar,
+ .gwx-table .gwx-seat.left .gwx-avatar,
+ .gwx-table .gwx-seat.right .gwx-avatar,
+ .gwx-table .gwx-seat.bottom .gwx-avatar{
+  grid-column:1!important;grid-row:1!important;justify-self:center!important;
+ }
+ .gwx-table .gwx-seat.top .gwx-player-info,
+ .gwx-table .gwx-seat.left .gwx-player-info,
+ .gwx-table .gwx-seat.right .gwx-player-info,
+ .gwx-table .gwx-seat.bottom .gwx-player-info{
+  grid-column:2!important;grid-row:1!important;
+  display:flex!important;flex-direction:column!important;
+  align-items:flex-start!important;justify-content:center!important;
+  text-align:left!important;min-width:0!important;
+ }
+ .gwx-table .gwx-seat.top .gwx-seat-coins,
+ .gwx-table .gwx-seat.left .gwx-seat-coins,
+ .gwx-table .gwx-seat.right .gwx-seat-coins,
+ .gwx-table .gwx-seat.bottom .gwx-seat-coins{
+  grid-column:1/-1!important;grid-row:2!important;
+  display:flex!important;align-items:center!important;
+  justify-content:space-between!important;width:100%!important;
+ }
+}
