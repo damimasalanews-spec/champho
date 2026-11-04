@@ -3710,13 +3710,13 @@ html, body, .gwx-app { background: #06152f; }
 }
 @media (min-width: 1101px) and (max-height: 760px) {
   .gwx-table {
-    grid-template-rows: 88px minmax(0, 1fr) 92px;
+    grid-template-rows: 78px minmax(90px, .9fr) minmax(70px, .65fr) 78px;
     padding-top: 10px;
     padding-bottom: 40px;
   }
   .gwx-center { max-width: 560px; }
   .gwx-letter-grid-shell { aspect-ratio: 1.18; }
   .gwx-hunt-hint { min-height: 112px; }
-  .gwx-round-words { margin-top: 125px; }
+  .gwx-round-words { margin-top: 0; }
   .gwx-competition-hud { top: 108px; }
 }
