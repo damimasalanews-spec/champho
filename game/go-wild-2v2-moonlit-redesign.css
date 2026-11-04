@@ -646,3 +646,18 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
     margin:0 0 10px!important;
   }
 }
+
+
+/* Phase banner is appended directly to body by game JS, not nested in .gwx-table. */
+@media (min-width:761px){
+  .phase-banner{
+    position:fixed!important;top:148px!important;left:18px!important;right:auto!important;
+    bottom:auto!important;width:190px!important;margin:0!important;z-index:9!important;
+  }
+}
+@media (max-width:760px){
+  .phase-banner{
+    position:relative!important;top:auto!important;left:auto!important;right:auto!important;
+    bottom:auto!important;width:100%!important;margin:0 0 10px!important;
+  }
+}
