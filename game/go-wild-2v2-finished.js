@@ -423,6 +423,32 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       inventory.setAttribute('aria-label', player.name + ' chest powers: ' + inventory.textContent);
     });
   }
+  function showMysteryChestCelebration(playerId, reward) {
+    let overlay = $('chestCelebration');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'chestCelebration';
+      overlay.className = 'gwx-chest-celebration';
+      overlay.setAttribute('role', 'status');
+      overlay.setAttribute('aria-live', 'assertive');
+      overlay.innerHTML = '<div class="gwx-chest-celebration-backdrop"></div><div class="gwx-chest-celebration-card"><div class="gwx-chest-confetti" aria-hidden="true">✦　✧　✦　✧　✦</div><div class="gwx-chest-eyebrow">ROUND 5 TREASURE REVEAL</div><div class="gwx-chest-big-icon" aria-hidden="true">♜</div><div class="gwx-chest-opening">THE CHEST HAS OPENED!</div><div class="gwx-chest-winner"></div><div class="gwx-chest-reward-icon"></div><div class="gwx-chest-reward-name"></div><div class="gwx-chest-reward-detail"></div><div class="gwx-chest-everyone">The hunt is still on — can you claim the next treasure?</div><button class="gwx-chest-dismiss" type="button">CONTINUE THE HUNT</button></div>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('.gwx-chest-dismiss').addEventListener('click', () => {
+        overlay.classList.remove('is-showing');
+        window.clearTimeout(overlay._hideTimer);
+      });
+    }
+    const player = PLAYERS.find(item => item.id === playerId);
+    overlay.querySelector('.gwx-chest-winner').textContent = (player ? player.name : nameOf(playerId)) + ' CLAIMED THE MYSTERY CHEST!';
+    overlay.querySelector('.gwx-chest-reward-icon').textContent = reward.icon;
+    overlay.querySelector('.gwx-chest-reward-name').textContent = reward.name;
+    overlay.querySelector('.gwx-chest-reward-detail').textContent = reward.detail;
+    overlay.classList.remove('is-showing');
+    void overlay.offsetWidth;
+    overlay.classList.add('is-showing');
+    window.clearTimeout(overlay._hideTimer);
+    overlay._hideTimer = window.setTimeout(() => overlay.classList.remove('is-showing'), 6500);
+  }
   function grantMysteryChest(playerId) {
     const inventory = chestPowersFor(playerId);
     const roll = Math.random() * 100;
@@ -457,7 +483,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const target = seatBefore(playerId);
       if (target) round.revengeTargets[playerId] = target;
     }
-    notify('MYSTERY CHEST · ' + nameOf(playerId) + ' found ' + reward.icon + ' ' + reward.name, 'bounty', 4200);
+    showMysteryChestCelebration(playerId, reward);\n    notify('MYSTERY CHEST · ' + nameOf(playerId) + ' found ' + reward.icon + ' ' + reward.name, 'bounty', 4200);
     seatEvent(playerId, 'combo', 'CHEST');
     renderMysteryChest();
   }
