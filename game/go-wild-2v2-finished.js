@@ -221,6 +221,46 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       .sort((a, b) => Math.abs(purseOf(a.id) - champCoins) - Math.abs(purseOf(b.id) - champCoins))[0]?.id || null;
   }
 
+  /* Optional head-to-head side event. It observes normal valid finds and
+     awards a separate bonus; it never changes the 30-word coin calculation. */
+  const DUEL_BONUS = 300;
+  const DUEL_MS = 30000;
+  let activeDuel = null;
+  let duelTimer = 0;
+  function finishDuel(winnerId, reason) {
+    if (!activeDuel) return;
+    const duel = activeDuel;
+    activeDuel = null;
+    window.clearInterval(duelTimer);
+    duelTimer = 0;
+    if (winnerId && round && !round.ended) {
+      round.scores[winnerId].coins += DUEL_BONUS;
+      notify('DUEL WON · ' + nameOf(winnerId) + ' earns +' + DUEL_BONUS + ' bonus coins · ' + reason, 'bounty', 4200);
+      addCinematicFeedEvent(nameOf(winnerId) + ' won the Head-to-Head Duel and earned a ' + DUEL_BONUS + '-coin bonus.', 'success');
+      renderScores();
+    } else {
+      notify('DUEL DRAW · no bonus awarded', 'info', 3200);
+      addCinematicFeedEvent('Head-to-Head Duel ended in a draw.', 'info');
+    }
+    renderCompetition();
+  }
+  function startDuel() {
+    if (!round || round.ended || activeDuel || isOut(HUMAN_ID)) return;
+    const rivalId = closestRivalId();
+    if (!rivalId) { notify('No active rival is available for a duel.', 'info'); return; }
+    activeDuel = { players: [HUMAN_ID, rivalId], endsAt: Date.now() + DUEL_MS };
+    addCinematicFeedEvent(nameOf(HUMAN_ID) + ' challenged ' + nameOf(rivalId) + ' to a 30-second Head-to-Head Duel. First valid word wins +' + DUEL_BONUS + ' bonus coins.', 'bounty');
+    notify('DUEL STARTED · ' + nameOf(HUMAN_ID) + ' vs ' + nameOf(rivalId) + ' · first valid word wins +' + DUEL_BONUS, 'bounty', 4200);
+    duelTimer = window.setInterval(() => {
+      if (!activeDuel) return;
+      const left = Math.max(0, Math.ceil((activeDuel.endsAt - Date.now()) / 1000));
+      const status = document.querySelector('[data-duel-status]');
+      if (status) status.textContent = nameOf(activeDuel.players[0]) + ' vs ' + nameOf(activeDuel.players[1]) + ' · ' + left + 's';
+      if (left <= 0) finishDuel(null, 'time expired');
+    }, 250);
+    renderCompetition();
+  }
+
   function renderCompetition() {
     if (!round) return;
     let panel = $('competitionHud');
@@ -232,6 +272,11 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
         '<div class="gwx-comp-stat"><small>⚔️ RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
         '<div class="gwx-comp-stat"><small>🔥 STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
+      const duelControl = document.createElement('div');
+      duelControl.className = 'gwx-duel-control';
+      duelControl.innerHTML = '<button type="button" data-start-duel>⚔ HEAD-TO-HEAD DUEL</button><small data-duel-status>Challenge your closest rival · +' + DUEL_BONUS + ' bonus</small>';
+      panel.appendChild(duelControl);
+      duelControl.querySelector('button').addEventListener('click', startDuel);
       const table = $('table');
       if (table) table.appendChild(panel);
     }
@@ -268,6 +313,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       seat.classList.toggle('has-revenge', Boolean(round.revengeTargets && round.revengeTargets[seat.dataset.player]));
     });
     panel.classList.toggle('is-robbery', inRobbery());
+    const duelButton = panel.querySelector('[data-start-duel]');
+    const duelStatus = panel.querySelector('[data-duel-status]');
+    if (duelButton) duelButton.disabled = Boolean(activeDuel || round.ended || isOut(HUMAN_ID));
+    if (duelStatus && !activeDuel) duelStatus.textContent = 'Challenge your closest rival · +' + DUEL_BONUS + ' bonus';
   }
 
 
@@ -632,6 +681,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     /* Resolve the payout against the number of words found BEFORE this one.
        This keeps words 1–20 in BUILD; word 21 is the first robbery. */
     const outcome = resolveWord(playerId, result.word);
+    if (activeDuel && activeDuel.players.includes(playerId)) finishDuel(playerId, 'first valid word');
     round.foundAll.add(result.word);
     /* taken in the robbery half, gained in the build half: the display reads the
        amount that actually moved, or a fallback payout shows as "+0 coins" */
@@ -1721,6 +1771,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   }
 
   function resetRound() {
+    window.clearInterval(duelTimer);
+    duelTimer = 0;
+    activeDuel = null;
     /* presentation only: a celebration still in flight belongs to the board being
        replaced. Without this its letters keep floating over the new grid at the
        old coordinates until their own timers expire. */
