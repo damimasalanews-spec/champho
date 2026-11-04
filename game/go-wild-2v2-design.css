@@ -3574,23 +3574,48 @@ html, body, .gwx-app { background: #06152f; }
 @media (prefers-reduced-motion:reduce) { .letter-tile,.gwx-seat,.gwx-player-card { transition:none!important; } }
 
 
-/* Approved castle-scene asset: use the dedicated game background, not the
-   older green island/forest placeholder. Keep the existing neon overlays. */
+/* Moonlit castle courtyard background, matched to the approved blue/gold/purple game palette. */
 .gwx-table {
-  background-color: #071a3d !important;
-  background-image: linear-gradient(180deg, #06163718 0%, #06163708 42%, #06163728 100%), url("assets/champ-arena-background.svg") !important;
-  background-position: center center !important;
-  background-size: cover !important;
-  background-repeat: no-repeat !important;
+  background-color:#071a3d !important;
+  background-image:
+    linear-gradient(180deg,rgba(4,15,43,.08) 0%,rgba(5,18,48,.04) 48%,rgba(3,10,34,.24) 100%),
+    url("assets/champ-moonlit-castle-arena.svg") !important;
+  background-position:center center !important;
+  background-size:cover !important;
+  background-repeat:no-repeat !important;
 }
+.gwx-table::before {
+  background:linear-gradient(180deg,rgba(3,12,36,.08),transparent 40%,rgba(3,10,31,.22)),
+    radial-gradient(ellipse at 50% 48%,rgba(54,151,255,.12),transparent 66%);
+}
+.gwx-table::after { background:radial-gradient(ellipse at center,transparent 42%,rgba(1,7,25,.48) 100%); }
 
 /* Keep the player panels flat and stable during table feedback animations. */
-.gwx-seat .gwx-player-card,
-.gwx-seat .gwx-local-meta {
-  transform: none;
+.gwx-seat .gwx-player-card,.gwx-seat .gwx-local-meta { transform:none; }
+.gwx-seat.gift-hit .gwx-player-card,.gwx-seat.gift-hit .gwx-local-meta {
+  animation:none !important; transform:none !important;
 }
-.gwx-seat.gift-hit .gwx-player-card,
-.gwx-seat.gift-hit .gwx-local-meta {
-  animation: none !important;
-  transform: none !important;
+
+/* Improve the Into the Wild clue card with a clear tip hierarchy. */
+.gwx-hunt-hint {
+  padding:18px 20px 19px;
+  border-color:#55dfff;
+  background:linear-gradient(145deg,rgba(7,31,75,.96),rgba(3,13,40,.96));
+}
+.gwx-hunt-hint strong { display:flex;align-items:center;gap:9px;letter-spacing:.55px; }
+.gwx-hunt-hint strong span {
+  display:inline-grid;place-items:center;width:25px;height:25px;border-radius:8px;
+  color:#10244b;background:linear-gradient(180deg,#ffe98c,#ffb51f);
+  box-shadow:0 0 12px rgba(255,193,58,.45);font-size:15px;font-weight:1000;
+}
+.gwx-hunt-hint .wild-tip-label {
+  display:inline-block;margin-top:13px;padding:4px 9px;border:1px solid rgba(86,222,255,.5);
+  border-radius:99px;color:#8feaff;background:rgba(22,120,190,.18);
+  font-size:9px;font-weight:1000;letter-spacing:1px;
+}
+.gwx-hunt-hint .wild-tip-copy { margin:7px 0 0;color:#f3f7ff;font-size:13px;line-height:1.42; }
+@media(max-width:760px) {
+ .gwx-hunt-hint { padding:9px 10px; }
+ .gwx-hunt-hint .wild-tip-label { margin-top:6px;padding:3px 6px;font-size:7px; }
+ .gwx-hunt-hint .wild-tip-copy { margin-top:4px;font-size:9px;line-height:1.25; }
 }
