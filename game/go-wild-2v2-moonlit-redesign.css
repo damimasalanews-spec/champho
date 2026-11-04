@@ -209,3 +209,63 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
     border-color:#ff557c; background:linear-gradient(145deg,rgba(92,10,35,.97),rgba(38,7,27,.97));
   }
 }
+
+
+/* Approved reference alignment: four seats in two clean side columns. */
+@media (min-width: 761px) {
+  .gwx-table { overflow:hidden; }
+  .gwx-game-nav { top:12px; left:18px; right:auto; z-index:10; }
+  .gwx-hunt-hud {
+    top:12px; left:50%; right:auto; transform:translateX(-50%);
+    width:min(590px,42vw); min-height:78px; z-index:7;
+    display:grid; grid-template-columns:1fr auto; gap:5px 16px;
+    padding:10px 16px;
+  }
+  .gwx-hunt-title { grid-column:1; grid-row:1; }
+  .gwx-timer { grid-column:2; grid-row:1; }
+  .gwx-level-rail { grid-column:1/-1; grid-row:2; }
+  .gwx-seat { position:absolute; width:min(320px,21vw); z-index:6; }
+  .gwx-seat.top { top:23%; left:2.5%; right:auto; bottom:auto; }
+  .gwx-seat.bottom { top:auto; bottom:22%; left:2.5%; right:auto; width:min(320px,21vw); transform:none!important; }
+  .gwx-seat.left { top:23%; right:2.5%; left:auto; bottom:auto; }
+  .gwx-seat.right { top:auto; bottom:22%; right:2.5%; left:auto; }
+  .gwx-seat .gwx-player-card,.gwx-seat .gwx-local-meta {
+    min-height:112px; padding:14px 16px; gap:12px;
+    border-radius:20px;
+  }
+  .gwx-seat .gwx-player-info strong { font-size:clamp(16px,1.2vw,21px); }
+  .gwx-seat .gwx-player-info>span { font-size:10px; }
+  .gwx-seat .gwx-avatar { width:clamp(56px,4.5vw,76px); height:clamp(56px,4.5vw,76px); }
+  .gwx-seat.bottom { display:flex; flex-direction:column; gap:7px; }
+  .gwx-seat.bottom .gwx-local-meta { width:100%; padding-right:14px; }
+  .gwx-seat.bottom .champ-social-controls {
+    position:static; transform:none; display:flex; justify-content:flex-end; gap:8px;
+    padding-right:6px;
+  }
+  .gwx-seat.bottom .social-toggle {
+    min-width:78px; min-height:34px; border:1px solid #59dfff;
+    border-radius:99px; background:#071b43f2; color:#fff;
+    box-shadow:0 0 12px #25cfff55;
+  }
+  .gwx-center {
+    top:54%; left:50%; width:min(540px,34vw);
+    transform:translate(-50%,-42%); gap:9px; z-index:5;
+  }
+  .gwx-status-line { display:none; }
+  .gwx-letter-grid-shell { padding:10px; border-radius:22px; }
+  .gwx-letter-grid { display:grid; grid-template-columns:repeat(var(--gwx-cols,7),minmax(0,1fr)); gap:7px; }
+  .gwx-letter-grid button,.gwx-letter-grid [role=gridcell] {
+    aspect-ratio:1/1; min-width:0; font-size:clamp(17px,1.65vw,29px); border-radius:12px;
+  }
+  .gwx-guess-form { margin-top:1px; }
+  .gwx-message { min-height:18px; }
+  .gwx-hunt-hint,.gwx-round-words { display:none; }
+  .gwx-tools { right:18px; bottom:18px; }
+}
+@media (max-width:760px) {
+  .gwx-seat.bottom .champ-social-controls {
+    position:static; transform:none; display:flex; justify-content:flex-end; gap:6px;
+  }
+  .gwx-seat.bottom .gwx-local-meta { padding-right:8px; }
+  .gwx-seat.bottom .social-toggle { min-height:30px; padding:0 12px; }
+}
