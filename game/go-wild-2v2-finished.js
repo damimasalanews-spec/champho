@@ -431,7 +431,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       overlay.className = 'gwx-chest-celebration';
       overlay.setAttribute('role', 'status');
       overlay.setAttribute('aria-live', 'assertive');
-      overlay.innerHTML = '<div class="gwx-chest-celebration-backdrop"></div><div class="gwx-chest-celebration-card"><div class="gwx-chest-confetti" aria-hidden="true">✦　✧　✦　✧　✦</div><div class="gwx-chest-eyebrow">ROUND 5 TREASURE REVEAL</div><div class="gwx-chest-big-icon" aria-hidden="true">♜</div><div class="gwx-chest-opening">THE CHEST HAS OPENED!</div><div class="gwx-chest-winner"></div><div class="gwx-chest-reward-icon"></div><div class="gwx-chest-reward-name"></div><div class="gwx-chest-reward-detail"></div><div class="gwx-chest-everyone">The hunt is still on — can you claim the next treasure?</div><button class="gwx-chest-dismiss" type="button">CONTINUE THE HUNT</button></div>';
+      overlay.innerHTML = '<div class="gwx-chest-celebration-backdrop"></div><div class="gwx-chest-celebration-card"><div class="gwx-chest-confetti" aria-hidden="true">✦　✧　✦　✧　✦　✧　✦</div><div class="gwx-chest-eyebrow">A RARE TREASURE HAS BEEN FOUND</div><div class="gwx-chest-big-icon" aria-hidden="true"><span class="gwx-chest-rays"></span><span class="gwx-chest-coins">🪙　✦　🪙</span><span class="gwx-chest-lid"></span><span class="gwx-chest-box"><i></i></span><span class="gwx-chest-lock">◆</span></div><div class="gwx-chest-opening">THE TREASURE CHEST!</div><div class="gwx-chest-winner"></div><div class="gwx-chest-reward"><div class="gwx-chest-reward-label">YOUR TREASURE</div><div class="gwx-chest-reward-icon"></div><div class="gwx-chest-reward-name"></div><div class="gwx-chest-reward-detail"></div></div><div class="gwx-chest-everyone">The hunt continues. Who will find the next treasure?</div><button class="gwx-chest-dismiss" type="button">CONTINUE THE HUNT</button></div>';
       document.body.appendChild(overlay);
       overlay.querySelector('.gwx-chest-dismiss').addEventListener('click', () => {
         overlay.classList.remove('is-showing');
@@ -446,8 +446,16 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     overlay.classList.remove('is-showing');
     void overlay.offsetWidth;
     overlay.classList.add('is-showing');
+    const chestArt = overlay.querySelector('.gwx-chest-big-icon');
+    chestArt.classList.remove('is-opened');
+    overlay.querySelector('.gwx-chest-opening').textContent = 'A TREASURE IS UNLOCKING…';
+    window.clearTimeout(overlay._openTimer);
     window.clearTimeout(overlay._hideTimer);
-    overlay._hideTimer = window.setTimeout(() => overlay.classList.remove('is-showing'), 6500);
+    overlay._openTimer = window.setTimeout(() => {
+      chestArt.classList.add('is-opened');
+      overlay.querySelector('.gwx-chest-opening').textContent = 'THE TREASURE CHEST IS OPEN!';
+    }, 1450);
+    overlay._hideTimer = window.setTimeout(() => overlay.classList.remove('is-showing'), 10000);
   }
   function grantMysteryChest(playerId) {
     const inventory = chestPowersFor(playerId);
