@@ -53,3 +53,45 @@
  .gwx-competition-hud{position:relative!important;top:auto!important;left:auto!important;right:auto!important;transform:none!important;width:100%!important;height:auto!important;max-height:none!important;margin:8px auto!important}
  .phase-banner{position:relative!important;top:auto!important;left:auto!important;right:auto!important;width:100%!important;margin:6px 0!important}
 }
+
+
+/* MOBILE ARENA PASS — keep the board readable and prevent sideways overflow. */
+@media (max-width:760px){
+  .gwx-table{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;padding-left:12px!important;padding-right:12px!important;overflow-x:clip!important}
+  .gwx-hunt-hud{position:relative!important;inset:auto!important;width:100%!important;max-width:100%!important;margin:8px auto 12px!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px 12px!important}
+  .gwx-hunt-hud .gwx-level-rail{grid-column:1/-1!important;width:100%!important;min-width:0!important}
+  .gwx-seat{width:100%!important;max-width:100%!important;min-width:0!important}
+  .gwx-seat .gwx-player-card{width:100%!important;min-width:0!important;overflow:hidden!important}
+  .gwx-seat .gwx-player-info{min-width:0!important;overflow:hidden!important}
+  .gwx-seat .gwx-player-info strong{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .gwx-seat .gwx-player-status{max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .gwx-center{width:100%!important;max-width:100%!important;min-width:0!important;margin:10px auto!important}
+  .gwx-board-row,.gwx-letter-grid-shell{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+  .gwx-letter-grid{width:100%!important;max-width:100%!important;min-width:0!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:clamp(3px,1.2vw,7px)!important;box-sizing:border-box!important}
+  .gwx-letter-grid .letter-tile{width:100%!important;min-width:0!important;min-height:0!important;aspect-ratio:1!important;padding:0!important;font-size:clamp(13px,4.2vw,21px)!important;touch-action:manipulation}
+  .gwx-guess-form{width:100%!important;max-width:100%!important;min-width:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:8px!important}
+  .gwx-guess-form input{min-width:0!important;width:100%!important}
+  .gwx-guess-form button{min-width:74px!important}
+  .gwx-hunt-hint,.gwx-round-words{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:8px 0!important}
+  .gwx-seat.bottom .champ-social-controls{position:relative!important;inset:auto!important;display:flex!important;justify-content:flex-end!important;margin:6px 0 0!important}
+  .gwx-seat.bottom{height:auto!important;max-height:none!important;min-height:118px!important}
+}
+@media (max-width:420px){
+  .gwx-table{padding-left:8px!important;padding-right:8px!important}
+  .gwx-hunt-hud{padding:10px!important}
+  .gwx-hunt-title h1{font-size:clamp(17px,5vw,22px)!important}
+  .gwx-timer strong{font-size:19px!important}
+  .gwx-seat{margin:5px 0!important}
+  .gwx-seat .gwx-player-card{grid-template-columns:50px minmax(0,1fr)!important;grid-template-rows:1fr 28px!important;padding:8px 9px!important}
+  .gwx-seat .gwx-avatar{width:46px!important;height:46px!important}
+  .gwx-seat .gwx-player-info strong{font-size:16px!important}
+  .gwx-seat .gwx-seat-coins b{font-size:12px!important}
+  .gwx-seat .gwx-seat-coins b small,.gwx-seat .gwx-seat-coins>small{font-size:8px!important}
+  .gwx-letter-grid{gap:3px!important}
+  .gwx-letter-grid .letter-tile{font-size:clamp(12px,4vw,17px)!important;border-radius:7px!important}
+  .gwx-guess-form input{font-size:16px!important}
+  .gwx-hunt-hint,.gwx-round-words{padding:10px!important}
+}
+@media (prefers-reduced-motion:reduce){
+  .gwx-letter-grid .letter-tile{scroll-behavior:auto!important}
+}
