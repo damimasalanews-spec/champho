@@ -679,6 +679,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const known = round.words30.some(item => item.word === normalized);
       flashMessage(!normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the 30 hidden words. Trace the letters.', 'bad');
       if (!takeChestPower(playerId, 'streak')) comboStreak[playerId] = 0;   /* chest streak guard can save one miss */
+      renderMysteryChest();
       return false;
     }
     if (result.champ) {
@@ -720,6 +721,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const outcome = resolveWord(playerId, result.word);
     round.foundAll.add(result.word);
     if (CHEST_WORDS.includes(round.foundAll.size)) grantMysteryChest(playerId);
+    renderMysteryChest();
     /* taken in the robbery half, gained in the build half: the display reads the
        amount that actually moved, or a fallback payout shows as "+0 coins" */
     const credited = outcome.taken || outcome.gained;
