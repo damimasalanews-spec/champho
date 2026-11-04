@@ -146,6 +146,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const score = round.scores[player.id];
       $(`coins-${player.id}`).textContent = String(score.coins);
       $(`words-${player.id}`).textContent = String(score.words);
+      const wordUnit = document.querySelector(`.gwx-seat[data-player="${player.id}"] .gwx-seat-coins i`);
+      if (wordUnit) wordUnit.textContent = score.words === 1 ? "WORD" : "WORDS";
     }
     const totalCoins = $('totalCoins');
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
