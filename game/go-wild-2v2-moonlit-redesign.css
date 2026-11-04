@@ -709,3 +709,33 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
  .gwx-seat .gwx-player-card,.gwx-game-nav .gwx-leave,.gwx-game-nav .gwx-help summary,
  .gwx-guess-form button,.gwx-tools button,.champ-social-controls .social-toggle{transition:none!important}
 }
+
+
+/* Stage 2: crisp score-change and combo feedback, without shifting the HUD. */
+.gwx-score-pop {
+  display:inline-block;
+  transform-origin:center;
+  animation:gwxScorePop .58s cubic-bezier(.2,.85,.25,1);
+  color:#fff4b5!important;
+  text-shadow:0 0 10px rgba(255,205,82,.78),0 0 20px rgba(255,205,82,.35);
+}
+.gwx-streak-pop {
+  display:inline-block;
+  transform-origin:center;
+  animation:gwxStreakPop .68s cubic-bezier(.18,.9,.25,1);
+  color:#ffd875!important;
+  text-shadow:0 0 12px rgba(255,184,66,.72);
+}
+@keyframes gwxScorePop {
+  0%{transform:translateY(5px) scale(.88);filter:brightness(1)}
+  42%{transform:translateY(-3px) scale(1.18);filter:brightness(1.65)}
+  100%{transform:translateY(0) scale(1);filter:brightness(1)}
+}
+@keyframes gwxStreakPop {
+  0%{transform:scale(.86);filter:brightness(1)}
+  38%{transform:scale(1.13);filter:brightness(1.7)}
+  100%{transform:scale(1);filter:brightness(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  .gwx-score-pop,.gwx-streak-pop{animation:none!important}
+}
