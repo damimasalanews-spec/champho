@@ -3578,7 +3578,7 @@ html, body, .gwx-app { background: #06152f; }
    older green island/forest placeholder. Keep the existing neon overlays. */
 .gwx-table {
   background-color: #071a3d !important;
-  background-image: linear-gradient(180deg, #06163720 0%, #06163708 42%, #06163735 100%), url("assets/background.png") !important;
+  background-image: linear-gradient(180deg, #06163718 0%, #06163708 42%, #06163728 100%), url("assets/champ-arena-background.svg") !important;
   background-position: center center !important;
   background-size: cover !important;
   background-repeat: no-repeat !important;
