@@ -403,12 +403,14 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const hint = document.querySelector('.gwx-hunt-hint');
       (hint || $('table'))?.before(panel);
     }
+    const boardFiveReady = round.level === BOARDS && !round.chestBoardFiveClaimed;
     const next = CHEST_WORDS.find(n => n > round.foundAll.size);
-    const active = CHEST_WORDS.includes(round.foundAll.size + 1);
+    const milestoneActive = CHEST_WORDS.includes(round.foundAll.size + 1);
+    const active = boardFiveReady || milestoneActive;
     panel.classList.toggle('is-active', active);
     panel.innerHTML = '<div class="gwx-chest-mark">♜</div><div class="gwx-chest-copy"><strong>' +
-      (active ? 'MYSTERY CHEST UNLOCKED' : next ? 'MYSTERY CHEST' : 'ALL TREASURES FOUND') +
-      '</strong><small>' + (active ? 'Solve this word to claim the treasure!' : next ? 'Next chest at word ' + next + ' of 30' : 'Six chests discovered') +
+      (boardFiveReady ? 'ROUND 5 MYSTERY CHEST' : active ? 'MYSTERY CHEST UNLOCKED' : next ? 'MYSTERY CHEST' : 'ALL TREASURES FOUND') +
+      '</strong><small>' + (boardFiveReady ? 'Solve the first word on Board 5 to claim the treasure!' : active ? 'Solve this word to claim the treasure!' : next ? 'Next chest at word ' + next + ' of 30' : 'Six chests discovered') +
       '</small></div><div class="gwx-chest-powers">' +
       (chestPowersFor('champ').length ? chestPowersFor('champ').map(p => '<span title="' + p.detail + '">' + p.icon + ' ' + p.name + '</span>').join('') : '<span>NO ACTIVE POWERS</span>') + '</div>';
     PLAYERS.forEach(player => {
@@ -720,7 +722,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        This keeps words 1–20 in BUILD; word 21 is the first robbery. */
     const outcome = resolveWord(playerId, result.word);
     round.foundAll.add(result.word);
-    if (CHEST_WORDS.includes(round.foundAll.size)) grantMysteryChest(playerId);
+    if (round.level === BOARDS && !round.chestBoardFiveClaimed) {
+      round.chestBoardFiveClaimed = true;
+      grantMysteryChest(playerId);
+    } else if (CHEST_WORDS.includes(round.foundAll.size)) {
+      grantMysteryChest(playerId);
+    }
     renderMysteryChest();
     /* taken in the robbery half, gained in the build half: the display reads the
        amount that actually moved, or a fallback payout shows as "+0 coins" */
@@ -1819,6 +1826,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: START_COINS, words: 0 }])),
       revengeTargets: {},
       chestPowers: Object.fromEntries(PLAYERS.map(player => [player.id, []])),
+      chestBoardFiveClaimed: false,
       ended: false
     };
     comboStreak = {};
