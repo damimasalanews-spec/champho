@@ -3572,3 +3572,151 @@ html, body, .gwx-app { background: #06152f; }
  .champ-social-controls { left:8px;bottom:6px; }
 }
 @media (prefers-reduced-motion:reduce) { .letter-tile,.gwx-seat,.gwx-player-card { transition:none!important; } }
+
+
+/* ==========================================================================
+   ARENA COMPOSITION FIX — real three-column layout + full scene artwork.
+   Desktop uses a single grid so the board, HUD, seats and side panels share
+   the same alignment system. Small screens retain the compact seat layout.
+   ========================================================================== */
+@media (min-width: 1101px) {
+  .gwx-table {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(500px, 640px) minmax(220px, 1fr);
+    grid-template-rows: minmax(104px, 13vh) minmax(120px, .9fr) minmax(90px, .65fr) minmax(112px, 15vh);
+    grid-template-areas:
+      "poker hud nav"
+      "hint center kalkal"
+      ". center round"
+      "champ center jess";
+    align-items: center;
+    column-gap: clamp(18px, 2vw, 36px);
+    row-gap: clamp(10px, 1.4vh, 18px);
+    padding: clamp(14px, 2vh, 24px) clamp(22px, 1.8vw, 34px) clamp(42px, 5vh, 58px);
+    background-color: #071b3b;
+    background-image:
+      linear-gradient(180deg, rgba(4,13,43,.12), rgba(4,13,43,.22)),
+      url("assets/background.png"),
+      url("../assets/island-table-bg.webp");
+    background-position: center, center 48%, center 48%;
+    background-size: cover, cover, cover;
+    background-repeat: no-repeat;
+  }
+  .gwx-table::before {
+    background:
+      linear-gradient(180deg, rgba(3,12,36,.18) 0%, rgba(3,12,36,.04) 42%, rgba(3,12,36,.24) 100%),
+      linear-gradient(90deg, rgba(2,9,32,.26), transparent 20%, transparent 80%, rgba(2,9,32,.26));
+  }
+  .gwx-table::after {
+    background: radial-gradient(ellipse at center, transparent 38%, rgba(2,8,29,.44) 100%);
+  }
+  .gwx-game-nav {
+    grid-area: nav;
+    position: relative;
+    inset: auto;
+    justify-self: end;
+    align-self: start;
+    z-index: 5;
+    margin-top: clamp(10px, 2vh, 22px);
+  }
+  .gwx-hunt-hud {
+    grid-area: hud;
+    position: relative;
+    inset: auto;
+    left: auto;
+    top: auto;
+    width: 100%;
+    min-height: 104px;
+    transform: none;
+    justify-self: stretch;
+    align-self: start;
+    z-index: 6;
+  }
+  .gwx-seat {
+    position: relative;
+    inset: auto;
+    width: min(100%, 320px);
+    justify-self: start;
+    align-self: center;
+    margin: 0;
+  }
+  .gwx-seat.top { grid-area: poker; align-self: center; }
+  .gwx-seat.left { grid-area: kalkal; justify-self: end; align-self: start; margin-top: 10px; }
+  .gwx-seat.bottom { grid-area: champ; align-self: end; width: min(100%, 330px); }
+  .gwx-seat.right { grid-area: jess; justify-self: end; align-self: end; }
+  .gwx-center {
+    grid-area: center;
+    grid-row: 2 / 5;
+    position: relative;
+    inset: auto;
+    top: auto;
+    left: auto;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    transform: none;
+    align-self: center;
+    justify-self: center;
+    z-index: 4;
+  }
+  .gwx-status-line { display: none; }
+  .gwx-hunt-hint {
+    grid-area: hint;
+    position: relative;
+    inset: auto;
+    width: min(100%, 325px);
+    min-height: 145px;
+    align-self: center;
+    justify-self: start;
+  }
+  .gwx-round-words {
+    grid-area: round;
+    position: relative;
+    inset: auto;
+    width: min(100%, 325px);
+    min-height: 92px;
+    align-self: center;
+    justify-self: end;
+    margin-top: 0;
+  }
+  .gwx-footer {
+    position: absolute;
+    right: 0;
+    bottom: 10px;
+    left: 0;
+    z-index: 8;
+    pointer-events: none;
+  }
+  .champ-social-controls {
+    position: fixed;
+    left: clamp(22px, 1.8vw, 34px);
+    bottom: 18px;
+    z-index: 9;
+  }
+  .gwx-tools {
+    position: fixed;
+    right: clamp(22px, 1.8vw, 34px);
+    bottom: 18px;
+    z-index: 9;
+  }
+  .gwx-competition-hud {
+    position: absolute;
+    z-index: 8;
+    top: clamp(116px, 15vh, 160px);
+    left: 50%;
+    width: min(510px, 38vw);
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1101px) and (max-height: 760px) {
+  .gwx-table {
+    grid-template-rows: 78px minmax(90px, .9fr) minmax(70px, .65fr) 78px;
+    padding-top: 10px;
+    padding-bottom: 40px;
+  }
+  .gwx-center { max-width: 560px; }
+  .gwx-letter-grid-shell { aspect-ratio: 1.18; }
+  .gwx-hunt-hint { min-height: 112px; }
+  .gwx-round-words { margin-top: 0; }
+  .gwx-competition-hud { top: 108px; }
+}
