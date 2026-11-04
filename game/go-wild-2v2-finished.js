@@ -385,8 +385,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     { id: 'shield', name: 'GUARDIAN SHIELD', icon: '🛡', weight: 20, detail: 'Block one robbery, then the shield breaks.' },
     { id: 'revenge', name: 'REVENGE TOKEN', icon: '⚔', weight: 20, detail: 'Your next robbery targets the last active opponent who robbed you.' },
     { id: 'boost', name: 'STEAL BOOST', icon: '🔥', weight: 15, detail: 'Add 15% to one successful robbery, within the normal steal cap.' },
-    { id: 'streak', name: 'STREAK GUARD', icon: '⚡', weight: 12, detail: 'Protect your streak from one missed turn.' },
-    { id: 'legendary', name: 'LEGENDARY CHOICE', icon: '👑', weight: 8, detail: 'Choose a Double Word or Guardian Shield power.' }
+    { id: 'streak', name: 'STREAK GUARD', icon: '⚡', weight: 12, detail: 'Protect your streak from one invalid guess.' },
+    { id: 'legendary', name: 'LEGENDARY CHOICE', icon: '👑', weight: 8, detail: 'Receive a Double Word or Guardian Shield power.' }
   ];
   function chestPowersFor(id) {
     if (!round.chestPowers) round.chestPowers = Object.fromEntries(PLAYERS.map(p => [p.id, []]));
@@ -545,7 +545,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     out.revenge = Boolean(revengeTarget && target === revengeTarget);
 
     if (!target) {                     /* nobody left to rob: small fallback payout */
-      out.gained = Math.round(length * COIN_PER_LETTER * 0.5 * multiplier);
+      out.gained = Math.round(length * COIN_PER_LETTER * 0.5 * multiplier * chestMultiplier);
       round.scores[playerId].coins += out.gained;
       return out;
     }
@@ -559,7 +559,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const protectedSeat = document.querySelector('.gwx-seat[data-player="' + target + '"]');
       protectedSeat?.querySelector('.gw-shield')?.remove();
       protectedSeat?.classList.remove('has-champ-shield');
-      out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
+      out.gained = Math.round(length * COIN_PER_LETTER * multiplier * chestMultiplier);
       round.scores[playerId].coins += out.gained;
       out.shielded = target;
       out.shieldBroken = true;
