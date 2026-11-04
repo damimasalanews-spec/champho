@@ -787,3 +787,42 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
     gap:0!important;padding:7px!important;overflow:visible!important;
   }
 }
+
+
+/* LETTER GRID FEEDBACK PASS — tactile selection, clear solved-letter state. */
+.gwx-letter-grid .letter-tile {
+  position:relative;
+  isolation:isolate;
+  cursor:pointer;
+  transition:transform .16s ease, filter .16s ease, box-shadow .16s ease, border-color .16s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.gwx-letter-grid .letter-tile:hover:not(.found) {
+  transform:translateY(-3px) scale(1.035);
+  filter:brightness(1.09) saturate(1.08);
+  box-shadow:0 0 0 2px #ffe6a0,0 0 18px #ffcf62a8,0 6px 0 #87531f,0 10px 18px #02091e80;
+}
+.gwx-letter-grid .letter-tile.selected {
+  z-index:2;
+  transform:translateY(-2px) scale(1.045);
+  border:2px solid #8beaff;
+  background:linear-gradient(145deg,#f3ffff 0%,#9cecff 52%,#389bd5 100%);
+  color:#08264c;
+  box-shadow:0 0 0 2px #36c9ff88,0 0 22px #39caff,0 5px 0 #17618f,0 9px 18px #02091e99;
+  animation:gwx-tile-select .22s ease-out both;
+}
+.gwx-letter-grid .letter-tile.found {
+  border-color:#9effd0;
+  background:linear-gradient(145deg,#eafff2 0%,#8ce9b7 55%,#35a875 100%);
+  color:#073c35;
+  box-shadow:0 0 0 1px #67f0bd77,0 0 13px #45e6b477,0 4px 0 #17684c;
+  filter:saturate(.9);
+}
+@keyframes gwx-tile-select {
+  0% { transform:scale(.94); }
+  65% { transform:scale(1.08); }
+  100% { transform:translateY(-2px) scale(1.045); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .gwx-letter-grid .letter-tile { transition:none; animation:none!important; }
+}
