@@ -840,3 +840,39 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
 @media (prefers-reduced-motion:reduce) {
   .gwx-letter-grid-shell.gwx-word-found { animation:none; }
 }
+
+
+/* 30-WORD HUNT PROGRESS — clear completion and remaining-word readout. */
+.gwx-progress-copy { align-items:baseline; }
+.gwx-progress-copy b {
+  color:#fff2c4!important;
+  font-size:12px!important;
+  letter-spacing:.45px;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 0 12px #ffd16655;
+}
+.gwx-progress-copy #wordProgressRemaining {
+  color:#a9e9dc!important;
+  font-size:9px!important;
+  font-weight:800;
+  letter-spacing:.8px;
+  font-variant-numeric:tabular-nums;
+}
+.gwx-level-track {
+  height:9px!important;
+  border:1px solid #a9d9ff40;
+  background:linear-gradient(90deg,#152d50,#243e61)!important;
+  box-shadow:inset 0 1px 3px #02091eaa,0 0 0 1px #ffffff0a;
+}
+.gwx-level-track span {
+  background:linear-gradient(90deg,#43d9e8 0%,#8bffce 58%,#ffe08a 100%)!important;
+  box-shadow:0 0 12px #65f0d099,0 0 22px #4bd5f466;
+  transition:width .42s cubic-bezier(.2,.8,.2,1)!important;
+}
+.gwx-level-track i.on {
+  background:#fff2bd!important;
+  box-shadow:0 0 8px #ffe08a!important;
+}
+@media(prefers-reduced-motion:reduce){
+  .gwx-level-track span{transition:none!important}
+}
