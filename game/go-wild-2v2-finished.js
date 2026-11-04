@@ -1566,6 +1566,19 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (label) label.textContent = foundCount + ' / ' + totalCount + ' WORDS';
     const remaining = $('wordProgressRemaining');
     if (remaining) remaining.textContent = (totalCount - foundCount) + ' LEFT';
+    const wildTip = $('wildTipCopy');
+    if (wildTip) {
+      const left = totalCount - foundCount;
+      wildTip.textContent = left === 1
+        ? 'FINAL WORD: drag across the neighboring letters to claim the last find.'
+        : foundCount < 10
+          ? 'SCOUT THE GRID: start with short words, follow neighboring letters, and build your first streak.'
+          : foundCount < 20
+            ? 'GO FOR BIG COINS: longer words pay more, so scan for longer letter paths between turns.'
+            : left <= 5
+              ? 'CLOSING HUNT: every word matters now. Watch the turn timer and be ready to drag the final word.'
+              : 'KEEP THE PRESSURE: protect your streak, watch rival coin totals, and target longer words.';
+    }
   }
 
   /* the whole round's thirty words are dealt up front: five boards of six,
