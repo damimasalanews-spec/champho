@@ -583,7 +583,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (!result) {
       const normalized = normalizeGuess(value);
       const known = round.words30.some(item => item.word === normalized);
-      flashMessage(!normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the 30 hidden words. Trace the letters.', 'bad');
+      const reason = !normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the 30 hidden words. Trace the letters.';
+      flashMessage(reason, 'bad');
+      if (normalized) notify(reason, 'error', 2100);
       comboStreak[playerId] = 0;
       return false;
     }
