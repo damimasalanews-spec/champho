@@ -1,0 +1,35 @@
+/* Live competition HUD: bounty leader, closest rival, streak and revenge. */
+.gwx-competition-hud{
+  position:absolute;z-index:8;top:11.1vh;left:50%;transform:translateX(-50%);
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;
+  width:min(510px,46vw);padding:8px;border:1px solid #ffffff25;border-radius:14px;
+  background:linear-gradient(135deg,#061b2beF,#07121eeF);box-shadow:0 10px 28px #00130f70;
+  backdrop-filter:blur(12px);pointer-events:none
+}
+.gwx-comp-stat{display:grid;gap:3px;min-width:0;padding:5px 8px;border-right:1px solid #ffffff18}
+.gwx-comp-stat:last-child{border-right:0}
+.gwx-comp-stat small{color:#a9c5d4;font-size:8px;font-weight:1000;letter-spacing:.7px;white-space:nowrap}
+.gwx-comp-stat strong{overflow:hidden;color:#fff;font-size:12px;font-weight:1000;text-overflow:ellipsis;white-space:nowrap}
+.gwx-comp-stat em{overflow:hidden;color:#8fa7b8;font-size:9px;font-style:normal;text-overflow:ellipsis;white-space:nowrap}
+.gwx-competition-hud.is-robbery{border-color:#f5b94288;box-shadow:0 0 0 1px #f5b94225,0 10px 30px #00130f80}
+.gwx-seat.is-bounty .gwx-player-card,.gwx-seat.is-bounty .gwx-local-meta{
+  border-color:#ffd166!important;box-shadow:0 0 0 2px #ffd16666,0 0 24px #ffb52b55,0 12px 30px #03293b62!important
+}
+.gwx-seat.is-bounty .gwx-player-info strong:after{content:"  👑 TARGET";color:#ffd166;font-size:8px;font-weight:1000;letter-spacing:.5px}
+.gwx-seat.has-revenge .gwx-player-card:after,.gwx-seat.has-revenge .gwx-local-meta:after{
+  content:"REVENGE READY";position:absolute;right:7px;top:-9px;padding:4px 7px;border-radius:99px;
+  background:#8d3bcb;color:#fff;font-size:8px;font-weight:1000;letter-spacing:.5px;box-shadow:0 4px 12px #0008
+}
+@media(max-width:900px){
+  .gwx-competition-hud{top:10.8vh;width:min(460px,58vw);gap:3px;padding:5px}
+  .gwx-comp-stat{padding:4px}
+  .gwx-comp-stat small{font-size:7px}
+  .gwx-comp-stat strong{font-size:10px}
+  .gwx-comp-stat em{font-size:8px}
+}
+@media(max-width:620px){
+  .gwx-competition-hud{top:10.2vh;width:calc(100% - 28px);max-width:420px}
+  .gwx-comp-stat small{font-size:6px;letter-spacing:.2px}
+  .gwx-comp-stat strong{font-size:9px}
+  .gwx-comp-stat em{font-size:7px}
+}

@@ -150,6 +150,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const totalCoins = $('totalCoins');
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
     renderSeatMarks();
+    renderCompetition();
   }
 
   /* ---------------- competition layer -------------------------------------
@@ -157,7 +158,65 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      state the round already keeps: who scored last, what each purse holds, and
      how many words in a row a seat has found. */
 
-  const COMBO_CAP = 3;   /* a run tops out at x3, or one lucky seat runs away */
+  const COMBO_CAP = 5;   /* five consecutive finds reaches the x2 cap */
+  const COMBO_STEP = 0.25;
+  const COMBO_MAX = 2;
+
+  function comboMultiplier(playerId) {
+    const streak = comboStreak[playerId] || 0;
+    return Math.min(COMBO_MAX, 1 + Math.max(0, streak - 1) * COMBO_STEP);
+  }
+
+  function richestActiveId() {
+    return PLAYERS.filter(player => !isOut(player.id))
+      .sort((a, b) => purseOf(b.id) - purseOf(a.id) || round.scores[b.id].words - round.scores[a.id].words)[0]?.id || null;
+  }
+
+  function closestRivalId() {
+    const champCoins = purseOf(HUMAN_ID);
+    return PLAYERS.filter(player => player.id !== HUMAN_ID && !isOut(player.id))
+      .sort((a, b) => Math.abs(purseOf(a.id) - champCoins) - Math.abs(purseOf(b.id) - champCoins))[0]?.id || null;
+  }
+
+  function renderCompetition() {
+    if (!round) return;
+    let panel = $('competitionHud');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.id = 'competitionHud';
+      panel.className = 'gwx-competition-hud';
+      panel.setAttribute('aria-label', 'Live competition standings');
+      panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY LEADER</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>⚔️ YOUR RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>🔥 YOUR STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
+      const table = $('table');
+      if (table) table.appendChild(panel);
+    }
+
+    const leaderId = richestActiveId();
+    const rivalId = closestRivalId();
+    const leader = PLAYERS.find(player => player.id === leaderId);
+    const rival = PLAYERS.find(player => player.id === rivalId);
+    const streak = comboStreak[HUMAN_ID] || 0;
+    const revengeId = round.revengeTargets && round.revengeTargets[HUMAN_ID];
+
+    const put = (key, value) => {
+      const node = panel.querySelector('[data-comp="' + key + '"]');
+      if (node) node.textContent = value;
+    };
+    put('leader', leader ? leader.name : 'No target');
+    put('leader-coins', leader ? purseOf(leader.id).toLocaleString('en-US') + ' coins' : '');
+    put('rival', rival ? rival.name : 'No rival');
+    put('rival-coins', rival ? Math.abs(purseOf(rival.id) - purseOf(HUMAN_ID)).toLocaleString('en-US') + ' coins away' : '');
+    put('streak', streak + ' in a row · x' + comboMultiplier(HUMAN_ID).toFixed(2));
+    put('revenge', revengeId ? 'REVENGE READY vs ' + nameOf(revengeId) : 'No revenge queued');
+
+    document.querySelectorAll('.gwx-seat').forEach(seat => {
+      seat.classList.toggle('is-bounty', Boolean(inRobbery() && leaderId && seat.dataset.player === leaderId));
+      seat.classList.toggle('has-revenge', Boolean(round.revengeTargets && round.revengeTargets[seat.dataset.player]));
+    });
+    panel.classList.toggle('is-robbery', inRobbery());
+  }
 
 
 
@@ -321,29 +380,41 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   /** The only place coins move. Returns what the presentation needs. */
   function resolveWord(playerId, word) {
     const length = word.length;
-    const out = { length, robbery: inRobbery(), gained: 0, taken: 0, fromId: null, stood: null };
+    const multiplier = comboMultiplier(playerId);
+    const out = { length, robbery: inRobbery(), gained: 0, taken: 0, fromId: null, stood: null, multiplier, bounty: false, revenge: false };
 
     if (!out.robbery) {
-      out.gained = length * COIN_PER_LETTER;
+      out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
       round.scores[playerId].coins += out.gained;
       return out;
     }
 
-    const target = seatBefore(playerId);
-    if (!target) {                     /* nobody left to rob: pay half */
-      out.gained = Math.round(length * COIN_PER_LETTER * 0.5);
+    const revengeTarget = round.revengeTargets && round.revengeTargets[playerId];
+    const target = revengeTarget && !isOut(revengeTarget) && revengeTarget !== playerId
+      ? revengeTarget
+      : seatBefore(playerId);
+    out.revenge = Boolean(revengeTarget && target === revengeTarget);
+    if (out.revenge) delete round.revengeTargets[playerId];
+
+    if (!target) {                     /* nobody left to rob: small fallback payout */
+      out.gained = Math.round(length * COIN_PER_LETTER * 0.5 * multiplier);
       round.scores[playerId].coins += out.gained;
       return out;
     }
 
+    const bountyId = richestActiveId();
+    out.bounty = target === bountyId && target !== playerId;
+    const bountyMultiplier = out.bounty ? 1.25 : 1;
+    const revengeMultiplier = out.revenge ? 1.5 : 1;
     const purse = purseOf(target);
-    const want = Math.round(length * STEAL_PER_LETTER);
+    const want = Math.round(length * STEAL_PER_LETTER * multiplier * bountyMultiplier * revengeMultiplier);
     const take = Math.max(0, Math.min(want, Math.round(purse * STEAL_SHARE), purse));
     if (take > 0) {
       round.scores[target].coins -= take;
       round.scores[playerId].coins += take;
       out.taken = take;
       out.fromId = target;
+      round.revengeTargets[target] = playerId;
       if (checkFloor(target)) out.stood = target;
     }
     return out;
@@ -458,6 +529,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        amount that actually moved, or a fallback payout shows as "+0 coins" */
     const credited = outcome.taken || outcome.gained;
     const fromId = outcome.fromId;
+    if (comboStreak[playerId] >= 2) {
+      notify(nameOf(playerId) + ' is on a ' + comboStreak[playerId] + '-word streak · x' + outcome.multiplier.toFixed(2), 'combo', 2200);
+      seatEvent(playerId, 'combo', 'x' + outcome.multiplier.toFixed(2));
+    }
+    if (outcome.revenge) notify(nameOf(playerId) + ' got REVENGE on ' + nameOf(fromId) + ' · 1.5x attack!', 'steal', 3000);
+    if (outcome.bounty) notify(nameOf(playerId) + ' claimed the BOUNTY from ' + nameOf(fromId) + ' · 25% bonus!', 'bounty', 3000);
     round.scores[playerId].words++;
     lastScorer = playerId;
     path = [];
@@ -1520,8 +1597,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       words30: [],
       boards: [],
       scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: START_COINS, words: 0 }])),
+      revengeTargets: {},
       ended: false
     };
+    comboStreak = {};
     buildBoards();
     dealLevel();
     renderScores();
