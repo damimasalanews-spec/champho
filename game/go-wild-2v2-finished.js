@@ -459,14 +459,19 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       return out;
     }
 
-    /* A Champ Word shield protects its owner from every later robbery this round.
-       The attacker still earns a normal grid payout, so a shield never creates a dead turn. */
+    /* A Champ Word shield absorbs exactly one robbery, then breaks.
+       The attacker still receives a normal bank payout, so consecutive
+       shield holders never make the robbery phase stall. */
     if (champShielded.has(target)) {
+      champShielded.delete(target);
+      const protectedSeat = document.querySelector('.gwx-seat[data-player="' + target + '"]');
+      protectedSeat?.querySelector('.gw-shield')?.remove();
+      protectedSeat?.classList.remove('has-champ-shield');
       out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
       round.scores[playerId].coins += out.gained;
       out.shielded = target;
-      /* A blocked revenge is not a successful revenge: avoid announcing
-         a 1.5x steal when no coins were taken from the protected player. */
+      out.shieldBroken = true;
+      /* A blocked revenge is not a successful revenge: keep it queued. */
       out.revenge = false;
       return out;
     }
