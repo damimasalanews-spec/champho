@@ -1,0 +1,18 @@
+/* Go Wild 2 cinematic activity feed: premium dark-metal treatment. */
+.gwx-cinematic-feed{position:absolute;z-index:12;right:clamp(14px,2vw,30px);bottom:18px;width:min(310px,25vw);max-height:210px;overflow:hidden;border:1px solid rgba(220,181,103,.62);border-radius:13px;background:linear-gradient(145deg,rgba(5,13,29,.97),rgba(15,20,43,.95));box-shadow:0 12px 30px #0009,inset 0 1px #ffffff18;backdrop-filter:blur(14px);color:#f5edda}
+.gwx-cinematic-feed header{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #d8b46a45;font-size:11px;letter-spacing:1px}
+.gwx-cinematic-feed header small{margin-left:auto;color:#9fe7a9;font-size:9px;letter-spacing:1.2px}
+.gwx-feed-live{width:7px;height:7px;border-radius:50%;background:#54e28b;box-shadow:0 0 10px #54e28b;animation:gwx-feed-pulse 1.8s infinite}
+.gwx-cinematic-feed ol{display:flex;flex-direction:column;gap:0;margin:0;padding:0;list-style:none;max-height:155px;overflow:auto}
+.gwx-cinematic-feed li{display:flex;gap:8px;padding:8px 11px;border-bottom:1px solid #ffffff0c;font-size:11px;line-height:1.35;animation:gwx-feed-in .28s ease-out}
+.gwx-cinematic-feed li time{flex:0 0 37px;color:#b8a77e;font-size:9px;font-variant-numeric:tabular-nums}
+.gwx-cinematic-feed li span{min-width:0;color:#e8e5ed}
+.gwx-cinematic-feed li.is-success span{color:#a8f0c2}
+.gwx-cinematic-feed li.is-steal span,.gwx-cinematic-feed li.is-bounty span{color:#ffd27b}
+.gwx-cinematic-feed li.is-error span{color:#ffb1b1}
+.gwx-cinematic-feed .gwx-feed-empty{color:#aab1c1}
+@keyframes gwx-feed-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes gwx-feed-pulse{50%{opacity:.45;box-shadow:0 0 3px #54e28b}}
+@media(max-width:900px){.gwx-cinematic-feed{right:10px;bottom:10px;width:min(270px,34vw);max-height:150px}.gwx-cinematic-feed ol{max-height:100px}.gwx-cinematic-feed li{font-size:10px;padding:6px 8px}}
+@media(max-width:620px){.gwx-cinematic-feed{position:relative;right:auto;bottom:auto;width:100%;max-height:145px;margin:8px 0}.gwx-cinematic-feed ol{max-height:95px}}
+@media(prefers-reduced-motion:reduce){.gwx-cinematic-feed *, .gwx-cinematic-feed *:before{animation:none!important;transition:none!important}}
