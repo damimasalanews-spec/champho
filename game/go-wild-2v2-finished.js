@@ -100,7 +100,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     tiles.length = 0;
     gridEl.style.setProperty('--gwx-cols', String(round.layout.cols));
     gridEl.style.setProperty('--gwx-rows', String(round.layout.rows));
-    gridEl.setAttribute('aria-label', `${round.layout.cols} by ${round.layout.rows} letter grid`);
+    gridEl.setAttribute('role', 'grid');
+    gridEl.setAttribute('aria-label', `${round.layout.cols} by ${round.layout.rows} letter grid. Use arrow keys to move and Enter or Space to select letters.`);
     const colorLabel = $('colorLabel');
     if (colorLabel) colorLabel.innerHTML = '<i></i> ' + round.layout.cols + '×' + round.layout.rows + ' LETTER GRID';
     round.layout.grid.forEach((letter, index) => {
@@ -108,11 +109,33 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       tile.type = 'button';
       tile.className = 'letter-tile';
       tile.setAttribute('role', 'gridcell');
+      tile.setAttribute('aria-selected', 'false');
+      tile.tabIndex = index === 0 ? 0 : -1;
       tile.textContent = letter.toUpperCase();
-      tile.setAttribute('aria-label', `Letter ${letter.toUpperCase()}, row ${Math.floor(index / round.layout.cols) + 1}, column ${index % round.layout.cols + 1}`);
+      const row = Math.floor(index / round.layout.cols) + 1;
+      const col = index % round.layout.cols + 1;
+      tile.setAttribute('aria-label', `Letter ${letter.toUpperCase()}, row ${row}, column ${col}`);
+      tile.setAttribute('aria-rowindex', String(row));
+      tile.setAttribute('aria-colindex', String(col));
       tile.style.animationDelay = `${(index % round.layout.cols) * 12 + Math.floor(index / round.layout.cols) * 8}ms`;
       tile.dataset.index = String(index);
       tile.addEventListener('click', () => selectCell(index));
+      tile.addEventListener('keydown', event => {
+        const row = Math.floor(index / round.layout.cols);
+        const col = index % round.layout.cols;
+        let nextRow = row, nextCol = col;
+        if (event.key === 'ArrowUp') nextRow--;
+        else if (event.key === 'ArrowDown') nextRow++;
+        else if (event.key === 'ArrowLeft') nextCol--;
+        else if (event.key === 'ArrowRight') nextCol++;
+        else return;
+        event.preventDefault();
+        nextRow = Math.max(0, Math.min(round.layout.rows - 1, nextRow));
+        nextCol = Math.max(0, Math.min(round.layout.cols - 1, nextCol));
+        const nextIndex = nextRow * round.layout.cols + nextCol;
+        tiles.forEach((cell, cellIndex) => { cell.tabIndex = cellIndex === nextIndex ? 0 : -1; });
+        tiles[nextIndex]?.focus();
+      });
       gridEl.appendChild(tile);
       tiles.push(tile);
     });
@@ -270,8 +293,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 
   function renderPath() {
     tiles.forEach((tile, index) => {
-      tile.classList.toggle('selected', path.includes(index));
-      tile.classList.toggle('found', round.foundPaths.some(foundPath => foundPath.includes(index)));
+      const isSelected = path.includes(index);
+      const isFound = round.foundPaths.some(foundPath => foundPath.includes(index));
+      tile.classList.toggle('selected', isSelected);
+      tile.classList.toggle('found', isFound);
+      tile.setAttribute('aria-selected', String(isSelected));
+      tile.setAttribute('aria-label', tile.getAttribute('aria-label').replace(/, selected$/, '').replace(/, found$/, '') + (isSelected ? ', selected' : '') + (isFound ? ', found' : ''));
     });
     const value = path.map(index => round.layout.grid[index]).join('').toUpperCase();
     if (path.length) $('guessInput').value = value.toLowerCase();
