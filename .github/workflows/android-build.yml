@@ -7,24 +7,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java Environment
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Inject Standalone Project Framework
+      - name: Initialize Web Project Metadata
         run: |
           if [ ! -f package.json ]; then
-            echo '{"name": "champho-game", "version": "1.0.0"}' > package.json
+            echo '{"name": "champho-game", "version": "1.0.0", "dependencies": {"@capacitor/core": "latest", "@capacitor/cli": "latest"}}' > package.json
           fi
-          cd android
-          chmod +x gradlew
-          ./gradlew clean || true
+
+      - name: Install Framework Packages
+        run: npm install
+
+      - name: Generate Fresh Mobile Wrapper
+        run: |
+          # Safely move aside the broken directory to prevent compilation interference
+          mv android android-legacy-backup || true
+          npx cap init champho-game com.tanis.champho --web-dir=.
+          npm install @capacitor/android
+          npx cap add android
 
       - name: Compile Application Direct Package
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleDebug -x test -x lint --no-daemon
           
       - name: Export Ready APK
