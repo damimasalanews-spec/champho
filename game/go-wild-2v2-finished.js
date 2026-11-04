@@ -194,7 +194,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
     renderSeatMarks();
     renderCompetition();
-    renderMysteryChest();
   }
 
   /* ---------------- competition layer -------------------------------------
@@ -378,131 +377,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   const STEAL_PER_LETTER = 250;      /* robbery: length x this, out of a purse */
   const ELIMINATION_FLOOR = 500;     /* a seat stands only after repeated losses */
   const STEAL_SHARE = 0.7;           /* one word cannot take more than this */
-  /* Mystery Chest: six shared milestone events, identical rules for all seats. */
-  const CHEST_WORDS = [5, 10, 15, 20, 25, 30];
-  const CHEST_REWARDS = [
-    { id: 'double', name: 'DOUBLE WORD', icon: '✦', weight: 25, detail: 'Double your next eligible word payout (capped).' },
-    { id: 'shield', name: 'GUARDIAN SHIELD', icon: '🛡', weight: 20, detail: 'Block one robbery, then the shield breaks.' },
-    { id: 'revenge', name: 'REVENGE TOKEN', icon: '⚔', weight: 20, detail: 'Your next robbery targets the last active opponent who robbed you.' },
-    { id: 'boost', name: 'STEAL BOOST', icon: '🔥', weight: 15, detail: 'Add 15% to one successful robbery, within the normal steal cap.' },
-    { id: 'streak', name: 'STREAK GUARD', icon: '⚡', weight: 12, detail: 'Protect your streak from one invalid guess.' },
-    { id: 'legendary', name: 'LEGENDARY CHOICE', icon: '👑', weight: 8, detail: 'Receive a Double Word or Guardian Shield power.' }
-  ];
-  function chestPowersFor(id) {
-    if (!round.chestPowers) round.chestPowers = Object.fromEntries(PLAYERS.map(p => [p.id, []]));
-    return round.chestPowers[id];
-  }
-  function renderMysteryChest() {
-    if (!round) return;
-    let panel = $('mysteryChestHud');
-    if (!panel) {
-      panel = document.createElement('aside');
-      panel.id = 'mysteryChestHud';
-      panel.className = 'gwx-mystery-chest';
-      panel.setAttribute('aria-live', 'polite');
-      const hint = document.querySelector('.gwx-hunt-hint');
-      (hint || $('table'))?.before(panel);
-    }
-    const boardFiveReady = round.level === BOARDS && !round.chestBoardFiveClaimed;
-    const next = CHEST_WORDS.find(n => n > round.foundAll.size);
-    const milestoneActive = CHEST_WORDS.includes(round.foundAll.size + 1);
-    const active = boardFiveReady || milestoneActive;
-    panel.classList.toggle('is-active', active);
-    panel.innerHTML = '<div class="gwx-chest-mark">♜</div><div class="gwx-chest-copy"><strong>' +
-      (boardFiveReady ? 'ROUND 5 MYSTERY CHEST' : active ? 'MYSTERY CHEST UNLOCKED' : next ? 'MYSTERY CHEST' : 'ALL TREASURES FOUND') +
-      '</strong><small>' + (boardFiveReady ? 'Solve the first word on Board 5 to claim the treasure!' : active ? 'Solve this word to claim the treasure!' : next ? 'Next chest at word ' + next + ' of 30' : 'Six chests discovered') +
-      '</small></div><div class="gwx-chest-powers">' +
-      (chestPowersFor('champ').length ? chestPowersFor('champ').map(p => '<span title="' + p.detail + '">' + p.icon + ' ' + p.name + '</span>').join('') : '<span>NO ACTIVE POWERS</span>') + '</div>';
-    PLAYERS.forEach(player => {
-      const card = document.querySelector('.gwx-seat[data-player="' + player.id + '"] .gwx-player-card');
-      if (!card) return;
-      let inventory = card.querySelector('.gwx-chest-inventory');
-      if (!inventory) { inventory = document.createElement('div'); inventory.className = 'gwx-chest-inventory'; card.appendChild(inventory); }
-      inventory.textContent = chestPowersFor(player.id).map(power => power.icon + ' ' + power.name).join(' · ');
-      inventory.hidden = !inventory.textContent;
-      inventory.setAttribute('aria-label', player.name + ' chest powers: ' + inventory.textContent);
-    });
-  }
-  function showMysteryChestCelebration(playerId, reward) {
-    let overlay = $('chestCelebration');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'chestCelebration';
-      overlay.className = 'gwx-chest-celebration';
-      overlay.setAttribute('role', 'status');
-      overlay.setAttribute('aria-live', 'assertive');
-      overlay.innerHTML = '<div class="gwx-chest-celebration-backdrop"></div><div class="gwx-chest-celebration-card"><div class="gwx-chest-confetti" aria-hidden="true">✦　✧　✦　✧　✦　✧　✦</div><div class="gwx-chest-eyebrow">A RARE TREASURE HAS BEEN FOUND</div><div class="gwx-chest-big-icon" aria-hidden="true"><span class="gwx-chest-rays"></span><span class="gwx-chest-coins">🪙　✦　🪙</span><span class="gwx-chest-lid"></span><span class="gwx-chest-box"><i></i></span><span class="gwx-chest-lock">◆</span></div><div class="gwx-chest-opening">THE TREASURE CHEST!</div><div class="gwx-chest-winner"></div><div class="gwx-chest-reward"><div class="gwx-chest-reward-label">YOUR TREASURE</div><div class="gwx-chest-reward-icon"></div><div class="gwx-chest-reward-name"></div><div class="gwx-chest-reward-detail"></div></div><div class="gwx-chest-everyone">The hunt continues. Who will find the next treasure?</div><button class="gwx-chest-dismiss" type="button">CONTINUE THE HUNT</button></div>';
-      document.body.appendChild(overlay);
-      overlay.querySelector('.gwx-chest-dismiss').addEventListener('click', () => {
-        overlay.classList.remove('is-showing');
-        window.clearTimeout(overlay._hideTimer);
-      });
-    }
-    const player = PLAYERS.find(item => item.id === playerId);
-    overlay.querySelector('.gwx-chest-winner').textContent = (player ? player.name : nameOf(playerId)) + ' CLAIMED THE MYSTERY CHEST!';
-    overlay.querySelector('.gwx-chest-reward-icon').textContent = reward.icon;
-    overlay.querySelector('.gwx-chest-reward-name').textContent = reward.name;
-    overlay.querySelector('.gwx-chest-reward-detail').textContent = reward.detail;
-    overlay.classList.remove('is-showing');
-    void overlay.offsetWidth;
-    overlay.classList.add('is-showing');
-    const chestArt = overlay.querySelector('.gwx-chest-big-icon');
-    chestArt.classList.remove('is-opened');
-    overlay.querySelector('.gwx-chest-opening').textContent = 'A TREASURE IS UNLOCKING…';
-    window.clearTimeout(overlay._openTimer);
-    window.clearTimeout(overlay._hideTimer);
-    overlay._openTimer = window.setTimeout(() => {
-      chestArt.classList.add('is-opened');
-      overlay.querySelector('.gwx-chest-opening').textContent = 'THE TREASURE CHEST IS OPEN!';
-    }, 1450);
-    overlay._hideTimer = window.setTimeout(() => overlay.classList.remove('is-showing'), 10000);
-  }
-  function grantMysteryChest(playerId) {
-    const inventory = chestPowersFor(playerId);
-    const roll = Math.random() * 100;
-    let total = 0;
-    let reward = CHEST_REWARDS.find(item => { total += item.weight; return roll < total; }) || CHEST_REWARDS[0];
-    if (reward.id === 'legendary') {
-      reward = Math.random() < 0.5
-        ? { id: 'double', name: 'DOUBLE WORD', icon: '✦', detail: 'Legendary choice: Double Word.' }
-        : { id: 'shield', name: 'GUARDIAN SHIELD', icon: '🛡', detail: 'Legendary choice: Guardian Shield.' };
-    }
-    if (inventory.length >= 2) {
-      const removed = inventory.shift();
-      notify(nameOf(playerId) + ' replaced ' + removed.name + ' with a new chest power.', 'info', 3000);
-    }
-    inventory.push(reward);
-    if (reward.id === 'shield') {
-      champShielded.add(playerId);
-      const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
-      if (seat) {
-        seat.classList.add('has-champ-shield');
-        let badge = seat.querySelector('.gw-shield');
-        if (!badge) {
-          badge = document.createElement('span');
-          badge.className = 'gw-shield';
-          badge.textContent = '🛡 CHEST SHIELD';
-          badge.setAttribute('role', 'status');
-          (seat.querySelector('.gwx-player-card') || seat).appendChild(badge);
-        }
-      }
-    }
-    if (reward.id === 'revenge') {
-      const target = seatBefore(playerId);
-      if (target) round.revengeTargets[playerId] = target;
-    }
-    showMysteryChestCelebration(playerId, reward);
-    notify('MYSTERY CHEST · ' + nameOf(playerId) + ' found ' + reward.icon + ' ' + reward.name, 'bounty', 4200);
-    seatEvent(playerId, 'combo', 'CHEST');
-    renderMysteryChest();
-  }
-  function takeChestPower(playerId, id) {
-    const inventory = chestPowersFor(playerId);
-    const index = inventory.findIndex(power => power.id === id);
-    return index < 0 ? null : inventory.splice(index, 1)[0];
-  }
-
-
   let eliminated = new Set();
   /* A Champ Word earns lasting protection for the rest of this round. */
   let champShielded = new Set();
@@ -565,12 +439,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const length = word.length;
     const multiplier = comboMultiplier(playerId);
     const out = { length, robbery: inRobbery(), gained: 0, taken: 0, fromId: null, stood: null, multiplier, bounty: false, revenge: false };
-    const doublePower = takeChestPower(playerId, 'double');
-    let boostPower = null;
-    const chestMultiplier = doublePower ? 2 : 1;
 
     if (!out.robbery) {
-      out.gained = Math.round(length * COIN_PER_LETTER * multiplier * chestMultiplier);
+      out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
       round.scores[playerId].coins += out.gained;
       return out;
     }
@@ -582,7 +453,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     out.revenge = Boolean(revengeTarget && target === revengeTarget);
 
     if (!target) {                     /* nobody left to rob: small fallback payout */
-      out.gained = Math.round(length * COIN_PER_LETTER * 0.5 * multiplier * chestMultiplier);
+      out.gained = Math.round(length * COIN_PER_LETTER * 0.5 * multiplier);
       round.scores[playerId].coins += out.gained;
       return out;
     }
@@ -592,11 +463,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        shield holders never make the robbery phase stall. */
     if (champShielded.has(target)) {
       champShielded.delete(target);
-      takeChestPower(target, 'shield');
       const protectedSeat = document.querySelector('.gwx-seat[data-player="' + target + '"]');
       protectedSeat?.querySelector('.gw-shield')?.remove();
       protectedSeat?.classList.remove('has-champ-shield');
-      out.gained = Math.round(length * COIN_PER_LETTER * multiplier * chestMultiplier);
+      out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
       round.scores[playerId].coins += out.gained;
       out.shielded = target;
       out.shieldBroken = true;
@@ -605,13 +475,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       return out;
     }
 
-    boostPower = takeChestPower(playerId, 'boost');
     const bountyId = richestActiveId();
     out.bounty = target === bountyId && target !== playerId;
     const bountyMultiplier = out.bounty ? 1.25 : 1;
     const revengeMultiplier = out.revenge ? 1.5 : 1;
     const purse = purseOf(target);
-    const want = Math.round(length * STEAL_PER_LETTER * multiplier * bountyMultiplier * revengeMultiplier * (boostPower ? 1.15 : 1) * chestMultiplier);
+    const want = Math.round(length * STEAL_PER_LETTER * multiplier * bountyMultiplier * revengeMultiplier);
     const take = Math.max(0, Math.min(want, Math.round(purse * STEAL_SHARE), purse));
     if (take > 0) {
       /* Only consume a queued revenge when the revenge actually takes coins.
@@ -715,8 +584,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const normalized = normalizeGuess(value);
       const known = round.words30.some(item => item.word === normalized);
       flashMessage(!normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the 30 hidden words. Trace the letters.', 'bad');
-      if (!takeChestPower(playerId, 'streak')) comboStreak[playerId] = 0;   /* chest streak guard can save one miss */
-      renderMysteryChest();
+      comboStreak[playerId] = 0;
       return false;
     }
     if (result.champ) {
@@ -757,13 +625,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        This keeps words 1–20 in BUILD; word 21 is the first robbery. */
     const outcome = resolveWord(playerId, result.word);
     round.foundAll.add(result.word);
-    if (round.level === BOARDS && !round.chestBoardFiveClaimed) {
-      round.chestBoardFiveClaimed = true;
-      grantMysteryChest(playerId);
-    } else if (CHEST_WORDS.includes(round.foundAll.size)) {
-      grantMysteryChest(playerId);
-    }
-    renderMysteryChest();
     /* taken in the robbery half, gained in the build half: the display reads the
        amount that actually moved, or a fallback payout shows as "+0 coins" */
     const credited = outcome.taken || outcome.gained;
@@ -1829,7 +1690,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     $('roundLabel').textContent = String(round.level).padStart(2, '0');
     $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. First 20 words earn coins; final 10 steal from the previous active seat.';
     renderPhase();
-    renderMysteryChest();
   }
 
   function resetRound() {
@@ -1860,8 +1720,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       boards: [],
       scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: START_COINS, words: 0 }])),
       revengeTargets: {},
-      chestPowers: Object.fromEntries(PLAYERS.map(player => [player.id, []])),
-      chestBoardFiveClaimed: false,
       ended: false
     };
     comboStreak = {};
