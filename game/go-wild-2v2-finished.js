@@ -60,7 +60,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      player holding the most coins always answers first, then the turn
      travels the seat cycle — champ, jess, kalkal, poker, back to champ. The
      grid pays the first correct answer; from then on every correct answer
-     takes its coins out of the previous scorer's purse. The round's final
+     takes coins from the previous active seat during the final ten-word robbery phase. The round's final
      word can only be won by touching the letters — drag it, don't type it.
      The leaderboard prints when all 30 words are found; top coins win. */
   const BOARDS = 5;             /* five boards of six hidden words = 30 */
@@ -364,7 +364,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
                                length. Nothing can be lost, so the first twenty
                                words are about banking a purse.
        ROBBERY   words 21-30   the grid stops paying. A correct word takes
-                               coins from the richest seat instead, and the
+                               coins from the previous active seat instead, and the
                                amount is that word's length - a four takes
                                little, an eight takes a lot.
 
@@ -375,7 +375,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   const BUILD_WORDS = 20;            /* words found before robbery opens */
   const COIN_PER_LETTER = 80;        /* build: length x this, from the grid */
   const STEAL_PER_LETTER = 250;      /* robbery: length x this, out of a purse */
-  const ELIMINATION_FLOOR = 2000;    /* under this a seat is out for the round */
+  const ELIMINATION_FLOOR = 500;     /* a seat stands only after repeated losses */
   const STEAL_SHARE = 0.7;           /* one word cannot take more than this */
 
   let eliminated = new Set();
@@ -1652,7 +1652,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     renderSlots();
     renderPath();
     $('roundLabel').textContent = String(round.level).padStart(2, '0');
-    $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. First 20 words pay out; after that every word robs the richest seat.';
+    $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. First 20 words earn coins; final 10 steal from the previous active seat.';
     renderPhase();
   }
 
@@ -1671,8 +1671,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     $('resultModal').setAttribute('aria-hidden', 'true');
     $('guessInput').value = '';
     $('guessMessage').classList.remove('good', 'bad');
-    $('guessMessage').textContent = '30 levels, 15 seconds a turn. Hidden words pay 100 coins a letter.';
-    $('roundMessage').textContent = 'Everyone starts on ' + START_COINS.toLocaleString('en-US') + ' coins. The top purse opens; the grid pays the first find, then every find is paid by the scorer before you.';
+    $('guessMessage').textContent = '30 hidden words · 15 seconds per turn · first 20 earn 80 base coins per letter; final 10 steal coins.';
+    $('roundMessage').textContent = 'Everyone starts with ' + START_COINS.toLocaleString('en-US') + ' coins. First 20 words are paid by the grid; final 10 steal from the previous active seat. A player stands below 500 coins.';
     path = [];
     round = {
       level: 1,
@@ -1692,7 +1692,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     renderScores();
     applyBotFx();
     passStreak = 0;
-    /* the richest purse always opens the round; the turn then travels the
+    /* the highest purse opens the round; the turn then travels the
        seat cycle from there — champ, jess, kalkal, poker, back to champ. */
     const maxCoins = Math.max(...PLAYERS.map(player => round.scores[player.id].coins));
     const opener = SEAT_CYCLE.find(id => round.scores[id].coins === maxCoins);
