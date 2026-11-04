@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="game/go-wild-2v2-moonlit-redesign.css?v=14">
 <link rel="stylesheet" href="game/go-wild-2v2-final-polish.css?v=4">
 <link rel="stylesheet" href="game/go-wild-2v2-poker-card-fix.css?v=6">
+<link rel="stylesheet" href="game/go-wild-2v2-cinematic.css?v=1">
 </head>
 <body>
 <div id="app" class="gwx-app">
@@ -139,6 +140,8 @@
       </div>
     </section>
 
+    <aside class="gwx-cinematic-feed" aria-label="Live game activity"><header><span class="gwx-feed-live"></span><b>GAME ACTIVITY</b><small>LIVE</small></header><ol id="gwxEventFeed" aria-live="polite"><li class="gwx-feed-empty">Game events will appear here.</li></ol></aside>
+
     <div class="gwx-tools">
       <button id="restartBtn" type="button" title="Game controls" aria-label="Game controls">&#9881;</button>
       <div id="gwx-controls-menu" class="gwx-controls-menu" hidden><button id="restart-round-btn" type="button">Restart round</button></div>
@@ -153,7 +156,7 @@
 
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">CHAMP WINS</h2><p id="resultText"></p><ol id="resultBoard" class="gwx-modal-board" aria-label="Player leaderboard"></ol><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=chest-syntax-fix-2"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=cinematic-feed-1"></script>
 <script src="game/audio-cues.js?v=5"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
 <script src="game/go-wild-2v2-coins.js?v=coins-13" defer></script>
 <script src="game/pwa.js" defer></script>
