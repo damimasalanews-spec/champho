@@ -22,3 +22,10 @@
 .phase-banner{border:1px solid rgba(225,184,102,.72)!important;background:linear-gradient(110deg,rgba(5,12,26,.97),rgba(27,29,55,.96))!important;box-shadow:0 12px 38px #000a,0 0 22px rgba(219,170,78,.16)!important;backdrop-filter:blur(12px)}
 .phase-banner b{letter-spacing:.16em;text-shadow:0 0 14px rgba(255,205,111,.45)}
 .phase-banner.is-robbery{border-color:rgba(255,114,82,.8)!important;box-shadow:0 12px 38px #000a,0 0 24px rgba(255,93,62,.2)!important}
+
+/* Head-to-Head Duel side event */
+.gwx-duel-control{display:flex;flex-direction:column;gap:5px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(214,177,91,.2)}
+.gwx-duel-control button{border:1px solid rgba(236,190,91,.72);border-radius:7px;background:linear-gradient(135deg,rgba(116,75,23,.55),rgba(24,22,39,.92));color:#ffe3a1;font:800 11px/1.2 inherit;letter-spacing:.08em;padding:9px 11px;cursor:pointer;transition:filter .18s,transform .18s}
+.gwx-duel-control button:hover:not(:disabled){filter:brightness(1.25);transform:translateY(-1px)}
+.gwx-duel-control button:disabled{opacity:.48;cursor:not-allowed}
+.gwx-duel-control small{color:rgba(238,226,202,.72);font-size:10px;line-height:1.35}
