@@ -3572,3 +3572,25 @@ html, body, .gwx-app { background: #06152f; }
  .champ-social-controls { left:8px;bottom:6px; }
 }
 @media (prefers-reduced-motion:reduce) { .letter-tile,.gwx-seat,.gwx-player-card { transition:none!important; } }
+
+
+/* Approved castle-scene asset: use the dedicated game background, not the
+   older green island/forest placeholder. Keep the existing neon overlays. */
+.gwx-table {
+  background-color: #071a3d !important;
+  background-image: linear-gradient(180deg, #06163720 0%, #06163708 42%, #06163735 100%), url("assets/background.png") !important;
+  background-position: center center !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Keep the player panels flat and stable during table feedback animations. */
+.gwx-seat .gwx-player-card,
+.gwx-seat .gwx-local-meta {
+  transform: none;
+}
+.gwx-seat.gift-hit .gwx-player-card,
+.gwx-seat.gift-hit .gwx-local-meta {
+  animation: none !important;
+  transform: none !important;
+}
