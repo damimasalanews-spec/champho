@@ -374,3 +374,118 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
   .gwx-hunt-hint,.gwx-round-words { display:none!important; }
   .gwx-seat .gwx-player-card,.gwx-seat .gwx-local-meta { min-height:78px!important; }
 }
+
+
+/* Individual player identities + equal card geometry + balanced competition HUD. */
+@media (min-width:761px) {
+  .gwx-seat {
+    width:clamp(250px,19vw,310px)!important;
+    display:flex!important; flex-direction:column!important; gap:0!important;
+  }
+  .gwx-seat.top { left:2.6%!important; right:auto!important; top:22%!important; bottom:auto!important; }
+  .gwx-seat.bottom { left:2.6%!important; right:auto!important; top:auto!important; bottom:15%!important; width:clamp(250px,19vw,310px)!important; }
+  .gwx-seat.left { right:2.6%!important; left:auto!important; top:22%!important; bottom:auto!important; }
+  .gwx-seat.right { right:2.6%!important; left:auto!important; top:auto!important; bottom:15%!important; }
+  .gwx-seat .gwx-player-card,.gwx-seat .gwx-local-meta {
+    width:100%!important; min-height:126px!important; height:126px!important;
+    box-sizing:border-box!important; display:grid!important;
+    grid-template-columns:60px minmax(0,1fr)!important; grid-template-rows:1fr auto!important;
+    align-items:center!important; gap:6px 12px!important; padding:12px!important;
+    border-width:1.5px!important; border-radius:17px 17px 0 0!important;
+  }
+  .gwx-seat .gwx-avatar { grid-column:1!important; grid-row:1!important; width:58px!important;height:58px!important; }
+  .gwx-seat .gwx-player-info { grid-column:2!important; grid-row:1!important; min-width:0!important; }
+  .gwx-seat .gwx-seat-coins,.gwx-seat .gwx-card-count {
+    grid-column:1/-1!important; grid-row:2!important; width:100%!important;
+    min-height:24px!important; height:24px!important; box-sizing:border-box!important;
+    display:flex!important; align-items:center!important; justify-content:space-between!important;
+    gap:8px!important; margin:0!important; padding:4px 2px 0!important;
+    border:0!important; border-top:1px solid #ffffff38!important; border-radius:0!important;
+    background:transparent!important;
+  }
+  .gwx-seat .gwx-seat-coins b,.gwx-seat .gwx-card-count>span { font-size:11px!important; }
+  .gwx-seat .gwx-seat-coins small,.gwx-seat .gwx-card-count small,.gwx-seat .gwx-card-count em { font-size:9px!important; }
+  .gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card { border-radius:17px 17px 0 0!important; }
+  .gwx-seat.left .gwx-card-count,.gwx-seat.right .gwx-card-count {
+    border:1.5px solid currentColor!important; border-top:0!important;
+    border-radius:0 0 17px 17px!important; padding:4px 12px!important;
+  }
+  .gwx-seat.bottom .gwx-local-meta { border-radius:17px!important; }
+  .gwx-seat.bottom .champ-social-controls {
+    position:static!important; transform:none!important; display:flex!important;
+    justify-content:flex-end!important; gap:8px!important; margin-top:7px!important;
+  }
+  .gwx-seat.bottom .social-toggle { min-width:72px!important; height:28px!important; border-radius:99px!important; }
+  .gwx-competition-hud {
+    top:100px!important; left:50%!important; right:auto!important;
+    transform:translateX(-50%)!important; width:min(570px,42vw)!important;
+    min-height:58px!important; padding:6px 9px!important; z-index:13!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    border-radius:14px!important;
+  }
+  .gwx-comp-stat { padding:4px 9px!important; gap:2px!important; }
+  .gwx-comp-stat small { font-size:8px!important; }
+  .gwx-comp-stat strong { font-size:11px!important; }
+  .gwx-comp-stat em { font-size:9px!important; }
+}
+/* Four independent player palettes — color follows player identity, never seat/team. */
+.gwx-seat[data-player="poker"] .gwx-player-card,
+.gwx-seat[data-player="poker"] .gwx-local-meta {
+  --player-accent:#42d8e8; --player-glow:#18b9d4;
+  border-color:#42d8e8!important;
+  background:linear-gradient(145deg,rgba(5,62,83,.97),rgba(5,27,54,.98))!important;
+  box-shadow:0 0 0 1px #42d8e844,0 0 20px #18b9d466,0 12px 28px #02091eaa!important;
+}
+.gwx-seat[data-player="kalkal"] .gwx-player-card,
+.gwx-seat[data-player="kalkal"] .gwx-card-count {
+  --player-accent:#c18aff; --player-glow:#a45aff;
+  border-color:#c18aff!important;
+  background:linear-gradient(145deg,rgba(59,31,91,.98),rgba(28,18,58,.98))!important;
+  box-shadow:0 0 0 1px #c18aff44,0 0 20px #a45aff66,0 12px 28px #02091eaa!important;
+}
+.gwx-seat[data-player="jess"] .gwx-player-card,
+.gwx-seat[data-player="jess"] .gwx-card-count {
+  --player-accent:#ff9c55; --player-glow:#ff7a35;
+  border-color:#ff9c55!important;
+  background:linear-gradient(145deg,rgba(91,48,15,.98),rgba(49,25,17,.98))!important;
+  box-shadow:0 0 0 1px #ff9c5544,0 0 20px #ff7a3566,0 12px 28px #02091eaa!important;
+}
+.gwx-seat[data-player="champ"] .gwx-player-card,
+.gwx-seat[data-player="champ"] .gwx-local-meta {
+  --player-accent:#a8e66a; --player-glow:#80d84a;
+  border-color:#a8e66a!important;
+  background:linear-gradient(145deg,rgba(42,75,29,.98),rgba(18,43,30,.98))!important;
+  box-shadow:0 0 0 1px #a8e66a44,0 0 20px #80d84a66,0 12px 28px #02091eaa!important;
+}
+.gwx-seat[data-player="poker"] .gwx-avatar,
+.gwx-seat[data-player="kalkal"] .gwx-avatar,
+.gwx-seat[data-player="jess"] .gwx-avatar,
+.gwx-seat[data-player="champ"] .gwx-avatar {
+  border-color:var(--player-accent)!important;
+  box-shadow:0 0 0 2px #09152e,0 0 14px var(--player-glow)!important;
+}
+.gwx-seat[data-player="poker"] .gwx-seat-coins,
+.gwx-seat[data-player="champ"] .gwx-seat-coins,
+.gwx-seat[data-player="kalkal"] .gwx-card-count,
+.gwx-seat[data-player="jess"] .gwx-card-count { color:var(--player-accent); }
+
+/* The BUILD/ROBBERY phase banner was appended to body and covered navigation.
+   Dock it in its own reserved strip at the left of the arena. */
+.phase-banner {
+  position:fixed!important; top:calc(clamp(92px,10vh,110px) + 16px)!important;
+  left:18px!important; right:auto!important; bottom:auto!important;
+  z-index:9!important; width:190px!important; min-height:42px!important;
+  box-sizing:border-box!important; padding:7px 11px!important;
+  display:flex!important; flex-direction:column!important; justify-content:center!important;
+  gap:2px!important; border:1px solid #42d8e8aa!important; border-left:3px solid #42d8e8!important;
+  border-radius:11px!important; background:rgba(4,20,43,.94)!important;
+  box-shadow:0 6px 18px #02091e88!important; pointer-events:none!important;
+}
+.phase-banner b { font-size:9px!important; letter-spacing:1.3px!important; color:#8df4d0!important; }
+.phase-banner span { font-size:9px!important; line-height:1.25!important; color:#d8eaff!important; }
+
+/* Keep transient heist coins and feedback effects from obscuring the board. */
+.heist-coin { width:22px!important; height:22px!important; z-index:18!important; pointer-events:none!important; }
+@media (max-width:760px) {
+  .phase-banner { position:relative!important; top:auto!important; left:auto!important; width:100%!important; margin:0 0 10px!important; }
+}
