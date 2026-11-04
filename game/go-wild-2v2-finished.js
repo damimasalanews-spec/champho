@@ -466,6 +466,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
       round.scores[playerId].coins += out.gained;
       out.shielded = target;
+      /* A blocked revenge is not a successful revenge: avoid announcing
+         a 1.5x steal when no coins were taken from the protected player. */
+      out.revenge = false;
       return out;
     }
 
