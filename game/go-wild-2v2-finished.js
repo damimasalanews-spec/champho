@@ -452,7 +452,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       ? revengeTarget
       : seatBefore(playerId);
     out.revenge = Boolean(revengeTarget && target === revengeTarget);
-    if (out.revenge) delete round.revengeTargets[playerId];
 
     if (!target) {                     /* nobody left to rob: small fallback payout */
       out.gained = Math.round(length * COIN_PER_LETTER * 0.5 * multiplier);
@@ -480,6 +479,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const want = Math.round(length * STEAL_PER_LETTER * multiplier * bountyMultiplier * revengeMultiplier);
     const take = Math.max(0, Math.min(want, Math.round(purse * STEAL_SHARE), purse));
     if (take > 0) {
+      /* Only consume a queued revenge when the revenge actually takes coins.
+         If a Champ shield blocks it, keep the target queued for a later turn. */
+      if (out.revenge) delete round.revengeTargets[playerId];
       round.scores[target].coins -= take;
       round.scores[playerId].coins += take;
       out.taken = take;
