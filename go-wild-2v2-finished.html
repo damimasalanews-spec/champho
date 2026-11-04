@@ -108,7 +108,7 @@
       <div id="guessMessage" class="gwx-message" aria-live="polite">Tap neighboring letters or type a word.</div>
     </section>
 
-    <aside class="gwx-hunt-hint"><strong><span aria-hidden="true">✦</span> INTO THE WILD</strong><span class="wild-tip-label">WILD TIP · WORD HUNT</span><p class="wild-tip-copy">Start with a short word, then follow neighboring letters to discover longer words. Every valid find adds to your score!</p></aside>
+    <aside class="gwx-hunt-hint"><strong><span aria-hidden="true">✦</span> INTO THE WILD</strong><span class="wild-tip-label">WILD TIP · WORD HUNT</span><p class="wild-tip-copy" id="wildTipCopy" aria-live="polite">Start with short words to learn the grid, then hunt longer words for bigger coin rewards.</p></aside>
     <aside class="gwx-round-words"><strong><span aria-hidden="true">+</span> ROUND WORDS</strong><p id="roundMessage" aria-live="polite">A fresh hunt begins.</p></aside>
 
     <section class="gwx-seat bottom" data-player="champ">
@@ -153,7 +153,7 @@
 
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">CHAMP WINS</h2><p id="resultText"></p><ol id="resultBoard" class="gwx-modal-board" aria-label="Player leaderboard"></ol><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=results-1"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=wild-guide-1"></script>
 <script src="game/audio-cues.js?v=5"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
 <script src="game/go-wild-2v2-coins.js?v=coins-13" defer></script>
 <script src="game/pwa.js" defer></script>
