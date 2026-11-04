@@ -1,0 +1,147 @@
+/* Go Wild 2 — moonlit arena redesign layer.
+   Deliberately scoped to the 2v2 game page; gameplay DOM IDs and JS hooks stay intact. */
+:root{
+  --gwx-night:#06132d;--gwx-blue:#1269e8;--gwx-blue2:#42b8ff;--gwx-gold:#ffd66b;
+  --gwx-violet:#782ce0;--gwx-red:#b51f48;--gwx-panel:rgba(5,19,49,.88);
+}
+html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
+.gwx-app{background:var(--gwx-night);font-family:"Nunito Local","Trebuchet MS",sans-serif}
+.gwx-topbar{
+ height:clamp(62px,8vh,82px);padding:0 clamp(14px,2.5vw,38px);
+ background:linear-gradient(180deg,#071735f5,#081b3af0);
+ border-bottom:1px solid #83baff45;box-shadow:0 8px 26px #02091e80;
+}
+.gwx-logo-mark{border-radius:14px;background:linear-gradient(145deg,#ffe9a1,#e6a72e);box-shadow:0 0 18px #ffc84b80;color:#34204b}
+.gwx-logo-copy b{font-size:clamp(14px,1.45vw,20px);letter-spacing:1.5px}
+.gwx-logo-copy small{color:#ffd978}
+.gwx-matchbar{color:#e7d5ff;border-color:#b38cff55;font-size:14px;font-weight:1000}
+.gwx-top-coins{border:1px solid #ffd97870;background:#101f48;border-radius:15px;box-shadow:inset 0 0 18px #ffd97812}
+.gwx-profile{border:2px solid var(--gwx-gold);box-shadow:0 0 0 3px #8b63ec50,0 0 18px #ffd97855}
+.gwx-table{
+ inset:clamp(62px,8vh,82px) 0 0;
+ background:#071735 url("../Moonlit%20Fantasy%20Arena%20Courtyard.png") center 54%/cover no-repeat;
+ display:block;
+}
+.gwx-table::before{background:linear-gradient(180deg,#0614319c 0%,#06163830 38%,#06122c58 72%,#030c20d9 100%)}
+.gwx-table::after{background:radial-gradient(ellipse at 50% 45%,transparent 20%,#02091e80 100%)}
+.gwx-game-nav{top:14px;left:clamp(14px,2vw,30px);right:clamp(14px,2vw,30px)}
+.gwx-leave,.gwx-help summary{border:1px solid #a9cfff70;background:#071b3dcc;border-radius:12px;box-shadow:0 4px 16px #02091e75}
+.gwx-hunt-hud{
+ top:14px;width:min(680px,52vw);min-height:72px;padding:10px 18px;gap:16px;
+ border:1px solid #ffdb7b;border-radius:20px;
+ background:linear-gradient(135deg,#071a3df5,#15265ceF);
+ box-shadow:0 0 0 2px #ffdb7b25,0 10px 32px #02091eaa,inset 0 0 22px #5d9cff20;
+}
+.gwx-hunt-title h1{font-size:clamp(17px,1.6vw,23px);letter-spacing:1px;text-shadow:0 0 14px #ffd66b65}
+.gwx-timer{border-color:#85baff45}.gwx-timer strong{font-size:clamp(21px,2vw,29px);color:#fff;text-shadow:0 0 12px #6dc7ff90}
+.gwx-progress-copy b{color:#ffdf8a}
+.gwx-level-track{height:8px;background:#d9eaff25}.gwx-level-track span{background:linear-gradient(90deg,#ffdf83,#ffad36);box-shadow:0 0 12px #ffcc62}
+.gwx-seat{width:min(230px,17vw);z-index:3}
+.gwx-seat.top{top:18%;left:2.2%}
+.gwx-seat.left{top:18%;right:2.2%}
+.gwx-seat.bottom{bottom:17%;left:2.2%;top:auto}
+.gwx-seat.right{bottom:17%;right:2.2%;top:auto}
+.gwx-seat .gwx-player-card,.gwx-local-meta{
+ gap:12px;padding:13px;border:1px solid #4ba9ffb0;border-radius:18px;
+ background:linear-gradient(145deg,#071d4af2,#092c68ed);
+ box-shadow:0 0 0 2px #237bff25,0 10px 28px #02091eaa,inset 0 0 20px #54baff12;
+ backdrop-filter:blur(9px);
+}
+.gwx-seat.left .gwx-player-card,.gwx-seat.right .gwx-player-card{
+ border-color:#ff5c8cbd;background:linear-gradient(145deg,#3c102cf2,#6a1239ed);
+ box-shadow:0 0 0 2px #ff4f7925,0 10px 28px #02091eaa,inset 0 0 20px #ff6b9015;
+}
+.gwx-seat.active .gwx-player-card,.gwx-seat.bottom.active .gwx-local-meta{
+ border-color:#ffe18b;box-shadow:0 0 0 2px #ffd66b55,0 0 24px #ffc94b55,0 10px 28px #02091eaa;
+}
+.gwx-avatar{width:clamp(48px,4.5vw,64px);height:clamp(48px,4.5vw,64px);border:2px solid #6ccaff;background:#102d65;box-shadow:0 0 12px #54baff55}
+.gwx-seat.left .gwx-avatar,.gwx-seat.right .gwx-avatar{border-color:#ff8aa9;box-shadow:0 0 12px #ff568455}
+.gwx-seat.bottom .gwx-avatar{border-color:#ffdb75}
+.gwx-player-info strong,.gwx-local-meta strong{font-size:clamp(14px,1.15vw,17px)}
+.gwx-player-info>span,.gwx-local-meta>div>span{color:#c2dcff;font-size:9px;letter-spacing:.6px}
+.gwx-player-info>span::before,.gwx-local-meta>div>span::before{background:#55f0b1;box-shadow:0 0 8px #55f0b1}
+.gwx-seat-coins,.gwx-card-count{border-color:#ffffff28}
+.gwx-seat-coins b,.gwx-card-count>span{color:#ffdf85}
+.gwx-center{
+ position:absolute;top:50%;left:50%;width:min(570px,44vw);transform:translate(-50%,-43%);
+ display:flex;flex-direction:column;align-items:stretch;gap:12px;z-index:4;
+}
+.gwx-status-line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 4px}
+.gwx-turn-label{font-size:clamp(13px,1.2vw,17px);font-weight:1000;letter-spacing:1.5px;color:#ffe49b;text-shadow:0 2px 10px #02091e}
+.gwx-color-label{padding:6px 10px;border:1px solid #b4d8ff75;border-radius:99px;background:#061b42d9;color:#d6eaff;font-size:10px;font-weight:900}
+.gwx-letter-grid-shell{
+ padding:clamp(9px,1.1vw,15px);border:2px solid #ffda78;border-radius:24px;
+ background:linear-gradient(145deg,#071b40eF,#101b48ed);
+ box-shadow:0 0 0 3px #8d63ef45,0 0 32px #3d8cff65,0 18px 42px #02091ebf,inset 0 0 26px #7abaff16;
+}
+.gwx-letter-grid{gap:clamp(5px,.65vw,9px)}
+.gwx-letter-grid button,.gwx-letter-grid [role=gridcell]{
+ border:1px solid #fff0c0;border-radius:12px;
+ background:linear-gradient(145deg,#fff9df 0%,#f3d78e 55%,#c78d35 100%);
+ color:#102653;font-weight:1000;text-shadow:0 1px #fff;
+ box-shadow:0 4px 0 #87531f,0 7px 13px #02091e75,inset 0 2px 3px #fff;
+}
+.gwx-letter-grid button:focus,.gwx-letter-grid button.selected,.gwx-letter-grid [aria-selected=true]{
+ outline:3px solid #72caff;outline-offset:1px;filter:brightness(1.12);box-shadow:0 0 18px #64c9ff,0 4px 0 #87531f;
+}
+.gwx-guess-form{display:grid;grid-template-columns:1fr auto;gap:9px;padding:8px;border:1px solid #d9b76f;border-radius:16px;background:#071735ed;box-shadow:0 10px 25px #02091eaa}
+.gwx-guess-form input{min-width:0;border:1px solid #ffffff35;border-radius:10px;background:#0d2854;color:#fff;padding:12px 14px;outline:none}
+.gwx-guess-form input::placeholder{color:#b5c9e6}
+.gwx-guess-form input:focus{border-color:#ffda78;box-shadow:0 0 0 3px #ffd66b22}
+.gwx-guess-form button{padding:0 22px;border:1px solid #ffe59a;border-radius:11px;background:linear-gradient(180deg,#ffe68f,#d99125);color:#2a1a34;font-weight:1000;letter-spacing:1px;box-shadow:0 4px 0 #80501b}
+.gwx-message{min-height:22px;text-align:center;color:#fff0c4;font-size:12px;font-weight:800;text-shadow:0 2px 8px #02091e}
+.gwx-hunt-hint,.gwx-round-words{
+ position:absolute;bottom:3.2%;top:auto;width:min(230px,17vw);padding:13px 15px;
+ border:1px solid #c6a9ff80;border-radius:16px;background:linear-gradient(145deg,#101b4beF,#24134deF);
+ box-shadow:0 10px 25px #02091eaa;backdrop-filter:blur(8px);
+}
+.gwx-hunt-hint{left:2.2%}.gwx-round-words{right:2.2%}
+.gwx-hunt-hint strong,.gwx-round-words strong{color:#ffdf88;font-size:11px;letter-spacing:1px}
+.gwx-hunt-hint span,.gwx-round-words p{color:#d7e6ff;font-size:11px;line-height:1.4}
+.gwx-hunt-hint p{margin:7px 0 0;color:#d7e6ff;font-size:11px;line-height:1.4}
+.gwx-round-words p{margin:7px 0 0}
+.gwx-seat.bottom{bottom:3.2%;left:50%;width:min(420px,35vw);transform:translateX(-50%)!important}
+.gwx-seat.bottom .gwx-local-meta{padding:9px 12px}
+.gwx-seat.bottom .gwx-avatar{width:44px;height:44px}
+.gwx-seat.bottom .champ-social-controls{position:absolute;right:8px;top:50%;transform:translateY(-50%)}
+.gwx-seat.bottom .gwx-local-meta{padding-right:112px}
+.gwx-footer{display:none}
+.gwx-tools{right:2.3%;bottom:3.6%;z-index:8}
+.gwx-tools>button{width:40px;height:40px;border:1px solid #ffe08a;border-radius:13px;background:#081d45;color:#ffe08a;box-shadow:0 0 15px #5f9eff65}
+.gwx-message:empty{display:none}
+.gwx-modal{z-index:50}
+@media(max-width:900px){
+ .gwx-hunt-hud{width:min(560px,62vw);grid-template-columns:1fr auto 1.2fr}
+ .gwx-seat{width:19vw}.gwx-seat.top{left:1.3%}.gwx-seat.left{right:1.3%}
+ .gwx-center{width:48vw}.gwx-hunt-hint,.gwx-round-words{display:none}
+ .gwx-seat.bottom{bottom:2.5%;width:36vw}
+}
+@media(max-width:640px){
+ html,body{height:auto;min-height:100%;overflow:auto}
+ .gwx-app{position:relative;min-height:100svh;height:auto;overflow:visible}
+ .gwx-topbar{position:relative;height:62px;grid-template-columns:1fr auto;padding:0 12px;gap:8px}
+ .gwx-matchbar{display:none}.gwx-top-actions{position:static;gap:6px}
+ .gwx-top-coins{min-height:36px;padding:0 8px}.gwx-install-app{display:none}
+ .gwx-table{position:relative;inset:auto;min-height:calc(100svh - 62px);height:auto;overflow:visible;padding:15px 12px 24px}
+ .gwx-game-nav{position:relative;inset:auto;margin-bottom:12px}
+ .gwx-leave,.gwx-help summary{min-height:32px;padding:0 10px;font-size:10px}
+ .gwx-hunt-hud{position:relative;inset:auto;transform:none;width:100%;min-height:62px;margin:0 auto 15px;padding:9px 11px;grid-template-columns:1fr auto;gap:8px}
+ .gwx-level-rail{grid-column:1/-1}
+ .gwx-hunt-title h1{font-size:16px}.gwx-timer{padding:0 8px;border-left:0}.gwx-timer strong{font-size:21px}
+ .gwx-seat{position:relative!important;inset:auto!important;display:inline-block;width:calc(50% - 5px);margin:0 0 8px;vertical-align:top}
+ .gwx-seat .gwx-player-card,.gwx-local-meta{min-height:76px;padding:8px;gap:7px;border-radius:13px}
+ .gwx-avatar{width:38px;height:38px}.gwx-player-info strong{font-size:12px}.gwx-player-info>span{font-size:8px}
+ .gwx-seat-coins,.gwx-card-count{margin-top:4px;padding-top:4px;font-size:9px}
+ .gwx-center{position:relative;inset:auto;transform:none;width:100%;margin:6px auto 16px;gap:9px}
+ .gwx-letter-grid-shell{padding:8px;border-radius:17px}
+ .gwx-letter-grid{gap:5px}
+ .gwx-letter-grid button,.gwx-letter-grid [role=gridcell]{min-width:0;border-radius:8px}
+ .gwx-guess-form{gap:6px;padding:6px}.gwx-guess-form input{padding:10px;font-size:14px}.gwx-guess-form button{padding:0 13px;font-size:12px}
+ .gwx-message{font-size:11px}
+ .gwx-seat.bottom{left:auto!important;bottom:auto!important;width:100%;display:block;margin:8px 0 0;transform:none!important}
+ .gwx-seat.bottom .gwx-local-meta{padding-right:104px}
+ .gwx-seat.bottom .champ-social-controls{right:7px}
+ .gwx-hunt-hint,.gwx-round-words{display:block;position:relative;inset:auto;width:100%;margin:9px 0;padding:11px 13px}
+ .gwx-tools{position:absolute;right:14px;bottom:14px}
+ .gwx-tools>button{width:34px;height:34px}
+}
