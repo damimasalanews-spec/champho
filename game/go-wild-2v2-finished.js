@@ -708,11 +708,11 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
         const name = document.createElement('strong');
         name.textContent = player.name;
         const role = document.createElement('small');
-        role.textContent = index === 0 ? 'WINNER' : 'RIVAL';
+        role.textContent = (index === 0 ? 'WINNER' : 'RIVAL') + ' · ' + round.scores[player.id].words + (round.scores[player.id].words === 1 ? ' WORD' : ' WORDS');
         identity.append(name, role);
         const coins = document.createElement('b');
         coins.className = 'gwx-leader-coins';
-        coins.textContent = String(round.scores[player.id].coins);
+        coins.textContent = round.scores[player.id].coins.toLocaleString('en-US') + ' COINS';
         row.append(rank, identity, coins);
         host.appendChild(row);
       });
