@@ -194,6 +194,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
     renderSeatMarks();
     renderCompetition();
+    renderMysteryChest();
   }
 
   /* ---------------- competition layer -------------------------------------
@@ -377,6 +378,84 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
   const STEAL_PER_LETTER = 250;      /* robbery: length x this, out of a purse */
   const ELIMINATION_FLOOR = 500;     /* a seat stands only after repeated losses */
   const STEAL_SHARE = 0.7;           /* one word cannot take more than this */
+  /* Mystery Chest: six shared milestone events, identical rules for all seats. */
+  const CHEST_WORDS = [5, 10, 15, 20, 25, 30];
+  const CHEST_REWARDS = [
+    { id: 'double', name: 'DOUBLE WORD', icon: '✦', weight: 25, detail: 'Double your next eligible word payout (capped).' },
+    { id: 'shield', name: 'GUARDIAN SHIELD', icon: '🛡', weight: 20, detail: 'Block one robbery, then the shield breaks.' },
+    { id: 'revenge', name: 'REVENGE TOKEN', icon: '⚔', weight: 20, detail: 'Your next robbery targets the last active opponent who robbed you.' },
+    { id: 'boost', name: 'STEAL BOOST', icon: '🔥', weight: 15, detail: 'Add 15% to one successful robbery, within the normal steal cap.' },
+    { id: 'streak', name: 'STREAK GUARD', icon: '⚡', weight: 12, detail: 'Protect your streak from one missed turn.' },
+    { id: 'legendary', name: 'LEGENDARY CHOICE', icon: '👑', weight: 8, detail: 'Choose a Double Word or Guardian Shield power.' }
+  ];
+  function chestPowersFor(id) {
+    if (!round.chestPowers) round.chestPowers = Object.fromEntries(PLAYERS.map(p => [p.id, []]));
+    return round.chestPowers[id];
+  }
+  function renderMysteryChest() {
+    if (!round) return;
+    let panel = $('mysteryChestHud');
+    if (!panel) {
+      panel = document.createElement('aside');
+      panel.id = 'mysteryChestHud';
+      panel.className = 'gwx-mystery-chest';
+      panel.setAttribute('aria-live', 'polite');
+      const hint = document.querySelector('.gwx-hunt-hint');
+      (hint || $('table'))?.before(panel);
+    }
+    const next = CHEST_WORDS.find(n => n > round.foundAll.size);
+    const active = CHEST_WORDS.includes(round.foundAll.size + 1);
+    panel.classList.toggle('is-active', active);
+    panel.innerHTML = '<div class="gwx-chest-mark">♜</div><div class="gwx-chest-copy"><strong>' +
+      (active ? 'MYSTERY CHEST UNLOCKED' : next ? 'MYSTERY CHEST' : 'ALL TREASURES FOUND') +
+      '</strong><small>' + (active ? 'Solve this word to claim the treasure!' : next ? 'Next chest at word ' + next + ' of 30' : 'Six chests discovered') +
+      '</small></div><div class="gwx-chest-powers">' +
+      (chestPowersFor('champ').length ? chestPowersFor('champ').map(p => '<span title="' + p.detail + '">' + p.icon + ' ' + p.name + '</span>').join('') : '<span>NO ACTIVE POWERS</span>') + '</div>';
+  }
+  function grantMysteryChest(playerId) {
+    const inventory = chestPowersFor(playerId);
+    const roll = Math.random() * 100;
+    let total = 0;
+    let reward = CHEST_REWARDS.find(item => { total += item.weight; return roll < total; }) || CHEST_REWARDS[0];
+    if (reward.id === 'legendary') {
+      reward = Math.random() < 0.5
+        ? { id: 'double', name: 'DOUBLE WORD', icon: '✦', detail: 'Legendary choice: Double Word.' }
+        : { id: 'shield', name: 'GUARDIAN SHIELD', icon: '🛡', detail: 'Legendary choice: Guardian Shield.' };
+    }
+    if (inventory.length >= 2) {
+      const removed = inventory.shift();
+      notify(nameOf(playerId) + ' replaced ' + removed.name + ' with a new chest power.', 'info', 3000);
+    }
+    inventory.push(reward);
+    if (reward.id === 'shield') {
+      champShielded.add(playerId);
+      const seat = document.querySelector('.gwx-seat[data-player="' + playerId + '"]');
+      if (seat) {
+        seat.classList.add('has-champ-shield');
+        let badge = seat.querySelector('.gw-shield');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'gw-shield';
+          badge.textContent = '🛡 CHEST SHIELD';
+          badge.setAttribute('role', 'status');
+          (seat.querySelector('.gwx-player-card') || seat).appendChild(badge);
+        }
+      }
+    }
+    if (reward.id === 'revenge') {
+      const target = seatBefore(playerId);
+      if (target) round.revengeTargets[playerId] = target;
+    }
+    notify('MYSTERY CHEST · ' + nameOf(playerId) + ' found ' + reward.icon + ' ' + reward.name, 'bounty', 4200);
+    seatEvent(playerId, 'combo', 'CHEST');
+    renderMysteryChest();
+  }
+  function takeChestPower(playerId, id) {
+    const inventory = chestPowersFor(playerId);
+    const index = inventory.findIndex(power => power.id === id);
+    return index < 0 ? null : inventory.splice(index, 1)[0];
+  }
+
 
   let eliminated = new Set();
   /* A Champ Word earns lasting protection for the rest of this round. */
@@ -440,9 +519,12 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const length = word.length;
     const multiplier = comboMultiplier(playerId);
     const out = { length, robbery: inRobbery(), gained: 0, taken: 0, fromId: null, stood: null, multiplier, bounty: false, revenge: false };
+    const doublePower = takeChestPower(playerId, 'double');
+    const boostPower = out.robbery ? takeChestPower(playerId, 'boost') : null;
+    const chestMultiplier = doublePower ? 2 : 1;
 
     if (!out.robbery) {
-      out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
+      out.gained = Math.round(length * COIN_PER_LETTER * multiplier * chestMultiplier);
       round.scores[playerId].coins += out.gained;
       return out;
     }
@@ -469,9 +551,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       protectedSeat?.classList.remove('has-champ-shield');
       out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
       round.scores[playerId].coins += out.gained;
-      /* Reflection rewards the defender from the bank, never from the attacker. */
-      out.reflected = Math.round(length * STEAL_PER_LETTER * multiplier * 0.25);
-      round.scores[target].coins += out.reflected;
       out.shielded = target;
       out.shieldBroken = true;
       /* A blocked revenge is not a successful revenge: keep it queued. */
@@ -484,7 +563,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const bountyMultiplier = out.bounty ? 1.25 : 1;
     const revengeMultiplier = out.revenge ? 1.5 : 1;
     const purse = purseOf(target);
-    const want = Math.round(length * STEAL_PER_LETTER * multiplier * bountyMultiplier * revengeMultiplier);
+    const want = Math.round(length * STEAL_PER_LETTER * multiplier * bountyMultiplier * revengeMultiplier * (boostPower ? 1.15 : 1) * chestMultiplier);
     const take = Math.max(0, Math.min(want, Math.round(purse * STEAL_SHARE), purse));
     if (take > 0) {
       /* Only consume a queued revenge when the revenge actually takes coins.
@@ -588,7 +667,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       const normalized = normalizeGuess(value);
       const known = round.words30.some(item => item.word === normalized);
       flashMessage(!normalized ? 'Choose letters or type a word first.' : known ? 'That word has already been found.' : 'Not one of the 30 hidden words. Trace the letters.', 'bad');
-      comboStreak[playerId] = 0;   /* a dry turn breaks your run, nobody else's */
+      if (!takeChestPower(playerId, 'streak')) comboStreak[playerId] = 0;   /* chest streak guard can save one miss */
       return false;
     }
     if (result.champ) {
@@ -629,6 +708,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        This keeps words 1–20 in BUILD; word 21 is the first robbery. */
     const outcome = resolveWord(playerId, result.word);
     round.foundAll.add(result.word);
+    if (CHEST_WORDS.includes(round.foundAll.size)) grantMysteryChest(playerId);
     /* taken in the robbery half, gained in the build half: the display reads the
        amount that actually moved, or a fallback payout shows as "+0 coins" */
     const credited = outcome.taken || outcome.gained;
@@ -640,7 +720,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (outcome.revenge) notify(nameOf(playerId) + ' got REVENGE on ' + nameOf(fromId) + ' · 1.5x attack!', 'steal', 3000);
     if (outcome.bounty) notify(nameOf(playerId) + ' claimed the BOUNTY from ' + nameOf(fromId) + ' · 25% bonus!', 'bounty', 3000);
     if (outcome.shieldBroken) notify('SHIELD BROKEN · ' + nameOf(outcome.shielded) + ' loses protection · +' + outcome.gained + ' bank coins to ' + nameOf(playerId), 'combo', 3600);
-    if (outcome.reflected) notify('SHIELD REFLECTION · ' + nameOf(outcome.shielded) + ' earns +' + outcome.reflected + ' bonus coins!', 'bounty', 3600);
     round.scores[playerId].words++;
     lastScorer = playerId;
     path = [];
@@ -1695,6 +1774,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     $('roundLabel').textContent = String(round.level).padStart(2, '0');
     $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. First 20 words earn coins; final 10 steal from the previous active seat.';
     renderPhase();
+    renderMysteryChest();
   }
 
   function resetRound() {
@@ -1725,6 +1805,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       boards: [],
       scores: Object.fromEntries(PLAYERS.map(player => [player.id, { coins: START_COINS, words: 0 }])),
       revengeTargets: {},
+      chestPowers: Object.fromEntries(PLAYERS.map(player => [player.id, []])),
       ended: false
     };
     comboStreak = {};
@@ -1742,6 +1823,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     lastScorer = null;
     eliminated = new Set();
     champShielded = new Set();
+    document.querySelectorAll('.gwx-seat .gw-shield').forEach(badge => badge.remove());
+    document.querySelectorAll('.gwx-seat').forEach(seat => seat.classList.remove('has-champ-shield'));
     document.querySelectorAll('.gwx-seat.is-out').forEach(seat => seat.classList.remove('is-out'));
     activeSeatId = null;
     document.querySelectorAll('.gw-shield').forEach(badge => badge.remove());
