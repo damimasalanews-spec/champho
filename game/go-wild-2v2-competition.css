@@ -127,28 +127,46 @@
 
 
 /* Full-table Mystery Chest reveal: every player sees the winner and the power. */
-.gwx-chest-celebration{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:22px;opacity:0;visibility:hidden;pointer-events:none}
+.gwx-chest-celebration{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:18px;opacity:0;visibility:hidden;pointer-events:none}
 .gwx-chest-celebration.is-showing{opacity:1;visibility:visible;pointer-events:auto}
-.gwx-chest-celebration-backdrop{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(37,26,65,.84),rgba(2,8,24,.94) 72%);backdrop-filter:blur(8px);opacity:0}
-.gwx-chest-celebration.is-showing .gwx-chest-celebration-backdrop{animation:gwxChestBackdrop .35s ease-out forwards}
-.gwx-chest-celebration-card{position:relative;isolation:isolate;width:min(520px,94vw);padding:30px 28px 24px;text-align:center;border:1px solid rgba(255,214,119,.8);border-radius:26px;background:linear-gradient(155deg,#152d50 0%,#241b42 56%,#101b35 100%);box-shadow:0 0 0 1px #fff2a522,0 24px 90px #000b,0 0 65px #f5bd4b35;color:#fff4d3;transform:translateY(35px) scale(.82);opacity:0;overflow:hidden}
-.gwx-chest-celebration-card:before{content:"";position:absolute;inset:8px;border:1px solid #f4d18b38;border-radius:19px;pointer-events:none}
-.gwx-chest-celebration.is-showing .gwx-chest-celebration-card{animation:gwxChestCardIn .65s cubic-bezier(.16,1.25,.35,1) .12s forwards}
-.gwx-chest-eyebrow{position:relative;color:#ffd779;font-size:10px;font-weight:1000;letter-spacing:.24em}
-.gwx-chest-big-icon{position:relative;margin:8px auto 4px;width:104px;height:104px;display:grid;place-items:center;border-radius:30px;font-size:66px;color:#fff0b2;background:radial-gradient(circle,#e7b94f55,#9c672b22 68%,transparent 70%);filter:drop-shadow(0 0 22px #ffc95c99);transform:scale(.45) rotate(-12deg)}
-.gwx-chest-celebration.is-showing .gwx-chest-big-icon{animation:gwxChestBurst .8s cubic-bezier(.2,1.5,.4,1) .55s forwards}
-.gwx-chest-opening{color:#ffe5a2;font-size:clamp(15px,3vw,21px);font-weight:1000;letter-spacing:.1em;text-shadow:0 2px 16px #ffc65a55}
-.gwx-chest-winner{margin:12px 0 7px;color:#c8eaff;font-size:clamp(13px,2.5vw,17px);font-weight:900;letter-spacing:.04em}
-.gwx-chest-reward-icon{font-size:38px;line-height:1.2;filter:drop-shadow(0 0 12px #ffd16a99)}
-.gwx-chest-reward-name{margin-top:5px;color:#ffdc83;font-size:clamp(19px,4vw,27px);font-weight:1000;letter-spacing:.08em}
-.gwx-chest-reward-detail{max-width:370px;margin:8px auto 0;color:#e2d9ee;font-size:13px;line-height:1.5}
-.gwx-chest-everyone{margin:18px auto 0;color:#a9c7e4;font-size:11px;letter-spacing:.035em}
-.gwx-chest-dismiss{position:relative;margin-top:18px;padding:11px 22px;border:1px solid #ffe19a;border-radius:999px;background:linear-gradient(100deg,#b77a2d,#e9c36b);color:#24172b;font-size:10px;font-weight:1000;letter-spacing:.12em;cursor:pointer;box-shadow:0 5px 20px #0005}
-.gwx-chest-confetti{position:absolute;top:17px;left:0;right:0;color:#ffd46e;font-size:20px;letter-spacing:10px;opacity:0}
-.gwx-chest-celebration.is-showing .gwx-chest-confetti{animation:gwxChestSparkle 1.8s ease-out .4s both}
+.gwx-chest-celebration-backdrop{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 42%,rgba(65,43,83,.82),rgba(3,8,25,.97) 72%);backdrop-filter:blur(9px);opacity:0}
+.gwx-chest-celebration.is-showing .gwx-chest-celebration-backdrop{animation:gwxChestBackdrop .55s ease-out forwards}
+.gwx-chest-celebration-card{position:relative;isolation:isolate;width:min(560px,95vw);max-height:94vh;overflow:auto;padding:25px 28px 22px;text-align:center;border:1px solid #ffe29a;border-radius:28px;background:radial-gradient(ellipse at 50% 25%,#3b3152 0,#172a4b 48%,#0c1731 100%);box-shadow:0 0 0 2px #ffd56b25,0 28px 100px #000d,0 0 90px #ffc34c45;color:#fff4d3;transform:translateY(45px) scale(.82);opacity:0}
+.gwx-chest-celebration-card:before{content:"";position:absolute;inset:8px;border:1px solid #f4d18b45;border-radius:21px;pointer-events:none}
+.gwx-chest-celebration.is-showing .gwx-chest-celebration-card{animation:gwxChestCardIn .7s cubic-bezier(.16,1.2,.35,1) .12s forwards}
+.gwx-chest-eyebrow{position:relative;color:#ffda7a;font-size:10px;font-weight:1000;letter-spacing:.22em}
+.gwx-chest-big-icon{position:relative;width:230px;height:185px;margin:8px auto 0;display:grid;place-items:center;isolation:isolate;filter:drop-shadow(0 12px 22px #0009);transform:scale(.65);opacity:0}
+.gwx-chest-celebration.is-showing .gwx-chest-big-icon{animation:gwxChestArrival .75s cubic-bezier(.2,1.4,.3,1) .45s forwards}
+.gwx-chest-rays{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#fff2a866 0,#ffc94a25 36%,transparent 70%);opacity:0}
+.gwx-chest-celebration.is-showing .gwx-chest-rays{animation:gwxChestGlow 2.4s ease-in-out .9s infinite alternate}
+.gwx-chest-box{position:absolute;z-index:2;left:34px;right:34px;bottom:18px;height:91px;border:5px solid #8c4b17;border-radius:13px 13px 22px 22px;background:linear-gradient(90deg,#9b4d13 0%,#f7bd45 18%,#b76b1b 38%,#ffd86c 54%,#a65313 78%,#f4b743 100%);box-shadow:inset 0 8px 12px #fff7a055,inset 0 -12px 14px #5d280c99,0 13px 18px #0008}
+.gwx-chest-box:before{content:"";position:absolute;left:42%;top:-5px;width:16%;height:100%;background:linear-gradient(90deg,#b87522,#ffe58b,#a65c17);border-left:2px solid #713d15;border-right:2px solid #713d15}
+.gwx-chest-box i{position:absolute;left:0;right:0;top:12px;height:9px;background:#ffe18b;box-shadow:0 3px 5px #5b2d13}
+.gwx-chest-lid{position:absolute;z-index:3;left:31px;right:31px;bottom:102px;height:66px;border:5px solid #854513;border-radius:70px 70px 10px 10px;background:linear-gradient(90deg,#a45114,#f8c34e 20%,#b96b1a 42%,#ffe18a 55%,#9d4e12 80%,#f5bb45);transform-origin:12% 100%;box-shadow:inset 0 8px 12px #fff8a455,0 4px 9px #0007;transition:transform .75s cubic-bezier(.2,.8,.2,1)}
+.gwx-chest-lock{position:absolute;z-index:4;bottom:43px;left:calc(50% - 15px);width:30px;height:37px;display:grid;place-items:center;border:3px solid #9a5a18;border-radius:7px;background:linear-gradient(#fff0a0,#d88c25);color:#8a4511;font-size:17px;box-shadow:0 2px 8px #0008}
+.gwx-chest-coins{position:absolute;z-index:1;top:0;color:#ffe18b;font-size:25px;opacity:0;transform:translateY(25px) scale(.5)}
+.gwx-chest-big-icon.is-opened .gwx-chest-lid{transform:translate(-8px,-35px) rotate(-32deg)}
+.gwx-chest-big-icon.is-opened .gwx-chest-lock{opacity:0;transform:translateY(18px) scale(.3);transition:.25s}
+.gwx-chest-big-icon.is-opened .gwx-chest-coins{animation:gwxChestCoins 1.1s ease-out forwards}
+.gwx-chest-big-icon.is-opened .gwx-chest-rays{opacity:1}
+.gwx-chest-opening{position:relative;color:#ffe5a2;font-size:clamp(17px,3vw,23px);font-weight:1000;letter-spacing:.1em;text-shadow:0 2px 20px #ffc65a77}
+.gwx-chest-winner{margin:9px 0 8px;color:#c8eaff;font-size:clamp(13px,2.5vw,17px);font-weight:900;letter-spacing:.04em}
+.gwx-chest-reward{margin:8px auto 0;padding:13px 15px 12px;max-width:390px;border:1px solid #f6d17b88;border-radius:17px;background:linear-gradient(135deg,#f5c65b20,#fff4c208);box-shadow:inset 0 0 22px #ffdb6b0c;opacity:0;transform:translateY(16px) scale(.94)}
+.gwx-chest-celebration.is-showing .gwx-chest-reward{animation:gwxChestReward .55s ease-out 2.05s forwards}
+.gwx-chest-reward-label{color:#f8d98c;font-size:9px;font-weight:1000;letter-spacing:.2em}
+.gwx-chest-reward-icon{margin-top:3px;font-size:35px;line-height:1.2;filter:drop-shadow(0 0 12px #ffd16a99)}
+.gwx-chest-reward-name{margin-top:3px;color:#ffdc83;font-size:clamp(19px,4vw,27px);font-weight:1000;letter-spacing:.08em}
+.gwx-chest-reward-detail{max-width:370px;margin:6px auto 0;color:#e2d9ee;font-size:13px;line-height:1.45}
+.gwx-chest-everyone{margin:12px auto 0;color:#a9c7e4;font-size:11px;letter-spacing:.035em}
+.gwx-chest-dismiss{position:relative;margin-top:14px;padding:11px 22px;border:1px solid #ffe19a;border-radius:999px;background:linear-gradient(100deg,#b77a2d,#f5d77c);color:#24172b;font-size:10px;font-weight:1000;letter-spacing:.12em;cursor:pointer;box-shadow:0 5px 20px #0005}
+.gwx-chest-confetti{position:absolute;top:12px;left:0;right:0;color:#ffd46e;font-size:21px;letter-spacing:8px;opacity:0;pointer-events:none}
+.gwx-chest-celebration.is-showing .gwx-chest-confetti{animation:gwxChestSparkle 2.2s ease-out .4s both}
 @keyframes gwxChestBackdrop{to{opacity:1}}
 @keyframes gwxChestCardIn{to{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes gwxChestBurst{0%{transform:scale(.45) rotate(-12deg)}65%{transform:scale(1.18) rotate(5deg)}100%{transform:scale(1) rotate(0)}}
-@keyframes gwxChestSparkle{0%{opacity:0;transform:translateY(12px) scale(.7)}30%{opacity:1}100%{opacity:.45;transform:translateY(-12px) scale(1.1)}}
-@media(prefers-reduced-motion:reduce){.gwx-chest-celebration.is-showing .gwx-chest-celebration-card,.gwx-chest-celebration.is-showing .gwx-chest-big-icon,.gwx-chest-celebration.is-showing .gwx-chest-confetti,.gwx-chest-celebration.is-showing .gwx-chest-celebration-backdrop{animation:none;opacity:1;transform:none}}
-@media(max-width:520px){.gwx-chest-celebration-card{padding:25px 18px 20px}.gwx-chest-big-icon{width:82px;height:82px;font-size:54px}}
+@keyframes gwxChestArrival{0%{opacity:0;transform:scale(.45) rotate(-9deg)}70%{opacity:1;transform:scale(1.08) rotate(3deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes gwxChestGlow{from{opacity:.3;transform:scale(.86)}to{opacity:1;transform:scale(1.12)}}
+@keyframes gwxChestCoins{0%{opacity:0;transform:translateY(25px) scale(.5)}35%{opacity:1;transform:translateY(-28px) scale(1.2)}100%{opacity:.9;transform:translateY(-8px) scale(1)}}
+@keyframes gwxChestReward{to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes gwxChestSparkle{0%{opacity:0;transform:translateY(12px) scale(.7)}30%{opacity:1}100%{opacity:.5;transform:translateY(-15px) scale(1.1)}}
+@media(prefers-reduced-motion:reduce){.gwx-chest-celebration.is-showing .gwx-chest-celebration-card,.gwx-chest-celebration.is-showing .gwx-chest-big-icon,.gwx-chest-celebration.is-showing .gwx-chest-confetti,.gwx-chest-celebration.is-showing .gwx-chest-celebration-backdrop,.gwx-chest-celebration.is-showing .gwx-chest-reward{animation:none;opacity:1;transform:none}}
+@media(max-width:520px){.gwx-chest-celebration-card{padding:19px 14px 16px}.gwx-chest-big-icon{height:155px;width:205px}.gwx-chest-opening{font-size:16px}.gwx-chest-reward{padding:10px}}
