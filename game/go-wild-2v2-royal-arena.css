@@ -1,0 +1,88 @@
+/* Royal Competition Arena — unified screen composition.
+   Layout-only overrides: preserve game controls, IDs, scoring and turn logic. */
+@media (min-width: 761px) {
+  .gwx-table { overflow:hidden!important; }
+  .gwx-hunt-hud {
+    top:14px!important; left:50%!important; right:auto!important;
+    transform:translateX(-50%)!important;
+    width:min(620px,44vw)!important; min-height:76px!important;
+    z-index:18!important;
+  }
+  .gwx-table #competitionHud,.gwx-table .gwx-competition-hud {
+    top:14px!important; right:clamp(18px,2.4vw,38px)!important;
+    left:auto!important; bottom:auto!important; transform:none!important;
+    width:min(350px,25vw)!important; min-width:290px!important; max-width:350px!important;
+    height:76px!important; min-height:76px!important; z-index:19!important;
+    box-sizing:border-box!important;
+  }
+  .gwx-seat {
+    width:clamp(250px,19vw,304px)!important;
+    height:138px!important; min-height:138px!important; max-height:138px!important;
+    z-index:10!important;
+  }
+  .gwx-seat.top { top:23%!important; left:2.5%!important; right:auto!important; bottom:auto!important; }
+  .gwx-seat.bottom { top:auto!important; left:2.5%!important; right:auto!important; bottom:17%!important; }
+  .gwx-seat.left { top:23%!important; right:2.5%!important; left:auto!important; bottom:auto!important; }
+  .gwx-seat.right { top:auto!important; right:2.5%!important; left:auto!important; bottom:17%!important; }
+  .gwx-seat .gwx-player-card {
+    width:100%!important;height:100%!important;min-height:138px!important;
+    box-sizing:border-box!important;display:grid!important;
+    grid-template-columns:66px minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,1fr) 48px!important;
+    gap:8px 10px!important;padding:12px 13px!important;
+    border:1px solid color-mix(in srgb,var(--p-accent,#8fcaff) 75%,#ffffff30)!important;
+    border-radius:18px!important;
+    background:linear-gradient(145deg,var(--p-bg1,#17345a),var(--p-bg2,#07152d))!important;
+    box-shadow:0 12px 30px #02091eaa,inset 0 1px 0 #ffffff22!important;
+  }
+  .gwx-seat .gwx-avatar { grid-column:1!important;grid-row:1!important;width:60px!important;height:60px!important; }
+  .gwx-seat .gwx-player-info { grid-column:2!important;grid-row:1!important;position:static!important;min-width:0!important;display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:center!important;gap:7px!important;text-align:left!important; }
+  .gwx-seat .gwx-player-info strong { font-size:clamp(17px,1.25vw,20px)!important;line-height:1.1!important; }
+  .gwx-seat .gwx-player-status { font-size:9px!important;letter-spacing:.7px!important; }
+  .gwx-seat .gwx-seat-coins { grid-column:1/-1!important;grid-row:2!important;display:flex!important;align-items:center!important;justify-content:space-between!important;width:100%!important;height:48px!important;margin:0!important;padding:8px 2px 0!important;border:0!important;border-top:1px solid color-mix(in srgb,var(--p-accent,#8fcaff) 45%,#ffffff20)!important;background:transparent!important; }
+  .gwx-seat .gwx-seat-coins b { font-size:19px!important;font-weight:950!important; }
+  .gwx-seat .gwx-seat-coins b small,.gwx-seat .gwx-seat-coins>small { font-size:9px!important; }
+  .gwx-seat[data-player="poker"] {--p-accent:#43d9e8;--p-bg1:#10475a;--p-bg2:#071d36}
+  .gwx-seat[data-player="kalkal"] {--p-accent:#bd91ff;--p-bg1:#49316d;--p-bg2:#21173d}
+  .gwx-seat[data-player="jess"] {--p-accent:#ffad65;--p-bg1:#67401f;--p-bg2:#2d1b19}
+  .gwx-seat[data-player="champ"] {--p-accent:#a8e879;--p-bg1:#3b5a2e;--p-bg2:#172c20}
+  .gwx-center {
+    top:53%!important;left:50%!important;right:auto!important;
+    transform:translate(-50%,-50%)!important;
+    width:min(560px,39vw)!important;max-width:560px!important;
+    z-index:6!important;
+  }
+  .gwx-letter-grid-shell { padding:12px!important;border:1px solid #f3cc79!important;border-radius:22px!important;background:linear-gradient(145deg,#071630ed,#101d3bed)!important;box-shadow:0 0 0 2px #ffdb7b20,0 18px 44px #02091eaa,inset 0 0 24px #69aaff18!important; }
+  .gwx-letter-grid { gap:7px!important; }
+  .gwx-hunt-hint { left:2.5%!important;bottom:2.5%!important;top:auto!important;width:clamp(240px,19vw,300px)!important;z-index:7!important; }
+  .gwx-round-words { right:2.5%!important;bottom:2.5%!important;top:auto!important;width:clamp(240px,19vw,300px)!important;z-index:7!important; }
+  #gwxDuelPanel,.gwx-duel-panel {
+    position:absolute!important;left:2.5%!important;right:auto!important;
+    top:auto!important;bottom:calc(2.5% + 112px)!important;
+    width:clamp(240px,19vw,300px)!important;max-width:300px!important;
+    z-index:22!important;margin:0!important;
+  }
+  .gwx-cinematic-feed {
+    position:absolute!important;right:2.5%!important;left:auto!important;
+    top:auto!important;bottom:calc(2.5% + 112px)!important;
+    width:clamp(240px,19vw,300px)!important;max-width:300px!important;
+    max-height:190px!important;z-index:22!important;
+  }
+  .gwx-cinematic-feed ol {max-height:132px!important}
+  .gwx-footer {display:none!important}
+  .gwx-seat.bottom .champ-social-controls {position:absolute!important;right:0!important;top:auto!important;bottom:-34px!important;display:flex!important;gap:7px!important;z-index:20!important}
+}
+@media (min-width: 761px) and (max-width: 1180px) {
+  .gwx-hunt-hud {width:42vw!important}
+  .gwx-center {width:36vw!important}
+  .gwx-seat {width:clamp(220px,20vw,260px)!important}
+  #gwxDuelPanel,.gwx-duel-panel,.gwx-cinematic-feed {width:clamp(220px,20vw,260px)!important}
+}
+@media (max-width:760px) {
+  #gwxDuelPanel,.gwx-duel-panel,.gwx-cinematic-feed {
+    position:relative!important;inset:auto!important;transform:none!important;
+    width:100%!important;max-width:none!important;margin:9px 0!important;
+  }
+  #gwxDuelPanel,.gwx-duel-panel {order:6!important}
+  .gwx-cinematic-feed {order:7!important}
+}
