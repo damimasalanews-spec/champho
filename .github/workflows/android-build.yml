@@ -6,24 +6,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Auto-Fix Config Files
+      
+      - name: Set up Java Environment
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          
+      - name: Install System Dependencies
         run: |
-          # Strip out the broken legacy framework lines immediately
+          npm install --legacy-peer-deps
+          npx cap sync android || true
+        
+      - name: Clear Legacy Plugins
+        run: |
           sed -i '/capacitor-cordova-android-plugins/d' android/settings.gradle || true
           if [ -f android/app/capacitor.build.gradle ]; then
             sed -i '/cordova.variables.gradle/d' android/app/capacitor.build.gradle || true
           fi
-
-      - name: Compile App Package Instantly
-        uses: kevin-david/bndl@v1
-        with:
-          project-path: 'android'
-          build-type: 'apk'
-          output-path: 'game-app.apk'
-
-      - name: Generate Download Link
+        
+      - name: Compile Application Package
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug -x test -x lint
+          
+      - name: Export Ready APK
         uses: actions/upload-artifact@v4
         with:
           name: game-app-installer
-          path: game-app.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
