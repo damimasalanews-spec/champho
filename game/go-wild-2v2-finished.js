@@ -567,7 +567,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       comboStreak[playerId] = 0;   /* a dry turn breaks your run, nobody else's */
       return false;
     }
-    round.foundAll.add(result.word);
     if (result.champ) {
       cardFloater(playerId, 'champ');
       notify('CHAMP WORD \u00b7 ' + result.word.toUpperCase() + ' is the longest on this board', 'combo', 2400);
@@ -589,7 +588,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        wearing the coin shield (they found a champ word) can't be robbed:
        the grid pays instead. */
     comboStreak[playerId] = (comboStreak[playerId] || 0) + 1;
+    /* Resolve the payout against the number of words found BEFORE this one.
+       This keeps words 1–20 in BUILD; word 21 is the first robbery. */
     const outcome = resolveWord(playerId, result.word);
+    round.foundAll.add(result.word);
     /* taken in the robbery half, gained in the build half: the display reads the
        amount that actually moved, or a fallback payout shows as "+0 coins" */
     const credited = outcome.taken || outcome.gained;
