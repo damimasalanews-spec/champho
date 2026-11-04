@@ -622,3 +622,27 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
  .gwx-table #competitionHud .gwx-comp-stat strong,.gwx-table .gwx-competition-hud .gwx-comp-stat strong{font-size:11px!important;line-height:1.25!important;overflow:visible!important;text-overflow:clip!important}
  .gwx-table #competitionHud .gwx-comp-stat em,.gwx-table .gwx-competition-hud .gwx-comp-stat em{font-size:8px!important;line-height:1.25!important;overflow:visible!important;text-overflow:clip!important}
 }
+
+
+/* Separate the How to play dropdown from the BUILD / ROBBERY phase banner. */
+@media (min-width:761px){
+  .gwx-table .phase-banner{
+    position:absolute!important;
+    top:148px!important;
+    left:18px!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:190px!important;
+    min-height:42px!important;
+    margin:0!important;
+    z-index:9!important;
+  }
+}
+@media (max-width:760px){
+  .gwx-table .phase-banner{
+    position:relative!important;
+    inset:auto!important;
+    width:100%!important;
+    margin:0 0 10px!important;
+  }
+}
