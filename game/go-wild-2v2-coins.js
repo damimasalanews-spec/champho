@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  const THROWN    = 50;                            /* always 50, whatever the word */
+  const THROWN    = 14;                            /* always 50, whatever the word */
   /* The shower is timed to its sound rather than to taste: TOTAL_MS IS the length
      of assets/audio/coins.mp3, so the last coin finishes popping exactly as the
      cue stops. It ran 3s against a 1.25s cue, which left the last 1.75s of flight
@@ -370,7 +370,7 @@
       const q = (now - charges[i].t0) / CHARGE_MS;
       if (q >= 1) { charges.splice(i, 1); continue; }
       stopped = false;
-      const rr = 16 + Math.sin(q * Math.PI) * 22;
+      const rr = 10 + Math.sin(q * Math.PI) * 14;
       ctx.globalAlpha = 0.25 + Math.sin(q * Math.PI) * 0.5;
       ctx.drawImage(GLOW, charges[i].x - rr, charges[i].y - rr, rr * 2, rr * 2);
       ctx.globalAlpha = 1;
@@ -514,7 +514,7 @@
         settles.push({
           x: cx + Math.cos(a) * rr,
           y: cy + Math.sin(a) * rr,
-          size: 32 * (0.88 + Math.random() * 0.26),
+          size: 18 * (0.88 + Math.random() * 0.26),
           spin: Math.random() * Math.PI,
           t0: now
         });
@@ -566,7 +566,7 @@
         ix: ax - ux * R - uy * tang * R * 0.85,
         iy: ay - uy * R + ux * tang * R * 0.85,
         bow: 10 + Math.random() * 26,
-        size: 32 * (0.88 + Math.random() * 0.26),
+        size: 18 * (0.88 + Math.random() * 0.26),
         depth: Math.random(),
         spin: Math.random() * Math.PI,
         avatar,
