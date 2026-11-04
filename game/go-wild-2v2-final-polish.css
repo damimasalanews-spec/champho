@@ -95,3 +95,13 @@
 @media (prefers-reduced-motion:reduce){
   .gwx-letter-grid .letter-tile{scroll-behavior:auto!important}
 }
+
+
+/* Keyboard focus: clear, high-contrast focus ring on every letter cell. */
+.gwx-letter-grid .letter-tile:focus-visible{
+  outline:3px solid #fff!important;
+  outline-offset:3px!important;
+  box-shadow:0 0 0 6px #42d9e8aa,0 0 22px #42d9e888!important;
+  position:relative!important;
+  z-index:3!important;
+}
