@@ -1270,7 +1270,24 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
      landing on the same frame as a gift silently lost one of them. */
   const NOTICE_MAX = 3;
 
+  function addCinematicFeedEvent(message, kind = 'info') {
+    const feed = $('gwxEventFeed');
+    if (!feed) return;
+    const empty = feed.querySelector('.gwx-feed-empty');
+    if (empty) empty.remove();
+    const item = document.createElement('li');
+    item.className = 'is-' + String(kind).replace(/[^a-z-]/g, '');
+    const time = document.createElement('time');
+    time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const copy = document.createElement('span');
+    copy.textContent = message;
+    item.append(time, copy);
+    feed.prepend(item);
+    while (feed.children.length > 8) feed.lastElementChild.remove();
+  }
+
   function notify(msg, kind = 'info', ms = 2800) {
+    addCinematicFeedEvent(msg, kind);
     let stack = document.querySelector('.gift-toast-stack');
     if (!stack) {
       stack = document.createElement('div');
