@@ -269,3 +269,108 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
   .gwx-seat.bottom .gwx-local-meta { padding-right:8px; }
   .gwx-seat.bottom .social-toggle { min-height:30px; padding:0 12px; }
 }
+
+
+/* FINAL DESKTOP LAYOUT RESET — one predictable arena grid, no overlapping layers. */
+@media (min-width: 761px) {
+  .gwx-app { min-height:100vh; height:100vh; overflow:hidden; }
+  .gwx-topbar {
+    position:relative!important; height:92px!important; min-height:92px;
+    display:grid!important; grid-template-columns:1fr auto 1fr!important;
+    align-items:center!important; padding:0 34px!important; gap:20px;
+    z-index:30;
+  }
+  .gwx-logo { justify-self:start; }
+  .gwx-logo-copy b { font-size:clamp(28px,2.5vw,42px)!important; }
+  .gwx-logo-copy small { font-size:clamp(11px,1vw,15px)!important; }
+  .gwx-matchbar { justify-self:center!important; margin:0!important; }
+  .gwx-top-actions { position:static!important; right:auto!important; justify-self:end; display:flex; align-items:center; }
+  .gwx-profile { position:static!important; width:48px;height:48px; }
+  .gwx-table {
+    position:absolute!important; inset:92px 0 0!important; height:auto!important;
+    display:block!important; overflow:hidden!important;
+    background-position:center 53%!important;
+  }
+  .gwx-game-nav { position:absolute!important; top:12px!important; left:16px!important; right:auto!important; z-index:20; }
+  .gwx-leave { display:none!important; }
+  .gwx-help summary { min-height:34px!important; padding:0 12px!important; font-size:11px!important; }
+  .gwx-hunt-hud {
+    position:absolute!important; top:12px!important; left:50%!important; right:auto!important;
+    transform:translateX(-50%)!important; width:min(570px,42vw)!important; min-height:76px!important;
+    display:grid!important; grid-template-columns:1fr auto!important; grid-template-rows:auto auto!important;
+    gap:3px 14px!important; padding:9px 16px!important; z-index:15!important;
+  }
+  .gwx-hunt-hud::before { display:none!important; content:none!important; }
+  .gwx-hunt-title { grid-column:1!important; grid-row:1!important; padding:0!important; }
+  .gwx-timer { grid-column:2!important; grid-row:1!important; padding:0 10px!important; }
+  .gwx-level-rail { grid-column:1/-1!important; grid-row:2!important; }
+  .gwx-competition-hud {
+    position:absolute!important; top:98px!important; left:50%!important; right:auto!important;
+    transform:translateX(-50%)!important; width:min(570px,42vw)!important; min-height:52px!important;
+    z-index:14!important;
+  }
+  .gwx-seat {
+    position:absolute!important; display:block!important; width:clamp(240px,19vw,310px)!important;
+    margin:0!important; transform:none!important; z-index:10!important;
+  }
+  .gwx-seat.top { top:24%!important; left:2.6%!important; right:auto!important; bottom:auto!important; }
+  .gwx-seat.bottom { top:auto!important; left:2.6%!important; right:auto!important; bottom:13%!important; width:clamp(240px,19vw,310px)!important; }
+  .gwx-seat.left { top:24%!important; right:2.6%!important; left:auto!important; bottom:auto!important; }
+  .gwx-seat.right { top:auto!important; right:2.6%!important; left:auto!important; bottom:13%!important; }
+  .gwx-seat .gwx-player-card,.gwx-seat .gwx-local-meta {
+    position:relative!important; display:grid!important; grid-template-columns:64px minmax(0,1fr)!important;
+    align-items:center!important; gap:10px!important; min-height:94px!important;
+    padding:12px!important; border-radius:18px!important; box-sizing:border-box!important;
+  }
+  .gwx-seat .gwx-avatar { grid-column:1!important; grid-row:1!important; width:58px!important;height:58px!important; }
+  .gwx-seat .gwx-player-info { grid-column:2!important; grid-row:1!important; min-width:0; }
+  .gwx-seat .gwx-seat-coins,.gwx-seat .gwx-card-count {
+    grid-column:1/-1!important; display:flex!important; justify-content:space-between!important;
+    align-items:center!important; gap:8px!important; margin:0!important; padding:7px 2px 0!important;
+    border-top:1px solid #ffffff35!important; border-radius:0!important; min-height:0!important;
+  }
+  .gwx-seat .gwx-seat-coins b,.gwx-seat .gwx-card-count>span { font-size:12px!important; }
+  .gwx-seat .gwx-seat-coins small,.gwx-seat .gwx-card-count small,.gwx-seat .gwx-card-count em { font-size:10px!important; }
+  .gwx-seat.bottom .gwx-local-meta { grid-template-columns:58px minmax(0,1fr)!important; }
+  .gwx-seat.bottom .champ-social-controls {
+    position:static!important; transform:none!important; display:flex!important;
+    justify-content:flex-end!important; gap:8px!important; margin-top:8px!important;
+  }
+  .gwx-seat.bottom .social-toggle {
+    width:auto!important; min-width:78px!important; height:32px!important; padding:0 14px!important;
+    border-radius:99px!important; font-size:11px!important;
+  }
+  .gwx-seat.bottom .gwx-local-meta { padding-right:12px!important; }
+  .gwx-center {
+    position:absolute!important; top:53%!important; left:50%!important;
+    width:min(540px,36vw)!important; max-width:540px!important;
+    transform:translate(-50%,-42%)!important; display:flex!important;
+    flex-direction:column!important; align-items:stretch!important; gap:8px!important; z-index:8!important;
+  }
+  .gwx-status-line { display:none!important; }
+  .gwx-letter-grid-shell { width:100%!important; aspect-ratio:1.12!important; box-sizing:border-box!important; padding:9px!important; }
+  .gwx-letter-grid {
+    display:grid!important; grid-template-columns:repeat(var(--gwx-cols,7),minmax(0,1fr))!important;
+    grid-template-rows:repeat(var(--gwx-rows,6),minmax(0,1fr))!important;
+    gap:6px!important; width:100%!important; height:100%!important;
+  }
+  .gwx-letter-grid .letter-tile {
+    width:100%!important; height:100%!important; min-width:0!important; min-height:0!important;
+    aspect-ratio:auto!important; font-size:clamp(16px,1.65vw,27px)!important; border-radius:10px!important;
+  }
+  .gwx-guess-form { margin:0!important; min-height:54px!important; }
+  .gwx-guess-form input,.gwx-guess-form button { min-height:44px!important; height:44px!important; }
+  .gwx-message { min-height:18px!important; margin:0!important; }
+  .gwx-hunt-hint { left:2.6%!important; bottom:2.5%!important; top:auto!important; width:clamp(220px,18vw,290px)!important; }
+  .gwx-round-words { right:2.6%!important; bottom:2.5%!important; top:auto!important; width:clamp(220px,18vw,290px)!important; }
+  .gwx-footer { display:none!important; }
+  .gwx-tools { right:18px!important; bottom:18px!important; z-index:22!important; }
+  .champ-social-controls .champ-dropdown,.champ-social-controls .table-chat-panel { z-index:40!important; }
+}
+@media (min-width: 761px) and (max-height: 760px) {
+  .gwx-seat.top,.gwx-seat.left { top:22%!important; }
+  .gwx-seat.bottom,.gwx-seat.right { bottom:9%!important; }
+  .gwx-center { width:min(470px,33vw)!important; top:54%!important; }
+  .gwx-hunt-hint,.gwx-round-words { display:none!important; }
+  .gwx-seat .gwx-player-card,.gwx-seat .gwx-local-meta { min-height:78px!important; }
+}
