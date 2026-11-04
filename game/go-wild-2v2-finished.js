@@ -469,6 +469,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       protectedSeat?.classList.remove('has-champ-shield');
       out.gained = Math.round(length * COIN_PER_LETTER * multiplier);
       round.scores[playerId].coins += out.gained;
+      /* Reflection rewards the defender from the bank, never from the attacker. */
+      out.reflected = Math.round(length * STEAL_PER_LETTER * multiplier * 0.25);
+      round.scores[target].coins += out.reflected;
       out.shielded = target;
       out.shieldBroken = true;
       /* A blocked revenge is not a successful revenge: keep it queued. */
@@ -637,6 +640,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (outcome.revenge) notify(nameOf(playerId) + ' got REVENGE on ' + nameOf(fromId) + ' · 1.5x attack!', 'steal', 3000);
     if (outcome.bounty) notify(nameOf(playerId) + ' claimed the BOUNTY from ' + nameOf(fromId) + ' · 25% bonus!', 'bounty', 3000);
     if (outcome.shieldBroken) notify('SHIELD BROKEN · ' + nameOf(outcome.shielded) + ' loses protection · +' + outcome.gained + ' bank coins to ' + nameOf(playerId), 'combo', 3600);
+    if (outcome.reflected) notify('SHIELD REFLECTION · ' + nameOf(outcome.shielded) + ' earns +' + outcome.reflected + ' bonus coins!', 'bounty', 3600);
     round.scores[playerId].words++;
     lastScorer = playerId;
     path = [];
