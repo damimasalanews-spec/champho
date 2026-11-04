@@ -826,3 +826,17 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
 @media (prefers-reduced-motion:reduce) {
   .gwx-letter-grid .letter-tile { transition:none; animation:none!important; }
 }
+
+
+/* CORRECT WORD CELEBRATION — short, clear confirmation without interrupting play. */
+.gwx-letter-grid-shell.gwx-word-found {
+  animation:gwx-word-found-pulse .72s ease-out both;
+}
+@keyframes gwx-word-found-pulse {
+  0% { box-shadow:0 0 0 3px #8d63ef45,0 0 32px #3d8cff65,0 18px 42px #02091ebf,inset 0 0 26px #7abaff16; }
+  28% { box-shadow:0 0 0 4px #8dffca9c,0 0 42px #55f0b1,0 18px 42px #02091ebf,inset 0 0 32px #8dffca55; }
+  100% { box-shadow:0 0 0 3px #8d63ef45,0 0 32px #3d8cff65,0 18px 42px #02091ebf,inset 0 0 26px #7abaff16; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .gwx-letter-grid-shell.gwx-word-found { animation:none; }
+}
