@@ -739,3 +739,51 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
 @media(prefers-reduced-motion:reduce){
   .gwx-score-pop,.gwx-streak-pop{animation:none!important}
 }
+
+
+/* Competition HUD layout: one authoritative placement rule after legacy overrides. */
+@media (min-width:761px) {
+  .gwx-table #competitionHud,
+  .gwx-table .gwx-competition-hud {
+    position:absolute!important;
+    top:14px!important;right:18px!important;left:auto!important;bottom:auto!important;
+    transform:none!important;
+    width:min(390px,42vw)!important;min-width:320px!important;max-width:390px!important;
+    height:68px!important;min-height:68px!important;
+    box-sizing:border-box!important;z-index:30!important;
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:0!important;padding:7px 10px!important;overflow:visible!important;
+  }
+  .gwx-table #competitionHud .gwx-comp-stat,
+  .gwx-table .gwx-competition-hud .gwx-comp-stat {
+    min-width:0!important;height:100%!important;box-sizing:border-box!important;
+    display:flex!important;flex-direction:column!important;justify-content:center!important;
+    align-items:flex-start!important;gap:3px!important;padding:3px 9px!important;
+    overflow:hidden!important;
+  }
+  .gwx-table #competitionHud .gwx-comp-stat small,
+  .gwx-table .gwx-competition-hud .gwx-comp-stat small {
+    font-size:8px!important;line-height:1.2!important;letter-spacing:.45px!important;
+    white-space:nowrap!important;
+  }
+  .gwx-table #competitionHud .gwx-comp-stat strong,
+  .gwx-table .gwx-competition-hud .gwx-comp-stat strong {
+    max-width:100%!important;font-size:12px!important;line-height:1.2!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  .gwx-table #competitionHud .gwx-comp-stat em,
+  .gwx-table .gwx-competition-hud .gwx-comp-stat em {
+    max-width:100%!important;font-size:9px!important;line-height:1.2!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+}
+@media (max-width:760px) {
+  .gwx-table #competitionHud,
+  .gwx-table .gwx-competition-hud {
+    position:relative!important;top:auto!important;right:auto!important;left:auto!important;bottom:auto!important;
+    transform:none!important;width:100%!important;min-width:0!important;max-width:none!important;
+    height:auto!important;min-height:66px!important;margin:8px 0!important;
+    box-sizing:border-box!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:0!important;padding:7px!important;overflow:visible!important;
+  }
+}
