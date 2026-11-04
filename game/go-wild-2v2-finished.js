@@ -411,6 +411,15 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       '</strong><small>' + (active ? 'Solve this word to claim the treasure!' : next ? 'Next chest at word ' + next + ' of 30' : 'Six chests discovered') +
       '</small></div><div class="gwx-chest-powers">' +
       (chestPowersFor('champ').length ? chestPowersFor('champ').map(p => '<span title="' + p.detail + '">' + p.icon + ' ' + p.name + '</span>').join('') : '<span>NO ACTIVE POWERS</span>') + '</div>';
+    PLAYERS.forEach(player => {
+      const card = document.querySelector('.gwx-seat[data-player="' + player.id + '"] .gwx-player-card');
+      if (!card) return;
+      let inventory = card.querySelector('.gwx-chest-inventory');
+      if (!inventory) { inventory = document.createElement('div'); inventory.className = 'gwx-chest-inventory'; card.appendChild(inventory); }
+      inventory.textContent = chestPowersFor(player.id).map(power => power.icon + ' ' + power.name).join(' · ');
+      inventory.hidden = !inventory.textContent;
+      inventory.setAttribute('aria-label', player.name + ' chest powers: ' + inventory.textContent);
+    });
   }
   function grantMysteryChest(playerId) {
     const inventory = chestPowersFor(playerId);
@@ -520,7 +529,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const multiplier = comboMultiplier(playerId);
     const out = { length, robbery: inRobbery(), gained: 0, taken: 0, fromId: null, stood: null, multiplier, bounty: false, revenge: false };
     const doublePower = takeChestPower(playerId, 'double');
-    const boostPower = out.robbery ? takeChestPower(playerId, 'boost') : null;
+    let boostPower = null;
     const chestMultiplier = doublePower ? 2 : 1;
 
     if (!out.robbery) {
@@ -546,6 +555,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
        shield holders never make the robbery phase stall. */
     if (champShielded.has(target)) {
       champShielded.delete(target);
+      takeChestPower(target, 'shield');
       const protectedSeat = document.querySelector('.gwx-seat[data-player="' + target + '"]');
       protectedSeat?.querySelector('.gw-shield')?.remove();
       protectedSeat?.classList.remove('has-champ-shield');
@@ -558,6 +568,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       return out;
     }
 
+    boostPower = takeChestPower(playerId, 'boost');
     const bountyId = richestActiveId();
     out.bounty = target === bountyId && target !== playerId;
     const bountyMultiplier = out.bounty ? 1.25 : 1;
