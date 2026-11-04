@@ -121,3 +121,6 @@
 .gwx-chest-powers span{font-size:10px;padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.09);color:#e8d9b9;white-space:nowrap}
 @keyframes gwxChestPulse{50%{transform:translateY(-2px);filter:brightness(1.12)}}
 @media(max-width:620px){.gwx-mystery-chest{padding:8px 10px;gap:8px}.gwx-chest-mark{width:32px;height:32px;flex-basis:32px}.gwx-chest-powers{max-width:42%}.gwx-chest-copy strong{font-size:9px}.gwx-chest-copy small{font-size:10px}}
+
+.gwx-chest-inventory{position:absolute;left:8px;right:8px;bottom:-8px;z-index:4;text-align:center;font-size:8px;line-height:1.3;letter-spacing:.04em;color:#f3d28b;background:rgba(22,24,43,.94);border:1px solid rgba(218,176,92,.42);border-radius:8px;padding:3px 5px;pointer-events:none}
+.gwx-chest-inventory[hidden]{display:none}
