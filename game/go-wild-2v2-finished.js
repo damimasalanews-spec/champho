@@ -272,11 +272,6 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
         '<div class="gwx-comp-stat"><small>⚔️ RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
         '<div class="gwx-comp-stat"><small>🔥 STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
-      const duelControl = document.createElement('div');
-      duelControl.className = 'gwx-duel-control';
-      duelControl.innerHTML = '<button type="button" data-start-duel>⚔ HEAD-TO-HEAD DUEL</button><small data-duel-status>Challenge your closest rival · +' + DUEL_BONUS + ' bonus</small>';
-      panel.appendChild(duelControl);
-      duelControl.querySelector('button').addEventListener('click', startDuel);
       const table = $('table');
       if (table) table.appendChild(panel);
     }
@@ -313,10 +308,25 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       seat.classList.toggle('has-revenge', Boolean(round.revengeTargets && round.revengeTargets[seat.dataset.player]));
     });
     panel.classList.toggle('is-robbery', inRobbery());
-    const duelButton = panel.querySelector('[data-start-duel]');
-    const duelStatus = panel.querySelector('[data-duel-status]');
+    renderDuelPanel();
+  }
+
+  function renderDuelPanel() {
+    let duelPanel = $('gwxDuelPanel');
+    if (!duelPanel) {
+      duelPanel = document.createElement('section');
+      duelPanel.id = 'gwxDuelPanel';
+      duelPanel.className = 'gwx-duel-panel';
+      duelPanel.setAttribute('aria-label', 'Head-to-Head Duel');
+      duelPanel.innerHTML = '<header><span>⚔</span><b>HEAD-TO-HEAD DUEL</b><small>LIVE CHALLENGE</small></header><p>Challenge your closest rival. First valid word wins the side pot.</p><div class="gwx-duel-reward"><strong>+300</strong><span>BONUS COINS</span></div><button type="button" data-start-duel>CHALLENGE RIVAL</button><small class="gwx-duel-status" data-duel-status>30-second duel · separate from round scoring</small>';
+      const table = $('table');
+      if (table) table.appendChild(duelPanel);
+      duelPanel.querySelector('[data-start-duel]').addEventListener('click', startDuel);
+    }
+    const duelButton = duelPanel.querySelector('[data-start-duel]');
+    const duelStatus = duelPanel.querySelector('[data-duel-status]');
     if (duelButton) duelButton.disabled = Boolean(activeDuel || round.ended || isOut(HUMAN_ID));
-    if (duelStatus && !activeDuel) duelStatus.textContent = 'Challenge your closest rival · +' + DUEL_BONUS + ' bonus';
+    if (duelStatus && !activeDuel) duelStatus.textContent = '30-second duel · separate from round scoring';
   }
 
 
