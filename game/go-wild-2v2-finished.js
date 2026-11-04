@@ -269,9 +269,10 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       panel.id = 'competitionHud';
       panel.className = 'gwx-competition-hud';
       panel.setAttribute('aria-label', 'Live competition standings');
-      panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
-        '<div class="gwx-comp-stat"><small>⚔️ RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
-        '<div class="gwx-comp-stat"><small>🔥 STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
+      panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY LEADER</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>⚔️ RIVAL TRACKER</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>🔥 STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>' +
+        '<div class="gwx-comp-stat"><small>📈 COMEBACK METER</small><strong data-comp="comeback">100%</strong><em data-comp="comeback-note">Coin position</em></div>';
       const table = $('table');
       if (table) table.appendChild(panel);
     }
@@ -302,6 +303,11 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       streakNode._streakPopTimer = window.setTimeout(() => streakNode.classList.remove('gwx-streak-pop'), 720);
     }
     put('revenge', revengeId ? 'REVENGE READY vs ' + nameOf(revengeId) : 'No revenge');
+    const leaderCoins = leader ? purseOf(leader.id) : 0;
+    const humanCoins = purseOf(HUMAN_ID);
+    const comebackPct = leaderCoins > 0 ? Math.max(0, Math.min(100, Math.round((humanCoins / leaderCoins) * 100))) : 100;
+    put('comeback', comebackPct + '%');
+    put('comeback-note', leaderId === HUMAN_ID ? 'You hold the lead' : 'Your coins vs leader');
 
     document.querySelectorAll('.gwx-seat').forEach(seat => {
       seat.classList.toggle('is-bounty', Boolean(inRobbery() && leaderId && seat.dataset.player === leaderId));
