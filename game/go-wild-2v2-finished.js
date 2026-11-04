@@ -1553,11 +1553,19 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     const overall = round.words30.length ? round.foundAll.size / round.words30.length : 0;
     if (bar) bar.style.width = (Math.max(0, Math.min(1, overall)) * 100).toFixed(2) + '%';
     if (track) {
-      track.setAttribute('aria-valuenow', String(round.level));
+      const foundCount = round.foundAll.size;
+      const totalCount = round.words30.length;
+      track.setAttribute('aria-valuemin', '0');
+      track.setAttribute('aria-valuemax', String(totalCount));
+      track.setAttribute('aria-valuenow', String(foundCount));
       track.querySelectorAll('i').forEach((pip, index) => pip.classList.toggle('on', index < round.level - 1));
     }
+    const foundCount = round.foundAll.size;
+    const totalCount = round.words30.length;
     const label = $('wordProgressLabel');
-    if (label) label.textContent = round.foundAll.size + ' / ' + round.words30.length + ' WORDS';
+    if (label) label.textContent = foundCount + ' / ' + totalCount + ' WORDS';
+    const remaining = $('wordProgressRemaining');
+    if (remaining) remaining.textContent = (totalCount - foundCount) + ' LEFT';
   }
 
   /* the whole round's thirty words are dealt up front: five boards of six,
