@@ -876,3 +876,53 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
 @media(prefers-reduced-motion:reduce){
   .gwx-level-track span{transition:none!important}
 }
+
+
+/* FINAL LEADERBOARD — make the champion and each player's score easy to read. */
+.gwx-modal-card {
+  border:1px solid #f4d27b99!important;
+  background:linear-gradient(155deg,#0b1d3cf7 0%,#102b49f5 58%,#102d38f7 100%)!important;
+  box-shadow:0 0 0 1px #ffffff12,0 24px 70px #020817cc,0 0 44px #f6c85b20,inset 0 1px 0 #ffffff22!important;
+}
+.gwx-modal-card h2 {
+  color:#ffe39a!important;
+  text-shadow:0 0 18px #ffd16666,0 2px 0 #65491b;
+  letter-spacing:1px;
+}
+.gwx-modal-card h2::before {
+  content:"🏆";
+  display:block;
+  margin:0 auto 8px;
+  font-size:34px;
+  line-height:1.2;
+  filter:drop-shadow(0 0 12px #ffd16688);
+}
+.gwx-modal-board { width:min(390px,100%)!important;gap:8px!important; }
+.gwx-leader-row {
+  grid-template-columns:34px minmax(0,1fr) auto!important;
+  min-height:58px;
+  padding:10px 13px!important;
+  border-color:#a8c9e53b!important;
+  background:linear-gradient(110deg,#ffffff0d,#ffffff04)!important;
+}
+.gwx-leader-row.leading {
+  border-color:#ffdc83!important;
+  background:linear-gradient(100deg,#ffd1662b,#ffefb00d)!important;
+  box-shadow:0 0 0 1px #ffd16622,0 0 22px #ffd1661c,inset 0 1px 0 #ffffff20;
+}
+.gwx-leader-row.leading .gwx-leader-rank {
+  color:#fff0ae!important;
+  text-shadow:0 0 12px #ffd166aa;
+}
+.gwx-leader-identity strong {font-size:14px;letter-spacing:.2px}
+.gwx-leader-identity small {font-size:9px!important;letter-spacing:.7px;color:#b9d5e8!important}
+.gwx-leader-coins {
+  font-size:12px;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:420px){
+ .gwx-leader-row{gap:6px!important;padding:9px!important}
+ .gwx-leader-coins{font-size:10px}
+ .gwx-leader-identity strong{font-size:12px}
+}
