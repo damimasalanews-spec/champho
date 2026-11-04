@@ -36,3 +36,22 @@
   justify-content:space-between!important;width:100%!important;
  }
 }
+
+
+/* Explicitly pin Poker's name/status beside its avatar; defeat old top-seat offsets. */
+@media(min-width:761px){
+ .gwx-table .gwx-seat.top[data-player="poker"] .gwx-player-info{
+  position:absolute!important;
+  left:91px!important;right:12px!important;top:calc(50% - 17px)!important;
+  bottom:auto!important;width:auto!important;max-width:none!important;
+  margin:0!important;padding:0!important;
+  transform:none!important;translate:none!important;
+  justify-self:stretch!important;align-self:auto!important;
+  text-align:left!important;align-items:flex-start!important;
+ }
+ .gwx-table .gwx-seat.top[data-player="poker"] .gwx-player-info strong,
+ .gwx-table .gwx-seat.top[data-player="poker"] .gwx-player-status{
+  display:block!important;width:auto!important;max-width:100%!important;
+  margin:0!important;text-align:left!important;
+ }
+}
