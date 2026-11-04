@@ -565,3 +565,21 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
   background:linear-gradient(135deg,#071a3df5,#15265cef)!important;padding:8px!important;
  }
 }
+
+
+/* Final requested placement: keep the Word Hunt-sized panel in the arena's top-right corner. */
+@media (min-width:761px){
+ .gwx-table #competitionHud,
+ .gwx-table .gwx-competition-hud{
+  position:absolute!important;top:12px!important;right:22px!important;left:auto!important;bottom:auto!important;
+  transform:none!important;width:min(680px,52vw)!important;min-width:0!important;max-width:680px!important;
+  height:72px!important;min-height:72px!important;z-index:25!important;
+ }
+}
+@media(max-width:760px){
+ .gwx-table #competitionHud,.gwx-table .gwx-competition-hud{
+  position:relative!important;top:auto!important;right:auto!important;left:auto!important;bottom:auto!important;
+  transform:none!important;width:100%!important;min-width:0!important;max-width:none!important;
+  height:auto!important;min-height:72px!important;margin:8px 0!important;
+ }
+}
