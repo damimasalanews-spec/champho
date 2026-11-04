@@ -105,3 +105,21 @@
   position:relative!important;
   z-index:3!important;
 }
+
+
+/* Persistent Champ Word protection marker: displayed on the player's card,
+   not tucked over the avatar where it can be missed or clipped. */
+.gwx-seat .gwx-player-card{position:relative!important;overflow:visible!important}
+.gwx-seat .gw-shield{
+  position:absolute!important;top:-13px!important;right:10px!important;left:auto!important;
+  z-index:120!important;display:inline-flex!important;align-items:center!important;
+  padding:6px 11px!important;border:1px solid #fff0ad!important;border-radius:999px!important;
+  background:linear-gradient(135deg,#fff0a8,#f2b936 58%,#a96812)!important;
+  color:#382306!important;font-size:10px!important;font-weight:1000!important;
+  letter-spacing:.65px!important;line-height:1.15!important;white-space:nowrap!important;
+  box-shadow:0 3px 12px #0009,0 0 15px #ffd76b99!important;
+  pointer-events:none!important;animation:gwShieldPulse 1.4s ease-in-out infinite!important;
+}
+@media(max-width:760px){
+ .gwx-seat .gw-shield{top:-10px!important;right:5px!important;padding:4px 7px!important;font-size:8px!important}
+}
