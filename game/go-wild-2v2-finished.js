@@ -647,6 +647,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     $('guessMessage').textContent = fromId
       ? `${result.word.toUpperCase()} \u2192 +${credited} taken from ${nameOf(fromId)} \u00b7 ${outcome.length} letters.`
       : `${result.word.toUpperCase()} found! +${outcome.gained} \u00b7 ${outcome.length} letters${outcome.robbery ? ' \u00b7 nobody left to rob' : ''}.`;
+    addCinematicFeedEvent(fromId ? nameOf(playerId) + ' found ' + result.word.toUpperCase() + ' and took ' + credited + ' coins from ' + nameOf(fromId) + '.' : nameOf(playerId) + ' found ' + result.word.toUpperCase() + ' and earned ' + outcome.gained + ' coins.', fromId ? 'steal' : 'success');
     renderPhase();
     renderSlots();
     renderScores();
