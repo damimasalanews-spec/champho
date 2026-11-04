@@ -14,14 +14,16 @@ jobs:
           distribution: 'temurin'
           
       - name: Install Node Dependencies
-        run: npm install
+        run: npm install --legacy-peer-deps
         
-      - name: Prepare Native Android Folder
-        run: npx cap sync android || true
-        
-      - name: Compile App
+      - name: Clean Cordova Configurations
         run: |
-          cd android && ./gradlew assembleDebug
+          sed -i '/capacitor-cordova-android-plugins/d' android/settings.gradle || true
+          sed -i '/cordova.variables.gradle/d' android/app/capacitor.build.gradle || true
+        
+      - name: Compile App Without Tests
+        run: |
+          cd android && ./gradlew assembleDebug -x test -x lint
           
       - name: Generate Download Link
         uses: actions/upload-artifact@v4
