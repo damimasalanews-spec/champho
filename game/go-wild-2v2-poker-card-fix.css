@@ -126,3 +126,30 @@
   align-items:center!important;width:100%!important;margin:0!important;
  }
 }
+
+
+/* v4: anchor Poker's info to the avatar column by card coordinates. */
+@media (min-width:761px){
+ .gwx-table .gwx-seat.top[data-player="poker"] .gwx-player-card{
+   position:relative!important;
+ }
+ .gwx-table .gwx-seat.top[data-player="poker"] .gwx-player-card > .gwx-player-info{
+   position:absolute!important;
+   left:88px!important; right:12px!important;
+   top:27px!important; bottom:auto!important;
+   width:auto!important; height:auto!important;
+   margin:0!important; padding:0!important;
+   display:flex!important; flex-direction:column!important;
+   align-items:flex-start!important; justify-content:center!important;
+   text-align:left!important;
+   transform:none!important; translate:none!important;
+   grid-column:auto!important; grid-row:auto!important;
+ }
+ .gwx-table .gwx-seat.top[data-player="poker"] .gwx-player-card > .gwx-player-info > strong,
+ .gwx-table .gwx-seat.top[data-player="poker"] .gwx-player-card > .gwx-player-info > .gwx-player-status{
+   position:static!important; left:auto!important; right:auto!important;
+   top:auto!important; bottom:auto!important;
+   margin:0!important; text-align:left!important;
+   align-self:flex-start!important;
+ }
+}
