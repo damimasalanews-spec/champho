@@ -109,3 +109,15 @@
  .gwx-competition-hud .gwx-comp-stat small{font-size:7px!important}
  .gwx-competition-hud .gwx-comp-stat strong{font-size:10px!important}
 }
+
+/* Mystery Chest HUD */
+.gwx-mystery-chest{display:flex;align-items:center;gap:12px;min-width:0;padding:10px 14px;margin:8px auto;border:1px solid rgba(205,166,91,.28);border-radius:14px;background:linear-gradient(110deg,rgba(16,27,49,.94),rgba(39,29,64,.92));box-shadow:0 8px 24px rgba(0,0,0,.2);color:#f6e7c5;max-width:680px;position:relative;z-index:2}
+.gwx-mystery-chest.is-active{border-color:rgba(244,195,91,.85);box-shadow:0 0 22px rgba(218,165,72,.2),0 8px 24px rgba(0,0,0,.2);animation:gwxChestPulse 1.8s ease-in-out infinite}
+.gwx-chest-mark{width:38px;height:38px;display:grid;place-items:center;flex:0 0 38px;border-radius:11px;background:linear-gradient(145deg,#805b2a,#d4a64f);color:#fff2c8;font-size:23px}
+.gwx-chest-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.gwx-chest-copy strong{font-size:11px;letter-spacing:.1em;color:#f6d58d}
+.gwx-chest-copy small{font-size:11px;color:#c8c0d2}
+.gwx-chest-powers{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;max-width:48%}
+.gwx-chest-powers span{font-size:10px;padding:4px 7px;border-radius:999px;background:rgba(255,255,255,.09);color:#e8d9b9;white-space:nowrap}
+@keyframes gwxChestPulse{50%{transform:translateY(-2px);filter:brightness(1.12)}}
+@media(max-width:620px){.gwx-mystery-chest{padding:8px 10px;gap:8px}.gwx-chest-mark{width:32px;height:32px;flex-basis:32px}.gwx-chest-powers{max-width:42%}.gwx-chest-copy strong{font-size:9px}.gwx-chest-copy small{font-size:10px}}
