@@ -6,30 +6,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Java Environment
+
+      - name: Setup Java Environment
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-          
-      - name: Install System Dependencies
+
+      - name: Inject Standalone Project Framework
         run: |
-          npm install --legacy-peer-deps
-          npx cap sync android || true
-        
-      - name: Clear Legacy Plugins
-        run: |
-          sed -i '/capacitor-cordova-android-plugins/d' android/settings.gradle || true
-          if [ -f android/app/capacitor.build.gradle ]; then
-            sed -i '/cordova.variables.gradle/d' android/app/capacitor.build.gradle || true
+          if [ ! -f package.json ]; then
+            echo '{"name": "champho-game", "version": "1.0.0"}' > package.json
           fi
-        
-      - name: Compile Application Package
-        run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug -x test -x lint
+          ./gradlew clean || true
+
+      - name: Compile Application Direct Package
+        run: |
+          cd android
+          ./gradlew assembleDebug -x test -x lint --no-daemon
           
       - name: Export Ready APK
         uses: actions/upload-artifact@v4
