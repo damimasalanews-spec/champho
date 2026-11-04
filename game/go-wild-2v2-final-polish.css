@@ -107,19 +107,24 @@
 }
 
 
-/* Persistent Champ Word protection marker: displayed on the player's card,
-   not tucked over the avatar where it can be missed or clipped. */
+
+/* Champ Word shield badge stays fully inside the player card. */
 .gwx-seat .gwx-player-card{position:relative!important;overflow:visible!important}
-.gwx-seat .gw-shield{
-  position:absolute!important;top:-13px!important;right:10px!important;left:auto!important;
+.gwx-seat .gwx-player-card .gw-shield{
+  position:absolute!important;
+  top:auto!important;bottom:39px!important;right:9px!important;left:auto!important;
   z-index:120!important;display:inline-flex!important;align-items:center!important;
-  padding:6px 11px!important;border:1px solid #fff0ad!important;border-radius:999px!important;
+  max-width:calc(100% - 82px)!important;
+  padding:5px 9px!important;border:1px solid #fff0ad!important;border-radius:999px!important;
   background:linear-gradient(135deg,#fff0a8,#f2b936 58%,#a96812)!important;
-  color:#382306!important;font-size:10px!important;font-weight:1000!important;
-  letter-spacing:.65px!important;line-height:1.15!important;white-space:nowrap!important;
+  color:#382306!important;font-size:9px!important;font-weight:1000!important;
+  letter-spacing:.45px!important;line-height:1.1!important;white-space:nowrap!important;
   box-shadow:0 3px 12px #0009,0 0 15px #ffd76b99!important;
   pointer-events:none!important;animation:gwShieldPulse 1.4s ease-in-out infinite!important;
 }
 @media(max-width:760px){
- .gwx-seat .gw-shield{top:-10px!important;right:5px!important;padding:4px 7px!important;font-size:8px!important}
+ .gwx-seat .gwx-player-card .gw-shield{
+   bottom:34px!important;right:6px!important;padding:4px 6px!important;
+   max-width:calc(100% - 68px)!important;font-size:8px!important;letter-spacing:.2px!important;
+ }
 }
