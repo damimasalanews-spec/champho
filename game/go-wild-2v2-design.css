@@ -3583,10 +3583,11 @@ html, body, .gwx-app { background: #06152f; }
   .gwx-table {
     display: grid;
     grid-template-columns: minmax(220px, 1fr) minmax(500px, 640px) minmax(220px, 1fr);
-    grid-template-rows: minmax(104px, 13vh) minmax(0, 1fr) minmax(112px, 15vh);
+    grid-template-rows: minmax(104px, 13vh) minmax(120px, .9fr) minmax(90px, .65fr) minmax(112px, 15vh);
     grid-template-areas:
       "poker hud nav"
       "hint center kalkal"
+      ". center round"
       "champ center jess";
     align-items: center;
     column-gap: clamp(18px, 2vw, 36px);
@@ -3645,6 +3646,7 @@ html, body, .gwx-app { background: #06152f; }
   .gwx-seat.right { grid-area: jess; justify-self: end; align-self: end; }
   .gwx-center {
     grid-area: center;
+    grid-row: 2 / 5;
     position: relative;
     inset: auto;
     top: auto;
@@ -3668,14 +3670,14 @@ html, body, .gwx-app { background: #06152f; }
     justify-self: start;
   }
   .gwx-round-words {
-    grid-area: kalkal;
+    grid-area: round;
     position: relative;
     inset: auto;
     width: min(100%, 325px);
     min-height: 92px;
     align-self: center;
     justify-self: end;
-    margin-top: 165px;
+    margin-top: 0;
   }
   .gwx-footer {
     position: absolute;
