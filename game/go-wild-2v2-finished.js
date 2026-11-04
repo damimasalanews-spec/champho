@@ -498,6 +498,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 
   /* ---- the banner: one line that says which half of the round this is ----- */
   let phaseBanner = null;
+  let lastAnnouncedPhase = null;
 
   function renderPhase() {
     if (!round) return;
@@ -508,6 +509,11 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }
     const found = round.foundAll.size;
     const robbery = found >= BUILD_WORDS;
+    const phaseKey = robbery ? 'robbery' : 'build';
+    if (lastAnnouncedPhase !== phaseKey) {
+      lastAnnouncedPhase = phaseKey;
+      addCinematicFeedEvent(robbery ? 'FINAL 10 WORDS: correct answers now steal coins from the previous active player.' : 'BUILD PHASE: the grid pays coins for correct words.', robbery ? 'steal' : 'info');
+    }
     phaseBanner.classList.toggle('is-robbery', robbery);
     phaseBanner.innerHTML = robbery
       ? '<b>ROBBERY</b><span>word ' + Math.min(30, found + 1) + ' of 30 \u00b7 long words take more</span>'
@@ -834,6 +840,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       guard += 1;
     }
     const id = TURN_ORDER[turnState.index];
+    addCinematicFeedEvent('Turn passed to ' + nameOf(id) + '. Find a word before the timer ends.', 'turn');
     /* a fresh turn starts with a clean slate: any half-traced word belonged
        to the previous turn, and keeping it made the first tile click toggle
        the stale selection OFF instead of starting the new word */
@@ -1708,6 +1715,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     renderSlots();
     renderPath();
     $('roundLabel').textContent = String(round.level).padStart(2, '0');
+    addCinematicFeedEvent('LEVEL ' + round.level + ' OF ' + BOARDS + ' · ' + round.foundAll.size + ' of 30 words discovered.', 'level');
     $('roundMessage').textContent = 'Board ' + round.level + ' of ' + BOARDS + ' — ' + round.foundAll.size + ' of 30 words found. First 20 words earn coins; final 10 steal from the previous active seat.';
     renderPhase();
   }
