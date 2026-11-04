@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="game/go-wild-2v2-coins.css?v=coins-12">
 <link rel="stylesheet" href="game/go-wild-2v2-design.css?v=31">
 <link rel="stylesheet" href="game/go-wild-2v2-competition.css?v=3">
-<link rel="stylesheet" href="game/go-wild-2v2-moonlit-redesign.css?v=12">
+<link rel="stylesheet" href="game/go-wild-2v2-moonlit-redesign.css?v=13">
 <link rel="stylesheet" href="game/go-wild-2v2-final-polish.css?v=1">
 <link rel="stylesheet" href="game/go-wild-2v2-poker-card-fix.css?v=6">
 </head>
@@ -43,7 +43,7 @@
       <div class="gwx-hunt-title"><h1>WORD HUNT</h1><small>Go Wild 2 · Multiplayer</small></div>
       <div class="gwx-timer"><strong id="timer">0:15</strong><small>TURN TIME</small></div>
       <div class="gwx-level-rail" aria-label="Word hunt progress">
-        <div class="gwx-progress-copy"><b id="wordProgressLabel">0 / 30 WORDS</b><small>THIS ROUND</small></div>
+        <div class="gwx-progress-copy"><b id="wordProgressLabel">0 / 30 WORDS</b><small id="wordProgressRemaining">30 LEFT</small></div>
         <div class="gwx-level-track" role="progressbar" aria-label="Words found" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><span id="wordProgress"></span></div>
       </div>
     </section>
@@ -153,7 +153,7 @@
 
   <div id="resultModal" class="gwx-modal" aria-hidden="true"><div class="gwx-modal-card win"><small>GAME OVER</small><h2 id="resultTitle">CHAMP WINS</h2><p id="resultText"></p><ol id="resultBoard" class="gwx-modal-board" aria-label="Player leaderboard"></ol><button id="playAgainBtn">PLAY AGAIN</button></div></div>
 </div>
-<script type="module" src="game/go-wild-2v2-finished.js?v=success-1"></script>
+<script type="module" src="game/go-wild-2v2-finished.js?v=progress-1"></script>
 <script src="game/audio-cues.js?v=5"></script><script src="game/go-wild-2v2-motion.js?v=motion-1" defer></script>
 <script src="game/go-wild-2v2-coins.js?v=coins-13" defer></script>
 <script src="game/pwa.js" defer></script>
