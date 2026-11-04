@@ -188,9 +188,9 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       panel.id = 'competitionHud';
       panel.className = 'gwx-competition-hud';
       panel.setAttribute('aria-label', 'Live competition standings');
-      panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY LEADER</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
-        '<div class="gwx-comp-stat"><small>⚔️ YOUR RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
-        '<div class="gwx-comp-stat"><small>🔥 YOUR STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
+      panel.innerHTML = '<div class="gwx-comp-stat"><small>👑 BOUNTY</small><strong data-comp="leader">—</strong><em data-comp="leader-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>⚔️ RIVAL</small><strong data-comp="rival">—</strong><em data-comp="rival-coins"></em></div>' +
+        '<div class="gwx-comp-stat"><small>🔥 STREAK</small><strong data-comp="streak">0 · x1.00</strong><em data-comp="revenge">No revenge queued</em></div>';
       const table = $('table');
       if (table) table.appendChild(panel);
     }
@@ -211,7 +211,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     put('rival', rival ? rival.name : 'No rival');
     put('rival-coins', rival ? Math.abs(purseOf(rival.id) - purseOf(HUMAN_ID)).toLocaleString('en-US') + ' coins away' : '');
     put('streak', streak + ' in a row · x' + comboMultiplier(HUMAN_ID).toFixed(2));
-    put('revenge', revengeId ? 'REVENGE READY vs ' + nameOf(revengeId) : 'No revenge queued');
+    put('revenge', revengeId ? 'REVENGE READY vs ' + nameOf(revengeId) : 'No revenge');
 
     document.querySelectorAll('.gwx-seat').forEach(seat => {
       seat.classList.toggle('is-bounty', Boolean(inRobbery() && leaderId && seat.dataset.player === leaderId));
