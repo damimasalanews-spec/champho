@@ -6,29 +6,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
 
-      - name: Auto-Fix Gradle Config Files
+      - name: Auto-Fix Config Files
         run: |
-          # Remove broken plugin references entirely from configuration files
+          # Strip out the broken legacy framework lines immediately
           sed -i '/capacitor-cordova-android-plugins/d' android/settings.gradle || true
           if [ -f android/app/capacitor.build.gradle ]; then
             sed -i '/cordova.variables.gradle/d' android/app/capacitor.build.gradle || true
           fi
 
-      - name: Build Android App Packet
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -x test -x lint
-          
-      - name: Upload Finished APK
+      - name: Compile App Package Instantly
+        uses: kevin-david/bndl@v1
+        with:
+          project-path: 'android'
+          build-type: 'apk'
+          output-path: 'game-app.apk'
+
+      - name: Generate Download Link
         uses: actions/upload-artifact@v4
         with:
           name: game-app-installer
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: game-app.apk
