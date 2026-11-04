@@ -27,7 +27,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     if (!name) return;
     const seat = PLAYERS.find(player => player.id === HUMAN_ID);
     if (seat) seat.name = name;
-    const label = document.querySelector('.gwx-seat[data-player="' + HUMAN_ID + '"] .gwx-local-meta strong');
+    const label = document.querySelector('.gwx-seat[data-player="' + HUMAN_ID + '"] .gwx-player-card strong');
     if (label) label.textContent = name;
   }
 
@@ -145,7 +145,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     for (const player of PLAYERS) {
       const score = round.scores[player.id];
       $(`coins-${player.id}`).textContent = String(score.coins);
-      $(`words-${player.id}`).textContent = `${score.words} ${score.words === 1 ? 'word' : 'words'}`;
+      $(`words-${player.id}`).textContent = String(score.words);
     }
     const totalCoins = $('totalCoins');
     if (totalCoins) totalCoins.textContent = String(PLAYERS.reduce((sum, player) => sum + round.scores[player.id].coins, 0));
