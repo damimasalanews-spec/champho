@@ -12,20 +12,22 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          
-      - name: Install Node Dependencies
-        run: npm install --legacy-peer-deps
-        
-      - name: Clean Cordova Configurations
+
+      - name: Auto-Fix Gradle Config Files
         run: |
+          # Remove broken plugin references entirely from configuration files
           sed -i '/capacitor-cordova-android-plugins/d' android/settings.gradle || true
-          sed -i '/cordova.variables.gradle/d' android/app/capacitor.build.gradle || true
-        
-      - name: Compile App Without Tests
+          if [ -f android/app/capacitor.build.gradle ]; then
+            sed -i '/cordova.variables.gradle/d' android/app/capacitor.build.gradle || true
+          fi
+
+      - name: Build Android App Packet
         run: |
-          cd android && ./gradlew assembleDebug -x test -x lint
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon -x test -x lint
           
-      - name: Generate Download Link
+      - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: game-app-installer
