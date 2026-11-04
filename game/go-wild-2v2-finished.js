@@ -547,6 +547,15 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }
     if (result.hidden) round.found.add(result.word);
     round.foundPaths.push(result.path);
+    /* A correct find gets a brief board-wide pulse; this is presentation only. */
+    const foundShell = document.querySelector('.gwx-letter-grid-shell');
+    if (foundShell) {
+      foundShell.classList.remove('gwx-word-found');
+      void foundShell.offsetWidth;
+      foundShell.classList.add('gwx-word-found');
+      window.clearTimeout(foundShell._wordFoundTimer);
+      foundShell._wordFoundTimer = window.setTimeout(() => foundShell.classList.remove('gwx-word-found'), 760);
+    }
     /* the coin chain: the FIRST correct answer of the round is paid by the
        grid itself; every later correct answer is paid out of the previous
        scorer's purse — take what they hold, the grid adds nothing. A player
