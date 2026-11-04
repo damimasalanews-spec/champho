@@ -33,3 +33,36 @@
   .gwx-comp-stat strong{font-size:9px}
   .gwx-comp-stat em{font-size:7px}
 }
+
+/* Refined competition strip: a compact, legible gold-accented panel in the
+   narrow space between the round HUD and the letter board. */
+.gwx-competition-hud {
+  top:10.55vh;
+  width:min(620px,46vw);
+  min-height:58px;
+  padding:6px 10px;
+  gap:0;
+  border:1px solid rgba(255,205,83,.58);
+  border-radius:16px;
+  background:linear-gradient(105deg,rgba(5,24,58,.97),rgba(7,19,48,.96));
+  box-shadow:0 0 0 1px rgba(255,231,157,.16),0 7px 20px rgba(0,5,25,.52),0 0 18px rgba(255,190,61,.2);
+  backdrop-filter:blur(14px);
+}
+.gwx-comp-stat {
+  gap:2px;
+  padding:4px 12px;
+  border-right:1px solid rgba(144,190,255,.2);
+}
+.gwx-comp-stat small { color:#8edcff;font-size:8px;letter-spacing:.85px; }
+.gwx-comp-stat strong { color:#fff2c5;font-size:12px; }
+.gwx-comp-stat em { color:#afc6e5;font-size:9px; }
+.gwx-comp-stat:first-child small::before { content:"♛ ";color:#ffcf5b;font-size:12px; }
+.gwx-comp-stat:nth-child(2) small::before { content:"⚔ ";color:#c9baff;font-size:11px; }
+.gwx-comp-stat:nth-child(3) small::before { content:"✦ ";color:#ff9a43;font-size:11px; }
+@media(max-width:900px) {
+ .gwx-competition-hud { top:10.2vh;width:min(540px,56vw);min-height:52px;padding:4px 6px; }
+ .gwx-comp-stat { padding:3px 7px; }
+}
+@media(max-width:620px) {
+ .gwx-competition-hud { top:10vh;width:calc(100% - 28px);max-width:420px;min-height:44px; }
+}
