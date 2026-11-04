@@ -583,3 +583,42 @@ html,body{min-height:100%;background:var(--gwx-night);color:#f8f7ff}
   height:auto!important;min-height:72px!important;margin:8px 0!important;
  }
 }
+
+
+/* Compact, readable competition strip — short labels and unclipped type. */
+@media (min-width:761px){
+ .gwx-table #competitionHud,.gwx-table .gwx-competition-hud{
+  top:12px!important;right:22px!important;left:auto!important;bottom:auto!important;transform:none!important;
+  width:min(480px,36vw)!important;min-width:420px!important;max-width:480px!important;
+  height:68px!important;min-height:68px!important;box-sizing:border-box!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;padding:7px 10px!important;
+  border-radius:16px!important;overflow:visible!important;
+ }
+ .gwx-table #competitionHud .gwx-comp-stat,.gwx-table .gwx-competition-hud .gwx-comp-stat{
+  min-width:0!important;min-height:0!important;height:100%!important;box-sizing:border-box!important;
+  display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:flex-start!important;
+  gap:3px!important;padding:3px 10px!important;overflow:visible!important;
+ }
+ .gwx-table #competitionHud .gwx-comp-stat small,.gwx-table .gwx-competition-hud .gwx-comp-stat small{
+  display:block!important;font-size:9px!important;line-height:1.2!important;letter-spacing:.55px!important;
+  white-space:nowrap!important;overflow:visible!important;
+ }
+ .gwx-table #competitionHud .gwx-comp-stat strong,.gwx-table .gwx-competition-hud .gwx-comp-stat strong{
+  display:block!important;font-size:13px!important;line-height:1.25!important;white-space:nowrap!important;
+  max-width:100%!important;overflow:visible!important;text-overflow:clip!important;
+ }
+ .gwx-table #competitionHud .gwx-comp-stat em,.gwx-table .gwx-competition-hud .gwx-comp-stat em{
+  display:block!important;font-size:9px!important;line-height:1.25!important;white-space:nowrap!important;
+  max-width:100%!important;overflow:visible!important;text-overflow:clip!important;
+ }
+}
+@media(max-width:760px){
+ .gwx-table #competitionHud,.gwx-table .gwx-competition-hud{
+  height:auto!important;min-height:66px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:0!important;padding:7px!important;overflow:visible!important;
+ }
+ .gwx-table #competitionHud .gwx-comp-stat,.gwx-table .gwx-competition-hud .gwx-comp-stat{gap:3px!important;padding:4px 6px!important;overflow:visible!important}
+ .gwx-table #competitionHud .gwx-comp-stat small,.gwx-table .gwx-competition-hud .gwx-comp-stat small{font-size:8px!important;line-height:1.2!important;letter-spacing:.2px!important}
+ .gwx-table #competitionHud .gwx-comp-stat strong,.gwx-table .gwx-competition-hud .gwx-comp-stat strong{font-size:11px!important;line-height:1.25!important;overflow:visible!important;text-overflow:clip!important}
+ .gwx-table #competitionHud .gwx-comp-stat em,.gwx-table .gwx-competition-hud .gwx-comp-stat em{font-size:8px!important;line-height:1.25!important;overflow:visible!important;text-overflow:clip!important}
+}
