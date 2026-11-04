@@ -636,6 +636,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     }
     if (outcome.revenge) notify(nameOf(playerId) + ' got REVENGE on ' + nameOf(fromId) + ' · 1.5x attack!', 'steal', 3000);
     if (outcome.bounty) notify(nameOf(playerId) + ' claimed the BOUNTY from ' + nameOf(fromId) + ' · 25% bonus!', 'bounty', 3000);
+    if (outcome.shieldBroken) notify('SHIELD BROKEN · ' + nameOf(outcome.shielded) + ' loses protection · +' + outcome.gained + ' bank coins to ' + nameOf(playerId), 'combo', 3600);
     round.scores[playerId].words++;
     lastScorer = playerId;
     path = [];
