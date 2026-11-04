@@ -153,3 +153,21 @@
    align-self:flex-start!important;
  }
 }
+
+
+/* Shared player footer: larger coin and word-count area for all four players. */
+.gwx-table .gwx-seat .gwx-player-card{
+ grid-template-rows:minmax(0,1fr) 44px!important;
+}
+.gwx-table .gwx-seat .gwx-seat-coins{
+ height:44px!important;min-height:44px!important;
+ padding:9px 3px 2px!important;gap:10px!important;
+}
+.gwx-table .gwx-seat .gwx-seat-coins b{
+ font-size:14px!important;letter-spacing:.45px!important;
+ gap:5px!important;
+}
+.gwx-table .gwx-seat .gwx-seat-coins b small,
+.gwx-table .gwx-seat .gwx-seat-coins>small{
+ font-size:10px!important;letter-spacing:.7px!important;
+}
