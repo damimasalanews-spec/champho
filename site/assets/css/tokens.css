@@ -1,0 +1,130 @@
+/* ===========================================================================
+   CHAMP WORD — design tokens
+   Refined Moonlit Royal: deep forest night, aged gold, warm ivory.
+   Every colour used anywhere in the product is declared here once.
+   =========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* --- surfaces, darkest to lightest -------------------------------- */
+  --void:        #03100c;
+  --night:       #061b14;
+  --felt:        #082a1e;
+  --felt-hi:     #0d3a2a;
+  --felt-hi-2:   #124832;
+  --panel:       #0a2519;
+  --panel-2:     #0e2f21;
+
+  --glass:       rgb(10 37 25 / 0.72);
+  --glass-strong:rgb(8 30 20 / 0.88);
+  --scrim:       rgb(2 10 7 / 0.72);
+
+  /* --- gold: the only accent that carries weight --------------------- */
+  --gold:        #e0b567;
+  --gold-hi:     #f7dda2;
+  --gold-lo:     #a07a3a;
+  --gold-deep:   #6d5127;
+
+  /* --- ink ----------------------------------------------------------- */
+  --ivory:       #f4efe3;
+  --ivory-dim:   #cfd8d1;
+  --muted:       #a3b7ac;
+  --muted-2:     #7f9488;
+
+  /* --- semantic ------------------------------------------------------ */
+  --jade:        #6fd6b0;
+  --jade-deep:   #1d6b52;
+  --ruby:        #d5505c;
+  --ruby-deep:   #7a2730;
+  --amber:       #e8a33d;
+  --azure:       #7fb6e6;
+
+  /* --- lines --------------------------------------------------------- */
+  --line:        rgb(224 181 103 / 0.14);
+  --line-2:      rgb(224 181 103 / 0.26);
+  --line-3:      rgb(224 181 103 / 0.42);
+  --line-cool:   rgb(244 239 227 / 0.08);
+
+  /* --- type ---------------------------------------------------------- */
+  --font-display: "Cinzel", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:    ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+  --fs-2xs: 0.6875rem;
+  --fs-xs:  0.75rem;
+  --fs-sm:  0.8125rem;
+  --fs-md:  0.9375rem;
+  --fs-lg:  1.0625rem;
+  --fs-xl:  clamp(1.25rem, 0.9rem + 0.7vw, 1.5rem);
+  --fs-2xl: clamp(1.6rem, 1.1rem + 1.4vw, 2.25rem);
+  --fs-3xl: clamp(2.1rem, 1.3rem + 2.6vw, 3.4rem);
+  --fs-4xl: clamp(2.6rem, 1.2rem + 5vw, 5rem);
+
+  --lh-tight: 1.15;
+  --lh-snug:  1.35;
+  --lh-body:  1.6;
+
+  --tracking-wide: 0.14em;
+  --tracking-wider: 0.24em;
+
+  /* --- space (4px base) ---------------------------------------------- */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.25rem;
+  --s-6: 1.5rem;
+  --s-7: 2rem;
+  --s-8: 2.5rem;
+  --s-9: 3rem;
+  --s-10: 4rem;
+  --s-11: 5rem;
+
+  /* --- radius -------------------------------------------------------- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* --- elevation: warm shadow, not black mud -------------------------- */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 14px rgb(0 0 0 / 0.3);
+  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.45), 0 14px 34px rgb(0 0 0 / 0.42);
+  --shadow-3: 0 4px 12px rgb(0 0 0 / 0.5), 0 28px 64px rgb(0 0 0 / 0.55);
+  --glow-gold: 0 0 0 1px rgb(224 181 103 / 0.35), 0 10px 34px rgb(224 181 103 / 0.14);
+
+  /* --- motion -------------------------------------------------------- */
+  --dur-1: 140ms;
+  --dur-2: 240ms;
+  --dur-3: 420ms;
+  --dur-4: 720ms;
+  --ease:      cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out:  cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* --- layout -------------------------------------------------------- */
+  --rail-w: 248px;
+  --rail-w-sm: 76px;
+  --topbar-h: 68px;
+  --tabbar-h: 64px;
+  --page-max: 1240px;
+  --gutter: clamp(1rem, 0.5rem + 2vw, 2.5rem);
+}
+
+/* Rarity is shared by shop cards, badges, medals and the pass track. */
+:root {
+  --rarity-common:   #8fa79b;
+  --rarity-rare:     #6fa8dc;
+  --rarity-epic:     #b98ae0;
+  --rarity-legend:   #e0b567;
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --muted: #b9cbc1;
+    --line: rgb(224 181 103 / 0.3);
+    --line-2: rgb(224 181 103 / 0.45);
+  }
+}

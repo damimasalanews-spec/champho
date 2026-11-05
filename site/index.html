@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Champ Word — The Word Card Battle</title>
+<meta name="description" content="Champ Word is a real-time word card battle. Match by colour or word, outplay three seats, climb the season ladder.">
+<meta name="theme-color" content="#061b14">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="Champ Word — The Word Card Battle">
+<meta property="og:description" content="Match by colour or word. Outplay the table. Climb the season ladder.">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/css/tokens.css">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/components.css">
+<link rel="stylesheet" href="assets/css/screens.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<!-- Decorative scenery. Pure CSS/SVG: no bitmap, scales to any viewport. -->
+<div class="scenery" aria-hidden="true">
+  <div class="scenery__sky"></div>
+  <div class="scenery__stars"></div>
+  <div class="scenery__moon"></div>
+  <svg class="scenery__castle" viewBox="0 0 1600 420" preserveAspectRatio="xMidYMax slice" focusable="false">
+    <defs>
+      <linearGradient id="towerFace" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0a2b20"/>
+        <stop offset="1" stop-color="#04120d"/>
+      </linearGradient>
+      <linearGradient id="towerFaceFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0b3326" stop-opacity=".72"/>
+        <stop offset="1" stop-color="#05180f" stop-opacity=".72"/>
+      </linearGradient>
+      <radialGradient id="windowGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0" stop-color="#ffe6ac" stop-opacity=".95"/>
+        <stop offset="1" stop-color="#e0b567" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+
+    <!-- far ridge -->
+    <path fill="url(#towerFaceFar)" d="M0 330 L120 300 L210 322 L320 268 L430 310 L540 262 L650 306 L760 258 L880 304 L1000 264 L1120 308 L1230 270 L1340 312 L1450 282 L1600 318 L1600 420 L0 420 Z"/>
+
+    <!-- keep -->
+    <g fill="url(#towerFace)">
+      <path d="M690 420 V214 h26 v-26 h18 v26 h12 v-40 h20 v40 h12 v-26 h18 v26 h26 v206 Z"/>
+      <path d="M612 420 V268 h22 v-22 h14 v22 h10 v-34 h18 v34 h10 v-22 h14 v22 h22 v152 Z"/>
+      <path d="M858 420 V268 h22 v-22 h14 v22 h10 v-34 h18 v34 h10 v-22 h14 v22 h22 v152 Z"/>
+      <path d="M540 420 V312 h18 v-18 h12 v18 h8 v-28 h16 v28 h8 v-18 h12 v18 h18 v108 Z"/>
+      <path d="M952 420 V312 h18 v-18 h12 v18 h8 v-28 h16 v28 h8 v-18 h12 v18 h18 v108 Z"/>
+      <!-- spires -->
+      <path d="M714 188 l16 -58 l16 58 Z" fill="#081f16"/>
+      <path d="M645 246 l11 -40 l11 40 Z" fill="#081f16"/>
+      <path d="M891 246 l11 -40 l11 40 Z" fill="#081f16"/>
+    </g>
+
+    <!-- warm windows -->
+    <g fill="#f0c273" opacity=".85">
+      <rect x="716" y="238" width="8" height="16" rx="4"/>
+      <rect x="716" y="286" width="8" height="16" rx="4"/>
+      <rect x="700" y="264" width="8" height="12" rx="4" opacity=".55"/>
+      <rect x="732" y="264" width="8" height="12" rx="4" opacity=".55"/>
+      <rect x="640" y="292" width="7" height="14" rx="3.5" opacity=".8"/>
+      <rect x="886" y="292" width="7" height="14" rx="3.5" opacity=".8"/>
+      <rect x="574" y="332" width="7" height="13" rx="3.5" opacity=".6"/>
+      <rect x="986" y="332" width="7" height="13" rx="3.5" opacity=".6"/>
+    </g>
+    <g fill="url(#windowGlow)" opacity=".5">
+      <circle cx="720" cy="246" r="26"/>
+      <circle cx="720" cy="294" r="22"/>
+    </g>
+
+    <!-- near treeline -->
+    <path fill="#03100c" d="M0 420 V372 q60 -26 110 -6 q40 -34 96 -12 q52 -30 112 -4 q56 -28 118 2 q50 -22 104 4 q62 -30 128 -2 q58 -26 114 6 q54 -20 106 2 q60 -28 122 -4 q56 -24 112 4 q54 -18 96 8 L1600 420 Z"/>
+  </svg>
+  <div class="scenery__vignette"></div>
+  <div class="scenery__grain"></div>
+</div>
+
+<div class="app" id="app" data-nav="home">
+  <aside class="rail" aria-label="Primary">
+    <a class="brand" href="#/home" aria-label="Champ Word, home">
+      <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <path d="M5 11l4.6 3.2L16 6l6.4 8.2L27 11l-2.2 13H7.2L5 11Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        <circle cx="16" cy="19" r="2.2" fill="currentColor"/>
+      </svg>
+      <span class="brand__text"><b>CHAMP</b><i>WORD</i></span>
+    </a>
+
+    <nav class="rail__nav" aria-label="Sections">
+      <a class="navlink" data-route="home" href="#/home"><span class="navlink__ico" data-icon="home"></span><span class="navlink__label">Home</span></a>
+      <a class="navlink" data-route="play" href="#/play"><span class="navlink__ico" data-icon="play"></span><span class="navlink__label">Play</span></a>
+      <a class="navlink" data-route="shop" href="#/shop"><span class="navlink__ico" data-icon="shop"></span><span class="navlink__label">Shop</span></a>
+      <a class="navlink" data-route="events" href="#/events"><span class="navlink__ico" data-icon="sparkle"></span><span class="navlink__label">Events</span></a>
+      <a class="navlink" data-route="pass" href="#/pass"><span class="navlink__ico" data-icon="gift"></span><span class="navlink__label">Season</span></a>
+      <a class="navlink" data-route="ranks" href="#/ranks"><span class="navlink__ico" data-icon="trophy"></span><span class="navlink__label">Ranks</span></a>
+      <a class="navlink" data-route="social" href="#/social"><span class="navlink__ico" data-icon="users"></span><span class="navlink__label">Social</span></a>
+      <a class="navlink" data-route="settings" href="#/settings"><span class="navlink__ico" data-icon="gear"></span><span class="navlink__label">Settings</span></a>
+    </nav>
+
+    <div class="rail__foot">
+      <a class="rail__player" href="#/profile" data-player-card>
+        <span class="avatar avatar--sm" data-avatar="sm"></span>
+        <span class="rail__player-meta">
+          <b data-player-name>Guest</b>
+          <i data-player-level>Level 1</i>
+        </span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <header class="topbar">
+      <a class="topbar__brand" href="#/home">
+        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M5 11l4.6 3.2L16 6l6.4 8.2L27 11l-2.2 13H7.2L5 11Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        <span>CHAMP WORD</span>
+      </a>
+
+      <nav class="crumbs" aria-label="Breadcrumb"><ol id="crumbs"></ol></nav>
+
+      <div class="topbar__actions">
+        <button class="wallet" type="button" data-wallet="coins" aria-label="Coins">
+          <span class="wallet__ico" data-icon="coin"></span><b data-coins>0</b>
+        </button>
+        <button class="wallet" type="button" data-wallet="gems" aria-label="Diamonds">
+          <span class="wallet__ico wallet__ico--gem" data-icon="gem"></span><b data-gems>0</b>
+        </button>
+        <button class="iconbtn" type="button" data-notifications aria-label="Notifications">
+          <span data-icon="bell"></span>
+          <span class="iconbtn__dot" data-notif-dot hidden></span>
+        </button>
+        <button class="topbar__avatar" type="button" data-account aria-label="Account menu">
+          <span class="avatar avatar--sm" data-avatar="sm"></span>
+        </button>
+      </div>
+    </header>
+
+    <main id="main" class="view" tabindex="-1">
+      <div class="boot" role="status" aria-live="polite">
+        <div class="boot__mark"></div>
+        <p>Summoning the table…</p>
+      </div>
+    </main>
+  </div>
+
+  <nav class="tabbar" aria-label="Sections">
+    <a class="tab" data-route="home" href="#/home"><span data-icon="home"></span><i>Home</i></a>
+    <a class="tab" data-route="play" href="#/play"><span data-icon="play"></span><i>Play</i></a>
+    <a class="tab" data-route="shop" href="#/shop"><span data-icon="shop"></span><i>Shop</i></a>
+    <a class="tab" data-route="ranks" href="#/ranks"><span data-icon="trophy"></span><i>Ranks</i></a>
+    <a class="tab" data-route="profile" href="#/profile"><span data-icon="user"></span><i>You</i></a>
+  </nav>
+</div>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+<div id="dialog-root"></div>
+
+<noscript>
+  <p style="padding:2rem;color:#f4efe3;font-family:system-ui">Champ Word needs JavaScript to run the table.</p>
+</noscript>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
