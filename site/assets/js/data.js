@@ -12,47 +12,68 @@ export const SEASON = {
   daysLeft: 39
 };
 
+/**
+ * The five games the deployed home actually offers.
+ *
+ * These are transcribed from the live page, not invented: WORD UNO (classic),
+ * GO WILD, UNO FUN PACK ("no mercy"), UNO CONTEST and PLAY WITH FRIENDS.
+ * `game` opens a separate client in the round frame; `route` stays inside the
+ * lobby for the screens that are not a table.
+ */
 export const MODES = [
   {
     id: 'classic',
-    route: 'play',
     tone: 'classic',
     icon: 'cards',
-    title: 'Classic',
-    sub: '4 seats · ranked',
-    desc: 'Match the colour or the word. Seven cards in hand, one winner at the table.',
-    cta: 'Enter Classic'
+    title: 'Word UNO',
+    sub: 'Classic · 4 seats',
+    desc: 'The original table: match the colour or the word, seven cards in hand, one winner.',
+    cta: 'Open Classic',
+    game: 'game/'
   },
   {
     id: 'wild',
-    route: 'play',
     tone: 'wild',
     icon: 'flame',
     title: 'Go Wild',
-    sub: '2v2 · teams',
-    desc: 'Two seats a side, shared colour, +2 and +4 stacking. Your partner is watching.',
-    cta: 'Enter Go Wild',
-    badge: 'NEW'
+    sub: '+2 · +4 · wild',
+    desc: 'The 2v2 word grid: seven by six letters, thirty words a round, two teams of two.',
+    cta: 'Open Go Wild',
+    game: 'go-wild-2v2-finished.html'
   },
   {
-    id: 'private',
-    route: 'room',
+    id: 'fun',
+    tone: 'ruby',
+    icon: 'dice',
+    title: 'UNO Fun Pack',
+    sub: 'No mercy!',
+    desc: 'The ruthless rule set — stacking, forced draws and no let-up until a hand is empty.',
+    cta: 'Coming soon',
+    // There is no separate No Mercy build in the repository: the deployed home
+    // opens the classic client for this card, and so does this one. When a Fun
+    // Pack client lands, point this at it and drop pending.
+    pending: true,
+    game: 'game/'
+  },
+  {
+    id: 'contest',
+    tone: 'ranked',
+    icon: 'crown',
+    title: 'UNO Contest',
+    sub: 'Season 01 ladder',
+    desc: 'The ranked contest. Every win moves your season position; the ladder resets at the close.',
+    cta: 'View the contest',
+    route: 'ranks'
+  },
+  {
+    id: 'friends',
     tone: 'private',
     icon: 'users',
-    title: 'Private table',
-    sub: '6-character code',
-    desc: 'Open a table for your own group. No queue, no rating, no strangers.',
-    cta: 'Create a table'
-  },
-  {
-    id: 'ranked',
-    route: 'ranks',
-    tone: 'ranked',
-    icon: 'trophy',
-    title: 'Season contest',
-    sub: 'Ladder · top 100',
-    desc: 'Every win moves your season position. The ladder resets when Word Rush ends.',
-    cta: 'View the ladder'
+    title: 'Play with Friends',
+    sub: 'Private · free',
+    desc: 'Open a table for your own group and hand out the six-character code.',
+    cta: 'Open a table',
+    route: 'room'
   }
 ];
 

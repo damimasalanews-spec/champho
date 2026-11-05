@@ -39,7 +39,14 @@ export function socketUrl() {
 const GAME_DIR = new URLSearchParams(location.search).get('game')
   ?? (location.pathname.includes('/site/') ? '../' : './');
 
-export const GAME_CLIENT = `${GAME_DIR}wild-play.html`;
+/** Resolve a game client that lives beside the lobby, not inside it. */
+export function gameUrl(file) {
+  if (/^(https?:|\/|\.{1,2}\/)/.test(file)) return file;
+  return `${GAME_DIR}${file}`;
+}
+
+/** The classic table, which is what "quick play" opens. */
+export const GAME_CLIENT = gameUrl('game/');
 
 let status = 'unknown'; // unknown | online | offline
 let socket = null;

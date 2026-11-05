@@ -5,14 +5,20 @@
    player back when it closes — no rewrite of the game itself.
    =========================================================================== */
 
-import { GAME_CLIENT } from './api.js';
+import { GAME_CLIENT, gameUrl } from './api.js';
 import { icon, toast } from './ui.js';
 
 let frame = null;
 let lastFocus = null;
 
-export function openGame(label = 'Champ Word · live table') {
+/**
+ * Open one of the game clients full-screen.
+ * `file` is a path relative to the game directory ('game/', 'go-wild-2v2-finished.html')
+ * or an absolute one; each mode card names its own client.
+ */
+export function openGame(label = 'Champ Word · live table', file = GAME_CLIENT) {
   if (frame) return;
+  const src = gameUrl(file);
   lastFocus = document.activeElement;
 
   frame = document.createElement('div');
@@ -28,7 +34,7 @@ export function openGame(label = 'Champ Word · live table') {
         ${icon('close')} Leave table
       </button>
     </div>
-    <iframe src="${GAME_CLIENT}" title="${label}" allow="autoplay; fullscreen"></iframe>
+    <iframe src="${src}" title="${label}" allow="autoplay; fullscreen"></iframe>
   `;
 
   document.body.append(frame);

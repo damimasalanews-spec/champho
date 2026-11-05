@@ -6,8 +6,8 @@ import { server, findMatch, cancelQueue } from '../api.js';
 import { openGame } from '../gameframe.js';
 
 const TITLES = {
-  classic: { title: 'Classic table', sub: 'Four seats · 7 cards · ranked', icon: 'cards' },
-  wild: { title: 'Go Wild · 2v2', sub: 'Two seats a side · teams', icon: 'flame' }
+  classic: { title: 'Word UNO · Classic', sub: 'Four seats · seven cards', icon: 'cards', client: 'game/' },
+  wild: { title: 'Go Wild · 2v2', sub: '7×6 word grid · 30 words', icon: 'flame', client: 'go-wild-2v2-finished.html' }
 };
 
 export default {
@@ -149,12 +149,17 @@ export default {
     });
 
     el.querySelectorAll('[data-other]').forEach((btn) => {
-      btn.addEventListener('click', () => go(btn.dataset.other === 'private' ? 'room' : btn.dataset.other === 'ranked' ? 'ranks' : `play/${btn.dataset.other}`));
+      btn.addEventListener('click', () => {
+        const target = MODES.find((m) => m.id === btn.dataset.other);
+        if (!target) return;
+        if (target.game) openGame(`${target.title} · ${target.sub}`, target.game);
+        else if (target.route) go(target.route);
+      });
     });
 
     findBtn.addEventListener('click', async () => {
       if (phase === 'found' && found) {
-        openGame(`Room ${found.roomId}`);
+        openGame(`${meta.title} · Room ${found.roomId}`, meta.client);
         return;
       }
       if (phase !== 'idle') return;

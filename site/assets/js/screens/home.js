@@ -5,7 +5,26 @@ import { go } from '../nav.js';
 import { server } from '../api.js';
 import { openGame } from '../gameframe.js';
 
-const MODE_ROUTE = { classic: 'play/classic', wild: 'play/wild', private: 'room', ranked: 'ranks' };
+/** A card either opens its own game client, or moves inside the lobby. */
+function launchMode(mode) {
+  if (!mode) return;
+  if (mode.pending) return explainPending(mode);
+  if (mode.game) openGame(`${mode.title} · ${mode.sub}`, mode.game);
+  else if (mode.route) go(mode.route);
+}
+
+/** No dedicated build yet: say so instead of silently opening something else. */
+function explainPending(mode) {
+  dialog({
+    title: mode.title,
+    body: `<p>No Mercy rules are not in this build yet — the repository has no separate Fun Pack client.</p>
+           <p class="muted" style="margin-top:10px">Until that build ships, this card opens the classic table.</p>`,
+    actions: [
+      { label: 'Not now', variant: 'quiet' },
+      { label: 'Open Classic', variant: 'primary', onClick: () => openGame('Word UNO · Classic mode', 'game/') }
+    ]
+  });
+}
 
 export default {
   title: 'Home',
@@ -77,18 +96,17 @@ export default {
       <section class="section">
         <div class="section__head">
           <span class="eyebrow">Choose your table</span>
-          <h2>Four ways to play</h2>
+          <h2>Five ways to play</h2>
         </div>
         <div class="modes">
           ${MODES.map((mode) => `
             <button class="mode mode--${mode.tone} reveal" type="button" data-mode="${mode.id}">
               <span class="mode__top">
                 <span class="mode__icon">${icon(mode.icon)}</span>
-                <span>
+                <span class="mode__text">
                   <span class="mode__title">${esc(mode.title)}</span>
                   <span class="mode__sub">${esc(mode.sub)}</span>
                 </span>
-                ${mode.badge ? `<span class="pill pill--gold" style="margin-left:auto">${mode.badge}</span>` : ''}
               </span>
               <span class="mode__desc">${esc(mode.desc)}</span>
               <span class="mode__foot">
@@ -200,10 +218,13 @@ export default {
 
     /* --- behaviour ------------------------------------------------------- */
 
-    el.querySelector('[data-quick]').addEventListener('click', () => go('play/classic'));
+    // Quick play is the classic table, which is what the deployed home opens.
+    el.querySelector('[data-quick]').addEventListener('click', () => {
+      openGame('Word UNO · Classic mode', 'game/');
+    });
 
     el.querySelectorAll('[data-mode]').forEach((btn) => {
-      btn.addEventListener('click', () => go(MODE_ROUTE[btn.dataset.mode] ?? 'play'));
+      btn.addEventListener('click', () => launchMode(MODES.find((m) => m.id === btn.dataset.mode)));
     });
 
     el.querySelectorAll('[data-join]').forEach((btn) => {

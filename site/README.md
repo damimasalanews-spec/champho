@@ -96,6 +96,27 @@ between screens, and each route sets its own document title and breadcrumb.
 
 ---
 
+## The five games
+
+The "Five ways to play" section mirrors the deployed home card for card. Each
+card opens the client it names, not a stand-in:
+
+| Card | Opens |
+|---|---|
+| **Word UNO** — classic mode | `game/` — the classic word-grid client |
+| **Go Wild** — +2 · +4 · wild | `go-wild-2v2-finished.html` — 7×6 word grid, 2v2 |
+| **UNO Fun Pack** — no mercy | no separate build exists yet; the card says "Coming soon" and offers the classic table |
+| **UNO Contest** | `#/ranks` — the season ladder, inside the lobby |
+| **Play with Friends** | `#/room` — private table and code entry |
+
+The Fun Pack has no client of its own in this repository — the deployed home
+opens the classic table for that card, silently. `MODES` in `data.js` carries a
+`pending` flag so the card says so instead. When a No Mercy build ships, point
+`MODES.fun.game` at it and drop the flag.
+
+Quick play on the hero opens Word UNO directly, which is what the deployed home
+does; matchmaking for the same two clients is still reachable from **Play**.
+
 ## Data and the live server
 
 `assets/js/api.js` is the only place that talks to the backend.
