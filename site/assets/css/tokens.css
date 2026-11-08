@@ -1,130 +1,132 @@
 /* ===========================================================================
    CHAMP WORD — design tokens
-   Refined Moonlit Royal: deep forest night, aged gold, warm ivory.
-   Every colour used anywhere in the product is declared here once.
+   Arcade bright: sky blue world, white cards, candy accents.
+   Everything the product draws is declared here once.
    =========================================================================== */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* --- surfaces, darkest to lightest -------------------------------- */
-  --void:        #03100c;
-  --night:       #061b14;
-  --felt:        #082a1e;
-  --felt-hi:     #0d3a2a;
-  --felt-hi-2:   #124832;
-  --panel:       #0a2519;
-  --panel-2:     #0e2f21;
+  /* --- sky ---------------------------------------------------------- */
+  --sky-1: #6ec4ff;
+  --sky-2: #2f8fe8;
+  --sky-3: #1160b8;
+  --sky-4: #093f7d;
+  --sky-deep: #052c5c;
 
-  --glass:       rgb(10 37 25 / 0.72);
-  --glass-strong:rgb(8 30 20 / 0.88);
-  --scrim:       rgb(2 10 7 / 0.72);
+  /* --- surfaces ----------------------------------------------------- */
+  --panel: #ffffff;
+  --panel-2: #eef6ff;
+  --panel-3: #dbeaff;
+  --ink: #0f2f57;
+  --ink-2: #4e6c8c;
+  --ink-3: #7b93ab;
 
-  /* --- gold: the only accent that carries weight --------------------- */
-  --gold:        #e0b567;
-  --gold-hi:     #f7dda2;
-  --gold-lo:     #a07a3a;
-  --gold-deep:   #6d5127;
+  /* --- text on sky -------------------------------------------------- */
+  --ivory: #ffffff;
+  --ivory-dim: rgba(255, 255, 255, 0.86);
+  --muted: rgba(255, 255, 255, 0.78);
+  --muted-2: rgba(255, 255, 255, 0.6);
 
-  /* --- ink ----------------------------------------------------------- */
-  --ivory:       #f4efe3;
-  --ivory-dim:   #cfd8d1;
-  --muted:       #a3b7ac;
-  --muted-2:     #7f9488;
+  /* --- candy accents ------------------------------------------------ */
+  --yellow: #ffc02e;
+  --yellow-hi: #ffe07a;
+  --yellow-lo: #e09200;
+  --gold: #ffc02e;
+  --gold-hi: #ffe9a8;
+  --gold-lo: #c98a00;
 
-  /* --- semantic ------------------------------------------------------ */
-  --jade:        #6fd6b0;
-  --jade-deep:   #1d6b52;
-  --ruby:        #d5505c;
-  --ruby-deep:   #7a2730;
-  --amber:       #e8a33d;
-  --azure:       #7fb6e6;
+  --red: #ee3b2f;
+  --red-hi: #ff7a6b;
+  --ruby: #ee3b2f;
 
-  /* --- lines --------------------------------------------------------- */
-  --line:        rgb(224 181 103 / 0.14);
-  --line-2:      rgb(224 181 103 / 0.26);
-  --line-3:      rgb(224 181 103 / 0.42);
-  --line-cool:   rgb(244 239 227 / 0.08);
+  --green: #2fc24b;
+  --green-hi: #7be88d;
+  --jade: #2fc24b;
 
-  /* --- type ---------------------------------------------------------- */
-  --font-display: "Cinzel", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --font-body:    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono:    ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+  --blue: #2f9bff;
+  --blue-hi: #8cccff;
+  --azure: #2f9bff;
+
+  --purple: #a35cff;
+  --purple-hi: #cfa8ff;
+  --pink: #ff4fa3;
+  --pink-hi: #ffa8cf;
+  --teal: #26c9c9;
+  --orange: #ff8b1f;
+
+  /* --- lines -------------------------------------------------------- */
+  --line: rgba(255, 255, 255, 0.22);
+  --line-2: rgba(255, 255, 255, 0.34);
+  --line-cool: rgba(15, 47, 87, 0.1);
+  --line-strong: rgba(15, 47, 87, 0.16);
+
+  /* --- type --------------------------------------------------------- */
+  --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
 
   --fs-2xs: 0.6875rem;
-  --fs-xs:  0.75rem;
-  --fs-sm:  0.8125rem;
-  --fs-md:  0.9375rem;
-  --fs-lg:  1.0625rem;
-  --fs-xl:  clamp(1.25rem, 0.9rem + 0.7vw, 1.5rem);
-  --fs-2xl: clamp(1.6rem, 1.1rem + 1.4vw, 2.25rem);
-  --fs-3xl: clamp(2.1rem, 1.3rem + 2.6vw, 3.4rem);
-  --fs-4xl: clamp(2.6rem, 1.2rem + 5vw, 5rem);
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.9375rem;
+  --fs-lg: 1.0625rem;
+  --fs-xl: clamp(1.2rem, 1rem + 0.9vw, 1.5rem);
+  --fs-2xl: clamp(1.55rem, 1.1rem + 2vw, 2.3rem);
+  --fs-3xl: clamp(2rem, 1.3rem + 3.2vw, 3.6rem);
 
-  --lh-tight: 1.15;
-  --lh-snug:  1.35;
-  --lh-body:  1.6;
+  --lh-tight: 1.1;
+  --lh-snug: 1.3;
+  --lh-body: 1.55;
 
-  --tracking-wide: 0.14em;
-  --tracking-wider: 0.24em;
+  /* --- space -------------------------------------------------------- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-7: 32px;
+  --s-8: 40px;
+  --s-9: 56px;
 
-  /* --- space (4px base) ---------------------------------------------- */
-  --s-1: 0.25rem;
-  --s-2: 0.5rem;
-  --s-3: 0.75rem;
-  --s-4: 1rem;
-  --s-5: 1.25rem;
-  --s-6: 1.5rem;
-  --s-7: 2rem;
-  --s-8: 2.5rem;
-  --s-9: 3rem;
-  --s-10: 4rem;
-  --s-11: 5rem;
-
-  /* --- radius -------------------------------------------------------- */
-  --r-xs: 6px;
+  /* --- shape -------------------------------------------------------- */
   --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 20px;
-  --r-xl: 28px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-xl: 30px;
   --r-pill: 999px;
 
-  /* --- elevation: warm shadow, not black mud -------------------------- */
-  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.5), 0 4px 14px rgb(0 0 0 / 0.3);
-  --shadow-2: 0 2px 6px rgb(0 0 0 / 0.45), 0 14px 34px rgb(0 0 0 / 0.42);
-  --shadow-3: 0 4px 12px rgb(0 0 0 / 0.5), 0 28px 64px rgb(0 0 0 / 0.55);
-  --glow-gold: 0 0 0 1px rgb(224 181 103 / 0.35), 0 10px 34px rgb(224 181 103 / 0.14);
+  /* --- depth -------------------------------------------------------- */
+  --shadow-card: 0 3px 0 rgba(9, 45, 88, 0.1), 0 10px 24px rgba(6, 38, 76, 0.18);
+  --shadow-lift: 0 6px 0 rgba(9, 45, 88, 0.14), 0 18px 36px rgba(6, 38, 76, 0.26);
+  --shadow-soft: 0 4px 14px rgba(6, 38, 76, 0.16);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
-  /* --- motion -------------------------------------------------------- */
-  --dur-1: 140ms;
-  --dur-2: 240ms;
-  --dur-3: 420ms;
-  --dur-4: 720ms;
-  --ease:      cubic-bezier(0.32, 0.72, 0, 1);
-  --ease-out:  cubic-bezier(0.22, 0.61, 0.36, 1);
-  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  /* --- chrome ------------------------------------------------------- */
+  --hud-h: 92px;
+  --dock-h: 88px;
 
-  /* --- layout -------------------------------------------------------- */
-  --rail-w: 248px;
-  --rail-w-sm: 76px;
-  --topbar-h: 68px;
-  --tabbar-h: 64px;
-  --page-max: 1240px;
-  --gutter: clamp(1rem, 0.5rem + 2vw, 2.5rem);
+  /* --- motion ------------------------------------------------------- */
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: ease-in-out;
+  --dur-1: 0.14s;
+  --dur-2: 0.24s;
+  --dur-3: 0.42s;
+
+  --z-sky: 0;
+  --z-view: 10;
+  --z-float: 40;
+  --z-hud: 60;
+  --z-dock: 60;
+  --z-toast: 80;
+  --z-modal: 90;
 }
 
-/* Rarity is shared by shop cards, badges, medals and the pass track. */
-:root {
-  --rarity-common:   #8fa79b;
-  --rarity-rare:     #6fa8dc;
-  --rarity-epic:     #b98ae0;
-  --rarity-legend:   #e0b567;
-}
-
-@media (prefers-contrast: more) {
+@media (max-width: 720px) {
   :root {
-    --muted: #b9cbc1;
-    --line: rgb(224 181 103 / 0.3);
-    --line-2: rgb(224 181 103 / 0.45);
+    --hud-h: 76px;
+    --dock-h: 74px;
   }
 }

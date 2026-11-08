@@ -17,7 +17,7 @@ export default {
         <div class="welcome__copy">
           <span class="eyebrow">Season ${esc(SEASON.id)} · ${esc(SEASON.name)}</span>
           <h1 style="font-size:var(--fs-3xl)">Take a seat.<br>The table is set.</h1>
-          <p class="hero__lede" style="max-width:46ch">
+          <p style="max-width:46ch;font-size:var(--fs-lg);color:var(--muted)">
             Four seats. Seven cards each. Match the colour or the word, and the last hand
             standing takes the pot.
           </p>
@@ -26,15 +26,10 @@ export default {
             <span class="row" style="gap:6px">${icon('check')} Plays in landscape or portrait</span>
             <span class="row" style="gap:6px">${icon('check')} Works offline as a guest</span>
           </div>
-          <div class="hero__cards" style="height:auto;min-height:0;padding:var(--s-4) 0 0">
-            <div class="hcard hcard--wild" style="--tilt:-10deg">W</div>
-            <div class="hcard hcard--ruby" style="--tilt:-4deg">+2</div>
-            <div class="hcard hcard--jade" style="--tilt:4deg">A</div>
-            <div class="hcard hcard--azure" style="--tilt:10deg">Z</div>
-          </div>
+
         </div>
 
-        <section class="panel panel--ornate welcome__card">
+        <section class="panel welcome__card">
           <div>
             <span class="eyebrow">Enter</span>
             <h2 style="margin-top:var(--s-2);font-size:var(--fs-xl)">Pick a name</h2>
@@ -44,7 +39,7 @@ export default {
           </div>
 
           <div class="field">
-            <label for="w-name">Display name</label>
+            <label class="field__label" for="w-name">Display name</label>
             <input class="input" id="w-name" maxlength="18" placeholder="e.g. Champ" autocomplete="nickname"
                    value="${esc(store.state.player.name === 'Guest' ? '' : store.state.player.name)}">
           </div>

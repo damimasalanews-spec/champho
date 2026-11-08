@@ -148,6 +148,16 @@ export const EVENTS = [
   { id: 'e3', name: 'The Long Table', sub: 'Endurance · 30 rounds', badge: 'SOON', glow: 'rgb(111 214 176 / 0.26)', icon: 'clock' }
 ];
 
+/* Seven days of free rewards. kind only drives the icon on the card. */
+export const DAILY_REWARDS = [
+  { amount: 100, kind: 'coins' },
+  { amount: 150, kind: 'coins' },
+  { amount: 5, kind: 'gems' },
+  { amount: 250, kind: 'coins' },
+  { amount: 400, kind: 'coins' },
+  { amount: 12, kind: 'gems' },
+  { amount: 900, kind: 'coins' }
+];
 export const PASS_TIERS = [
   { tier: 1, xp: 0, name: 'Coin cache', kind: 'coins', amount: 500, rarity: 'common', icon: 'coin' },
   { tier: 2, xp: 400, name: 'Moon felt card back', kind: 'cosmetic', rarity: 'rare', icon: 'cards' },

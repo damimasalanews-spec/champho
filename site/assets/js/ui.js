@@ -47,7 +47,9 @@ const PATHS = {
   search: '<circle cx="11" cy="11" r="6.4"/><path d="m16 16 4.2 4.2"/>',
   wifi: '<path d="M4.6 9.6a11 11 0 0 1 14.8 0"/><path d="M7.6 13a7 7 0 0 1 8.8 0"/><path d="M10.6 16.4a3 3 0 0 1 2.8 0"/><circle cx="12" cy="19.4" r="1" fill="currentColor"/>',
   swords: '<path d="M4 20l5.6-5.6M14.4 9.6 20 4"/><path d="M14.6 4H20v5.4"/><path d="M9.4 14.6 20 4"/><path d="M4 9.4V4h5.4"/><path d="m4 20 4-4"/>',
-  dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>'
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>',
+  msg: '<path d="M20.4 12.2c0 3.9-3.8 7-8.4 7-1 0-2-.1-2.9-.4l-4.5 1.9 1.4-3.6C4.4 16 3.6 14.2 3.6 12.2c0-3.9 3.8-7 8.4-7s8.4 3.1 8.4 7z"/>',
+  chest: '<path d="M4 10.4h16V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 10.4a3.2 3.2 0 0 1 3.2-3.2h9.6A3.2 3.2 0 0 1 20 10.4"/><path d="M10.4 10.4h3.2v3.4h-3.2z"/>',
 };
 
 export function icon(name, cls = '') {
