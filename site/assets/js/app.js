@@ -32,7 +32,10 @@ const router = createRouter({
   routes,
   fallback: 'home',
   view,
-  onRendered() {
+  onRendered(route) {
+    // Lets the stylesheet know which screen is up — the promo floaters are a
+    // home affordance and must not sit on top of the standings or the shop.
+    document.body.dataset.route = route;
     syncShell();
   }
 });

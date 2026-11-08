@@ -84,7 +84,7 @@ export default {
           </div>
         </section>
 
-        <div class="rank-me reveal">
+        <div class="rank-me rank-row reveal">
           <span class="rank-row__no" style="font-size:var(--fs-md)">#${myRank}</span>
           ${avatarMarkup({ name: player.name }, 'sm avatar--ring')}
           <span class="rank-row__name">

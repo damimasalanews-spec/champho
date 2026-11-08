@@ -158,13 +158,15 @@
   background:
     linear-gradient(45deg, transparent 47%, #ffe07a 48% 52%, transparent 53%) 0 0 / 18px 18px,
     linear-gradient(-45deg, transparent 47%, #7be0ff 48% 52%, transparent 53%) 6px 6px / 22px 22px;
-  opacity: 0.9;
+  opacity: 0.55;
+  z-index: 0;
   transform: rotate(8deg);
 }
 .gamecard--wild .gamecard__kicker,
 .gamecard--wild .gamecard__name,
 .gamecard--wild .gamecard__note { position: relative; z-index: 1; margin-top: auto; }
 .gamecard--wild .gamecard__kicker { margin-top: 38%; }
+.gamecard--wild .gamecard__note { z-index: 2; }
 
 /* --- face: fun pack ------------------------------------------------------ */
 
@@ -402,7 +404,7 @@
 
 .shop-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(192px, 1fr));
   gap: var(--s-3);
 }
 
@@ -443,6 +445,7 @@
   right: 6px;
   padding: 1px 6px;
   border-radius: 6px;
+  z-index: 3;
   background: var(--yellow);
   color: #5c3a00;
   font-family: var(--font-display);
@@ -643,7 +646,7 @@
 .rank-table { display: grid; gap: 2px; }
 .rank-row {
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 34px auto 1fr auto;
   align-items: center;
   gap: var(--s-3);
   padding: 10px var(--s-3);
@@ -656,7 +659,15 @@
 .rank-row__name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rank-row__score { font-family: var(--font-display); font-weight: 800; font-variant-numeric: tabular-nums; }
 .rank-row--me { background: linear-gradient(180deg, #fff8dc, #ffe9a8); box-shadow: inset 0 0 0 2px var(--yellow); }
-.rank-me { box-shadow: var(--shadow-lift); }
+.rank-me {
+  display: grid;
+  grid-template-columns: 34px auto 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px var(--s-3);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lift);
+}
 
 /* ---------------------------------------------------------------------------
    8. Profile
@@ -906,6 +917,6 @@
 }
 
 @media (max-width: 520px) {
-  .gamecard { width: min(64vw, 220px); }
+  .gamecard { width: min(50vw, 200px); }
   .podium__seat { width: 84px; }
 }

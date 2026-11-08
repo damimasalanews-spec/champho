@@ -497,7 +497,10 @@ a { color: inherit; text-decoration: none; }
 .chatfab {
   position: fixed;
   left: 0;
-  top: 46%;
+  /* sits above the dock: at mid-page height it covered the first
+     shop card and clipped its rarity tag */
+  top: auto;
+  bottom: calc(var(--dock-h) + env(safe-area-inset-bottom) + 14px);
   z-index: var(--z-float);
   display: grid;
   place-items: center;
@@ -518,7 +521,7 @@ a { color: inherit; text-decoration: none; }
 .floaters__right {
   position: fixed;
   right: clamp(6px, 1.4vw, 18px);
-  bottom: calc(var(--dock-h) + env(safe-area-inset-bottom) + 6px);
+  bottom: calc(var(--dock-h) + env(safe-area-inset-bottom) + 16px);
   z-index: var(--z-float);
   display: grid;
   justify-items: end;
@@ -716,3 +719,17 @@ html[data-motion="off"] [data-reveal] { opacity: 1; transform: none; }
   .hud__score { font-size: 12px; }
   .hud__lv { display: none; }
 }
+
+@media (max-width: 520px) {
+  /* the wallet and its two refill buttons were squeezing the name plate to
+     38px, which is why "Champ" rendered as "Cha…" */
+  .hud .plus { display: none; }
+  .hud__wallet { gap: 4px; }
+  .wallet-pill { padding-right: 7px; }
+  .wallet-pill b { font-size: 14px; }
+  .hud__plate { min-width: 0; }
+}
+
+/* Promo floaters belong to the home screen. On standings, shop and profile they
+   sat over the score column and the last row of cards. */
+body[data-route]:not([data-route="home"]) .floaters__right { display: none; }

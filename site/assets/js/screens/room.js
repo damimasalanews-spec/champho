@@ -99,7 +99,7 @@ export default {
 
           <section class="panel reveal">
             <div class="panel__head"><h2>House rules</h2></div>
-            <div class="panel__body" style="display:grid;gap:var(--s-3);font-size:var(--fs-sm);color:var(--ivory-dim)">
+            <div class="panel__body" style="display:grid;gap:var(--s-3);font-size:var(--fs-sm);color:var(--ink-2)">
               <p>Private tables do not change your season rating.</p>
               <p>The stake is checked against your wallet before the deal, by the server.</p>
               <p>If a seat disconnects, its turn draws and passes until it returns.</p>

@@ -34,7 +34,7 @@ export default {
       <section class="section">
         <div class="panel">
           <div class="panel__head"><h2>How the track works</h2></div>
-          <div class="panel__body" style="display:grid;gap:var(--s-3);font-size:var(--fs-sm);color:var(--ivory-dim)">
+          <div class="panel__body" style="display:grid;gap:var(--s-3);font-size:var(--fs-sm);color:var(--ink-2)">
             <p>Season XP is earned per round: a win pays more than a loss, and missions pay a flat bonus.</p>
             <p>Cosmetic tiers arrive in your collection and can be equipped from the <b>Style store</b> or your <b>Profile</b>.</p>
             <p>Coin and diamond tiers are added straight to the wallet. Nothing on this track is purchasable.</p>
