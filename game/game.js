@@ -268,7 +268,12 @@ const BOT_KIT = [
   { portrait: 'wizard', frame: 'emerald', title: 'silk'    },
   { portrait: 'robot',  frame: 'volt',    title: 'cosmos'  },
 ];
-const KIT = { portrait: 'classic', frame: 'crystal', title: 'crystal', name: '', coins: null };
+/* The human seat carries no portrait art: `classic.webp` was removed from the
+   repository when the pumpkin avatars replaced it, and a missing file renders as
+   a broken image rather than nothing. An empty portrait makes seatArt() skip the
+   <img> entirely and fall back to the player's emoji, which is the path this
+   build already keeps for players who have no portrait. */
+const KIT = { portrait: '', frame: 'crystal', title: 'crystal', name: '', coins: null };
 
 function kitFor(p) {
   if (p.you) return KIT;

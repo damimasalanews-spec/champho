@@ -695,11 +695,14 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
         if (type === "find_match") {
           const displayName = typeof message.displayName === "string" ? message.displayName.slice(0, 24) : null;
           await enqueuePlayer(identity.playerId, displayName);
+          // Acknowledge the queue before the pass runs, never after. Sent from the
+          // "no table yet" branch, the ack could arrive *after* a `match_found`
+          // that another player's pass had already broadcast, so a client that
+          // narrates its own state would be told it is waiting once it is seated.
+          send(socket, { type: "match_queued", serverTime: new Date().toISOString() });
           const results = await runMatchmakingPass();
           if (results.length > 0) {
             await startMatchedTable(results);
-          } else {
-            send(socket, { type: "match_queued", serverTime: new Date().toISOString() });
           }
           return;
         }

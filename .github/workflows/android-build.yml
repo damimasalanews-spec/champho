@@ -22,7 +22,14 @@ jobs:
           mv android android-legacy-backup || true
           npx cap init champho-game com.tanis.champho --web-dir=.
           npm install @capacitor/android
-          npx cap add android
+          # `cap add` writes the plugin manifest into app/src/main/assets, and that
+          # directory does not exist in this project, so the step died with
+          #   ENOENT: no such file or directory, open '.../assets/capacitor.plugins.json'
+          # after it had already created the platform. Create the directory, tolerate
+          # the half-finished add, then let sync complete it.
+          npx cap add android || true
+          mkdir -p android/app/src/main/assets
+          npx cap sync android
 
       - name: Compile Application Direct Package
         run: |
