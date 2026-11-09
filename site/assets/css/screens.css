@@ -920,3 +920,94 @@
   .gamecard { width: min(50vw, 200px); }
   .podium__seat { width: 84px; }
 }
+
+/* --- light-surface corrections ------------------------------------------- */
+
+/* Ghost buttons were styled for the blue sky and went white-on-white the
+   moment they landed in a panel. */
+.btn--ghost {
+  --btn-bg: linear-gradient(180deg, #ffffff, #eef6ff);
+  --btn-edge: #c7dbf2;
+  --btn-fg: var(--ink);
+  border: 2px solid var(--line-strong);
+  text-shadow: none;
+}
+.btn--ghost:hover { --btn-bg: linear-gradient(180deg, #f4faff, #dcecff); }
+
+/* Locked pass tiers inherit the on-art white for their XP label, but the
+   locked card body is white. */
+.tier--locked .muted { color: var(--ink-2); }
+.tier--locked .tier__no { color: var(--ink-2); }
+
+/* Room code entry had no rule at all: six native inputs with 2px inset
+   borders and a 21px line box. */
+.code-cells {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.code-cells input {
+  width: 100%;
+  height: 64px;
+  padding: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 2px 0 rgba(15, 47, 87, 0.05);
+  transition: border-color var(--dur-1) var(--ease), box-shadow var(--dur-1) var(--ease);
+}
+.code-cells input:focus {
+  outline: none;
+  border-color: var(--yellow-lo);
+  box-shadow: 0 0 0 3px rgba(255, 192, 46, 0.45);
+}
+@media (max-width: 420px) {
+  .code-cells { gap: 6px; }
+  .code-cells input { height: 54px; font-size: 21px; }
+}
+/* Grid and flex children default to min-width:auto, which is what let the XP
+   label and one social row run past the card edge on a 375px viewport. */
+.panel__body > *,
+.profile-card > *,
+.profile-card__row > *,
+.stack > * { min-width: 0; }
+.meter__label { flex-wrap: wrap; gap: 2px 8px; }
+/* The room card stretched to the height of the column beside it, and a grid
+   with auto rows distributes that spare height between the rows : 828px of
+  empty space opened between the code cells and the join button. */
+.home-grid { align-items: start; }
+.room-hero { align-content: start; }
+
+/* Quiet buttons are ink-on-white by default; on the blue profile card that is
+   1.1:1. They need the on-art treatment there. */
+.profile-card .btn--quiet {
+  --btn-fg: #fff;
+  background: rgba(4, 32, 68, 0.22);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.profile-card__id { color: rgba(255, 255, 255, 0.92); }
+/* the copy-ID control and the share button sit on the blue card too */
+.profile-card .link,
+.profile-card__id .link {
+  color: #fff;
+  background: rgba(4, 32, 68, 0.32);
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  text-decoration-color: rgba(255, 255, 255, 0.5);
+}
+/* and the page-head action sits on the sky, not on a panel */
+.page-head .btn--quiet {
+  --btn-fg: #fff;
+  background: rgba(4, 32, 68, 0.42);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+/* blue event cards: body copy was inheriting a light-surface ink */
+.event-card p,
+.event-card .muted,
+.event-card li { color: rgba(255, 255, 255, 0.9); }

@@ -35,8 +35,9 @@
 .btn--primary {
   --btn-bg: linear-gradient(180deg, #ffd84d, #ff9f00);
   --btn-edge: #c97400;
-  --btn-fg: #fff;
-  text-shadow: 0 2px 0 rgba(150, 80, 0, 0.4);
+  /* white on #ff9f00 measured 2.2:1; dark amber clears AA at both ends */
+  --btn-fg: #4a2b00;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .btn--ghost {
   --btn-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.12));

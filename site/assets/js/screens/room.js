@@ -33,7 +33,7 @@ export default {
             <h2 style="font-size:var(--fs-xl)">Join a table</h2>
             <p class="muted" style="font-size:var(--fs-sm);max-width:42ch">Type the code your host shared, or paste it in one go.</p>
 
-            <div class="code-input" data-code role="group" aria-label="Six-character room code">
+            <div class="code-cells" data-code role="group" aria-label="Six-character room code">
               ${Array.from({ length: CODE_LEN }, (_, i) => `
                 <input type="text" inputmode="text" autocomplete="off" spellcheck="false"
                        maxlength="1" aria-label="Character ${i + 1} of 6" data-index="${i}">`).join('')}
