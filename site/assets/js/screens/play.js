@@ -105,10 +105,10 @@ export default {
           <section class="panel reveal">
             <div class="panel__head"><h2>How a round runs</h2></div>
             <div class="panel__body" style="display:grid;gap:var(--s-3);font-size:var(--fs-sm);color:var(--ink-2)">
-              <p><b style="color:var(--gold)">1.</b> The server deals seven cards to each seat and starts the clock.</p>
-              <p><b style="color:var(--gold)">2.</b> Play a card that matches the top card's colour or word.</p>
-              <p><b style="color:var(--gold)">3.</b> No legal card? Draw one, and the turn passes.</p>
-              <p><b style="color:var(--gold)">4.</b> Empty your hand to take the pot, less your own stake.</p>
+              <p><b style="color:#8a5c00">1.</b> The server deals seven cards to each seat and starts the clock.</p>
+              <p><b style="color:#8a5c00">2.</b> Play a card that matches the top card's colour or word.</p>
+              <p><b style="color:#8a5c00">3.</b> No legal card? Draw one, and the turn passes.</p>
+              <p><b style="color:#8a5c00">4.</b> Empty your hand to take the pot, less your own stake.</p>
             </div>
           </section>
         </div>

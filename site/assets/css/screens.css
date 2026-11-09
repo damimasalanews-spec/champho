@@ -678,7 +678,7 @@
   gap: var(--s-4);
   padding: var(--s-5);
   border-radius: var(--r-lg);
-  background: linear-gradient(160deg, #3f97f0, #1d6ec9);
+  background: linear-gradient(160deg, #2a6cb8, #124a8c);
   border: 2px solid rgba(255, 255, 255, 0.5);
   box-shadow: var(--shadow-card);
   color: #fff;
@@ -1056,3 +1056,109 @@
 .queue p, .queue .muted { color: var(--ink-2); }
 
 .profile-card .btn--quiet { background: rgba(4, 32, 68, 0.38); }
+/* --- contrast pass -------------------------------------------------------
+   White copy on the bright sky tops out around 3.5:1, so no token change can
+   rescue it. A soft navy scrim behind the content column drops the backdrop
+   without touching the bright sky at the edges, and every white label on it
+   clears AA. */
+.view {
+  background:
+    radial-gradient(150% 100% at 50% 0%,
+      rgba(4, 32, 68, 0.36) 0%,
+      rgba(4, 32, 68, 0.24) 45%,
+      rgba(4, 32, 68, 0.12) 100%);
+}
+
+/* Pills carried ink-2 on a pale blue chip: 4.47, just under. */
+.pill { color: var(--ink); }
+
+/* White on #e6362a is 2.8. */
+.btn--danger {
+  --btn-bg: linear-gradient(180deg, #d32f2f, #9e1c1c);
+  --btn-edge: #7d1414;
+}
+
+/* Gold numerals on a near-white podium card: 2.55-2.81. */
+.podium__rank { color: #8a5c00; }
+
+/* Card faces are bright; white type on them is the weakest text in the app
+   (1.09-2.93). Keep the faces, darken the type on the light ones. */
+
+.gamecard--friends .gamecard__kicker,
+.gamecard--friends .gamecard__note,
+.gamecard--friends .gamecard__name { color: #4a2400; }
+.gamecard__badge {
+  background: #14532d;
+  color: #fff;
+}
+/* Pills that sit on coloured cards had a white-on-white-chip override; they
+   were the last 2.6-4.2:1 texts left. */
+.profile-card__tags .pill,
+.event-card .pill {
+  background: rgba(4, 32, 68, 0.45);
+  color: #fff;
+}
+
+/* Podium scores sit on pale seats, so dark ink is right for all three. */
+.podium__score { color: var(--ink); }
+
+/* Tabs on the sky need the same treatment as the scrim: a darker trough. */
+.page-head .segmented {
+  background: rgba(4, 32, 68, 0.34);
+  border-color: rgba(255, 255, 255, 0.42);
+}
+.page-head .segmented button { color: #fff; }
+/* Selecting a tab inverted the label: the active pill is white and my sky rule
+   had turned every label white. */
+.page-head .segmented button[aria-selected="true"] { color: var(--ink); }
+
+/* Section hints sat straight on the green globe at 3.0:1. */
+.section__head .muted {
+  background: rgba(4, 32, 68, 0.58);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  letter-spacing: 0.04em;
+}
+
+/* Party tiles: light-blue surface, white labels. */
+.party-slot--filled b,
+.party-slot--filled small,
+.party-slot--filled .muted { color: var(--ink); }
+
+/* Link blue was 2.74:1 on the pale cards. */
+.link { color: #1565c0; }
+/* --- small chrome ------------------------------------------------------- */
+
+/* Initials on a light-blue disc measured 2.53:1. */
+.avatar { background: linear-gradient(160deg, #3f88d8, #124a8c); }
+
+/* Notification pips: white on #ee493c was 3.72. */
+.hud__alert,
+.dock__dot,
+.passcard__dot,
+.rewards__dot,
+.dock__item .dot { background: #c62828; }
+
+/* "Free Pass" was gradient-clipped text at 3.61 on indigo. */
+.passcard__title,
+.passcard b { -webkit-text-fill-color: #ffe9a8; color: #ffe9a8; }
+
+/* The wallet "+" buttons: white on gold was 1.69. */
+.plus { color: #4a2b00; }
+
+/* Streak pills: white letters on green/red. */
+.streak-pill,
+.form-pill { color: var(--ink); }
+/* Shop tabs sit on the sky like the page-head ones. */
+.screen--shop .segmented {
+  background: rgba(4, 32, 68, 0.34);
+  border-color: rgba(255, 255, 255, 0.42);
+}
+.screen--shop .segmented button { color: #fff; }
+.screen--shop .segmented button[aria-selected="true"] { color: var(--ink); }
+
+/* Promo floaters and the offline pill were white on bright red. */
+.gg, .gg b, .rewards__label { text-shadow: 0 1px 2px rgba(90, 10, 0, 0.55); }
+.gg { background: linear-gradient(180deg, #e04a3a, #a81b10); }
+.pill--live, .pill--danger, .pill--offline { background: #b3261e; color: #fff; }
