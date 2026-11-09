@@ -38,6 +38,13 @@ jobs:
           mkdir -p android/app/src/main/assets
           npx cap sync android
 
+      # Capacitor 8 compiles against Java 21, and the runner's default JDK is
+      # older, so javac failed with "error: invalid source release: 21".
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Compile Application Direct Package
         run: |
           cd android
