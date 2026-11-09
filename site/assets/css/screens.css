@@ -1022,3 +1022,37 @@
 }
 .room-hero p,
 .room-hero .muted { color: var(--ink-2); }
+/* --- welcome / queue surface corrections --------------------------------- */
+
+/* A bare inline <svg> has no intrinsic size, so the three check marks in the
+   hero rendered at their 300x150 default and made the row 368px tall. */
+.row > svg { width: 18px; height: 18px; flex: none; }
+
+.welcome__copy > .row {
+  align-items: center;
+  gap: var(--s-3);
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: rgba(4, 32, 68, 0.56);
+  color: #fff;
+}
+.welcome__copy > .row > .row { color: #fff; }
+
+@media (max-width: 879px) {
+  .welcome { align-items: start; }
+}
+
+/* The queue block was transparent, so its dark copy sat on the green globe
+   (2.64:1) and "Cancel queue" disappeared. Same surface as every other panel. */
+.queue {
+  background: var(--panel);
+  border: 2px solid #fff;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+  padding: var(--s-6) var(--s-5);
+  color: var(--ink);
+}
+.queue h2, .queue__title { color: var(--ink); }
+.queue p, .queue .muted { color: var(--ink-2); }
+
+.profile-card .btn--quiet { background: rgba(4, 32, 68, 0.38); }
