@@ -20,7 +20,14 @@ jobs:
         run: |
           # Safely move aside the broken directory to prevent compilation interference
           mv android android-legacy-backup || true
-          npx cap init champho-game com.tanis.champho --web-dir=.
+          # Do NOT run `cap init` here. It overwrote the checked-in
+          # capacitor.config.json and set webDir to the repository root, so
+          # Capacitor tried to copy the whole repo into its own subdirectory:
+          #   Cannot copy '/home/runner/work/champho/champho' to a subdirectory
+          #   of itself, '.../android/app/src/main/assets/public'
+          # The checked-in config is the real one: webDir is mobile/www, a thin
+          # shell whose server.url points at the deployed site, with offline.html
+          # as the error page.
           npm install @capacitor/android
           # `cap add` writes the plugin manifest into app/src/main/assets, and that
           # directory does not exist in this project, so the step died with
