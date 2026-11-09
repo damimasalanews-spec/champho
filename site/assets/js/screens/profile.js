@@ -147,28 +147,42 @@ export default {
       </div>
     `;
 
-    el.querySelector('[data-copy]').addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(player.playerId);
-        toast('Player ID copied.', 'good');
-      } catch {
-        toast(`Your ID is ${player.playerId}`, 'info');
-      }
+    el.querySelector('[data-copy]').addEventListener('click', () => {
+      const id = player.playerId;
+      const done = () => toast('Player ID copied.', 'good');
+      const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = id;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.append(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); }
+        catch { toast(`Your ID is ${id}`, 'info'); }
+        ta.remove();
+      };
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(id).then(done, fallback);
+      else fallback();
     });
-
     el.querySelector('[data-share]').addEventListener('click', async () => {
-      const text = `${player.name} ${player.tag} — ${player.league} league, ${compact(player.trophies)} trophies on Champ Word.`;
+      const text = `${player.name} ${player.tag} · ${player.league} league, ${compact(player.trophies)} trophies on Champ Word.`;
+      // Web Share is unavailable on desktop Chrome and rejects outside a user
+      // gesture, so a rejection must still produce visible feedback.
       try {
-        if (navigator.share) await navigator.share({ title: 'Champ Word', text });
-        else {
-          await navigator.clipboard.writeText(text);
-          toast('Player card copied to the clipboard.', 'good');
+        if (navigator.share) {
+          await navigator.share({ title: 'Champ Word', text });
+          return;
         }
       } catch {
-        /* the player dismissed the sheet */
+        /* fall through to the clipboard */
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        toast('Player card copied to the clipboard.', 'good');
+      } catch {
+        toast(text, 'info');
       }
     });
-
     el.querySelector('[data-rename]').addEventListener('click', () => {
       dialog({
         title: 'Rename your seat',

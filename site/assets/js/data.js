@@ -117,16 +117,16 @@ export const FRIENDS = [
 ];
 
 export const LEADERBOARD = [
-  { rank: 1, name: 'SilverFang', level: 61, league: 'MASTER', score: 18_440, wins: 892 },
-  { rank: 2, name: 'Emma_Star', level: 52, league: 'MASTER', score: 17_210, wins: 811 },
-  { rank: 3, name: 'KageNoYume', level: 58, league: 'ELITE', score: 16_980, wins: 795 },
-  { rank: 4, name: 'KingRohan', level: 44, league: 'ELITE', score: 14_620, wins: 703 },
-  { rank: 5, name: 'LunaGamer', level: 39, league: 'ELITE', score: 13_905, wins: 668 },
-  { rank: 6, name: 'PaperCrane', level: 46, league: 'DIAMOND', score: 12_180, wins: 590 },
-  { rank: 7, name: 'NightOwl', level: 31, league: 'DIAMOND', score: 11_440, wins: 554 },
-  { rank: 8, name: 'Mira_Vale', level: 27, league: 'DIAMOND', score: 10_020, wins: 512 },
-  { rank: 9, name: 'VexHalo', level: 35, league: 'PLATINUM', score: 9_640, wins: 470 },
-  { rank: 10, name: 'Juno_K', level: 29, league: 'PLATINUM', score: 8_870, wins: 441 }
+  { rank: 1, name: 'SilverFang', level: 61, league: 'MASTER', score: 18_440, wins: 892, seasonXp: 4120 },
+  { rank: 2, name: 'Emma_Star', level: 52, league: 'MASTER', score: 17_210, wins: 811, seasonXp: 5980 },
+  { rank: 3, name: 'KageNoYume', level: 58, league: 'ELITE', score: 16_980, wins: 795, seasonXp: 6410 },
+  { rank: 4, name: 'KingRohan', level: 44, league: 'ELITE', score: 14_620, wins: 703, seasonXp: 2880 },
+  { rank: 5, name: 'LunaGamer', level: 39, league: 'ELITE', score: 13_905, wins: 668, seasonXp: 5240 },
+  { rank: 6, name: 'PaperCrane', level: 46, league: 'DIAMOND', score: 12_180, wins: 590, seasonXp: 7150 },
+  { rank: 7, name: 'NightOwl', level: 31, league: 'DIAMOND', score: 11_440, wins: 554, seasonXp: 3690 },
+  { rank: 8, name: 'Mira_Vale', level: 27, league: 'DIAMOND', score: 10_020, wins: 512, seasonXp: 4760 },
+  { rank: 9, name: 'VexHalo', level: 35, league: 'PLATINUM', score: 9_640, wins: 470, seasonXp: 2140 },
+  { rank: 10, name: 'Juno_K', level: 29, league: 'PLATINUM', score: 8_870, wins: 441, seasonXp: 3010 }
 ];
 
 export const MISSIONS_DAILY = [

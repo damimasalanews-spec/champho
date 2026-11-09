@@ -557,3 +557,27 @@
   from { background-position: 100% 0; }
   to { background-position: 0 0; }
 }
+
+/* Spend feedback: the compact chip cannot show an 820-coin drop, so the delta
+   floats under it and expires. */
+.wallet-pill { position: relative; }
+.wallet__delta {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  animation: delta-rise 1.4s var(--ease) forwards;
+}
+.wallet__delta.is-down { color: #b3261e; }
+.wallet__delta.is-up { color: #0b6b3f; }
+
+@keyframes delta-rise {
+  0%   { opacity: 0; transform: translate(-50%, 2px); }
+  15%  { opacity: 1; transform: translate(-50%, 0); }
+  70%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -6px); }
+}

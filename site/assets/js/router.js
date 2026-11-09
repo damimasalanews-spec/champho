@@ -46,6 +46,9 @@ export function createRouter({ routes, fallback = 'home', view, onRendered }) {
   }
 
   async function render({ focus = true, keepScroll = false } = {}) {
+    // A dialog lives outside the view, so a route change used to leave it
+    // floating over the next screen with no way back.
+    document.querySelectorAll('#dialog-root dialog[open]').forEach((d) => d.close());
     const { path, param } = parse();
     const route = resolve(path);
     const def = routes[route];

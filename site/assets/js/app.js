@@ -40,6 +40,9 @@ const router = createRouter({
   }
 });
 
+/* Wallet delta tracking must exist before the boot call to syncShell(). */
+let lastWallet = null;
+
 /* --- shell ---------------------------------------------------------------- */
 
 function paint(slot, player) {
@@ -69,6 +72,13 @@ function syncShell() {
     n.textContent = player.trophies.toLocaleString('en-US');
   });
   document.querySelectorAll('[data-level]').forEach((n) => { n.textContent = `Lv ${player.level}`; });
+  // The chip is compact ("2.37M"), so spending 820 coins changes nothing it can
+  // show. Flash the delta next to it instead of a silent deduction.
+  const prev = lastWallet;
+  if (prev && prev.coins !== player.coins) flashDelta(player.coins - prev.coins, '[data-coins]');
+  if (prev && prev.gems !== player.gems) flashDelta(player.gems - prev.gems, '[data-gems]');
+  lastWallet = { coins: player.coins, gems: player.gems };
+
   document.querySelectorAll('[data-coins]').forEach((n) => { n.textContent = compact(player.coins); });
   document.querySelectorAll('[data-gems]').forEach((n) => { n.textContent = String(player.gems); });
 
@@ -274,3 +284,17 @@ server.probe().then((result) => {
 window.addEventListener('pagehide', () => cancelQueue());
 
 console.info(`Champ Word · lobby build 4.1 · season ${SEASON.id} ${SEASON.name}`);
+
+/* --- wallet feedback ------------------------------------------------------ */
+
+
+function flashDelta(delta, selector) {
+  if (!delta) return;
+  const target = document.querySelector(selector);
+  if (!target) return;
+  const chip = document.createElement('span');
+  chip.className = 'wallet__delta ' + (delta < 0 ? 'is-down' : 'is-up');
+  chip.textContent = (delta < 0 ? '\u2212' : '+') + Math.abs(delta);
+  target.after(chip);
+  setTimeout(() => chip.remove(), 1400);
+}

@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Champ Word â€” service worker
 
    What this is for: making the site installable and keeping it playable when the
@@ -37,7 +37,7 @@
    worker that has already claimed the page can keep painting the stylesheet it cached.
    v4 alongside the stylesheet's ?v=4: the cards and avatars changed size, so the cached
    sheet has to go with them. */
-const VERSION = 'v15';
+const VERSION = 'v16'; // v16: the lobby rework; v15 kept serving pre-rework modules past ?v=
 const SHELL_CACHE = `champword-shell-${VERSION}`;
 const CODE_CACHE = `champword-code-${VERSION}`;
 const ART_CACHE = `champword-art-${VERSION}`;

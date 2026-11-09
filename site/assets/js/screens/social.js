@@ -41,7 +41,7 @@ export default {
         </div>
 
         <div class="stack">
-          <section class="panel reveal">
+          <section class="panel reveal" data-party>
             <div class="panel__head">
               <h2>Your party</h2>
               <span class="pill">${player.name}</span>
@@ -163,7 +163,21 @@ export default {
       setTimeout(() => go('room'), 400);
     });
 
-    el.querySelector('[data-leave]').addEventListener('click', () => toast('You left the party.', 'info'));
+    el.querySelector('[data-leave]').addEventListener('click', () => {
+      // toasting alone left the party block on screen, still listing you as
+      // leader; the state has to follow the message
+      const panel = el.querySelector('[data-party]');
+      if (panel) {
+        panel.innerHTML = `
+          <div class="panel__head"><h2>Your party</h2></div>
+          <div class="panel__body" style="display:grid;gap:var(--s-3);justify-items:center;padding:var(--s-6) var(--s-4);text-align:center">
+            <p class="muted" style="font-size:var(--fs-sm)">You are not in a party.</p>
+            <button class="btn btn--primary btn--sm" type="button" data-rejoin>${icon('plus')} Start a party</button>
+          </div>`;
+        panel.querySelector('[data-rejoin]').addEventListener('click', () => go('social'));
+      }
+      toast('You left the party.', 'info');
+    });
 
     const dot = el.querySelector('[data-server-dot]');
     const label = el.querySelector('[data-server-label]');

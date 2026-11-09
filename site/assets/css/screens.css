@@ -1203,3 +1203,11 @@
 
 /* Party slot label on the filled (light blue) tile. */
 .party-slot small.muted { color: #0b2b4d; font-weight: 800; }
+/* Last two items from the definitive sweep. */
+.party-slot small.muted { color: #08223d; }
+.profile-card .link {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

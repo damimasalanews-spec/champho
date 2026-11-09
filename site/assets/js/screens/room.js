@@ -203,14 +203,27 @@ export default {
 
     el.querySelectorAll('[data-open]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const chars = `${btn.dataset.open.replace(/[^a-z0-9]/gi, '').toUpperCase()}XXXXXX`.slice(0, CODE_LEN).split('');
-        inputs.forEach((input, i) => { input.value = chars[i] ?? ''; });
-        sync();
-        inputs[0].focus();
-        toast(`Code for ${btn.dataset.open} filled in.`, 'info');
+        const id = btn.dataset.open;
+        dialog({
+          title: `Join ${id}?`,
+          body: `<p class="muted">The seat opens when the host starts the round. Today that needs the matchmaking server, which is not answering.</p>`,
+          actions: [
+            {
+              label: 'Fill the code',
+              variant: 'quiet',
+              onClick: () => {
+                const chars = `${id.replace(/[^a-z0-9]/gi, '').toUpperCase()}XXXXXX`.slice(0, CODE_LEN).split('');
+                inputs.forEach((input, i) => { input.value = chars[i] ?? ''; });
+                sync();
+                inputs[0].focus();
+                toast(`Code for ${id} filled in.`, 'info');
+              }
+            },
+            { label: 'Open the table', variant: 'primary', onClick: () => openGame(`Table ${id}`) }
+          ]
+        });
       });
     });
-
     return el;
   }
 };

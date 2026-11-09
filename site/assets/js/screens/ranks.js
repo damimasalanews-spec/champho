@@ -40,25 +40,39 @@ export default {
         const names = new Set(FRIENDS.map((f) => f.name));
         return LEADERBOARD.filter((r) => names.has(r.name));
       }
+      if (tab === 'season') {
+        // season XP is not all-time score; without its own figure the tab was
+        // an exact copy of Global
+        return [...LEADERBOARD].sort((a, b) => b.seasonXp - a.seasonXp);
+      }
+      if (tab === 'season') {
+        // the season ladder ranks by wins this season, not all-time score,
+        // so the tab is not a copy of Global
+        return [...LEADERBOARD].sort((a, b) => b.wins - a.wins);
+      }
       return LEADERBOARD;
     }
 
     function paint() {
       const data = rows();
-      const top3 = data.slice(0, 3);
-      const rest = data.slice(3);
+      // the season tab ranks by season XP, so the value shown and the
+      // position have to follow the active tab, not the stored all-time rank
+      const val = (r) => (tab === 'season' ? r.seasonXp : r.score);
+      const board = data.map((r, i) => ({ ...r, pos: i + 1 }));
+      const top3 = board.slice(0, 3);
+      const rest = board.slice(3);
       const myScore = player.seasonXp;
-      const myRank = data.filter((r) => r.score > myScore).length + 1;
+      const myRank = board.filter((r) => val(r) > myScore).length + 1;
 
       el.querySelector('[data-board]').innerHTML = `
         ${top3.length === 3 ? `
           <section class="podium reveal">
-            ${[top3[1], top3[0], top3[2]].map((row, i) => `
-              <div class="podium__seat ${row.rank === 1 ? 'podium__seat--1' : ''}">
-                ${avatarMarkup({ name: row.name }, row.rank === 1 ? 'lg avatar--ring' : '')}
-                <span class="podium__rank">#${row.rank}</span>
+            ${[top3[1], top3[0], top3[2]].map((row) => `
+              <div class="podium__seat ${row.pos === 1 ? 'podium__seat--1' : ''}">
+                ${avatarMarkup({ name: row.name }, row.pos === 1 ? 'lg avatar--ring' : '')}
+                <span class="podium__rank">#${row.pos}</span>
                 <span class="podium__name">${esc(row.name)}</span>
-                <span class="podium__score">${compact(row.score)} XP</span>
+                <span class="podium__score">${compact(val(row))} XP</span>
               </div>`).join('')}
           </section>` : ''}
 
@@ -72,13 +86,13 @@ export default {
               <div class="rank-table">
                 ${(top3.length === 3 ? rest : data).map((row) => `
                   <div class="rank-row ${row.name === player.name ? 'rank-row--me' : ''}">
-                    <span class="rank-row__no">${row.rank}</span>
+                    <span class="rank-row__no">${row.pos}</span>
                     ${avatarMarkup({ name: row.name }, 'sm')}
                     <span class="rank-row__name">
                       <b>${esc(row.name)}</b>
                       <small>Lv ${row.level} · ${esc(row.league)} · ${row.wins} wins</small>
                     </span>
-                    <span class="rank-row__score">${compact(row.score)}</span>
+                    <span class="rank-row__score">${compact(val(row))}</span>
                   </div>`).join('')}
               </div>` : `<div class="empty">${icon('users')}<p>No friends on the ladder yet.</p></div>`}
           </div>
