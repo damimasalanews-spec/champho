@@ -87,7 +87,7 @@ export default {
               <div class="row" style="gap:6px">
                 ${['W', 'W', 'L', 'W', 'W'].map((r, i) => `
                   <span class="pill" style="background:${r === 'W' ? 'rgb(111 214 176 / .14)' : 'rgb(213 80 92 / .14)'};
-                              color:${r === 'W' ? 'var(--jade)' : 'var(--ruby)'};border-color:transparent;
+                              color:${r === 'W' ? '#0b6b3f' : '#a1192c'};border-color:transparent;
                               min-width:34px;justify-content:center">${r}</span>`).join('')}
                 <span class="muted" style="font-size:var(--fs-2xs);margin-left:auto">Last 5</span>
               </div>

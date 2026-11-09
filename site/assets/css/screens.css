@@ -551,7 +551,7 @@
   gap: var(--s-3);
   padding: var(--s-5);
   border-radius: var(--r-lg);
-  background: linear-gradient(120deg, #7248e0 0%, #3a6fd4 55%, #2a56b8 100%);
+  background: linear-gradient(120deg, #5f35cf 0%, #3568c9 55%, #24489c 100%);
   border: 2px solid rgba(255, 255, 255, 0.45);
   box-shadow: var(--shadow-card);
   color: #fff;
@@ -1064,9 +1064,9 @@
 .view {
   background:
     radial-gradient(150% 100% at 50% 0%,
-      rgba(4, 32, 68, 0.36) 0%,
-      rgba(4, 32, 68, 0.24) 45%,
-      rgba(4, 32, 68, 0.12) 100%);
+      rgba(4, 32, 68, 0.56) 0%,
+      rgba(4, 32, 68, 0.42) 45%,
+      rgba(4, 32, 68, 0.18) 100%);
 }
 
 /* Pills carried ink-2 on a pale blue chip: 4.47, just under. */
@@ -1162,3 +1162,44 @@
 .gg, .gg b, .rewards__label { text-shadow: 0 1px 2px rgba(90, 10, 0, 0.55); }
 .gg { background: linear-gradient(180deg, #e04a3a, #a81b10); }
 .pill--live, .pill--danger, .pill--offline { background: #b3261e; color: #fff; }
+/* --- last contrast items ------------------------------------------------- */
+
+.pass-head .eyebrow { color: #fff; }
+
+/* The wild card's white kicker sat on the gold sphere at ~1.1:1. */
+.gamecard--wild .gamecard__kicker {
+  color: #4a2400;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+.gamecard--fun .gamecard__name { color: #b3140f; }
+/* --- closing the sweep ------------------------------------------------ */
+
+/* Locked tiers: pale face, muted ink that was still tuned for the artwork. */
+.tier--locked .tier__no,
+.tier--locked .rarity-tag,
+.tier--locked .muted,
+.tier--locked .tier__name { color: var(--ink); }
+
+/* "Free Left: 20" chip on the friends card. */
+.gamecard__tag { background: #8f1d12; color: #fff; }
+
+/* Promo badge on the pass card. */
+.passcard__badge { background: #b3261e; color: #fff; }
+.passcard__text { color: #fff; }
+
+/* Section headings land on the decorative globe; it needs to sit further back
+   than the text it passes behind. */
+.sky__globe { opacity: 0.26; }
+.section__head h2 { text-shadow: 0 2px 10px rgba(4, 32, 68, 0.45); }
+
+/* Avatar discs: the light top of the gradient still dropped initials to 4.34. */
+.avatar { background: linear-gradient(160deg, #3a78c4, #0f3a72); }
+
+/* Party tile leader label. */
+.party-slot small.muted { color: var(--ink-2); font-weight: 700; }
+/* "Free Pass" is a <b> inside the passcard, so the container rule missed it. */
+.passcard__text b { color: #fff; -webkit-text-fill-color: #fff; }
+
+/* Party slot label on the filled (light blue) tile. */
+.party-slot small.muted { color: #0b2b4d; font-weight: 800; }
