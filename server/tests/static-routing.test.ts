@@ -57,15 +57,30 @@ async function get(url: string): Promise<{ result: string; status?: number; text
   return { result, status: captured.status, text: captured.body?.toString("utf8") ?? "" };
 }
 
-test("the root serves the home page, and the home page can reach a game", async () => {
+test("the root serves the lobby, and the lobby can reach a game", async () => {
+  // The root used to be the legacy V38 page with its own launcher. The rebuilt
+  // lobby took its place, so the old page moved to /index-legacy.html and the
+  // assertions that describe it move with it. What must not change is the point
+  // of the test: the home page has to be able to start a game, or it is a dead
+  // end again — it just starts one through the lobby's router now.
   const root = await get("/");
 
   assert.equal(root.result, "served");
   assert.equal(root.status, 200);
-  assert.match(root.text, new RegExp(LEGACY_MARKER), "the root is the home page");
-  // The launcher is what stops the home page being the dead end it once was.
-  assert.match(root.text, /openChampProGame/, "the root must carry the game launcher");
-  assert.match(root.text, /wild\.html/, "the Go Wild entry must point at the card table");
+  assert.match(root.text, /lobby\/js\/app\.js/, "the root must be the rebuilt lobby");
+  assert.doesNotMatch(root.text, new RegExp(LEGACY_MARKER), "the legacy page is no longer the home page");
+
+  const legacy = await get("/index-legacy.html");
+  assert.equal(legacy.result, "served", "the old home page is kept, not thrown away");
+  assert.match(legacy.text, new RegExp(LEGACY_MARKER), "/index-legacy.html is the legacy home page");
+
+  // The home screen is what puts a table one click away.
+  const home = await get("/lobby/js/screens/home.js");
+  assert.equal(home.result, "served");
+  assert.match(home.text, /openGame/, "the home screen must be able to open a table");
+  assert.match(home.text, /game\//, "the home screen must point at the round client");
+  assert.match(legacy.text, /openChampProGame/, "the legacy launcher is still intact");
+  assert.match(legacy.text, /wild\.html/, "the legacy Go Wild entry still points at the card table");
 });
 
 test("/index.html serves the same page as the root", async () => {

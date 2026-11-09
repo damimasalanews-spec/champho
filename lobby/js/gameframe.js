@@ -48,6 +48,11 @@ export function openGame(label = 'Champ Word · live table', file = GAME_CLIENT)
 
   document.body.append(frame);
   document.body.style.overflow = 'hidden';
+  // On a notched phone held sideways, iOS paints the strips outside the safe area
+  // with the document's own background, and no rule inside the iframe can reach
+  // them. Flagging the document lets the page repaint those strips in table green
+  // while a table is open, instead of showing the lobby's sky.
+  document.body.classList.add('game-open');
 
   const stage = frame.querySelector('[data-stage]');
 
@@ -74,6 +79,20 @@ export function openGame(label = 'Champ Word · live table', file = GAME_CLIENT)
 
   function load() {
     stage.innerHTML = `<iframe src="${src}" title="${label}" allow="autoplay; fullscreen"></iframe>`;
+
+    // env(safe-area-inset-*) resolves to 0 inside an iframe, so the table cannot
+    // measure the notch for itself and would draw under it on a phone held
+    // sideways. The host measures its own insets and posts them in; the game
+    // applies them as padding around its board. See champSafeArea() in index.html.
+    const iframe = stage.querySelector('iframe');
+    const sendInsets = () => {
+      const insets = window.champSafeArea?.();
+      if (!insets || !iframe?.contentWindow) return;
+      try { iframe.contentWindow.postMessage({ champSafeArea: insets }, '*'); } catch { /* not loaded yet */ }
+    };
+    iframe?.addEventListener('load', () => { sendInsets(); setTimeout(sendInsets, 400); });
+    window.addEventListener('resize', sendInsets);
+    frame._insets = sendInsets;
   }
 
   function showOffline() {
@@ -125,9 +144,11 @@ function probe() {
 export function closeGame() {
   if (!frame) return;
   document.removeEventListener('keydown', frame._escape);
+  if (frame._insets) window.removeEventListener('resize', frame._insets);
   frame.remove();
   frame = null;
   document.body.style.overflow = '';
+  document.body.classList.remove('game-open');
   lastFocus?.focus?.();
 }
 

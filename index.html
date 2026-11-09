@@ -7,6 +7,17 @@
 <meta name="description" content="Champ Word is a real-time word card battle. Match by colour or word, outplay three seats, climb the season ladder.">
 <meta name="theme-color" content="#2a86e6">
 <meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<style>
+  /* A table opens full-screen over this document. On a notched phone held
+     sideways iOS paints the strips outside the safe area with the page's own
+     background, and those strips cannot be touched from inside the iframe, so
+     the lobby's sky would show down both sides. Repaint them in table green for
+     as long as a table is open (see gameframe.js, which sets the class). */
+  body.game-open{background:#0d3807}
+</style>
 <meta property="og:title" content="Champ Word — The Word Card Battle">
 <meta property="og:description" content="Five ways to play. One felt table. Match by colour or word and take the pot.">
 <meta property="og:type" content="website">
@@ -154,10 +165,32 @@
   </a>
 </nav>
 
+<!-- The notch probe. env(safe-area-inset-*) is 0 inside an iframe, so the table
+     cannot read the insets itself; this element measures them on the host and
+     champSafeArea() hands the numbers to gameframe.js, which posts them in. -->
+<div id="safe-probe" aria-hidden="true"
+     style="position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;
+            padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
+
+<script>
+  window.champSafeArea = function champSafeArea() {
+    var probe = document.getElementById('safe-probe');
+    if (!probe) return null;
+    var cs = getComputedStyle(probe);
+    return {
+      top: parseFloat(cs.paddingTop) || 0,
+      right: parseFloat(cs.paddingRight) || 0,
+      bottom: parseFloat(cs.paddingBottom) || 0,
+      left: parseFloat(cs.paddingLeft) || 0
+    };
+  };
+</script>
+
 <div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
 <div id="dialog-root"></div>
 
 <script type="module" src="lobby/js/app.js?v=7.0"></script>
+<script src="game/pwa.js" defer></script>
 <noscript>
   <p class="noscript">Champ Word needs JavaScript for the lobby. The tables themselves stay playable at
     <a href="game/">the classic client</a>.</p>
