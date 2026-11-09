@@ -1011,3 +1011,14 @@
 .event-card p,
 .event-card .muted,
 .event-card li { color: rgba(255, 255, 255, 0.9); }
+/* The join card was the only block on the screen with no surface: its dark
+   ink sat straight on the blue/green backdrop, and on a phone it read as
+   loose text floating over the scene. */
+.room-hero {
+  background: var(--panel);
+  border: 2px solid #fff;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+}
+.room-hero p,
+.room-hero .muted { color: var(--ink-2); }
