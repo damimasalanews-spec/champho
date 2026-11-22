@@ -7,8 +7,8 @@ import { openGame } from '../gameframe.js';
 
 const TITLES = {
   classic: { title: 'Word UNO · Classic', sub: '2v2 or 4v4 · seven cards', icon: 'cards', client: 'game/', team: true },
-  // wild-play.html, not go-wild-2v2-finished.html: only the former has a socket.
-  wild: { title: 'Go Wild', sub: '7×6 2v2 or 4v4 grid · 30 words', icon: 'flame', client: 'wild-play.html', team: true }
+  // go-wild-2v2-finished.html is WORD HUNT: the 7x6 grid, 30 words, its own seats.
+  wild: { title: 'Go Wild', sub: '7×6 2v2 or 4v4 grid · 30 words', icon: 'flame', client: 'go-wild-2v2-finished.html', team: true }
 };
 
 export default {
@@ -268,12 +268,12 @@ export default {
         // there deliberately.
         if (mode === 'wild') {
           // Go Wild is a different game, not a skin on Classic: four seats and a
-          // shared 7x6 word grid, drawn by wild-play.html. That client keeps its
+          // shared 7x6 word grid, drawn by go-wild-2v2-finished.html, which keeps its
           // own Waiting / Disconnected state, so it is opened directly rather
           // than being gated behind the probe — otherwise the mode simply never
           // appeared when no server was running.
           bots.innerHTML = `${icon('flame')} Open the Go Wild table`;
-          bots.addEventListener('click', () => openGame('Go Wild - 2v2 word grid', 'wild-play.html', { skipProbe: true }));
+          bots.addEventListener('click', () => openGame('Go Wild - 2v2 word grid', 'go-wild-2v2-finished.html', { skipProbe: true }));
           title.textContent = 'Go Wild is its own table';
           text.textContent = 'Four seats on one 7x6 word grid - a different game from Classic. The table opens now and waits for a server to deal it.';
           Note('Go Wild');
