@@ -6,9 +6,9 @@ import { server, findMatch, cancelQueue } from '../api.js';
 import { openGame } from '../gameframe.js';
 
 const TITLES = {
-  classic: { title: 'Word UNO · Classic', sub: 'Four seats · seven cards', icon: 'cards', client: 'game/' },
+  classic: { title: 'Word UNO · Classic', sub: '2v2 or 4v4 · seven cards', icon: 'cards', client: 'game/', team: true },
   // wild-play.html, not go-wild-2v2-finished.html: only the former has a socket.
-  wild: { title: 'Go Wild · 2v2', sub: '7×6 word grid · 30 words', icon: 'flame', client: 'wild-play.html' }
+  wild: { title: 'Go Wild', sub: '7×6 2v2 or 4v4 grid · 30 words', icon: 'flame', client: 'wild-play.html', team: true }
 };
 
 export default {
@@ -43,10 +43,10 @@ export default {
             <div class="queue__ring" aria-hidden="true"></div>
             <h2 data-queue-title style="font-size:var(--fs-xl)">Ready when you are</h2>
             <p class="muted" data-queue-text style="font-size:var(--fs-sm)">
-              ${player.name}, the queue pairs you with three seats of similar rating.
+              ${player.name}, pick a table of four or eight seats; bots take any that stay empty.
             </p>
 
-            <div class="queue__seats">
+            <div class="formats" role="group" aria-label="Table size"><button class="format is-on" type="button" data-format="2" aria-pressed="true">2v2<small>4 seats</small></button><button class="format" type="button" data-format="4" aria-pressed="false">4v4<small>8 seats</small></button></div><div class="queue__seats" data-seats>
               <div class="seat seat--filled">
                 <span class="seat__slot">${avatarMarkup(player, 'sm')}</span>
                 <span>You</span>
@@ -124,11 +124,49 @@ export default {
     const findBtn = el.querySelector('[data-find]');
     const cancelBtn = el.querySelector('[data-cancel]');
     const note = el.querySelector('[data-mode-note]');
-    const seats = [...el.querySelectorAll('[data-seat]')];
+    let seats = [...el.querySelectorAll('[data-seat]')];
     let phase = 'idle'; // idle | searching | found
     let found = null;
 
-    function setSeats(filled) {
+    /* --- 2v2 or 4v4 ------------------------------------------------------- */
+  let teamSize = 2;
+
+  const seatsBox = el.querySelector('[data-seats]');
+  const sizeLabel = () => `${teamSize * 2} seats`;
+
+  function paintSeats() {
+    seatsBox.innerHTML = `
+      <div class="seat seat--filled">
+        <span class="seat__slot">${avatarMarkup(player, 'sm')}</span>
+        <span>You</span>
+      </div>
+      ${Array.from({ length: teamSize * 2 - 1 }, (_, i) => `
+        <div class="seat" data-seat="${i + 1}">
+          <span class="seat__slot">${icon('user')}</span>
+          <span>Seat ${i + 2}</span>
+        </div>`).join('')}`;
+    seats = [...el.querySelectorAll('[data-seat]')];
+    setSeats(0);
+  }
+
+  el.querySelectorAll('[data-format]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (phase === 'searching') return;
+      teamSize = Number(btn.dataset.format) === 4 ? 4 : 2;
+      el.querySelectorAll('[data-format]').forEach((other) => {
+        const on = other === btn;
+        other.classList.toggle('is-on', on);
+        other.setAttribute('aria-pressed', String(on));
+      });
+      paintSeats();
+      title.textContent = 'Ready when you are';
+      text.textContent = `${player.name}, the queue fills a ${teamSize}v${teamSize} table of ${teamSize * 2} seats: you plus ${teamSize * 2 - 1}, bots if no one answers.`;
+      Note(`Classic ${teamSize}v${teamSize}`);
+    });
+  });
+
+  paintSeats();
+  function setSeats(filled) {
       seats.forEach((seat, i) => seat.classList.toggle('seat--filled', i < filled));
     }
 
@@ -137,7 +175,7 @@ export default {
       found = null;
       panel.classList.remove('is-queued');
       title.textContent = message;
-      text.textContent = `${store.state.player.name}, the queue pairs you with three seats of similar rating.`;
+      text.textContent = `${store.state.player.name}, pick a table of four or eight seats; bots take any that stay empty.`;
       findBtn.hidden = false;
       findBtn.disabled = false;
       findBtn.innerHTML = `${icon('play')} Find a table`;
@@ -175,17 +213,18 @@ export default {
 
       const result = await findMatch({
         displayName: store.state.player.name,
+        teamSize,
         onState(state) {
           if (state === 'queued') {
             let filled = 0;
             const tick = setInterval(() => {
-              filled = Math.min(3, filled + 1);
+              filled = Math.min(teamSize * 2 - 1, filled + 1);
               setSeats(filled);
-              if (filled >= 3) clearInterval(tick);
+              if (filled >= teamSize * 2 - 1) clearInterval(tick);
             }, 700);
           }
           if (state === 'found') {
-            setSeats(3);
+            setSeats(teamSize * 2 - 1);
             title.textContent = 'Table found';
             text.textContent = 'The table is being dealt.';
           }
@@ -232,7 +271,7 @@ export default {
 
       found = result;
       phase = 'found';
-      setSeats(3);
+      setSeats(teamSize * 2 - 1);
       panel.classList.add('is-queued');
       title.textContent = 'Table found';
       text.textContent = `Room ${result.roomId} · seat ${result.seatNumber}. The table is dealt on the server.`;

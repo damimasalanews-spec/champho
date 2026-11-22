@@ -19,8 +19,8 @@ import { store } from '../store.js';
 
 /** Display copy per mode; the destination still comes from data.js. */
 const FACE = {
-  classic: { name: 'Classic', kicker: 'UNO', meta: '4 seats · 7 cards', tone: 'ruby', route: 'play/classic', art: 'un' },
-  wild: { name: 'Go Wild', kicker: '+2 · +4', meta: '2v2 word grid', tone: 'crimson', route: 'play/wild', art: 'wd' },
+  classic: { name: 'Classic', kicker: 'UNO', meta: '2v2 or 4v4', tone: 'ruby', route: 'play/classic', art: 'un' },
+  wild: { name: 'Go Wild', kicker: '+2 · +4', meta: '2v2 or 4v4 grid', tone: 'crimson', route: 'play/wild', art: 'wd' },
   fun: { name: 'Fun Pack', kicker: 'No mercy', meta: 'Stacking · forced draws', tone: 'scarlet', route: null, art: 'nm' },
   contest: { name: 'Contest', kicker: 'Ranked', meta: 'Season 01 ladder', tone: 'rose', route: 'ranks', art: 's1' },
   friends: { name: 'Friends', kicker: 'Private', meta: 'Room code · free', tone: 'blush', route: 'room', art: 'rc' }

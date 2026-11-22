@@ -659,3 +659,53 @@
 /* Blue links inside white panels become the accent red. */
 .panel a.link,
 .link { color: var(--red); }
+
+/* --- 8. the table-size switch ------------------------------------------- */
+
+/* Two formats, one control. Segmented rather than two buttons so it reads as
+   "the same table, differently sized" instead of two different games. */
+.formats {
+  display: inline-flex;
+  gap: 4px;
+  margin: 4px auto 12px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--line-strong);
+}
+
+.format {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+
+.format small {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.format:hover { background: rgba(216, 31, 20, 0.08); }
+
+.format.is-on {
+  background: linear-gradient(180deg, #e8261b, #a5120a);
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(92, 12, 6, 0.3);
+}
+
+.format.is-on small { opacity: 0.85; }
