@@ -254,15 +254,46 @@ function pickNepaliSeats(count) {
   return out;
 }
 
+/* 2v2 or 4v4. The lobby passes ?team=4 for an eight-seat table; anything else
+   is the four-seat ring this table has always used. Positions come from a list
+   rather than being hardcoded per seat, because an eight-seat table needs four
+   more anchors than a four-seat one (see .p8-* in styles.css). */
+const TEAM_SIZE = (function () {
+  const raw = Number(new URLSearchParams(location.search).get('team'));
+  return raw === 4 ? 4 : 2;
+})();
+const SEATS = TEAM_SIZE * 2;
+const RING_4 = ['pos-tl', 'pos-tr', 'pos-mr'];
+const RING_8 = ['p8-1', 'p8-2', 'p8-3', 'p8-4', 'p8-5', 'p8-6', 'p8-7'];
+const LOOKS = [
+  { emoji: '🧑', ring: '#22d3ee', bnr: '#0e7490', chat: '#fbbf24' },
+  { emoji: '👧', ring: '#f472b6', bnr: '#be185d', chat: '#fb923c' },
+  { emoji: '🧑', ring: '#facc15', bnr: '#b45309', chat: '#fbbf24' },
+  { emoji: '👩', ring: '#a78bfa', bnr: '#5b21b6', chat: '#c4b5fd' },
+  { emoji: '🧑', ring: '#34d399', bnr: '#065f46', chat: '#6ee7b7' },
+  { emoji: '👨', ring: '#f87171', bnr: '#7f1d1d', chat: '#fca5a5' },
+  { emoji: '👩', ring: '#60a5fa', bnr: '#1e3a8a', chat: '#93c5fd' }
+];
+
 function makePlayers() {
   const guest = 'Guest' + Math.floor(100000 + Math.random() * 900000);
-  const seat = pickNepaliSeats(3);
-  return [
-    { name: seat[0].name,    emoji: '🧑',   ring: '#22d3ee', bnr: '#0e7490', chat: '#fbbf24', coins: 0, pos: 'pos-tl' },
-    { name: seat[1].name, emoji: '👧', ring: '#f472b6', bnr: '#be185d', chat: '#fb923c', coins: 0, pos: 'pos-tr' },
-    { name: guest,        emoji: '🧑🏻', ring: '#f9a8d4', bnr: '#1d4ed8', chat: '#fde047', coins: 0, pos: 'pos-front', you: true },
-    { name: seat[2].name,      emoji: '🧑',   ring: '#facc15', bnr: '#b45309', chat: '#fbbf24', coins: 0, pos: 'pos-mr' },
-  ];
+  const names = pickNepaliSeats(SEATS - 1);
+  const ring = TEAM_SIZE === 4 ? RING_8 : RING_4;
+  const players = [];
+  let seatIndex = 0;
+
+  for (let i = 0; i < SEATS; i++) {
+    if (i === SEATS - 1) {
+      players.push({ name: guest, emoji: '🧑🏻', ring: '#f9a8d4', bnr: '#1d4ed8', chat: '#fde047', coins: 0, pos: TEAM_SIZE === 4 ? 'p8-you' : 'pos-front', you: true });
+      continue;
+    }
+    const look = LOOKS[i % LOOKS.length];
+    players.push({ name: names[seatIndex].name, ...look, coins: 0, pos: ring[seatIndex] });
+    seatIndex++;
+  }
+
+  document.body.classList.toggle('seats-eight', TEAM_SIZE === 4);
+  return players;
 }
 const you = () => S.players.find((p) => p.you);
 const youIdx = () => S.players.findIndex((p) => p.you);

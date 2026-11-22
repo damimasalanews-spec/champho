@@ -198,7 +198,8 @@ export default {
 
     findBtn.addEventListener('click', async () => {
       if (phase === 'found' && found) {
-        openGame(`${meta.title} · Room ${found.roomId}`, meta.client);
+        const client = meta.client === 'game/' ? `game/?team=${teamSize}` : meta.client;
+      openGame(`${meta.title} · Room ${found.roomId}`, client);
         return;
       }
       if (phase !== 'idle') return;
@@ -282,7 +283,7 @@ export default {
         }
 
         bots.innerHTML = `${icon('users')} Play with bots`;
-        bots.addEventListener('click', () => openGame('Word UNO · house bots', 'game/'));
+        bots.addEventListener('click', () => openGame(`Word UNO · ${teamSize}v${teamSize}`, `game/?team=${teamSize}`));
         title.textContent = 'Nobody else is here yet';
         text.textContent = 'The server is offline, so the house deals this one — three bots take the empty seats.';
         Note('Bots');

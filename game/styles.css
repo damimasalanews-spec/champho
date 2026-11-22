@@ -737,3 +737,29 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   pointer-events: none;
   transition: none; /* Block regular physics curve until layout target frame matches */
 }
+
+/* ---- 4v4: an eight-seat ring -------------------------------------------
+   The four-seat table has its anchors hardcoded (pos-tl/tr/ml/mr/front).
+   Eight seats need four more, so they live here under their own names and are
+   only applied when the client is opened with ?team=4 — a 2v2 table keeps the
+   exact geometry it always had. Cards shrink a step so eight fit without
+   covering the felt. */
+.pcard.p8-1 { left: 6%;  top: 8%; }
+.pcard.p8-2 { left: 1.5%; top: 30%; }
+.pcard.p8-3 { left: 6%;  top: 54%; }
+.pcard.p8-4 { right: 6%;  top: 8%; }
+.pcard.p8-5 { right: 1.5%; top: 30%; }
+.pcard.p8-6 { right: 6%;  top: 54%; }
+.pcard.p8-7 { right: 1.5%; top: 77%; }
+/* above the letter-tile panel, not behind it: the panel owns 674-884px at the bottom centre */
+.pcard.p8-you { left: calc(50% - 64px); bottom: 27%; top: auto; }
+
+body.seats-eight .pcard { zoom: 0.84; }
+
+@media (max-width: 1180px) {
+  body.seats-eight .pcard { zoom: 0.72; }
+}
+
+@media (max-width: 900px) {
+  body.seats-eight .pcard { zoom: 0.6; }
+}
