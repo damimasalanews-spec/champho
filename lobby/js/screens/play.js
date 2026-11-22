@@ -258,10 +258,26 @@ export default {
         // no server still gets a dealt hand instead of an error. This replaces
         // the primary button rather than adding a second one beside it.
         const bots = findBtn.cloneNode(false);
-        bots.innerHTML = `${icon('users')} Play with bots`;
-        bots.addEventListener('click', () => openGame('Champ Word · house bots', 'game/'));
         findBtn.replaceWith(bots);
 
+        // Only the Classic table has a bot engine (game/game.js). Go Wild's
+        // client holds a socket and nothing else, so opening it here would put
+        // the player on a dead board — and opening the CLASSIC table from the
+        // Go Wild page, which is what this did before, looks like the wrong
+        // section loading. Say which table the bots play, and let the player go
+        // there deliberately.
+        if (mode === 'wild') {
+          bots.innerHTML = `${icon('cards')} Play Classic with bots`;
+          bots.addEventListener('click', () => openGame('Word UNO · house bots', 'game/'));
+          title.textContent = 'Go Wild needs the live server';
+          text.textContent = 'The 2v2 grid is dealt by the server, so there are no house bots to fall back on. Classic has a bot table you can play right now.';
+          Note('Server offline');
+          toast('Go Wild needs the server. Classic has bots.', 'bad', 4200);
+          return;
+        }
+
+        bots.innerHTML = `${icon('users')} Play with bots`;
+        bots.addEventListener('click', () => openGame('Word UNO · house bots', 'game/'));
         title.textContent = 'Nobody else is here yet';
         text.textContent = 'The server is offline, so the house deals this one — three bots take the empty seats.';
         Note('Bots');
