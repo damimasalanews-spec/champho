@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { pool } from "./db.js";
-import { CLASSIC_SEAT_COUNT, appendEvent, readSnapshot, type BotPersonality, type RoomSnapshot } from "./rooms.js";
+import { MAX_ROOM_PLAYERS, appendEvent, readSnapshot, type BotPersonality, type RoomSnapshot } from "./rooms.js";
 import { SEAT_PERSONALITIES } from "./bots.js";
 import { drawBotRoster } from "./bot-names.js";
 import { telemetry } from "./telemetry.js";
@@ -22,12 +22,13 @@ export type MatchResult = {
   snapshot: RoomSnapshot;
 };
 
-export async function enqueuePlayer(playerId: string, displayName: string | null): Promise<void> {
+export async function enqueuePlayer(playerId: string, displayName: string | null, teamSize = 2): Promise<void> {
+  const size = teamSize === 4 ? 4 : 2;
   await pool.query(
-    `INSERT INTO public.match_queue(player_id,display_name,room_id)
-     VALUES($1,$2,NULL)
-     ON CONFLICT (player_id) DO UPDATE SET display_name=EXCLUDED.display_name, room_id=NULL, joined_at=clock_timestamp()`,
-    [playerId, displayName]
+    `INSERT INTO public.match_queue(player_id,display_name,room_id,team_size)
+     VALUES($1,$2,NULL,$3)
+     ON CONFLICT (player_id) DO UPDATE SET display_name=EXCLUDED.display_name, room_id=NULL, team_size=$3, joined_at=clock_timestamp()`,
+    [playerId, displayName, size]
   );
   telemetry("match_enqueued", { playerId });
 }
@@ -58,17 +59,26 @@ async function seatBot(
  * remaining seats with bots, and returns the new tables for broadcasting.
  */
 export async function runMatchmakingPass(now = new Date()): Promise<MatchResult[]> {
+  // The oldest waiter decides the size of this table, and only players who asked
+  // for the same size are pulled in, so a 4v4 player is never seated at a 2v2
+  // table (or the reverse).
+  const head = await pool.query<{ team_size: number }>(
+    `SELECT team_size FROM public.match_queue WHERE room_id IS NULL ORDER BY joined_at LIMIT 1`
+  );
+  const teamSize = Number(head.rows[0]?.team_size) === 4 ? 4 : 2;
+  const seats = Math.min(MAX_ROOM_PLAYERS, teamSize * 2);
+
   const waiting = await pool.query<{ player_id: string; display_name: string | null; joined_at: string }>(
     `SELECT player_id, display_name, joined_at FROM public.match_queue
-      WHERE room_id IS NULL ORDER BY joined_at LIMIT $1`,
-    [CLASSIC_SEAT_COUNT]
+      WHERE room_id IS NULL AND team_size=$2 ORDER BY joined_at LIMIT $1`,
+    [seats, teamSize]
   );
   const waitingCount = waiting.rowCount ?? 0;
   if (waitingCount === 0) return [];
 
   const oldest = new Date(waiting.rows[0]!.joined_at).getTime();
   const waitedLongEnough = now.getTime() - oldest >= MATCH_GRACE_MS;
-  const tableIsFull = waitingCount >= CLASSIC_SEAT_COUNT;
+  const tableIsFull = waitingCount >= seats;
   if (!waitedLongEnough && !tableIsFull) return [];
 
   const humans = waiting.rows.map((row) => ({ playerId: row.player_id, displayName: row.display_name }));
@@ -78,10 +88,11 @@ export async function runMatchmakingPass(now = new Date()): Promise<MatchResult[
   try {
     await client.query("BEGIN");
 
-    const room = await client.query(
-      `INSERT INTO public.game_rooms(state,phase,round_number,turn_number) VALUES('waiting','waiting',1,0) RETURNING id`
+    const room = await client.query<{ id: string }>(
+      `INSERT INTO public.game_rooms(state,phase,round_number,turn_number,team_size) VALUES('waiting','waiting',1,0,$1) RETURNING id`,
+      [teamSize]
     );
-    const roomId = room.rows[0].id as string;
+    const roomId = room.rows[0]!.id;
 
     // Claim the waiters atomically. Only rows still unseated are returned, so two
     // concurrent passes can never seat the same player twice. Room creation is
@@ -101,7 +112,7 @@ export async function runMatchmakingPass(now = new Date()): Promise<MatchResult[
     const claimed = humans.filter((human) => claimedIds.has(human.playerId));
 
     // one roster draw per table, so no two seats share a first name
-    const botNames = drawBotRoster(CLASSIC_SEAT_COUNT);
+    const botNames = drawBotRoster(seats);
     let seat = 0;
     for (const human of claimed) {
       await client.query(
@@ -114,7 +125,7 @@ export async function runMatchmakingPass(now = new Date()): Promise<MatchResult[
     }
 
     // Fill the empty seats with the three personalities (§16).
-    while (seat < CLASSIC_SEAT_COUNT) {
+    while (seat < seats) {
       const personality = SEAT_PERSONALITIES[(seat - 1 + SEAT_PERSONALITIES.length) % SEAT_PERSONALITIES.length] as BotPersonality;
       const botId = await seatBot(client, roomId, seat, personality, botNames[seat]?.name ?? 'Champ');
       telemetry("bot_seated", { roomId, playerId: botId, seatNumber: seat, personality });
@@ -131,7 +142,7 @@ export async function runMatchmakingPass(now = new Date()): Promise<MatchResult[
       results.push({ playerId: human.playerId, roomId, seatNumber, snapshot });
     }
 
-    telemetry("match_created", { roomId, humans: claimed.length, seats: CLASSIC_SEAT_COUNT });
+    telemetry("match_created", { roomId, humans: claimed.length, seats, teamSize });
     return results;
   } catch (error) {
     await client.query("ROLLBACK");

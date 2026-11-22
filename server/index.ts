@@ -694,7 +694,8 @@ export function createServerApp(options: ServerOptions = {}): ServerApp {
 
         if (type === "find_match") {
           const displayName = typeof message.displayName === "string" ? message.displayName.slice(0, 24) : null;
-          await enqueuePlayer(identity.playerId, displayName);
+          const teamSize = message.teamSize === 4 ? 4 : 2;
+          await enqueuePlayer(identity.playerId, displayName, teamSize);
           // Acknowledge the queue before the pass runs, never after. Sent from the
           // "no table yet" branch, the ack could arrive *after* a `match_found`
           // that another player's pass had already broadcast, so a client that
