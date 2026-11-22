@@ -1,34 +1,40 @@
 /* ===========================================================================
    CHAMP WORD — design tokens
-   Arcade bright: sky blue world, white cards, candy accents.
-   Everything the product draws is declared here once.
+   Red and white. A card table under a warm red sky, white cards, gold only for
+   money and the one big button. Everything the product draws is declared here
+   once, so re-skinning the whole game is a change to this file.
+
+   The hue discipline: white surfaces on a red world, one crimson accent for
+   anything interactive, and gold reserved for currency and PLAY. Blue, green,
+   purple and teal are gone as *hues* — the old tokens still exist so nothing
+   downstream breaks, but they now resolve to the red family.
    =========================================================================== */
 
 :root {
   color-scheme: light;
 
   /* --- sky ---------------------------------------------------------- */
-  --sky-1: #6ec4ff;
-  --sky-2: #2f8fe8;
-  --sky-3: #1160b8;
-  --sky-4: #093f7d;
-  --sky-deep: #052c5c;
+  --sky-1: #ff9a84;
+  --sky-2: #ef412c;
+  --sky-3: #bf1a10;
+  --sky-4: #870c07;
+  --sky-deep: #520502;
 
   /* --- surfaces ----------------------------------------------------- */
   --panel: #ffffff;
-  --panel-2: #eef6ff;
-  --panel-3: #dbeaff;
-  --ink: #0f2f57;
-  --ink-2: #4e6c8c;
-  --ink-3: #556f8a;
+  --panel-2: #fff2ef;
+  --panel-3: #ffdfd7;
+  --ink: #4b0f09;
+  --ink-2: #7d2b22;
+  --ink-3: #8a3a2f;
 
   /* --- text on sky -------------------------------------------------- */
   --ivory: #ffffff;
-  --ivory-dim: rgba(255, 255, 255, 0.86);
+  --ivory-dim: rgba(255, 255, 255, 0.88);
   --muted: rgba(255, 255, 255, 0.92);
-  --muted-2: rgba(255, 255, 255, 0.6);
+  --muted-2: rgba(255, 255, 255, 0.62);
 
-  /* --- candy accents ------------------------------------------------ */
+  /* --- gold: money and the primary button, nothing else -------------- */
   --yellow: #ffc02e;
   --yellow-hi: #ffe07a;
   --yellow-lo: #e09200;
@@ -36,30 +42,33 @@
   --gold-hi: #ffe9a8;
   --gold-lo: #c98a00;
 
-  --red: #ee3b2f;
-  --red-hi: #ff7a6b;
-  --ruby: #ee3b2f;
+  /* --- the accent ---------------------------------------------------- */
+  --red: #d81f14;
+  --red-hi: #ff6a58;
+  --red-lo: #9c1108;
+  --ruby: #d81f14;
 
-  --green: #2fc24b;
-  --green-hi: #7be88d;
-  --jade: #2fc24b;
+  /* Legacy hues, retuned to the red family so no blue survives anywhere. */
+  --green: #b3140c;
+  --green-hi: #ff8b7c;
+  --jade: #b3140c;
 
-  --blue: #2f9bff;
-  --blue-hi: #8cccff;
-  --azure: #2f9bff;
+  --blue: #c31a12;
+  --blue-hi: #ff8f7f;
+  --azure: #c31a12;
 
-  --purple: #a35cff;
-  --purple-hi: #cfa8ff;
-  --pink: #ff4fa3;
-  --pink-hi: #ffa8cf;
-  --teal: #26c9c9;
-  --orange: #ff8b1f;
+  --purple: #a1100a;
+  --purple-hi: #ff9d8f;
+  --pink: #ff5a49;
+  --pink-hi: #ffb3a8;
+  --teal: #cf3327;
+  --orange: #ff7a3d;
 
   /* --- lines -------------------------------------------------------- */
-  --line: rgba(255, 255, 255, 0.22);
-  --line-2: rgba(255, 255, 255, 0.34);
-  --line-cool: rgba(15, 47, 87, 0.1);
-  --line-strong: rgba(15, 47, 87, 0.16);
+  --line: rgba(255, 255, 255, 0.24);
+  --line-2: rgba(255, 255, 255, 0.38);
+  --line-cool: rgba(75, 15, 9, 0.1);
+  --line-strong: rgba(75, 15, 9, 0.17);
 
   /* --- type --------------------------------------------------------- */
   --font-display: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
@@ -97,10 +106,10 @@
   --r-xl: 30px;
   --r-pill: 999px;
 
-  /* --- depth -------------------------------------------------------- */
-  --shadow-card: 0 3px 0 rgba(9, 45, 88, 0.1), 0 10px 24px rgba(6, 38, 76, 0.18);
-  --shadow-lift: 0 6px 0 rgba(9, 45, 88, 0.14), 0 18px 36px rgba(6, 38, 76, 0.26);
-  --shadow-soft: 0 4px 14px rgba(6, 38, 76, 0.16);
+  /* --- depth (warm, so shadows sit in the red world) ----------------- */
+  --shadow-card: 0 3px 0 rgba(92, 12, 6, 0.12), 0 10px 24px rgba(92, 12, 6, 0.2);
+  --shadow-lift: 0 6px 0 rgba(92, 12, 6, 0.16), 0 18px 36px rgba(92, 12, 6, 0.28);
+  --shadow-soft: 0 4px 14px rgba(92, 12, 6, 0.18);
   --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
   /* --- chrome ------------------------------------------------------- */

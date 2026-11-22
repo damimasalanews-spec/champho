@@ -450,3 +450,212 @@
   .tile__ico svg { width: 19px; height: 19px; }
   .tile__name { font-size: 16.5px; }
 }
+
+/* ===========================================================================
+   CHAMP WORD — red skin and the word-game art
+
+   Appended deliberately: the layout below was already agreed, and this block
+   re-skins it without touching a single measurement. Two rules shaped it:
+
+   1. RED AND WHITE ONLY. Every blue, green and violet surface is gone; what
+      remains is white tile, crimson ink, and gold for money and PLAY.
+   2. THE ART IS THE GAME. No generic icons in the home page's three bands —
+      each one carries letter tiles with point values, the object players
+      actually touch.
+   =========================================================================== */
+
+/* --- 1. the letter tile --------------------------------------------------- */
+
+.wtiles {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.wtile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--wt, 28px);
+  height: var(--wt, 28px);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ffffff 0%, #fff3f0 100%);
+  color: var(--red);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: calc(var(--wt, 28px) * 0.56);
+  line-height: 1;
+  transform: rotate(var(--rot, 0deg));
+  box-shadow:
+    0 2px 0 rgba(92, 12, 6, 0.34),
+    0 5px 12px rgba(60, 4, 2, 0.24),
+    inset 0 -3px 0 rgba(216, 31, 20, 0.14);
+}
+
+.wtile b { font-weight: 800; }
+
+.wtile s {
+  position: absolute;
+  right: 3px;
+  bottom: 0;
+  font-size: calc(var(--wt, 28px) * 0.25);
+  font-weight: 800;
+  text-decoration: none;
+  opacity: 0.6;
+}
+
+.wtiles--md { --wt: 30px; }
+.wtiles--lg { --wt: 48px; gap: 5px; }
+.wtiles--lg .wtile { border-radius: 9px; }
+
+/* --- 2. the arena, in red ------------------------------------------------- */
+
+.arena {
+  background:
+    radial-gradient(85% 75% at 50% -8%, rgba(255, 196, 176, 0.42), transparent 62%),
+    radial-gradient(110% 110% at 50% 116%, rgba(255, 190, 60, 0.16), transparent 60%),
+    linear-gradient(160deg, #cb2419 0%, #a2120b 52%, #6b0703 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 12px 0 rgba(84, 8, 4, 0.34),
+    0 30px 60px rgba(58, 4, 2, 0.46),
+    inset 0 2px 0 rgba(255, 255, 255, 0.26);
+}
+
+.arena__suit--heart { color: rgba(255, 190, 180, 0.22); }
+.arena__suit--spade { color: rgba(255, 255, 255, 0.12); }
+
+.arena__rack {
+  position: relative;
+  z-index: 1;
+  margin: 2px 0 4px;
+}
+
+.arena__logo span {
+  background: linear-gradient(180deg, #fffdf2 0%, #ffe9a8 48%, #ffb01f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.arena__ribbon {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.arena__alt > * {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.36);
+}
+
+/* --- 3. the five posters, all in the red family --------------------------- */
+
+.tile__art {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+}
+
+.tile--ruby { --g1: #f2453a; --g2: #a20f08; --fg: #fff; }
+.tile--crimson { --g1: #ff6a4d; --g2: #8d0b06; --fg: #fff; }
+.tile--scarlet { --g1: #ff9080; --g2: #b81208; --fg: #fff; }
+.tile--rose { --g1: #ffd6cf; --g2: #df4034; --fg: #4b0f09; }
+.tile--blush { --g1: #fffaf9; --g2: #ffbcb0; --fg: #4b0f09; }
+
+.tile--rose .tile__name,
+.tile--blush .tile__name { text-shadow: none; }
+.tile--rose .tile__kicker,
+.tile--blush .tile__kicker { opacity: 0.72; }
+
+.tile__soon {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: var(--red);
+}
+
+/* --- 4. the daily strip -------------------------------------------------- */
+
+.strip { /* same grid; chips go white-on-red */ }
+
+.chip {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+  box-shadow: 0 3px 0 rgba(84, 8, 4, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.chip:hover { background: rgba(255, 255, 255, 0.26); }
+
+.chip--ready {
+  box-shadow: 0 3px 0 rgba(84, 8, 4, 0.24), 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+.chip__art { display: flex; flex: none; }
+.chip__text small { color: rgba(255, 255, 255, 0.84); }
+
+.chip__dot {
+  background: var(--yellow);
+  box-shadow: 0 0 0 3px rgba(255, 192, 46, 0.3);
+}
+
+/* --- 5. the chrome, warmed up -------------------------------------------- */
+
+.hud,
+.dock {
+  background-image: linear-gradient(180deg, rgba(122, 12, 6, 0.9) 0%, rgba(84, 8, 4, 0.8) 100%);
+}
+
+/* --- 6. phones ----------------------------------------------------------- */
+
+@media (max-width: 860px) {
+  .wtiles--lg { --wt: 40px; gap: 4px; }
+  .wtiles--md { --wt: 26px; }
+}
+
+@media (max-width: 520px) {
+  .wtiles--lg { --wt: 34px; gap: 3px; }
+  .wtiles--md { --wt: 24px; }
+  .arena__rack { margin-bottom: 2px; }
+}
+
+/* --- 7. corrections after the first render ------------------------------- */
+
+/* The poster was a two-row grid, and the art span landed in the same row as
+   the body, so the name drew through the tiles. A column that pushes the art
+   to the top and the copy to the bottom cannot collide. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tile__art { flex: none; }
+.tile__body { flex: 1 1 auto; }
+
+/* The dock's ten station colours were the last blue, green and purple left in
+   the product. Three reds and a white do the same job of telling the tiles
+   apart without breaking the palette. */
+.dock .dock__item .dock__ico {
+  background: linear-gradient(180deg, #ff8d7d, #c9180e);
+}
+.dock .dock__item:nth-child(2n) .dock__ico {
+  background: linear-gradient(180deg, #ffb3a6, #a2100a);
+}
+.dock .dock__item:nth-child(3n) .dock__ico {
+  background: linear-gradient(180deg, #ff7462, #8d0b06);
+}
+.dock .dock__item[aria-current="page"] .dock__ico {
+  background: linear-gradient(180deg, #ffe07a, #e09200);
+}
+
+/* The free-pass plate in the header, which was the only blue surface left. */
+.passcard {
+  background-image: linear-gradient(160deg, #d6241a 0%, #9c1108 100%);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+.passcard__bar { background: rgba(80, 6, 3, 0.4); }
+
+/* Blue links inside white panels become the accent red. */
+.panel a.link,
+.link { color: var(--red); }

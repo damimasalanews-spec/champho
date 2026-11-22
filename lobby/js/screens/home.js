@@ -1,16 +1,15 @@
 /* ===========================================================================
    CHAMP WORD — home
 
-   A game's front door, not an account page. The order is deliberate:
+   Red and white, with the game's own furniture in every band:
 
-     1. one arena: the name of the game, one line of what it is, one PLAY button
-     2. the five tables as posters you want to press
-     3. four small chips for the things you check once a day
+     1. ARENA   — a rack of letter tiles, the logo, one PLAY button
+     2. POSTERS — the five tables, each wearing its own letter tiles
+     3. STRIP   — four chips, each one a single tile with the day's business
 
-   What it deliberately does NOT do: no greeting block, no rows of KPI tiles, no
-   "3 of 10 tiers claimed" panel, no tables-and-friends lists. Those live on the
-   pass screen, the room screen and the friends screen; stacking all three here
-   made the page read like a dashboard with a game attached.
+   The art is built from the word game itself — tiles with letters and point
+   values — rather than generic icons, so the page looks like the product and
+   not like a dashboard that happens to be red.
    =========================================================================== */
 
 import { MODES, SEASON, DAILY_REWARDS, PASS_TIERS, LIVE_TABLES, FRIENDS } from '../data.js';
@@ -20,19 +19,33 @@ import { store } from '../store.js';
 
 /** Display copy per mode; the destination still comes from data.js. */
 const FACE = {
-  classic: { name: 'Classic', kicker: 'UNO', meta: '4 seats · 7 cards', tone: 'ruby', route: 'play/classic' },
-  wild: { name: 'Go Wild', kicker: '+2 · +4', meta: '2v2 word grid', tone: 'violet', route: 'play/wild' },
-  fun: { name: 'Fun Pack', kicker: 'No mercy', meta: 'Stacking · forced draws', tone: 'jade', route: null },
-  contest: { name: 'Contest', kicker: 'Ranked', meta: 'Season 01 ladder', tone: 'gold', route: 'ranks' },
-  friends: { name: 'Friends', kicker: 'Private', meta: 'Room code · free', tone: 'azure', route: 'room' }
+  classic: { name: 'Classic', kicker: 'UNO', meta: '4 seats · 7 cards', tone: 'ruby', route: 'play/classic', art: 'un' },
+  wild: { name: 'Go Wild', kicker: '+2 · +4', meta: '2v2 word grid', tone: 'crimson', route: 'play/wild', art: 'wd' },
+  fun: { name: 'Fun Pack', kicker: 'No mercy', meta: 'Stacking · forced draws', tone: 'scarlet', route: null, art: 'nm' },
+  contest: { name: 'Contest', kicker: 'Ranked', meta: 'Season 01 ladder', tone: 'rose', route: 'ranks', art: 's1' },
+  friends: { name: 'Friends', kicker: 'Private', meta: 'Room code · free', tone: 'blush', route: 'room', art: 'rc' }
 };
 
+/** Scrabble-ish points, so the tiles read as the real thing. */
+const POINTS = { a: 1, c: 3, d: 2, e: 1, f: 4, h: 4, m: 3, n: 1, o: 1, p: 3, r: 1, s: 1, u: 1, w: 4, 1: 1 };
+
+/**
+ * A little rack of letter tiles. This is the page's only illustration, and it
+ * is the game's own object: white tile, red letter, tiny point value.
+ */
+function wtiles(letters, size = '') {
+  return `<span class="wtiles ${size}">${[...letters].map((ch, i) => `
+    <i class="wtile" style="--rot:${i % 2 ? '2.5deg' : '-2deg'}">
+      <b>${esc(ch.toUpperCase())}</b><s>${POINTS[ch.toLowerCase()] ?? 1}</s>
+    </i>`).join('')}</span>`;
+}
+
 function tile(mode) {
-  const face = FACE[mode.id] ?? { name: mode.title, kicker: mode.sub ?? '', meta: '', tone: 'azure', route: null };
+  const face = FACE[mode.id] ?? { name: mode.title, kicker: mode.sub ?? '', meta: '', tone: 'ruby', route: null, art: 'w' };
   return `
     <button class="tile tile--${face.tone}" type="button" data-mode="${esc(mode.id)}"
             aria-label="${esc(mode.title)} — ${esc(mode.sub)}">
-      <span class="tile__ico">${icon(mode.icon ?? 'cards')}</span>
+      <span class="tile__art">${wtiles(face.art, 'wtiles--md')}</span>
       <span class="tile__body">
         <span class="tile__kicker">${esc(face.kicker)}</span>
         <span class="tile__name">${esc(face.name)}</span>
@@ -70,23 +83,23 @@ function chips() {
 
   return `
     <button class="chip ${claimedToday ? 'is-done' : 'chip--ready'}" type="button" data-claim ${claimedToday ? 'disabled' : ''}>
-      <span class="chip__ico chip__ico--gold">${icon('chest')}</span>
+      <span class="chip__art">${wtiles('d')}</span>
       <span class="chip__text"><b>Daily reward</b><small>${esc(rewardText)}</small></span>
       ${claimedToday ? '' : '<span class="chip__dot" aria-hidden="true"></span>'}
     </button>
 
     <a class="chip" href="#/pass">
-      <span class="chip__ico chip__ico--violet">${icon('sparkle')}</span>
+      <span class="chip__art">${wtiles('p')}</span>
       <span class="chip__text"><b>Season pass</b><small>${claimedTiers.length} / ${PASS_TIERS.length} tiers</small></span>
     </a>
 
     <a class="chip" href="#/room">
-      <span class="chip__ico chip__ico--jade">${icon('cards')}</span>
+      <span class="chip__art">${wtiles('t')}</span>
       <span class="chip__text"><b>Open tables</b><small>${tables} waiting now</small></span>
     </a>
 
     <a class="chip" href="#/social">
-      <span class="chip__ico chip__ico--azure">${icon('users')}</span>
+      <span class="chip__art">${wtiles('f')}</span>
       <span class="chip__text"><b>Friends</b><small>${online} online</small></span>
     </a>`;
 }
@@ -108,13 +121,15 @@ export default {
         <section class="arena">
           <span class="arena__suit arena__suit--spade" aria-hidden="true">♠</span>
           <span class="arena__suit arena__suit--heart" aria-hidden="true">♥</span>
-          <span class="arena__suit arena__suit--club" aria-hidden="true">♣</span>
-          <span class="arena__suit arena__suit--diamond" aria-hidden="true">♦</span>
           <span class="arena__glow" aria-hidden="true"></span>
 
           <span class="arena__ribbon">Season ${esc(SEASON.id)} · ${esc(SEASON.name)} · ${SEASON.daysLeft} days left</span>
+
           <h1 class="arena__logo">Champ<span>Word</span></h1>
           <p class="arena__tag">Match the colour or the word, empty your hand, take the pot.</p>
+
+          <!-- a rack spelling the thing the button does -->
+          <div class="arena__rack" aria-hidden="true">${wtiles('play', 'wtiles--lg')}</div>
 
           <div class="arena__actions">
             <button class="playbtn" type="button" data-play="classic">
