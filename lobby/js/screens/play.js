@@ -267,12 +267,17 @@ export default {
         // section loading. Say which table the bots play, and let the player go
         // there deliberately.
         if (mode === 'wild') {
-          bots.innerHTML = `${icon('cards')} Play Classic with bots`;
-          bots.addEventListener('click', () => openGame('Word UNO · house bots', 'game/'));
-          title.textContent = 'Go Wild needs the live server';
-          text.textContent = 'The 2v2 grid is dealt by the server, so there are no house bots to fall back on. Classic has a bot table you can play right now.';
-          Note('Server offline');
-          toast('Go Wild needs the server. Classic has bots.', 'bad', 4200);
+          // Go Wild is a different game, not a skin on Classic: four seats and a
+          // shared 7x6 word grid, drawn by wild-play.html. That client keeps its
+          // own Waiting / Disconnected state, so it is opened directly rather
+          // than being gated behind the probe — otherwise the mode simply never
+          // appeared when no server was running.
+          bots.innerHTML = `${icon('flame')} Open the Go Wild table`;
+          bots.addEventListener('click', () => openGame('Go Wild - 2v2 word grid', 'wild-play.html', { skipProbe: true }));
+          title.textContent = 'Go Wild is its own table';
+          text.textContent = 'Four seats on one 7x6 word grid - a different game from Classic. The table opens now and waits for a server to deal it.';
+          Note('Go Wild');
+          toast('Opening the Go Wild table.', 'good', 3600);
           return;
         }
 

@@ -23,7 +23,7 @@ const PROBE_TIMEOUT = 2500;
  * `file` is a path relative to the game directory ('game/', 'go-wild-2v2-finished.html')
  * or an absolute one; each mode card names its own client.
  */
-export function openGame(label = 'Champ Word · live table', file = GAME_CLIENT) {
+export function openGame(label = 'Champ Word · live table', file = GAME_CLIENT, options = {}) {
   if (frame) return;
   const src = gameUrl(file);
   lastFocus = document.activeElement;
@@ -68,6 +68,11 @@ export function openGame(label = 'Champ Word · live table', file = GAME_CLIENT)
   mount();
 
   async function mount() {
+    // A client that carries its own connection state (Go Wild shows its own
+    // Waiting / Disconnected banner) is opened directly: the probe is a gate
+    // for clients that would otherwise sit on a dead board, and behind this
+    // one it only meant the mode never appeared at all.
+    if (options.skipProbe) return load();
     const reachable = await probe();
     if (!frame) return;
     if (reachable) {
