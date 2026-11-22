@@ -203,14 +203,30 @@ export default {
         setSeats(0);
         findBtn.hidden = false;
         findBtn.disabled = false;
-        findBtn.innerHTML = `${icon('refresh')} Try again`;
         cancelBtn.hidden = true;
-        title.textContent = result.reason === 'queue-timeout' ? 'No one else is queued' : 'Server unreachable';
-        text.textContent = result.reason === 'queue-timeout'
-          ? 'Nobody joined the queue in 25 seconds. Press Try again to rejoin it.'
-          : 'The game server did not answer. Check the connection, then press Try again.';
-        Note('Offline');
-        toast(result.reason === 'queue-timeout' ? 'The queue is empty right now.' : 'No game server is answering.', 'bad', 4200);
+
+        if (result.reason === 'queue-timeout') {
+          findBtn.innerHTML = `${icon('refresh')} Try again`;
+          title.textContent = 'No one else is queued';
+          text.textContent = 'Nobody joined the queue in 25 seconds. Press Try again to rejoin it.';
+          Note('Queue empty');
+          toast('The queue is empty right now.', 'bad', 4200);
+          return;
+        }
+
+        // No server at all. The local table ships with three bots of its own
+        // (game/game.js: BOT_KIT, S.botPlans), so a player with no opponent and
+        // no server still gets a dealt hand instead of an error. This replaces
+        // the primary button rather than adding a second one beside it.
+        const bots = findBtn.cloneNode(false);
+        bots.innerHTML = `${icon('users')} Play with bots`;
+        bots.addEventListener('click', () => openGame('Champ Word · house bots', 'game/'));
+        findBtn.replaceWith(bots);
+
+        title.textContent = 'Nobody else is here yet';
+        text.textContent = 'The server is offline, so the house deals this one — three bots take the empty seats.';
+        Note('Bots');
+        toast('Offline — sitting you down against the house bots.', 'good', 4200);
         return;
       }
 
