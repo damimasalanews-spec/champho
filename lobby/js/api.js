@@ -14,18 +14,26 @@
    =========================================================================== */
 
 const OVERRIDE = new URLSearchParams(location.search).get('backend');
-const FALLBACK_HOST = 'champword-classic.onrender.com';
 const PROBE_TIMEOUT = 4500;
 
-/** Same origin when the client is served by the game server, otherwise the
- *  configured backend. A socket can never be opened to the wrong host by
- *  accident, which is the failure this project has hit before. */
+/**
+ * Where the socket lives: SAME ORIGIN, unless someone says otherwise.
+ *
+ * The rule used to be inverted — same origin only on localhost, and otherwise a
+ * hard-coded `wss://champword-classic.onrender.com`. That host is a different
+ * service, and it is the one every deployed copy of this page pointed at, so
+ * every deployed copy showed "the table needs a matchmaking server" no matter
+ * which server was actually running. The server in this repository serves this
+ * page itself (server/static.ts), so the page and the socket are always the
+ * same host. An explicit override is still honoured for a split deployment:
+ *   ?backend=my-game.onrender.com     (as a query parameter on the lobby URL)
+ *   ?backend=mock                     (forces the offline path, for tests)
+ */
 export function socketUrl() {
   if (OVERRIDE === 'mock') return null;
-  const local = ['localhost', '127.0.0.1', ''].includes(location.hostname);
-  if (OVERRIDE) return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${OVERRIDE}`;
-  if (local || location.port === '8787') return `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`;
-  return `wss://${FALLBACK_HOST}`;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  if (OVERRIDE) return `${proto}://${OVERRIDE}`;
+  return `${proto}://${location.host}`;
 }
 
 /**
@@ -158,7 +166,7 @@ export function findMatch({ displayName = 'You', onState = () => {} } = {}) {
           if (msg.type === 'match_queued') onState('queued');
           if (msg.type === 'error') {
             cleanup();
-            resolve({ mode: 'mock', roomId: simulatedRoom(), seatNumber: 1, degraded: msg.code || 'server-error' });
+            resolve({ mode: 'offline', reason: msg.code || 'server-error' });
           }
           if (msg.type === 'match_found') {
             cleanup();
@@ -191,19 +199,17 @@ export function findMatch({ displayName = 'You', onState = () => {} } = {}) {
         controller.timer = setTimeout(() => {
           if (controller.cancelled) return;
           cleanup();
-          resolve({ mode: 'mock', roomId: simulatedRoom(), seatNumber: 1, degraded: 'queue-timeout' });
+          resolve({ mode: 'offline', reason: 'queue-timeout' });
         }, 25_000);
         return;
       }
     }
 
-    // Offline: simulate the same three beats so the flow is demonstrable.
-    controller.timer = setTimeout(() => {
-      if (controller.cancelled) return;
-      onState('found');
-      queueController = null;
-      resolve({ mode: 'mock', roomId: simulatedRoom(), seatNumber: 1, degraded: 'offline' });
-    }, 2600);
+    // No server. Say so — this used to hand back a fabricated room code after
+    // 2.6 seconds, so a player sat down at a table that did not exist and lost
+    // to nobody. That is worse than no table at all.
+    queueController = null;
+    resolve({ mode: 'offline', reason: 'unreachable' });
   });
 }
 

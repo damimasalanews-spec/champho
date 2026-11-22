@@ -2073,11 +2073,14 @@
   /* --- connection: the static site reaches the backend service ------------- */
   const BACKEND_HOST = "champword-backend.onrender.com";
   function backendSocketUrl() {
-    const host = location.hostname;
-    if (host === BACKEND_HOST || host === "localhost" || host === "127.0.0.1") {
-      return (location.protocol === "https:" ? "wss" : "ws") + "://" + location.host;
-    }
-    return "wss://" + BACKEND_HOST;
+    // Same origin first. Whatever serves this page is the process that owns the
+    // socket, so the table is always reachable from the page that opened it.
+    // An explicit ?backend=host still wins, for a deliberately split deploy.
+    var override = new URLSearchParams(location.search).get("backend");
+    var proto = location.protocol === "https:" ? "wss" : "ws";
+    if (override) return proto + "://" + override;
+    if (location.hostname === BACKEND_HOST) return proto + "://" + location.host;
+    return proto + "://" + location.host;
   }
 
   function connect() {

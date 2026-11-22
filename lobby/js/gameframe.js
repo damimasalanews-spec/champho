@@ -99,16 +99,16 @@ export function openGame(label = 'Champ Word · live table', file = GAME_CLIENT)
     stage.innerHTML = `
       <div class="gameframe__offline">
         <div class="offline-card">
-          <span class="eyebrow">No server</span>
-          <h2>The table needs a matchmaking server</h2>
-          <p>The round client talks to ${socketUrl()}. Nothing is answering there right now, so it
-             would open on a dead board and show a reconnect banner.</p>
+          <span class="eyebrow">Offline</span>
+          <h2>Can't reach the game server</h2>
+          <p>The table is dealt by <b>${socketUrl()}</b>, and nothing answered there. Nothing is lost —
+             your seat and your progress are safe.</p>
           <div class="offline-card__actions">
             <button class="btn btn--primary" type="button" data-retry>Try again</button>
-            <button class="btn btn--quiet" type="button" data-anyway>Open the client anyway</button>
+            <button class="btn btn--quiet" type="button" data-anyway>Open the table anyway</button>
           </div>
           <p class="muted offline-card__note">
-            Start it with <code>DATABASE_URL</code> set and <code>npm run dev</code>, then press Try again.
+            If this keeps happening, the server may still be starting up. Give it a minute and retry.
           </p>
         </div>
       </div>`;

@@ -7,7 +7,8 @@ import { openGame } from '../gameframe.js';
 
 const TITLES = {
   classic: { title: 'Word UNO · Classic', sub: 'Four seats · seven cards', icon: 'cards', client: 'game/' },
-  wild: { title: 'Go Wild · 2v2', sub: '7×6 word grid · 30 words', icon: 'flame', client: 'go-wild-2v2-finished.html' }
+  // wild-play.html, not go-wild-2v2-finished.html: only the former has a socket.
+  wild: { title: 'Go Wild · 2v2', sub: '7×6 word grid · 30 words', icon: 'flame', client: 'wild-play.html' }
 };
 
 export default {
@@ -192,6 +193,26 @@ export default {
       });
 
       if (!el.isConnected) return;
+
+      // No table. Say so, and let the button start another search. The lobby
+      // used to invent a room code here so the screen always "worked"; a player
+      // then sat at a table that no one else could ever join.
+      if (result.mode === 'offline') {
+        phase = 'idle';
+        found = null;
+        setSeats(0);
+        findBtn.hidden = false;
+        findBtn.disabled = false;
+        findBtn.innerHTML = `${icon('refresh')} Try again`;
+        cancelBtn.hidden = true;
+        title.textContent = result.reason === 'queue-timeout' ? 'No one else is queued' : 'Server unreachable';
+        text.textContent = result.reason === 'queue-timeout'
+          ? 'Nobody joined the queue in 25 seconds. Press Try again to rejoin it.'
+          : 'The game server did not answer. Check the connection, then press Try again.';
+        Note('Offline');
+        toast(result.reason === 'queue-timeout' ? 'The queue is empty right now.' : 'No game server is answering.', 'bad', 4200);
+        return;
+      }
 
       found = result;
       phase = 'found';

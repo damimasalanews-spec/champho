@@ -39,7 +39,11 @@ export const MODES = [
     sub: '+2 · +4 · wild',
     desc: 'The 2v2 word grid: seven by six letters, thirty words a round, two teams of two.',
     cta: 'Open Go Wild',
-    game: 'go-wild-2v2-finished.html'
+    // wild-play.html is the 2v2 table: it holds the socket, seats and round
+    // state. go-wild-2v2-finished.html is a static visual build of the same
+    // board with no networking in it at all, so opening it from a "play" card
+    // gave a player a table that could never deal to anyone else.
+    game: 'wild-play.html'
   },
   {
     id: 'fun',
