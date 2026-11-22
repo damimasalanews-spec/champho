@@ -112,7 +112,8 @@ export function selectCardsForWord(hand: Card[], word: string): string[] | null 
  * seat 1 is Aiko, seat 2 the next name, and so on. It reads Aiko, Mina, Kai down
  * the table.
  */
-const BOT_NAMES = ["Aiko", "Mina", "Kai", "Rex", "Luna", "Jax", "Panda", "Fox"];
+import { BOT_NAME_LIST } from "./bot-names.js";
+const BOT_NAMES = BOT_NAME_LIST;
 export function botDisplayName(index: number): string {
   return BOT_NAMES[index % BOT_NAMES.length] as string;
 }

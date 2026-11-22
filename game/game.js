@@ -236,13 +236,32 @@ const S = {
   players: [],
 };
 
+/* The house roster — the same 100 Nepali first names the server seats bots
+   with, boys and girls, plus a surname so two seats never read the same. */
+const HOUSE_BOYS = ["Aarav","Aayush","Abhishek","Anish","Anup","Arjun","Ashish","Avinash","Bibek","Bikash","Bikram","Binod","Bipin","Bishal","Deepak","Dipesh","Ganesh","Hari","Hemant","Kamal","Kiran","Krishna","Lalit","Mahesh","Manish","Milan","Nabin","Naresh","Nirajan","Nischal","Pradeep","Prakash","Prashant","Rajan","Rajesh","Rakesh","Ramesh","Rohan","Rohit","Roshan","Sabin","Sagar","Sajan","Sanjay","Santosh","Saroj","Shishir","Suman","Suraj","Umesh"];
+const HOUSE_GIRLS = ["Aakriti","Aashma","Anjali","Anisha","Anita","Anu","Archana","Asmita","Barkha","Barsha","Bimala","Binita","Bipana","Chanda","Dipa","Dipika","Gita","Goma","Ishika","Jamuna","Kabita","Kalpana","Kamala","Karuna","Laxmi","Lila","Manisha","Meena","Nirmala","Nisha","Pooja","Pratima","Priyanka","Rabina","Rachana","Radha","Rekha","Renuka","Rojina","Roshani","Sabina","Sabita","Sadhana","Samjhana","Sangita","Sarita","Shanti","Sharmila","Shreya","Sita"];
+const HOUSE_SURNAMES = ["Sharma","Thapa","Gurung","Shrestha","Rai","Magar","Karki","Adhikari","Bhatta","Poudel","Lama","Tamang","Khanal","Pandey","Bhandari","Khadka","Bista","Koirala"];
+function pickNepaliSeats(count) {
+  const boys = HOUSE_BOYS.slice();
+  const girls = HOUSE_GIRLS.slice();
+  const out = [];
+  for (let i = 0; i < count; i++) {
+    const pool = i % 2 === 0 ? boys : girls;
+    const first = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+    const last = HOUSE_SURNAMES[Math.floor(Math.random() * HOUSE_SURNAMES.length)];
+    out.push({ name: first + " " + last, emoji: i % 2 === 0 ? "\ud83e\uddd1" : "\ud83d\udc67" });
+  }
+  return out;
+}
+
 function makePlayers() {
   const guest = 'Guest' + Math.floor(100000 + Math.random() * 900000);
+  const seat = pickNepaliSeats(3);
   return [
-    { name: 'Surojit',    emoji: '🧑',   ring: '#22d3ee', bnr: '#0e7490', chat: '#fbbf24', coins: 0, pos: 'pos-tl' },
-    { name: 'Isla.Criss', emoji: '👧', ring: '#f472b6', bnr: '#be185d', chat: '#fb923c', coins: 0, pos: 'pos-tr' },
+    { name: seat[0].name,    emoji: '🧑',   ring: '#22d3ee', bnr: '#0e7490', chat: '#fbbf24', coins: 0, pos: 'pos-tl' },
+    { name: seat[1].name, emoji: '👧', ring: '#f472b6', bnr: '#be185d', chat: '#fb923c', coins: 0, pos: 'pos-tr' },
     { name: guest,        emoji: '🧑🏻', ring: '#f9a8d4', bnr: '#1d4ed8', chat: '#fde047', coins: 0, pos: 'pos-front', you: true },
-    { name: 'Champ',      emoji: '🧑',   ring: '#facc15', bnr: '#b45309', chat: '#fbbf24', coins: 0, pos: 'pos-mr' },
+    { name: seat[2].name,      emoji: '🧑',   ring: '#facc15', bnr: '#b45309', chat: '#fbbf24', coins: 0, pos: 'pos-mr' },
   ];
 }
 const you = () => S.players.find((p) => p.you);
@@ -802,7 +821,7 @@ function newGame() {
   $('giftBtn').disabled = false;
   renderCards();
   $('chatMsgs').innerHTML = '';
-  addMsg('Isla.Criss', 'Nice one!', '#fb923c');
+  addMsg(S.players[1].name, 'Nice one!', '#fb923c');
   addMsg(you().name, 'Good luck everyone!', you().chat);
   addMsg('Surojit', 'Almost there!', '#fbbf24');
   addMsg('Champ', "Let's go!", '#fbbf24');
@@ -1247,7 +1266,7 @@ setMode('classic');
 renderCards();
 updateHUD();
 renderParchment();
-addMsg('Isla.Criss', 'Nice one!', '#fb923c');
+addMsg(S.players[1].name, 'Nice one!', '#fb923c');
 addMsg('Surojit', 'Almost there!', '#fbbf24');
 addMsg('Champ', "Let's go!", '#fbbf24');
 

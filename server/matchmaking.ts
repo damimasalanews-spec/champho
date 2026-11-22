@@ -3,7 +3,7 @@ import type { PoolClient } from "pg";
 import { pool } from "./db.js";
 import { CLASSIC_SEAT_COUNT, appendEvent, readSnapshot, type BotPersonality, type RoomSnapshot } from "./rooms.js";
 import { SEAT_PERSONALITIES } from "./bots.js";
-import { botDisplayName } from "./words.js";
+import { drawBotRoster } from "./bot-names.js";
 import { telemetry } from "./telemetry.js";
 
 /**
@@ -40,13 +40,14 @@ async function seatBot(
   client: PoolClient,
   roomId: string,
   seatNumber: number,
-  personality: BotPersonality
+  personality: BotPersonality,
+  displayName: string
 ): Promise<string> {
   const botId = randomUUID();
   await client.query(
     `INSERT INTO public.room_players(room_id,player_id,seat_number,connected,turn_state,is_bot,bot_personality,display_name,private_hand,hand_version)
      VALUES($1,$2,$3,true,'waiting',true,$4,$5,'[]'::jsonb,0)`,
-    [roomId, botId, seatNumber, personality, botDisplayName(seatNumber - 1)]
+    [roomId, botId, seatNumber, personality, displayName]
   );
   return botId;
 }
@@ -99,6 +100,8 @@ export async function runMatchmakingPass(now = new Date()): Promise<MatchResult[
     const claimedIds = new Set(claimedRows.rows.map((row) => row.player_id));
     const claimed = humans.filter((human) => claimedIds.has(human.playerId));
 
+    // one roster draw per table, so no two seats share a first name
+    const botNames = drawBotRoster(CLASSIC_SEAT_COUNT);
     let seat = 0;
     for (const human of claimed) {
       await client.query(
@@ -113,7 +116,7 @@ export async function runMatchmakingPass(now = new Date()): Promise<MatchResult[
     // Fill the empty seats with the three personalities (§16).
     while (seat < CLASSIC_SEAT_COUNT) {
       const personality = SEAT_PERSONALITIES[(seat - 1 + SEAT_PERSONALITIES.length) % SEAT_PERSONALITIES.length] as BotPersonality;
-      const botId = await seatBot(client, roomId, seat, personality);
+      const botId = await seatBot(client, roomId, seat, personality, botNames[seat]?.name ?? 'Champ');
       telemetry("bot_seated", { roomId, playerId: botId, seatNumber: seat, personality });
       seat += 1;
     }
