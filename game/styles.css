@@ -738,28 +738,32 @@ button{font-family:inherit;font-weight:900;border:none;cursor:pointer;color:#fff
   transition: none; /* Block regular physics curve until layout target frame matches */
 }
 
-/* ---- 4v4: an eight-seat ring -------------------------------------------
-   The four-seat table has its anchors hardcoded (pos-tl/tr/ml/mr/front).
-   Eight seats need four more, so they live here under their own names and are
-   only applied when the client is opened with ?team=4 — a 2v2 table keeps the
-   exact geometry it always had. Cards shrink a step so eight fit without
-   covering the felt. */
-.pcard.p8-1 { left: 6%;  top: 8%; }
-.pcard.p8-2 { left: 1.5%; top: 30%; }
-.pcard.p8-3 { left: 6%;  top: 54%; }
-.pcard.p8-4 { right: 6%;  top: 8%; }
-.pcard.p8-5 { right: 1.5%; top: 30%; }
-.pcard.p8-6 { right: 6%;  top: 54%; }
-.pcard.p8-7 { right: 1.5%; top: 77%; }
-/* above the letter-tile panel, not behind it: the panel owns 674-884px at the bottom centre */
-.pcard.p8-you { left: calc(50% - 64px); bottom: 27%; top: auto; }
+/* ---- 4v4: an eight-seat ring ------------------------------------------
+   Eight seats, laid out as a ring rather than bolted onto the four-seat
+   anchors: three across the top, two down each side, the player at the
+   bottom left. The felt (and the tile panel under it) stays clear, and the
+   geometry is symmetric, so no seat looks like an afterthought.
 
-body.seats-eight .pcard { zoom: 0.84; }
+   Colours come from the seat itself (ally cyan / rival magenta); this file
+   only decides where a card sits and how far it shrinks to fit. */
+.pcard.p8-1 { left: 18%; top: 10%; }
+.pcard.p8-2 { left: calc(50% - 66px); top: 10%; }
+.pcard.p8-3 { right: 18%; top: 10%; }
+.pcard.p8-4 { left: 1.5%; top: 33%; }
+.pcard.p8-5 { left: 1.5%; top: 60%; }
+.pcard.p8-6 { right: 1.5%; top: 33%; }
+.pcard.p8-7 { right: 1.5%; top: 60%; }
+.pcard.p8-you { left: 13%; bottom: 3%; top: auto; }
+
+body.seats-eight .pcard { zoom: 0.8; }
 
 @media (max-width: 1180px) {
-  body.seats-eight .pcard { zoom: 0.72; }
+  body.seats-eight .pcard { zoom: 0.7; }
+  .pcard.p8-1 { left: 14%; }
+  .pcard.p8-3 { right: 14%; }
 }
 
 @media (max-width: 900px) {
-  body.seats-eight .pcard { zoom: 0.6; }
+  body.seats-eight .pcard { zoom: 0.58; }
+  .pcard.p8-you { left: 6%; }
 }

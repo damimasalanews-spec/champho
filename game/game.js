@@ -265,14 +265,20 @@ const TEAM_SIZE = (function () {
 const SEATS = TEAM_SIZE * 2;
 const RING_4 = ['pos-tl', 'pos-tr', 'pos-mr'];
 const RING_8 = ['p8-1', 'p8-2', 'p8-3', 'p8-4', 'p8-5', 'p8-6', 'p8-7'];
-const LOOKS = [
-  { emoji: '🧑', ring: '#22d3ee', bnr: '#0e7490', chat: '#fbbf24' },
-  { emoji: '👧', ring: '#f472b6', bnr: '#be185d', chat: '#fb923c' },
-  { emoji: '🧑', ring: '#facc15', bnr: '#b45309', chat: '#fbbf24' },
-  { emoji: '👩', ring: '#a78bfa', bnr: '#5b21b6', chat: '#c4b5fd' },
-  { emoji: '🧑', ring: '#34d399', bnr: '#065f46', chat: '#6ee7b7' },
-  { emoji: '👨', ring: '#f87171', bnr: '#7f1d1d', chat: '#fca5a5' },
-  { emoji: '👩', ring: '#60a5fa', bnr: '#1e3a8a', chat: '#93c5fd' }
+// Two teams, two families of colour. In 4v4 the four seats on your side wear
+// cyan and the four opposite wear magenta, so "whose side is that?" is answered
+// by the card itself rather than by counting seats.
+const ALLY_LOOKS = [
+  { emoji: '🧑', ring: '#22d3ee', bnr: '#0e7490', chat: '#67e8f9' },
+  { emoji: '👩', ring: '#38bdf8', bnr: '#075985', chat: '#7dd3fc' },
+  { emoji: '👨', ring: '#2dd4bf', bnr: '#115e59', chat: '#5eead4' },
+  { emoji: '👧', ring: '#60a5fa', bnr: '#1e3a8a', chat: '#93c5fd' }
+];
+const RIVAL_LOOKS = [
+  { emoji: '🎭', ring: '#f472b6', bnr: '#9d174d', chat: '#f9a8d4' },
+  { emoji: '😈', ring: '#fb7185', bnr: '#881337', chat: '#fda4af' },
+  { emoji: '🤖', ring: '#c084fc', bnr: '#581c87', chat: '#d8b4fe' },
+  { emoji: '🐯', ring: '#fbbf24', bnr: '#92400e', chat: '#fcd34d' }
 ];
 
 function makePlayers() {
@@ -287,7 +293,9 @@ function makePlayers() {
       players.push({ name: guest, emoji: '🧑🏻', ring: '#f9a8d4', bnr: '#1d4ed8', chat: '#fde047', coins: 0, pos: TEAM_SIZE === 4 ? 'p8-you' : 'pos-front', you: true });
       continue;
     }
-    const look = LOOKS[i % LOOKS.length];
+    const ally = i < Math.floor(SEATS / 2);
+    const looks = ally ? ALLY_LOOKS : RIVAL_LOOKS;
+    const look = looks[seatIndex % looks.length];
     players.push({ name: names[seatIndex].name, ...look, coins: 0, pos: ring[seatIndex] });
     seatIndex++;
   }
