@@ -5,7 +5,7 @@
    place and every render sees the same shape.
    =========================================================================== */
 
-import { PLAYER, PASS_TIERS } from './data.js';
+import { PLAYER, PASS_TIERS, DAILY_REWARDS } from './data.js';
 
 const KEY = 'champword.lobby.v2';
 
@@ -121,12 +121,19 @@ export const store = {
   },
 
   /* --- daily ------------------------------------------------------------- */
+  /**
+   * Pays the day's reward and returns it, so a caller can say what was paid
+   * instead of assuming coins. The schedule itself lives in data.js — the old
+   * `100 + today * 50` here disagreed with the amounts the reward card printed,
+   * and day 3 pays diamonds, not coins.
+   */
   claimDaily() {
     const { today, claimed } = state.daily;
-    if (claimed.includes(today)) return 0;
-    const reward = 100 + today * 50;
+    if (claimed.includes(today)) return null;
+    const reward = DAILY_REWARDS[today] ?? DAILY_REWARDS[0];
     claimed.push(today);
-    state.player.coins += reward;
+    if (reward.kind === 'gems') state.player.gems += reward.amount;
+    else state.player.coins += reward.amount;
     emit('daily');
     return reward;
   },

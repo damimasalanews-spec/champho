@@ -119,8 +119,91 @@ a { color: inherit; text-decoration: none; }
   gap: clamp(6px, 1.2vw, 18px);
   height: var(--hud-h);
   padding: 0 clamp(8px, 1.8vw, 26px);
-  background: linear-gradient(180deg, rgba(4, 32, 66, 0.55) 0%, rgba(4, 32, 66, 0.05) 75%, transparent 100%);
+  /* A scrim, not a fade. The old gradient ended in transparent, which was fine
+     while every screen fit the viewport — but the moment a page scrolls, the
+     content runs visibly through the profile plate and the wallet. Same recipe
+     as the dock so the two bars read as one frame. */
+  background: linear-gradient(180deg, rgba(6, 42, 88, 0.8) 0%, rgba(4, 30, 66, 0.66) 100%);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
+
+/* News, in the chrome rather than floating over the content. */
+.hud__news {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 10px rgba(4, 32, 66, 0.22);
+  transition: background var(--dur-2) var(--ease);
+}
+.hud__news:hover { background: rgba(255, 255, 255, 0.28); }
+.hud__news svg { width: 21px; height: 21px; }
+.hud__news-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ff7264, #dd1f14);
+  border: 2px solid #fff;
+}
+
+/* --- brand: the one control that is always on screen --------------------- */
+
+.brand {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--r-pill);
+  color: #fff;
+  transition: transform var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.brand:hover { background: rgba(255, 255, 255, 0.14); transform: translateY(-1px); }
+
+.brand__mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #ffe07a, #e09200);
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  color: #5f3c00;
+  box-shadow: 0 4px 0 rgba(4, 32, 68, 0.32), inset 0 2px 0 rgba(255, 255, 255, 0.5);
+  transition: box-shadow var(--dur-2) var(--ease);
+}
+.brand__mark svg { width: 22px; height: 22px; }
+
+.brand__word {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 rgba(4, 32, 68, 0.4);
+}
+.brand__word b { font-weight: 800; color: var(--yellow-hi); }
+
+.brand[aria-current="page"] .brand__mark {
+  box-shadow: 0 0 0 3px var(--yellow-hi), 0 4px 0 rgba(4, 32, 68, 0.32);
+}
+
+/* Where pwa.js mounts the install button. In the HUD flow it cannot land on
+   top of the pass card, which is what a fixed corner placement did. */
+.hud__install { flex: none; display: flex; align-items: center; gap: 6px; }
+.hud__install:empty { display: none; }
 
 .hud__player { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
@@ -438,6 +521,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* colour per station, so the bar reads as a row of objects, not one icon set */
+.dock__item[data-route="home"] .dock__ico { background: linear-gradient(180deg, #8ed2ff, #1f6fc4); }
 .dock__item[data-route="play"] .dock__ico { background: linear-gradient(180deg, #8be0a4, #22a94a); }
 .dock__item[data-route="settings"] .dock__ico { background: linear-gradient(180deg, #9ad8ff, #3f8fd8); }
 .dock__item[data-route="social"] .dock__ico { background: linear-gradient(180deg, #ffe07a, #f0a51c); }
@@ -452,6 +536,46 @@ a { color: inherit; text-decoration: none; }
   box-shadow: 0 0 0 3px var(--yellow-hi), 0 6px 0 rgba(4, 32, 68, 0.4);
 }
 .dock__item[aria-current="page"] .dock__label { color: var(--yellow-hi); }
+
+/* The overflow station. Ten tiles fit a desktop dock; on a phone they were
+   43px each with 8.5px labels, so the dock scrolls off the edge in practice.
+   Below 720px the four secondary stations fold into this sheet and the six
+   that carry the game stay on the bar. */
+.dock__more { display: none; }
+.dock__more .dock__ico { background: linear-gradient(180deg, #a9c2da, #48627e); }
+.dock__more .dock__ico svg { transform: rotate(-90deg); }
+
+.sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+.sheet__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border-radius: var(--r-md);
+  background: var(--panel-2);
+  border: 2px solid var(--line-cool);
+  color: var(--ink);
+  text-align: left;
+}
+.sheet__item:hover { border-color: var(--blue); }
+.sheet__ico {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #8ed2ff, #1f6fc4);
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(6, 40, 80, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+.sheet__ico svg { width: 20px; height: 20px; }
+.sheet__item b { font-family: var(--font-display); font-size: var(--fs-md); line-height: 1.2; }
+.sheet__item small { display: block; font-size: var(--fs-2xs); color: var(--ink-3); }
 
 /* --- 4. View ------------------------------------------------------------- */
 
@@ -681,6 +805,9 @@ html[data-motion="off"] [data-reveal] { opacity: 1; transform: none; }
 @media (max-width: 1180px) {
   .bank { display: none; }
   .passcard { min-width: 168px; }
+  /* the mark alone still says where it goes */
+  .brand__word { display: none; }
+  .brand { padding-right: 4px; }
 }
 
 @media (max-width: 960px) {
@@ -692,7 +819,10 @@ html[data-motion="off"] [data-reveal] { opacity: 1; transform: none; }
   .hud { padding: 0 8px; gap: 6px; }
   .hud__portrait { width: 58px; height: 58px; border-width: 2px; }
   .hud__portrait .avatar--lg { width: 46px; height: 46px; font-size: 18px; }
-  .hud__plate { padding: 3px 8px 5px; border-radius: 12px; flex: 1; min-width: 0; }
+  .hud__player { flex: 1 1 auto; min-width: 0; }
+  .hud__plate { padding: 3px 8px 5px; border-radius: 12px; flex: 1 1 auto; min-width: 0; }
+  /* the news button moves into the overflow sheet on phones */
+  .hud__news { display: none; }
   .hud__name { font-size: 14px; }
   .hud__score { font-size: 13px; }
   .hud__trophy svg { width: 14px; height: 14px; }
@@ -706,9 +836,11 @@ html[data-motion="off"] [data-reveal] { opacity: 1; transform: none; }
 
   .dock { gap: 0; padding: 0 2px env(safe-area-inset-bottom); justify-content: space-between; }
   .dock__item { min-width: 0; flex: 1; padding: 3px 0; }
-  .dock__ico { width: 38px; height: 38px; border-radius: 12px; }
-  .dock__ico svg { width: 21px; height: 21px; }
-  .dock__label { font-size: 8.5px; letter-spacing: 0.04em; }
+  .dock__item--secondary { display: none; }
+  .dock__more { display: grid; }
+  .dock__ico { width: 36px; height: 36px; border-radius: 12px; }
+  .dock__ico svg { width: 20px; height: 20px; }
+  .dock__label { font-size: 9px; letter-spacing: 0.03em; }
   .dock__timer { display: none; }
   .dock__dot { width: 15px; height: 15px; font-size: 9px; right: 2px; }
 
@@ -731,6 +863,30 @@ html[data-motion="off"] [data-reveal] { opacity: 1; transform: none; }
   .wallet-pill { padding-right: 7px; }
   .wallet-pill b { font-size: 14px; }
   .hud__plate { min-width: 0; }
+}
+
+@media (max-width: 640px) {
+  /* On a phone the dock carries Home, and every pixel in this strip is already
+     spoken for by the wallet. The mark stays on tablets and up. */
+  .brand { display: none; }
+}
+
+@media (max-width: 480px) {
+  /* At 360px the name plate was squeezed to 39px and the coin pill sat on top of
+     it. Everything in the strip shrinks one step so the plate keeps its width. */
+  .hud { padding: 0 6px; gap: 4px; }
+  .hud__portrait { width: 46px; height: 46px; }
+  .hud__portrait .avatar--lg { width: 36px; height: 36px; font-size: 14px; }
+  .hud__player { gap: 6px; }
+  .hud__name { font-size: 12.5px; }
+  .hud__score { font-size: 11px; }
+  .hud__trophy svg { width: 12px; height: 12px; }
+  .hud__xpbar { height: 8px; min-width: 30px; }
+  .hud__wallet { gap: 3px; }
+  .wallet-pill { height: 30px; padding: 0 7px 0 3px; gap: 4px; }
+  .wallet-pill b { font-size: 12.5px; }
+  .wallet-pill__ico { width: 22px; height: 22px; border-width: 1px; }
+  .wallet-pill__ico svg { width: 13px; height: 13px; }
 }
 
 /* Promo floaters belong to the home screen. On standings, shop and profile they

@@ -178,6 +178,16 @@
         '.cw-install-btn.cw-fixed{position:fixed;top:14px;right:14px;height:56px;padding:0 20px;font-size:1.02rem;border-radius:28px;z-index:2147483000}',
         '.cw-install-btn.cw-fixed svg{width:24px;height:24px}',
         '@media (max-width:560px){.cw-install-btn.cw-fixed .cw-install-label{display:none}.cw-install-btn.cw-fixed{padding:0 15px}}',
+        // The lobby's HUD has a slot for it. Pinned to the corner it landed on
+        // top of the free-pass card, which is 208px wide and sits in the same
+        // corner — the pass text was unreadable behind the button.
+        '.cw-install-btn.cw-in-hud{position:static;height:44px;padding:0 16px;font-size:.95rem;',
+        'border-width:2px;border-radius:22px;box-shadow:0 3px 0 #8a5c00,inset 0 2px 0 rgba(255,255,255,.5);z-index:auto}',
+        '.cw-install-btn.cw-in-hud svg{width:20px;height:20px}',
+        '@media (max-width:1180px){.cw-install-btn.cw-in-hud{padding:0 12px}.cw-install-btn.cw-in-hud .cw-install-label{display:none}}',
+        '@media (max-width:480px){.cw-install-btn.cw-in-hud{height:34px;width:34px;padding:0;justify-content:center;box-shadow:0 2px 0 #8a5c00,inset 0 1px 0 rgba(255,255,255,.5)}',
+        '.cw-install-btn.cw-in-hud svg{width:17px;height:17px}}',
+        '.cw-install-hint.cw-in-hud{position:fixed;top:74px;right:14px;max-width:min(330px,78vw)}',
         '.cw-install-hint{position:absolute;top:118px;right:126px;max-width:330px;padding:14px 18px;',
         'border-radius:16px;background:rgba(0,0,0,.86);color:#fff;font-family:Nunito,"Segoe UI",system-ui,sans-serif;',
         'font-size:1.02rem;line-height:1.5;z-index:331;display:none;box-shadow:0 10px 26px rgba(0,0,0,.45)}',
@@ -231,6 +241,11 @@
             portrait = !!(window.matchMedia && window.matchMedia('(orientation: portrait)').matches);
         } catch (error) { /* as above */ }
 
+        // The lobby reserves a place for it in the HUD. Checked first, because
+        // the lobby is the one host page whose corner is already occupied.
+        var slot = document.querySelector('[data-install-slot]');
+        if (slot) return { host: slot, kind: 'hud' };
+
         var veilCard = document.querySelector('.rotate-device-card');
         var stage = document.getElementById('game-stage');
 
@@ -246,8 +261,10 @@
 
         installButton.classList.toggle('cw-fixed', target.kind === 'fixed');
         installButton.classList.toggle('cw-in-veil', target.kind === 'veil');
+        installButton.classList.toggle('cw-in-hud', target.kind === 'hud');
         installHint.classList.toggle('cw-in-veil', target.kind === 'veil');
         installHint.classList.toggle('cw-fixed', target.kind === 'fixed');
+        installHint.classList.toggle('cw-in-hud', target.kind === 'hud');
 
         target.host.appendChild(installButton);
         target.host.appendChild(installHint);

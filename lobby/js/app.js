@@ -95,11 +95,12 @@ function syncShell() {
 
   document.querySelectorAll('[data-avatar]').forEach((slot) => paint(slot, player));
 
-  // the free-reward badge disappears once today's reward is taken
+  // The free-reward badge disappears once today's reward is taken. It is looked
+  // up by name: the old `.parentElement .querySelector('.dock__dot')` reached
+  // into the dock and found the FIRST dot there, which was Friends.
   const claimedToday = daily.claimed.includes(daily.today);
-  const rewardsBtn = document.querySelector('.dock__item [data-rewards], .dock__item[data-rewards]');
-  rewardsBtn?.parentElement?.querySelector('.dock__dot')?.toggleAttribute('hidden', claimedToday);
-  document.querySelector('.rewards__dot')?.toggleAttribute('hidden', claimedToday);
+  document.querySelector('[data-dot="rewards"]')?.toggleAttribute('hidden', claimedToday);
+  document.querySelector('[data-news-dot]')?.toggleAttribute('hidden', store.state.notificationsRead);
 }
 
 /* --- wallet --------------------------------------------------------------- */
@@ -188,8 +189,10 @@ function openRewards() {
         label: 'Claim',
         variant: 'primary',
         onClick: () => {
-          const amount = store.claimDaily();
-          if (amount) toast(`+${amount} coins`, 'good');
+          const reward = store.claimDaily();
+          if (reward) {
+            toast(reward.kind === 'gems' ? `+${reward.amount} diamonds` : `+${reward.amount} coins`, 'good');
+          }
           syncShell();
         }
       }]
@@ -234,7 +237,7 @@ document.querySelector('[data-account]')?.addEventListener('click', () => {
   });
 });
 
-document.querySelector('[data-chat]')?.addEventListener('click', () => {
+function openNews() {
   dialog({
     title: 'What is new',
     body: `
@@ -251,6 +254,46 @@ document.querySelector('[data-chat]')?.addEventListener('click', () => {
           </article>`).join('')}
       </div>`,
     actions: [{ label: 'Mark all read', variant: 'primary', onClick: () => store.markNotificationsRead() }]
+  });
+}
+
+document.querySelector('[data-chat]')?.addEventListener('click', openNews);
+
+/* --- the overflow sheet ---------------------------------------------------
+   Below 720px the dock shows six stations and this sheet holds the rest. The
+   items here are the same destinations the desktop dock links to — nothing is
+   tucked away that a desktop player can reach and a phone player cannot. */
+
+const OVERFLOW = [
+  { route: 'events', icon: 'calendar', label: 'Events', hint: 'Missions and live events' },
+  { route: 'pass', icon: 'sparkle', label: 'Season pass', hint: 'Tiers, rewards, progress' },
+  { rewards: true, icon: 'chest', label: 'Free rewards', hint: 'One claim a day' },
+  { chat: true, icon: 'msg', label: `What's new`, hint: 'Rewards, invites, results' },
+  { route: 'settings', icon: 'gear', label: 'Settings', hint: 'Sound, privacy, connection' }
+];
+
+document.querySelector('[data-menu]')?.addEventListener('click', () => {
+  dialog({
+    title: 'More',
+    body: `<div class="sheet__grid">
+      ${OVERFLOW.map((item) => `
+        <button class="sheet__item" type="button" data-sheet="${item.rewards ? 'rewards' : item.chat ? 'chat' : item.route}">
+          <span class="sheet__ico">${icon(item.icon)}</span>
+          <span><b>${item.label}</b><small>${item.hint}</small></span>
+        </button>`).join('')}
+    </div>`,
+    actions: [{ label: 'Close', variant: 'quiet' }],
+    onMount(dlg) {
+      dlg.querySelectorAll('[data-sheet]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.sheet;
+          dlg.close();
+          if (target === 'rewards') openRewards();
+          else if (target === 'chat') openNews();
+          else go(target);
+        });
+      });
+    }
   });
 });
 

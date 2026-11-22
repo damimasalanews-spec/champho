@@ -26,9 +26,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lobby/css/tokens.css?v=7.0">
-<link rel="stylesheet" href="lobby/css/base.css?v=7.0">
+<link rel="stylesheet" href="lobby/css/base.css?v=7.1">
 <link rel="stylesheet" href="lobby/css/components.css?v=7.0">
 <link rel="stylesheet" href="lobby/css/screens.css?v=7.0">
+<link rel="stylesheet" href="lobby/css/home.css?v=7.1">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -45,6 +46,14 @@
 
 <!-- ------------------------------------------------------------------ hud -->
 <header class="hud">
+  <!-- The way home. Every other item in the app is one tap from here, and the
+       dock's Home item does the same job; this one is the one that is always
+       on screen, including on the tablets where the wordmark is dropped. -->
+  <a class="brand" href="#/home" data-route="home" aria-label="Champ Word — home">
+    <span class="brand__mark" data-icon="crown" aria-hidden="true"></span>
+    <span class="brand__word" aria-hidden="true">Champ <b>Word</b></span>
+  </a>
+
   <div class="hud__player">
     <button class="hud__portrait" type="button" data-account aria-label="Your account and settings">
       <span class="avatar avatar--lg" data-avatar="lg"></span>
@@ -83,6 +92,11 @@
     </button>
   </div>
 
+  <button class="hud__news" type="button" data-chat aria-label="News and notifications">
+    <span data-icon="msg" aria-hidden="true"></span>
+    <span class="hud__news-dot" data-news-dot aria-hidden="true"></span>
+  </button>
+
   <a class="passcard" href="#/pass" data-route="pass" aria-label="Season pass progress">
     <span class="passcard__crown" data-icon="crown" aria-hidden="true"></span>
     <span class="passcard__text">
@@ -92,6 +106,10 @@
     </span>
     <span class="passcard__badge" aria-hidden="true">!</span>
   </a>
+
+  <!-- pwa.js mounts the install button here when the lobby is the host page.
+       Fixed to the viewport corner it landed on top of the pass card. -->
+  <div class="hud__install" data-install-slot></div>
 </header>
 
 <!-- ----------------------------------------------------------------- main -->
@@ -102,58 +120,38 @@
   </div>
 </main>
 
-<!-- ------------------------------------------------------------- floaters -->
-<div class="floaters">
-  <button class="chatfab" type="button" data-chat aria-label="Table chat and news">
-    <span data-icon="msg" aria-hidden="true"></span>
-  </button>
-
-  <div class="floaters__right">
-    <button class="gg" type="button" data-sale>
-      <span>GG</span>
-      <b>SALE</b>
-    </button>
-    <button class="rewards" type="button" data-rewards>
-      <span class="rewards__ico" data-icon="chest" aria-hidden="true"></span>
-      <span class="rewards__label">FREE<br>REWARDS</span>
-      <span class="rewards__dot" aria-hidden="true">!</span>
-    </button>
-  </div>
-</div>
-
 <!-- ----------------------------------------------------------------- dock -->
 <nav class="dock" aria-label="Sections">
+  <a class="dock__item" href="#/home" data-route="home">
+    <span class="dock__ico" data-icon="home" aria-hidden="true"></span>
+    <span class="dock__label">Home</span>
+  </a>
   <a class="dock__item" href="#/play/classic" data-route="play">
     <span class="dock__ico" data-icon="play" aria-hidden="true"></span>
     <span class="dock__label">Play</span>
   </a>
-  <a class="dock__item" href="#/settings" data-route="settings">
-    <span class="dock__ico" data-icon="gear" aria-hidden="true"></span>
-    <span class="dock__label">Settings</span>
-  </a>
   <a class="dock__item" href="#/social" data-route="social">
     <span class="dock__ico" data-icon="users" aria-hidden="true"></span>
     <span class="dock__label">Friends</span>
-    <span class="dock__dot" aria-hidden="true">!</span>
+    <span class="dock__dot" data-dot="social" aria-hidden="true">!</span>
   </a>
   <a class="dock__item" href="#/ranks" data-route="ranks">
     <span class="dock__ico" data-icon="trophy" aria-hidden="true"></span>
     <span class="dock__label">League</span>
   </a>
-  <a class="dock__item" href="#/events" data-route="events">
+  <a class="dock__item dock__item--secondary" href="#/events" data-route="events">
     <span class="dock__ico" data-icon="calendar" aria-hidden="true"></span>
     <span class="dock__label">Events</span>
-    <span class="dock__dot" aria-hidden="true">!</span>
+    <span class="dock__dot" data-dot="events" aria-hidden="true">!</span>
   </a>
-  <a class="dock__item" href="#/pass" data-route="pass">
+  <a class="dock__item dock__item--secondary" href="#/pass" data-route="pass">
     <span class="dock__ico" data-icon="sparkle" aria-hidden="true"></span>
     <span class="dock__label">Pass</span>
   </a>
-  <button class="dock__item" type="button" data-rewards>
+  <button class="dock__item dock__item--secondary" type="button" data-rewards>
     <span class="dock__ico" data-icon="chest" aria-hidden="true"></span>
     <span class="dock__label">Free</span>
-    <span class="dock__timer" data-daily-timer>10d 13h</span>
-    <span class="dock__dot" aria-hidden="true">!</span>
+    <span class="dock__dot" data-dot="rewards" aria-hidden="true">!</span>
   </button>
   <a class="dock__item" href="#/shop" data-route="shop">
     <span class="dock__ico" data-icon="bag" aria-hidden="true"></span>
@@ -163,6 +161,16 @@
     <span class="dock__ico" data-icon="user" aria-hidden="true"></span>
     <span class="dock__label">You</span>
   </a>
+  <a class="dock__item dock__item--secondary" href="#/settings" data-route="settings">
+    <span class="dock__ico" data-icon="gear" aria-hidden="true"></span>
+    <span class="dock__label">Settings</span>
+  </a>
+
+  <!-- Phones show six stations, not ten: the rest live in this sheet. -->
+  <button class="dock__item dock__more" type="button" data-menu aria-label="More sections">
+    <span class="dock__ico" data-icon="chevron" aria-hidden="true"></span>
+    <span class="dock__label">More</span>
+  </button>
 </nav>
 
 <!-- The notch probe. env(safe-area-inset-*) is 0 inside an iframe, so the table
@@ -189,7 +197,7 @@
 <div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
 <div id="dialog-root"></div>
 
-<script type="module" src="lobby/js/app.js?v=7.0"></script>
+<script type="module" src="lobby/js/app.js?v=7.1"></script>
 <script src="game/pwa.js" defer></script>
 <noscript>
   <p class="noscript">Champ Word needs JavaScript for the lobby. The tables themselves stay playable at
