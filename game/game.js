@@ -264,7 +264,9 @@ const TEAM_SIZE = (function () {
 })();
 const SEATS = TEAM_SIZE * 2;
 const RING_4 = ['pos-tl', 'pos-tr', 'pos-mr'];
-const RING_8 = ['p8-1', 'p8-2', 'p8-3', 'p8-4', 'p8-5', 'p8-6', 'p8-7'];
+// Ordered so the first four seats of the table are allies: you, your flank, then
+// the two lower flanks; the four rivals follow. makePlayers() colours by index.
+const RING_8 = ['p8-7', 'p8-5', 'p8-6', 'p8-1', 'p8-2', 'p8-3', 'p8-4'];
 // Two teams, two families of colour. In 4v4 the four seats on your side wear
 // cyan and the four opposite wear magenta, so "whose side is that?" is answered
 // by the card itself rather than by counting seats.
