@@ -144,7 +144,7 @@ let queueController = null;
  * Resolves once with { mode: 'live'|'mock', roomId, seatNumber }.
  * `onState` is called with 'queued' and 'found' so the screen can narrate.
  */
-export function findMatch({ displayName = 'You', onState = () => {} } = {}) {
+export function findMatch({ displayName = 'You', teamSize = 2, onState = () => {} } = {}) {
   cancelQueue();
   const controller = { cancelled: false, timer: null, ws: null };
   queueController = controller;
@@ -190,7 +190,8 @@ export function findMatch({ displayName = 'You', onState = () => {} } = {}) {
             type: 'find_match',
             requestId: crypto.randomUUID(),
             sessionToken: session?.token,
-            displayName
+            displayName,
+            teamSize
           }));
         } catch { /* handled by the timeout below */ }
 
