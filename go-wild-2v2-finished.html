@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="game/go-wild-2v2-final-polish.css?v=4">
 <link rel="stylesheet" href="game/go-wild-2v2-poker-card-fix.css?v=6">
 <link rel="stylesheet" href="game/go-wild-2v2-cinematic.css?v=3">
-<link rel="stylesheet" href="game/go-wild-2v2-royal-arena.css?v=1">
+<link rel="stylesheet" href="game/go-wild-2v2-royal-arena.css?v=7">
 </head>
 <body>
 <div id="app" class="gwx-app">
@@ -50,10 +50,10 @@
       </div>
     </section>
 
-    <section class="gwx-seat top" data-player="poker">
+    <section class="gwx-seat q8-1" data-player="poker">
       <div class="gwx-player-card">
         <div class="gwx-avatar player-ring">
-          <div class="gwx-avatar-art avatar-poker has-portrait"><img src="assets/avatars/pumpkin-girl.webp" alt="Poker"><span class="avatar-head"></span><span class="avatar-body"></span></div>
+          <div class="gwx-avatar-art avatar-poker" style="display:grid;place-items:center;background:linear-gradient(160deg,#54a8ff,#101a2f);color:#071018;font-weight:900;font-size:26px;letter-spacing:.02em">P</div>
           <i class="status-dot"></i>
         </div>
         <div class="gwx-player-info">
@@ -67,10 +67,75 @@
       </div>
     </section>
 
-    <section class="gwx-seat left" data-player="kalkal">
+    <section class="gwx-seat q8-4" data-player="sabin">
       <div class="gwx-player-card">
         <div class="gwx-avatar player-ring">
-          <div class="gwx-avatar-art avatar-kalkal has-portrait"><img src="assets/avatars/pumpkin-girl.webp" alt="Kalkal"><span class="avatar-head"></span><span class="avatar-body"></span></div>
+          <div class="gwx-avatar-art avatar-sabin" style="display:grid;place-items:center;background:linear-gradient(160deg,#4ade80,#101a2f);color:#071018;font-weight:900;font-size:26px">S</div>
+          <i class="status-dot"></i>
+        </div>
+        <div class="gwx-player-info">
+          <strong>Sabin</strong>
+          <span class="gwx-player-status">READY TO HUNT</span>
+        </div>
+        <div class="gwx-seat-coins">
+          <b><span id="coins-sabin">0</span><small> COINS</small></b>
+          <small><span id="words-sabin">0</span> <i>WORDS</i></small>
+        </div>
+      </div>
+    </section>
+    <section class="gwx-seat q8-5" data-player="anjali">
+      <div class="gwx-player-card">
+        <div class="gwx-avatar player-ring">
+          <div class="gwx-avatar-art avatar-anjali" style="display:grid;place-items:center;background:linear-gradient(160deg,#f472b6,#101a2f);color:#071018;font-weight:900;font-size:26px">A</div>
+          <i class="status-dot"></i>
+        </div>
+        <div class="gwx-player-info">
+          <strong>Anjali</strong>
+          <span class="gwx-player-status">READY TO HUNT</span>
+        </div>
+        <div class="gwx-seat-coins">
+          <b><span id="coins-anjali">0</span><small> COINS</small></b>
+          <small><span id="words-anjali">0</span> <i>WORDS</i></small>
+        </div>
+      </div>
+    </section>
+    <section class="gwx-seat q8-6" data-player="bibek">
+      <div class="gwx-player-card">
+        <div class="gwx-avatar player-ring">
+          <div class="gwx-avatar-art avatar-bibek" style="display:grid;place-items:center;background:linear-gradient(160deg,#fbbf24,#101a2f);color:#071018;font-weight:900;font-size:26px">B</div>
+          <i class="status-dot"></i>
+        </div>
+        <div class="gwx-player-info">
+          <strong>Bibek</strong>
+          <span class="gwx-player-status">READY TO HUNT</span>
+        </div>
+        <div class="gwx-seat-coins">
+          <b><span id="coins-bibek">0</span><small> COINS</small></b>
+          <small><span id="words-bibek">0</span> <i>WORDS</i></small>
+        </div>
+      </div>
+    </section>
+    <section class="gwx-seat q8-7" data-player="shreya">
+      <div class="gwx-player-card">
+        <div class="gwx-avatar player-ring">
+          <div class="gwx-avatar-art avatar-shreya" style="display:grid;place-items:center;background:linear-gradient(160deg,#a78bfa,#101a2f);color:#071018;font-weight:900;font-size:26px">S</div>
+          <i class="status-dot"></i>
+        </div>
+        <div class="gwx-player-info">
+          <strong>Shreya</strong>
+          <span class="gwx-player-status">READY TO HUNT</span>
+        </div>
+        <div class="gwx-seat-coins">
+          <b><span id="coins-shreya">0</span><small> COINS</small></b>
+          <small><span id="words-shreya">0</span> <i>WORDS</i></small>
+        </div>
+      </div>
+    </section>
+
+    <section class="gwx-seat q8-2" data-player="kalkal">
+      <div class="gwx-player-card">
+        <div class="gwx-avatar player-ring">
+          <div class="gwx-avatar-art avatar-kalkal" style="display:grid;place-items:center;background:linear-gradient(160deg,#bd78ff,#101a2f);color:#071018;font-weight:900;font-size:26px;letter-spacing:.02em">K</div>
           <i class="status-dot"></i>
         </div>
         <div class="gwx-player-info">
@@ -84,10 +149,10 @@
       </div>
     </section>
 
-    <section class="gwx-seat right" data-player="jess">
+    <section class="gwx-seat q8-3" data-player="jess">
       <div class="gwx-player-card">
         <div class="gwx-avatar player-ring">
-          <div class="gwx-avatar-art avatar-jess has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt="Jess"><span class="avatar-head"></span><span class="avatar-body"></span></div>
+          <div class="gwx-avatar-art avatar-jess" style="display:grid;place-items:center;background:linear-gradient(160deg,#ff9b59,#101a2f);color:#071018;font-weight:900;font-size:26px;letter-spacing:.02em">J</div>
           <i class="status-dot"></i>
         </div>
         <div class="gwx-player-info">
@@ -116,7 +181,7 @@
     <section class="gwx-seat bottom" data-player="champ">
       <div class="gwx-player-card">
         <div class="gwx-avatar player-ring">
-          <div class="gwx-avatar-art avatar-champ has-portrait"><img src="assets/avatars/pumpkin-boy.webp" alt="Champ"><span class="avatar-head"></span><span class="avatar-body"></span></div>
+          <div class="gwx-avatar-art avatar-champ" style="display:grid;place-items:center;background:linear-gradient(160deg,#50e8ef,#101a2f);color:#071018;font-weight:900;font-size:26px;letter-spacing:.02em">C</div>
           <i class="status-dot"></i>
         </div>
         <div class="gwx-player-info">

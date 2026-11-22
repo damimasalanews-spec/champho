@@ -86,3 +86,26 @@
   #gwxDuelPanel,.gwx-duel-panel {order:6!important}
   .gwx-cinematic-feed {order:7!important}
 }
+
+/* ---- 4v4: eight seats, placed where this screen is actually empty ----------
+   Go Wild's chrome is fixed: WORD HUNT across the top centre (x 410-1030,
+   y 106-206), BOUNTY/BUILD top right (x 1055-1405), GAME ACTIVITY bottom right
+   (y 598-768), HEAD-TO-HEAD duel bottom left (y 564-768), the player's own bar
+   on the bottom rail. Three columns of clear space remain: the two flanks and
+   one pocket above the left flank. That is where the seven rivals go.
+
+   Card is 480x237 before transform. At .48 it is 230x114, and the three seats
+   in each column are pitched 11% apart (about 96px) so their shadows do not
+   touch and the last one ends at 540 - clear of the duel panel at 564. */
+.gwx-seat.q8-1 { left: 128px !important; top: 84px !important; transform: scale(.5) !important; transform-origin: left top !important; }
+.gwx-seat.q8-2 { left: 6px !important;  top: 20% !important; transform: scale(.48) !important; transform-origin: left center !important; }
+.gwx-seat.q8-3 { right: 6px !important; top: 20% !important; transform: scale(.48) !important; transform-origin: right center !important; }
+.gwx-seat.q8-4 { left: 6px !important;  top: 31% !important; transform: scale(.48) !important; transform-origin: left center !important; }
+.gwx-seat.q8-5 { right: 6px !important; top: 31% !important; transform: scale(.48) !important; transform-origin: right center !important; }
+.gwx-seat.q8-6 { left: 6px !important;  top: 42% !important; transform: scale(.48) !important; transform-origin: left center !important; }
+.gwx-seat.q8-7 { right: 6px !important; top: 42% !important; transform: scale(.48) !important; transform-origin: right center !important; }
+
+@media (max-width: 1180px) {
+  .gwx-seat.q8-1, .gwx-seat.q8-2, .gwx-seat.q8-3, .gwx-seat.q8-4, .gwx-seat.q8-5, .gwx-seat.q8-6, .gwx-seat.q8-7 { transform: scale(.4) !important; }
+  .gwx-seat.q8-1 { left: 96px !important; }
+}

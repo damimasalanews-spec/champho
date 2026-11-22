@@ -4,16 +4,20 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
 (() => {
   'use strict';
   const PLAYERS = [
-    { id: 'champ', name: 'Champ', color: '#50e8ef' },
-    { id: 'poker', name: 'Poker', color: '#54a8ff' },
+    { id: 'champ',  name: 'Champ',  color: '#50e8ef' },
+    { id: 'poker',  name: 'Poker',  color: '#54a8ff' },
     { id: 'kalkal', name: 'Kalkal', color: '#bd78ff' },
-    { id: 'jess', name: 'Jess', color: '#ff9b59' }
+    { id: 'jess',   name: 'Jess',   color: '#ff9b59' },
+    { id: 'sabin',  name: 'Sabin',  color: '#4ade80' },
+    { id: 'anjali', name: 'Anjali', color: '#f472b6' },
+    { id: 'bibek',  name: 'Bibek',  color: '#fbbf24' },
+    { id: 'shreya', name: 'Shreya', color: '#a78bfa' }
   ];
   /* The three seats that are not the player. They play themselves from the bot
      takeover loop further down; this list is the single place that decides it, so
      turning a bot seat into a real opponent later means removing its id here and
      letting the server own that seat instead. */
-  const BOT_IDS = ['poker', 'kalkal', 'jess'];
+  const BOT_IDS = ['poker', 'kalkal', 'jess', 'sabin', 'anjali', 'bibek', 'shreya'];
   const HUMAN_ID = 'champ';
 
   /* ---- the signed-in player ------------------------------------------------
