@@ -312,29 +312,8 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
       seat.classList.toggle('has-revenge', Boolean(round.revengeTargets && round.revengeTargets[seat.dataset.player]));
     });
     panel.classList.toggle('is-robbery', inRobbery());
-    renderDuelPanel();
+    // Head-to-head duel removed: the 8-player table is the whole competition.
   }
-
-  function renderDuelPanel() {
-    let duelPanel = $('gwxDuelPanel');
-    if (!duelPanel) {
-      duelPanel = document.createElement('section');
-      duelPanel.id = 'gwxDuelPanel';
-      duelPanel.className = 'gwx-duel-panel';
-      duelPanel.setAttribute('aria-label', 'Head-to-Head Duel');
-      duelPanel.innerHTML = '<header><span>⚔</span><b>HEAD-TO-HEAD DUEL</b><small>LIVE CHALLENGE</small></header><p>Challenge your closest rival. First valid word wins the side pot.</p><div class="gwx-duel-reward"><strong>+300</strong><span>BONUS COINS</span></div><button type="button" data-start-duel>CHALLENGE RIVAL</button><small class="gwx-duel-status" data-duel-status>30-second duel · separate from round scoring</small>';
-      const table = $('table');
-      if (table) table.appendChild(duelPanel);
-      duelPanel.querySelector('[data-start-duel]').addEventListener('click', startDuel);
-    }
-    const duelButton = duelPanel.querySelector('[data-start-duel]');
-    const duelStatus = duelPanel.querySelector('[data-duel-status]');
-    if (duelButton) duelButton.disabled = Boolean(activeDuel || round.ended || isOut(HUMAN_ID));
-    if (duelStatus && !activeDuel) duelStatus.textContent = '30-second duel · separate from round scoring';
-  }
-
-
-
 
   /* Both marks are about the next word, not the last one: the seat that will
      pay for the next find (unless shielded), and the seat carrying the bounty. */
@@ -695,7 +674,7 @@ import { createWordGrid, normalizeGuess, scoreWord } from './word-grid-rules.js?
     /* Resolve the payout against the number of words found BEFORE this one.
        This keeps words 1–20 in BUILD; word 21 is the first robbery. */
     const outcome = resolveWord(playerId, result.word);
-    if (activeDuel && activeDuel.players.includes(playerId)) finishDuel(playerId, 'first valid word');
+    // no side duel; score only the main Word Hunt round
     round.foundAll.add(result.word);
     /* taken in the robbery half, gained in the build half: the display reads the
        amount that actually moved, or a fallback payout shows as "+0 coins" */

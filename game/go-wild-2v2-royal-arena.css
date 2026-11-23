@@ -56,12 +56,6 @@
   .gwx-letter-grid { gap:7px!important; }
   .gwx-hunt-hint { left:2.5%!important;bottom:2.5%!important;top:auto!important;width:clamp(240px,19vw,300px)!important;z-index:7!important; }
   .gwx-round-words { right:2.5%!important;bottom:2.5%!important;top:auto!important;width:clamp(240px,19vw,300px)!important;z-index:7!important; }
-  #gwxDuelPanel,.gwx-duel-panel {
-    position:absolute!important;left:2.5%!important;right:auto!important;
-    top:auto!important;bottom:calc(2.5% + 112px)!important;
-    width:clamp(240px,19vw,300px)!important;max-width:300px!important;
-    z-index:22!important;margin:0!important;
-  }
   .gwx-cinematic-feed {
     position:absolute!important;right:2.5%!important;left:auto!important;
     top:auto!important;bottom:calc(2.5% + 112px)!important;
@@ -76,14 +70,8 @@
   .gwx-hunt-hud {width:42vw!important}
   .gwx-center {width:36vw!important}
   .gwx-seat {width:clamp(220px,20vw,260px)!important}
-  #gwxDuelPanel,.gwx-duel-panel,.gwx-cinematic-feed {width:clamp(220px,20vw,260px)!important}
 }
 @media (max-width:760px) {
-  #gwxDuelPanel,.gwx-duel-panel,.gwx-cinematic-feed {
-    position:relative!important;inset:auto!important;transform:none!important;
-    width:100%!important;max-width:none!important;margin:9px 0!important;
-  }
-  #gwxDuelPanel,.gwx-duel-panel {order:6!important}
   .gwx-cinematic-feed {order:7!important}
 }
 
@@ -109,3 +97,94 @@
   .gwx-seat.q8-1, .gwx-seat.q8-2, .gwx-seat.q8-3, .gwx-seat.q8-4, .gwx-seat.q8-5, .gwx-seat.q8-6, .gwx-seat.q8-7 { transform: scale(.4) !important; }
   .gwx-seat.q8-1 { left: 96px !important; }
 }
+
+/* ---- final 8-player arena polish ----------------------------------------
+   The previous q8 rules were a scaled-down desktop card copied into empty
+   columns. These are full-size player panels with a deliberate composition:
+   one seat in the upper-left pocket, three seats in each side rail, and Champ
+   as the full-width bottom rail. The hunt board stays the visual centre. */
+@media (min-width: 1101px) {
+  .gwx-seat {
+    width: 292px !important;
+    height: 106px !important;
+    min-height: 106px !important;
+    max-height: 106px !important;
+    transform: none !important;
+    z-index: 24 !important;
+  }
+  .gwx-seat .gwx-player-card {
+    min-height: 106px !important;
+    height: 106px !important;
+    border-radius: 18px !important;
+    padding: 12px 14px !important;
+    grid-template-columns: 62px minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) 30px !important;
+    gap: 6px 10px !important;
+  }
+  .gwx-seat .gwx-avatar { width: 56px !important; height: 56px !important; }
+  .gwx-seat .gwx-player-info { gap: 4px !important; }
+  .gwx-seat .gwx-player-info strong { font-size: 18px !important; }
+  .gwx-seat .gwx-seat-coins { height: 30px !important; padding-top: 5px !important; }
+  .gwx-seat .gwx-seat-coins b { font-size: 14px !important; }
+
+  /* upper-left pocket, clear of How to play and the WORD HUNT header */
+  .gwx-seat.q8-1 { left: 148px !important; top: 106px !important; transform: none !important; }
+  /* left rail */
+  .gwx-seat.q8-2 { left: 18px !important; top: 218px !important; transform: none !important; }
+  .gwx-seat.q8-4 { left: 18px !important; top: 348px !important; transform: none !important; }
+  .gwx-seat.q8-6 { left: 18px !important; top: 478px !important; transform: none !important; }
+  /* right rail */
+  .gwx-seat.q8-3 { right: 18px !important; top: 218px !important; transform: none !important; }
+  .gwx-seat.q8-5 { right: 18px !important; top: 348px !important; transform: none !important; }
+  .gwx-seat.q8-7 { right: 18px !important; top: 478px !important; transform: none !important; }
+
+  /* Champ owns the bottom rail and no longer sits behind a side event. */
+  .gwx-seat.bottom {
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 18px !important;
+    width: 440px !important;
+    height: 82px !important;
+    min-height: 82px !important;
+    max-height: 82px !important;
+    transform: translateX(-50%) !important;
+  }
+  .gwx-seat.bottom .gwx-player-card {
+    height: 82px !important;
+    min-height: 82px !important;
+    grid-template-columns: 58px 1fr !important;
+    grid-template-rows: 1fr !important;
+    align-items: center !important;
+  }
+  .gwx-seat.bottom .gwx-seat-coins {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    border-top: 0 !important;
+    border-left: 1px solid #ffffff22 !important;
+    padding-left: 14px !important;
+  }
+  .gwx-seat.bottom .champ-social-controls { bottom: 0 !important; right: -112px !important; }
+
+  /* The side panels no longer compete with a duel card. */
+  .gwx-hunt-hint { bottom: 18px !important; }
+  .gwx-round-words { bottom: 18px !important; }
+  .gwx-cinematic-feed { bottom: 18px !important; max-height: 154px !important; }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  .gwx-seat { width: 224px !important; height: 88px !important; min-height: 88px !important; transform: none !important; }
+  .gwx-seat .gwx-player-card { min-height: 88px !important; height: 88px !important; padding: 9px !important; grid-template-columns: 48px 1fr !important; }
+  .gwx-seat .gwx-avatar { width: 44px !important; height: 44px !important; }
+  .gwx-seat.q8-1 { left: 92px !important; top: 100px !important; }
+  .gwx-seat.q8-2 { left: 8px !important; top: 222px !important; }
+  .gwx-seat.q8-4 { left: 8px !important; top: 330px !important; }
+  .gwx-seat.q8-6 { left: 8px !important; top: 438px !important; }
+  .gwx-seat.q8-3 { right: 8px !important; top: 222px !important; }
+  .gwx-seat.q8-5 { right: 8px !important; top: 330px !important; }
+  .gwx-seat.q8-7 { right: 8px !important; top: 438px !important; }
+  .gwx-seat.bottom { left: 50% !important; right: auto !important; bottom: 12px !important; transform: translateX(-50%) !important; width: 330px !important; height: 70px !important; min-height: 70px !important; }
+}
+
+/* There is no side duel in an eight-player Word Hunt. */
+#gwxDuelPanel, .gwx-duel-panel { display: none !important; }
