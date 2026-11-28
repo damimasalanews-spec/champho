@@ -193,3 +193,27 @@ No application file is approved for deletion or relocation yet. Next, inspect th
 5. Run `npm ci`, `npm run typecheck`, `npm test`, and `npm run build` in a clean checkout; then smoke-test lobby, Classic, Go Wild, WebSocket matchmaking, and mobile wrapper. These commands have not been executed by this remote repository inspection.
 
 No application source, deployment settings, mobile configuration, or live branch was modified in this audit pass.
+
+
+## Continued cleanup — legacy entry points and comment corrections — 2026-11-28
+
+### Legacy entry-point findings
+
+- `classic.html` is a standalone older Classic client. It is distinct from the current `/game/` route, which resolves to `game/index.html`.
+- `wild.html` and `wild-play.html` are older Go Wild clients with their own page structures. The PWA manifest still exposes `/wild-play.html` as its Go Wild shortcut, and the service worker still lists legacy routes for pre-cache. They cannot be treated as dead files merely because the current lobby does not launch them.
+- `go-wild-2v2.html` is another separate implementation using `game/go-wild-2v2.css`, `game/wall-push.css`, and older card/wall-push scripts. The current lobby instead launches `go-wild-2v2-finished.html`. Keep the older implementation until all inbound links, bookmarks, and external distribution references are ruled out.
+- `cards.html` is a standalone card-design/sheet page and directly consumes the game's card styles and builder script. It is not safe to classify as an unused game page based on the lobby route graph.
+- `index-legacy.html` is a separate legacy application page with an embedded compressed stylesheet/application payload and dynamic asset paths. Its large inline payload makes a simple filename/reference scan insufficient to establish whether any root-level stylesheets are redundant.
+
+### Safe source cleanup completed
+
+Two comment-only corrections were committed on `chore/repository-cleanup`:
+
+- `lobby/js/api.js`: its explanatory comment now describes the root-hosted lobby and identifies the `/site/` path check as compatibility behavior for older nested deployments.
+- `lobby/js/gameframe.js`: its module header now describes the selected game client generically instead of claiming every round is served by `wild-play.html`.
+
+No executable statements, routing expressions, HTML, stylesheets, PWA behavior, mobile configuration, server code, or deployment configuration were changed in these commits. These are source-comment corrections only; runtime tests have not yet been run.
+
+### Current decision
+
+The legacy HTML pages and root-level CSS candidates remain **retain pending evidence**, not delete candidates. Next work should build a complete inbound-reference map (including manifest shortcuts, service-worker precache, internal links, JavaScript-generated navigation, Android packaging, and external deployment references) and then run the project checks in a clean checkout. No file moves or deletions are justified yet.
