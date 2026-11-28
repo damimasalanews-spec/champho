@@ -162,3 +162,34 @@ No application file is approved for deletion or relocation yet. Next, inspect th
 - `mobile/www/README.md` says the remote-site approach is intentional because the game socket is derived from `location.host`.
 - The lobby's default WebSocket URL is indeed same-origin. A GitHub Pages origin does not, by itself, establish that the Render WebSocket backend is reachable at that same host.
 - Treat this as a configuration risk to verify on an installed Android build. Do not change `server.url` or replace it with the Render URL until the intended production mobile origin and WebSocket routing are confirmed.
+
+
+## Follow-up deployment, documentation and runtime findings — 2026-11-28
+
+### Confirmed source-of-truth conflicts
+
+1. `README.md` still says the lobby lives in `site/` and directs readers to `/site/`. The live tree and static server instead use root `index.html` and `lobby/`.
+2. `lobby/README.md` describes the old split-folder deployment, says the lobby hands off to `wild-play.html`, and contains stale deployment instructions. Current mode routing in `lobby/js/screens/play.js` points Classic to `game/` and Go Wild to `go-wild-2v2-finished.html`.
+3. `lobby/js/api.js` has old `site/` / `wild-play.html` explanatory comments even though its executable URL resolution supports the current root layout.
+4. `sw.js` and `manifest.json` retain legacy app-shell routes and shortcuts. The legacy pages still exist, so this is a migration/consistency issue, not a safe deletion opportunity.
+
+### Deployment branch discrepancy
+
+- `render.yaml` explicitly sets the Render web service branch to `redesign/authoritative-classic`.
+- The cleanup work is on `chore/repository-cleanup`; the previously reported dashboard setting was `main`.
+- These three branch references do not agree. No deployment configuration was changed. Before merging or applying a Blueprint, verify the actual Render service's configured branch and whether it is managed by this Blueprint. Do not apply the Blueprint as part of file cleanup.
+
+### Mobile packaging
+
+- Capacitor's `webDir` is `mobile/www`, but the Android app is configured to load the GitHub Pages URL remotely.
+- The mobile README says this is intentional. Keep this arrangement unchanged until the actual production WebSocket origin is verified on an installed build.
+
+### Safe next implementation order
+
+1. Update documentation only: rewrite root `README.md` and `lobby/README.md` to reflect the current root lobby, real game entry points, Node 22 requirements, scripts, same-origin WebSocket, and current deployment caveats.
+2. Correct stale comments in `lobby/js/api.js` without changing executable logic.
+3. Separately review PWA shortcuts and service-worker pre-cache against the current game entry points. Treat this as a behavior change and test install/update/offline behavior before merging.
+4. Do not move/delete the root stylesheets, legacy HTML pages, mobile assets, or duplicate platform resources until their consumers and packaging paths are fully proven.
+5. Run `npm ci`, `npm run typecheck`, `npm test`, and `npm run build` in a clean checkout; then smoke-test lobby, Classic, Go Wild, WebSocket matchmaking, and mobile wrapper. These commands have not been executed by this remote repository inspection.
+
+No application source, deployment settings, mobile configuration, or live branch was modified in this audit pass.
