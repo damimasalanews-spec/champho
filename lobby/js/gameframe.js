@@ -1,8 +1,8 @@
 /* ===========================================================================
    The in-round client, unchanged.
-   The table is served by wild-play.html, which owns its own socket, seats and
-   round state. The lobby hands off to it in a full-screen frame and takes the
-   player back when it closes.
+   Each game client owns its own socket, seats and round state. The lobby
+   hands the selected client off in a full-screen frame and takes the player
+   back when it closes.
 
    The frame probes the server first. Without one the round client opens on a
    dead board with "Disconnected - reload to reconnect" across it, which reads
