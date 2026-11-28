@@ -39,10 +39,9 @@ export function socketUrl() {
 /**
  * Where the round client lives.
  *
- * The lobby is deployed as a self-contained folder (`site/`), while the table
- * client (`wild-play.html`) stays at the repository root and is not touched by
- * this rewrite. Resolving the path instead of hard-coding it means the same
- * build works whether it is served from /site/ or promoted to the root.
+ * The current lobby is served from the repository root. The `/site/` check
+ * remains as a compatibility path for older nested deployments; in either
+ * layout, game clients resolve relative to the repository root.
  */
 const GAME_DIR = new URLSearchParams(location.search).get('game')
   ?? (location.pathname.includes('/site/') ? '../' : './');
