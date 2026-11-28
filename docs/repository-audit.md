@@ -154,3 +154,11 @@ The root contains `style.css` (about 503 KB), `style-part-1.css` (about 96 KB), 
 ### Triage decision
 
 No application file is approved for deletion or relocation yet. Next, inspect the legacy page's embedded loader and the Android/Capacitor packaging inputs, then build a complete reference matrix for the large root stylesheets and alternate HTML entry points. Only after that should we propose a reversible move/delete list.
+
+
+### Mobile wrapper origin check
+
+- `capacitor.config.json` sets `webDir` to `mobile/www`, but configures the Android wrapper to load `https://damimasalanews-spec.github.io/champho/` remotely.
+- `mobile/www/README.md` says the remote-site approach is intentional because the game socket is derived from `location.host`.
+- The lobby's default WebSocket URL is indeed same-origin. A GitHub Pages origin does not, by itself, establish that the Render WebSocket backend is reachable at that same host.
+- Treat this as a configuration risk to verify on an installed Android build. Do not change `server.url` or replace it with the Render URL until the intended production mobile origin and WebSocket routing are confirmed.
