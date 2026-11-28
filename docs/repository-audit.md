@@ -125,3 +125,32 @@ All 13 tracked HTML documents were inspected for literal local `src` and `href` 
 - The old/alternate HTML pages and root-level `style-part-*.css` files remain in place. No deletion or move is justified by this dependency pass alone.
 
 This follow-up is still observational. No game, server, deployment, manifest, service-worker, or asset files were changed.
+
+
+## Follow-up legacy and duplicate-file triage — 2026-11-28
+
+### Exact duplicate blobs
+
+The Git tree contains three groups of byte-identical files:
+
+| Files | Size | Initial interpretation |
+|---|---:|---|
+| `android/app/src/main/res/drawable-land-mdpi/splash.png` and `android/app/src/main/res/drawable/splash.png` | 30,455 bytes each | Android resource variants; retain both unless Android packaging is deliberately reworked. |
+| `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml` and `ic_launcher_round.xml` | 265 bytes each | Android launcher resource names may be referenced by platform configuration; retain both. |
+| `offline.html` and `mobile/www/offline.html` | 3,599 bytes each | Root web app fallback and Capacitor web bundle copy; retain both until the mobile packaging workflow is verified. |
+
+Identical content does not mean interchangeable paths. No duplicate was deleted.
+
+### Root-level stylesheet candidates
+
+The root contains `style.css` (about 503 KB), `style-part-1.css` (about 96 KB), `style-part-2.css` (about 2.73 MB), and `style-part-3.css` (about 406 KB).
+
+- None of the 13 HTML documents directly links to these root-level stylesheets by filename.
+- The current lobby and game clients use their own stylesheets under `lobby/css/` and `game/`.
+- `index-legacy.html` contains a large embedded/decompressed legacy application and does not show a normal stylesheet link to these root-level files in its HTML references.
+- The repository fetch operation returned no readable content for the 2.73 MB `style-part-2.css` file, so its internal imports and selectors could not be inspected in this pass.
+- This is evidence to investigate, not sufficient proof that the root stylesheets are unused. Dynamic references, historical routes, mobile packaging, or external entry points must be ruled out before any removal.
+
+### Triage decision
+
+No application file is approved for deletion or relocation yet. Next, inspect the legacy page's embedded loader and the Android/Capacitor packaging inputs, then build a complete reference matrix for the large root stylesheets and alternate HTML entry points. Only after that should we propose a reversible move/delete list.
