@@ -72,3 +72,56 @@ The user reports that the Render dashboard is configured to deploy from `main`. 
 3. Compare candidate duplicate/legacy files by content and reference graph.
 4. Produce a proposed move/delete matrix with evidence and a test plan before restructuring.
 5. Make only small, reversible organization changes on this branch and validate both game modes before considering a merge.
+
+
+## Follow-up dependency map — 2026-11-28
+
+Audited working-branch snapshot: `chore/repository-cleanup` at `4ffd3a9168a41eb5929fe8ee537df05ce9f51ad9`.
+
+### Current launch and runtime paths
+
+```text
+/ (index.html)
+  ├─ lobby/css/{tokens,base,components,screens,home}.css
+  ├─ lobby/js/app.js
+  │    ├─ store.js, api.js, ui.js, data.js, router.js, nav.js
+  │    └─ screens/{home,play,shop,events,pass,ranks,profile,social,
+  │                 settings,room,welcome}.js
+  └─ game/pwa.js → registers /sw.js
+
+Play screen
+  ├─ Classic → /game/ → game/index.html
+  │    ├─ game/styles.css
+  │    └─ game/{sound,sketches,emojis,game}.js
+  └─ Go Wild → /go-wild-2v2-finished.html
+       ├─ game/go-wild-2v2-{motion,coins,design,competition,
+       │                    moonlit-redesign,final-polish,
+       │                    poker-card-fix,cinematic,royal-arena}.css
+       ├─ game/go-wild-2v2-finished.js
+       │    ├─ game/english-word-bank.js
+       │    └─ game/word-grid-rules.js
+       └─ game/{audio-cues,go-wild-2v2-motion,go-wild-2v2-coins,pwa}.js
+```
+
+The lobby's `gameframe.js` loads the selected client in a full-screen iframe. The play screen's mode definitions—not the older README descriptions—are the authoritative mapping for the current Classic and Go Wild clients.
+
+### Server and build path
+
+- `package.json` requires Node.js 22 or newer. `npm run dev` runs `tsx watch server/main.ts`; `npm run build` compiles TypeScript; `npm start` runs `dist/server/main.js`; `npm test` runs the server test suite.
+- `server/main.ts` runs migrations and starts `server/index.ts`.
+- `server/index.ts` handles the HTTP and WebSocket server and delegates static requests to `server/static.ts`.
+- `server/static.ts` serves files from the repository root, maps `/` and `/index.html` to the current lobby, maps `/legacy.html` to that same lobby, and resolves directory requests such as `/game/` to that directory's `index.html`.
+- The lobby derives its WebSocket endpoint from the same origin by default. Keep the lobby and backend on the same host unless a deliberate deployment change is planned.
+
+### HTML reference check
+
+All 13 tracked HTML documents were inspected for literal local `src` and `href` references. No missing local file reference was found. Three directory-prefix references in `index-legacy.html` (`assets/titles/`, `assets/avatars/`, and `assets/effects/`) are used for dynamic asset loading; they are not missing individual files.
+
+### Confirmed cleanup cautions
+
+- `lobby/js/api.js` and `lobby/js/gameframe.js` contain comments describing the old `site/` and `wild-play.html` layout. Their executable path logic currently supports the root lobby and the current game clients; update comments separately without changing behavior.
+- `manifest.json` shortcuts still open `/wild-play.html` and `/classic.html`. Both files exist, but these are not the two current lobby mode entry points.
+- `sw.js` still pre-caches the older `classic.html`, `wild.html`, and `wild-play.html` routes. It does not pre-cache the current Go Wild HTML entry, its main module, word-bank/rules modules, or its dedicated stylesheets. Runtime caching may fill these after an online visit; first-install offline availability is therefore not guaranteed.
+- The old/alternate HTML pages and root-level `style-part-*.css` files remain in place. No deletion or move is justified by this dependency pass alone.
+
+This follow-up is still observational. No game, server, deployment, manifest, service-worker, or asset files were changed.
